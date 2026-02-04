@@ -25,7 +25,7 @@ async function getRestaurantById(db, id) {
   `;
   return db.query(query, [id]);
 }
-git branch
+
 module.exports = {
   getAllRestaurants,
   getRestaurantById,
