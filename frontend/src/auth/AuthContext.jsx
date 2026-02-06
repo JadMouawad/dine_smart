@@ -8,17 +8,17 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  async function loadMe() {
+  async function restoreSession() {
     if (!token) {
       setUser(null);
       setLoading(false);
       return;
     }
+
     try {
       const me = await getCurrentUser();
-      setUser(me.user ?? me); // supports either {user: {...}} or just {...}
-    } catch (e) {
-      // token invalid/expired -> log out
+      setUser(me.user ?? me);
+    } catch {
       localStorage.removeItem("token");
       setToken(null);
       setUser(null);
@@ -29,13 +29,15 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     setLoading(true);
-    loadMe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    restoreSession();
   }, [token]);
 
   async function login(email, password) {
     const data = await loginUser({ email, password });
-    const newToken = data.token;
+    const newToken = data.token ?? data.accessToken;
+
+    if (!newToken) throw new Error("No token returned from server");
+
     localStorage.setItem("token", newToken);
     setToken(newToken);
     setUser(data.user ?? null);
@@ -44,11 +46,13 @@ export function AuthProvider({ children }) {
 
   async function register(name, email, password) {
     const data = await registerUser({ name, email, password });
-    const newToken = data.token;
+    const newToken = data.token ?? data.accessToken;
+
     if (newToken) {
       localStorage.setItem("token", newToken);
       setToken(newToken);
     }
+
     setUser(data.user ?? null);
     return data;
   }
@@ -60,8 +64,8 @@ export function AuthProvider({ children }) {
   }
 
   const value = useMemo(
-    () => ({ user, token, loading, login, register, logout }),
-    [user, token, loading]
+    () => ({ user, loading, login, register, logout }),
+    [user, loading]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
