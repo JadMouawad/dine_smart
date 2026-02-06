@@ -1,10 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const auth = require("../middleware/auth.middleware");
-const controller = require("../controllers/restaurant.controller");
+const {
+  getRestaurants,
+  getRestaurantById
+} = require("../controllers/restaurant.controller");
 
-router.use(auth);
-router.get("/", controller.list);
-router.get("/:id", controller.getOne);
+// Story 7: Browse restaurants
+router.get("/", getRestaurants);
+// Story 8: View basic restaurant profile
+router.get("/:id", getRestaurantById);
 
 module.exports = router;
