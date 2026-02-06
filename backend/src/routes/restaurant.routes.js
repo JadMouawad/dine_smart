@@ -1,15 +1,13 @@
-// backend/src/routes/restaurant.routes.js
-
 const express = require("express");
 const router = express.Router();
 const {
   getRestaurants,
-  getRestaurantById,
+  getRestaurantById
 } = require("../controllers/restaurant.controller");
 
 // Story 7: Browse restaurants
-router.get("/restaurants", getRestaurants);
+router.get("/", getRestaurants);
 // Story 8: View basic restaurant profile
-router.get("/restaurants/:id", getRestaurantById);
+router.get("/:id", getRestaurantById);
 
 module.exports = router;
