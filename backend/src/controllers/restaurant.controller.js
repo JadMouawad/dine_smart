@@ -14,9 +14,10 @@ const getRestaurants = async (req, res) => {
 // GET /restaurants/:id  (Basic profile)
 const getRestaurantById = async (req, res) => {
   try {
-    const { id } = req.params;
-    const restaurant = await restaurantService.getRestaurantById(id);
-    return res.status(200).json(restaurant);
+  const restaurant = await restaurantService.getRestaurantById(req.params.id);
+    if (!restaurant) {
+    return res.status(404).json({ message: "Restaurant not found" });
+    }
   } catch (error) {
     return res.status(500).json({message: error.message });
   }
