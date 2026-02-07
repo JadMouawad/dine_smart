@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:3000"; // backend URL for now
+const API_BASE_URL = "http://localhost:3000/api"; // backend API URL
 
 export async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem("token");

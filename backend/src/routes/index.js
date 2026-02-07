@@ -1,11 +1,14 @@
 const express = require("express");
 const restaurantRoutes = require("./restaurant.routes");
-const userRoutes = require("./user.routes");
+const authRoutes = require("./authRoutes");
 
 const router = express.Router();
 
-router.use("/restaurants", restaurantRoutes);
-router.use("/", userRoutes);
+// Auth routes
+router.use("/auth", authRoutes);
 
-// Future route modules (e.g., auth) can be mounted here.
+// Restaurant routes
+router.use("/restaurants", restaurantRoutes);
+
+// Future route modules can be mounted here.
 module.exports = router;

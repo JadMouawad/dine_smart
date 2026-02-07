@@ -4,7 +4,7 @@
  * - Sends proper responses
  */
 
-const authService = require("../services/authService");
+const authService = require("../services/authServices");
 const { validateRegister, validateLogin } = require("../validation/authValidation");
 
 // POST /auth/register
@@ -23,7 +23,7 @@ const register = async (req, res) => {
 
     res.status(201).json({
       message: "User registered successfully",
-      user: { id: result.user._id, name: result.user.name, email: result.user.email },
+      user: result.user,
       token: result.token
     });
   } catch (err) {
@@ -47,7 +47,7 @@ const login = async (req, res) => {
 
     res.status(200).json({
       message: "Login successful",
-      user: { id: result.user._id, name: result.user.name, email: result.user.email },
+      user: result.user,
       token: result.token
     });
   } catch (err) {
@@ -58,4 +58,5 @@ const login = async (req, res) => {
 module.exports = {
   register,
   login
+
 };

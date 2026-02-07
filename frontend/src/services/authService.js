@@ -1,10 +1,6 @@
 import { apiRequest } from "./apiClient";
 
-// Uses endpoints from api-spec.md
-// POST /auth/register
-// POST /auth/login
-// GET  /me
-
+// API endpoints
 export function registerUser({ name, email, password }) {
   return apiRequest("/auth/register", {
     method: "POST",

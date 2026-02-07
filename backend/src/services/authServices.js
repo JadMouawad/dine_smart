@@ -1,20 +1,31 @@
 /**
+ * Authentication Service
  * Handles authentication logic:
  * - Register users
  * - Login users
- * - Password hashing
- * - JWT generation
+ * - Password hashing with bcrypt
+ * - JWT token generation and verification
  */
 
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const User = require("../models/User"); // User model
-const SALT_ROUNDS = 10; // bcrypt salt rounds
+const pool = require("../config/db");
+const User = require("../models/User");
 
-// Register a new user
-const registerUser = async (name, email, password) => {
+const SALT_ROUNDS = 10;
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+const JWT_EXPIRES_IN = "7d";
+
+/**
+ * Register a new user
+ * @param {string} fullName - User's full name
+ * @param {string} email - User's email
+ * @param {string} password - User's password (will be hashed)
+ * @returns {Object} User data and JWT token
+ */
+const registerUser = async (fullName, email, password) => {
   // Check if user already exists
-  const existingUser = await User.findOne({ email });
+  const existingUser = await User.findByEmail(pool, email);
   if (existingUser) {
     throw new Error("Email already registered");
   }
@@ -22,47 +33,82 @@ const registerUser = async (name, email, password) => {
   // Hash password
   const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-  // Create new user
-  const user = await User.create({
-    name,
+  // Create new user (default role_id = 3 for regular user)
+  const user = await User.create(pool, {
+    fullName,
     email,
-    password: hashedPassword
+    password: hashedPassword,
+    roleId: 3 // Default user role
   });
 
-  // Generate JWT
+  // Generate JWT token
   const token = jwt.sign(
-    { id: user._id, email: user.email }, 
-    process.env.JWT_SECRET,
-    { expiresIn: "1h" }
+    { id: user.id, email: user.email },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN }
   );
 
-  return { user, token };
+  return {
+    user: {
+      id: user.id,
+      fullName: user.full_name,
+      email: user.email
+    },
+    token
+  };
 };
 
-// Login an existing user
+/**
+ * Login an existing user
+ * @param {string} email - User's email
+ * @param {string} password - User's password
+ * @returns {Object} User data and JWT token
+ */
 const loginUser = async (email, password) => {
-  const user = await User.findOne({ email });
+  // Find user by email
+  const user = await User.findByEmail(pool, email);
   if (!user) {
-    throw new Error("User not found");
+    throw new Error("Invalid email or password");
   }
 
-  // Compare password
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) {
-    throw new Error("Incorrect password");
+  // Compare password with hash
+  const passwordMatch = await bcrypt.compare(password, user.password);
+  if (!passwordMatch) {
+    throw new Error("Invalid email or password");
   }
 
-  // Generate JWT
+  // Generate JWT token
   const token = jwt.sign(
-    { id: user._id, email: user.email },
-    process.env.JWT_SECRET,
-    { expiresIn: "1h" }
+    { id: user.id, email: user.email },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN }
   );
 
-  return { user, token };
+  return {
+    user: {
+      id: user.id,
+      fullName: user.full_name,
+      email: user.email
+    },
+    token
+  };
+};
+
+/**
+ * Verify JWT token
+ * @param {string} token - JWT token to verify
+ * @returns {Object} Decoded token payload
+ */
+const verifyToken = (token) => {
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (error) {
+    throw new Error("Invalid or expired token");
+  }
 };
 
 module.exports = {
   registerUser,
-  loginUser
+  loginUser,
+  verifyToken
 };

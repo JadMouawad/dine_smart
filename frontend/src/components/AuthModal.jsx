@@ -1,12 +1,18 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useAuth } from "../auth/AuthContext";
 
 export default function AuthModal({
   isOpen,
   mode, // "signup" | "login"
   onClose,
   onToggleMode,
-  onSubmit,
 }) {
+  const { login, register } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const copy = useMemo(() => {
     if (mode === "signup") {
       return {
@@ -58,54 +64,62 @@ export default function AuthModal({
           <p className="modal__subtitle">{copy.subtitle}</p>
         </div>
 
-        <form
-          className="form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            onSubmit(mode);
-          }}
-        >
+        {error && <div className="error-message" style={{ color: "red", padding: "10px", margin: "10px 0" }}>{error}</div>}
+
+        <form className="form" onSubmit={async (e) => {
+          e.preventDefault();
+          setError(null);
+          setLoading(true);
+          try {
+            if (mode === "signup") {
+              if (!name.trim()) throw new Error("Name is required");
+              await register(name, email, password);
+            } else {
+              await login(email, password);
+            }
+            setName("");
+            setEmail("");
+            setPassword("");
+            onClose();
+          } catch (err) {
+            setError(err.message || "Authentication failed");
+          } finally {
+            setLoading(false);
+          }
+        }}>
           <label className="field">
             <span>Email</span>
-            <input type="email" placeholder="you@example.com" required />
+            <input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={loading} />
           </label>
 
           {copy.showName && (
             <label className="field" id="nameField">
               <span>Full name</span>
-              <input type="text" placeholder="Your name" />
+              <input type="text" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} disabled={loading} />
             </label>
           )}
 
           <label className="field">
             <span>Password</span>
-            <input type="password" placeholder="••••••••" minLength={6} required />
+            <input type="password" placeholder="••••••••" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} required disabled={loading} />
           </label>
 
-          <button className="btn btn--gold btn--xl" type="submit">
-            {copy.primary}
+          <button className="btn btn--gold btn--xl" type="submit" disabled={loading}>
+            {loading ? "Loading..." : copy.primary}
           </button>
 
           <div className="divider">
             <span>or</span>
           </div>
 
-          <button
-            className="btn btn--google"
-            type="button"
-            onClick={() => alert("Google auth (demo)")}
-          >
-            <img
-              src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"
-              className="google-icon"
-              alt="Google logo"
-            />
+          <button className="btn btn--google" type="button" onClick={() => alert("Google auth coming soon")} disabled={loading}>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" className="google-icon" alt="Google logo" />
             Continue with Google
           </button>
 
           <p className="fineprint">
             {copy.switchPrefix}{" "}
-            <button className="link" type="button" onClick={onToggleMode}>
+            <button className="link" type="button" onClick={onToggleMode} disabled={loading}>
               {copy.switchAction}
             </button>
           </p>
