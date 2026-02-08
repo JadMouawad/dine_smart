@@ -34,3 +34,10 @@ const findByEmailWithPassword = async (db, email) => {
   const result = await db.query(query, [email]);
   return result.rows[0] || null;
 };
+
+module.exports = {
+  findByEmail,
+  findById,
+  create,
+  findByEmailWithPassword
+};
