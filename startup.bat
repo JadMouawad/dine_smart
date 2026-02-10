@@ -13,7 +13,7 @@ echo PORT=3000
 echo DB_HOST=localhost
 echo DB_PORT=5432
 echo DB_USER=postgres
-echo DB_PASSWORD=982503
+echo DB_PASSWORD=yourPassword
 echo DB_NAME=dine_smart
 echo JWT_SECRET=some-secret-key-change-in-production
 ) > C:\Users\User\Downloads\DineSmart\dine_smart\backend\.env
