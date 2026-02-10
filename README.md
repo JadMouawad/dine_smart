@@ -1,6 +1,6 @@
 # DineSmart - Restaurant Discovery Platform
 
-A full-stack web application for discovering and managing restaurants. Built with React (frontend), Express (backend), and PostgreSQL (database).
+A full-stack web application for discovering and managing restaurants. Built with React and Vite(frontend), Express (backend), and PostgreSQL (database).
 
 ## Table of Contents
 
