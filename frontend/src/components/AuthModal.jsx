@@ -13,6 +13,7 @@ export default function AuthModal({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const copy = useMemo(() => {
     if (mode === "signup") {
       return {
@@ -28,11 +29,19 @@ export default function AuthModal({
       title: "Log in",
       subtitle: "Log in to explore restaurants and access special features",
       primary: "Log in",
-      switchPrefix: "Don’t have an account?",
+      switchPrefix: "Don't have an account?",
       switchAction: "Sign up",
       showName: false,
     };
   }, [mode]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setEmail("");
+    setName("");
+    setPassword("");
+    setError(null);
+  }, [isOpen, mode]);
 
   useEffect(() => {
     function onKeyDown(e) {
@@ -54,6 +63,7 @@ export default function AuthModal({
   return (
     <div className="modal is-open" id="modal" aria-hidden="false" role="dialog" aria-modal="true">
       <div className="modal__backdrop" data-close="true" onClick={onClose} />
+
       <div className="modal__panel" role="document">
         <button className="modal__close" aria-label="Close" type="button" onClick={onClose}>
           ✕
@@ -64,44 +74,72 @@ export default function AuthModal({
           <p className="modal__subtitle">{copy.subtitle}</p>
         </div>
 
-        {error && <div className="error-message" style={{ color: "red", padding: "10px", margin: "10px 0" }}>{error}</div>}
+        {error && (
+          <div className="error-message" style={{ color: "red", padding: "10px", margin: "10px 0" }}>
+            {error}
+          </div>
+        )}
 
-        <form className="form" onSubmit={async (e) => {
-          e.preventDefault();
-          setError(null);
-          setLoading(true);
-          try {
-            if (mode === "signup") {
-              if (!name.trim()) throw new Error("Name is required");
-              await register(name, email, password);
-            } else {
-              await login(email, password);
+        <form
+          className="form"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setError(null);
+            setLoading(true);
+            try {
+              if (mode === "signup") {
+                if (!name.trim()) throw new Error("Name is required");
+                await register(name, email, password);
+              } else {
+                await login(email, password);
+              }
+              setName("");
+              setEmail("");
+              setPassword("");
+              onClose();
+            } catch (err) {
+              setError(err.message || "Authentication failed");
+            } finally {
+              setLoading(false);
             }
-            setName("");
-            setEmail("");
-            setPassword("");
-            onClose();
-          } catch (err) {
-            setError(err.message || "Authentication failed");
-          } finally {
-            setLoading(false);
-          }
-        }}>
+          }}
+        >
           <label className="field">
             <span>Email</span>
-            <input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={loading} />
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={loading}
+            />
           </label>
 
           {copy.showName && (
             <label className="field" id="nameField">
               <span>Full name</span>
-              <input type="text" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} disabled={loading} />
+              <input
+                type="text"
+                placeholder="Your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={loading}
+              />
             </label>
           )}
 
           <label className="field">
             <span>Password</span>
-            <input type="password" placeholder="••••••••" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} required disabled={loading} />
+            <input
+              type="password"
+              placeholder="••••••••"
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={loading}
+            />
           </label>
 
           <button className="btn btn--gold btn--xl" type="submit" disabled={loading}>
@@ -112,8 +150,17 @@ export default function AuthModal({
             <span>or</span>
           </div>
 
-          <button className="btn btn--google" type="button" onClick={() => alert("Google auth coming soon")} disabled={loading}>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" className="google-icon" alt="Google logo" />
+          <button
+            className="btn btn--google"
+            type="button"
+            onClick={() => alert("Google auth coming soon")}
+            disabled={loading}
+          >
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"
+              className="google-icon"
+              alt="Google logo"
+            />
             Continue with Google
           </button>
 

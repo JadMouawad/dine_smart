@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from "react";
 import logo from "../assets/logo.png";
 
-export default function Nav({ onLogin, onSignup, onOpenMobile }) {
+export default function Nav({
+  user,
+  loading,
+  onLogout,
+  onLogin,
+  onSignup,
+  onOpenMobile,
+}) {
   const [pillScrolled, setPillScrolled] = useState(false);
 
   useEffect(() => {
@@ -18,7 +25,6 @@ export default function Nav({ onLogin, onSignup, onOpenMobile }) {
       <a className="brand" href="#">
         <span className="brand__mark">
           <img src={logo} className="logo-img" alt="Logo" />
-
         </span>
       </a>
 
@@ -30,16 +36,42 @@ export default function Nav({ onLogin, onSignup, onOpenMobile }) {
         </nav>
 
         <div className="nav__actions">
-          <button className="btn btn--ghost" type="button" onClick={onLogin}>
-            Log in
-          </button>
-          <button className="btn btn--gold" type="button" onClick={onSignup}>
-            Sign Up
-          </button>
+          {/* keep same button styles to preserve layout */}
+          {loading ? (
+            <>
+              <button className="btn btn--ghost" type="button" disabled>
+                …
+              </button>
+              <button className="btn btn--gold" type="button" disabled>
+                …
+              </button>
+            </>
+          ) : user ? (
+            <>
+              <button className="btn btn--ghost" type="button" onClick={onLogout}>
+                Log out
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="btn btn--ghost" type="button" onClick={onLogin}>
+                Log in
+              </button>
+              <button className="btn btn--gold" type="button" onClick={onSignup}>
+                Sign Up
+              </button>
+            </>
+          )}
         </div>
 
         {/* burger only visible on mobile via CSS */}
-        <button className="nav__burger" id="burger" type="button" aria-label="Open menu" onClick={onOpenMobile}>
+        <button
+          className="nav__burger"
+          id="burger"
+          type="button"
+          aria-label="Open menu"
+          onClick={onOpenMobile}
+        >
           <span></span>
           <span></span>
           <span></span>

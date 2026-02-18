@@ -1,8 +1,4 @@
-/**
- * Maps URLs to controller logic
- * POST /auth/register -> register
- * POST /auth/login    -> login
- */
+// backend/src/routes/authRoutes.js
 
 const express = require("express");
 const router = express.Router();

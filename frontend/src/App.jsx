@@ -11,7 +11,7 @@ function AppContent() {
   const [modalOpen, setModalOpen] = useState(false);
   const [mode, setMode] = useState("signup"); // "signup" | "login"
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, loading, logout } = useAuth();
 
   const openModal = useCallback((nextMode) => {
     setMode(nextMode);
@@ -34,10 +34,12 @@ function AppContent() {
       <main className="page">
         <section className="card" aria-label="DineSmart landing">
           <Nav
+            user={user}
+            loading={loading}
+            onLogout={logout}
             onLogin={() => openModal("login")}
             onSignup={() => openModal("signup")}
             onOpenMobile={openMobile}
-            user={user}
           />
 
           <Hero onGettingStarted={() => openModal("signup")} />
@@ -49,6 +51,9 @@ function AppContent() {
       <MobileMenu
         isOpen={mobileOpen}
         onClose={closeMobile}
+        user={user}
+        loading={loading}
+        onLogout={logout}
         onLogin={() => {
           closeMobile();
           openModal("login");

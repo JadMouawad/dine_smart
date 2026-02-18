@@ -1,4 +1,3 @@
-requireAuth
 // Import jsonwebtoken to verify JWT tokens
 const jwt = require("jsonwebtoken");
 

@@ -1,8 +1,4 @@
-/**
- * Handles HTTP requests:
- * - Calls authService
- * - Sends proper responses
- */
+// backend/src/controllers/authController.js
 
 const authService = require("../services/authServices");
 const { validateRegister, validateLogin } = require("../validation/authValidation");
@@ -11,14 +7,6 @@ const { validateRegister, validateLogin } = require("../validation/authValidatio
 const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-
-    // Validate input
-    const error = validateRegister(email, password);
-    if (error) {
-      return res.status(400).json({ message: error });
-    }
-
-    // Call service
     const result = await authService.registerUser(name, email, password);
 
     res.status(201).json({
@@ -35,14 +23,6 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Validate input
-    const error = validateLogin(email, password);
-    if (error) {
-      return res.status(400).json({ message: error });
-    }
-
-    // Call service
     const result = await authService.loginUser(email, password);
 
     res.status(200).json({
@@ -58,5 +38,4 @@ const login = async (req, res) => {
 module.exports = {
   register,
   login
-
 };
