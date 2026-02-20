@@ -76,6 +76,7 @@ export default function AuthModal({
     setError("Google sign-in was cancelled or failed. Please try again.");
   };
 
+
   if (!isOpen) return null;
 
   return (
@@ -177,6 +178,7 @@ export default function AuthModal({
               theme="outline"
               size="large"
               width="360"
+              locale="en"
             />
           </div>
 
