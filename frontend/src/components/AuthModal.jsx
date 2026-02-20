@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../auth/AuthContext";
 
 export default function AuthModal({
@@ -7,7 +8,7 @@ export default function AuthModal({
   onClose,
   onToggleMode,
 }) {
-  const { login, register } = useAuth();
+  const { login, register, googleLogin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [name, setName] = useState("");
@@ -57,6 +58,23 @@ export default function AuthModal({
     else document.body.classList.remove("modal-open");
     return () => document.body.classList.remove("modal-open");
   }, [isOpen]);
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError(null);
+    setLoading(true);
+    try {
+      await googleLogin(credentialResponse.credential);
+      onClose();
+    } catch (err) {
+      setError(err.message || "Google sign-in failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError("Google sign-in was cancelled or failed. Please try again.");
+  };
 
   if (!isOpen) return null;
 
@@ -150,19 +168,17 @@ export default function AuthModal({
             <span>or</span>
           </div>
 
-          <button
-            className="btn btn--google"
-            type="button"
-            onClick={() => alert("Google auth coming soon")}
-            disabled={loading}
-          >
-            <img
-              src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"
-              className="google-icon"
-              alt="Google logo"
+          <div style={{ width: "100%" }}>
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              text={mode === "signup" ? "signup_with" : "signin_with"}
+              shape="rectangular"
+              theme="outline"
+              size="large"
+              width="360"
             />
-            Continue with Google
-          </button>
+          </div>
 
           <p className="fineprint">
             {copy.switchPrefix}{" "}

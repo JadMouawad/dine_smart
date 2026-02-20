@@ -35,7 +35,29 @@ const login = async (req, res) => {
   }
 };
 
+// POST /auth/google
+const googleSignIn = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({ message: "Google id_token is required" });
+    }
+
+    const result = await authService.googleAuthUser(idToken);
+
+    res.status(200).json({
+      message: "Google sign-in successful",
+      user: result.user,
+      token: result.token
+    });
+  } catch (err) {
+    res.status(401).json({ message: err.message });
+  }
+};
+
 module.exports = {
   register,
-  login
+  login,
+  googleSignIn
 };

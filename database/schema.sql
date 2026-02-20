@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   full_name VARCHAR(120) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
+  password VARCHAR(255),                        -- nullable: OAuth users have no password
+  google_id VARCHAR(255) UNIQUE,                -- Google subject ID for OAuth users
   role_id INTEGER NOT NULL REFERENCES roles(id) ON UPDATE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
