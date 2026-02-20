@@ -46,7 +46,7 @@ const registerUser = async (fullName, email, password) => {
     fullName,
     email,
     password: hashedPassword,
-    roleId: 3 // Default user role
+    roleId: 1 // Default user role
   });
 
   // Generate JWT token
@@ -91,11 +91,16 @@ const loginUser = async (email, password) => {
   }
 
   // Generate JWT token
-  const token = jwt.sign(
-    { id: user.id, email: user.email },
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN }
-  );
+ const token = jwt.sign(
+  {
+    id: user.id,
+    email: user.email,
+    role: user.role
+  },
+  JWT_SECRET,
+  { expiresIn: JWT_EXPIRES_IN }
+);
+
 
   return {
     user: {

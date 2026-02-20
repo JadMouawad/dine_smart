@@ -32,13 +32,14 @@ CREATE TABLE IF NOT EXISTS restaurants (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS reviews (
-  id SERIAL PRIMARY KEY,
-  restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
-  comment TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(restaurant_id, user_id)
-);
+-- Insert default roles
+INSERT INTO roles (name) VALUES ('user'), ('owner'), ('admin')
+ON CONFLICT DO NOTHING;
+
+UPDATE users
+SET role_id = 2
+WHERE email = 'carla@gmail.com';
+
+SELECT role_id FROM users WHERE email='carla@gmail.com';
+
+
