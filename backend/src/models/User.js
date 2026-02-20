@@ -5,7 +5,13 @@
 
 // Find user by email
 const findByEmail = async (db, email) => {
-  const query = "SELECT * FROM users WHERE email = $1";
+  const query = `
+  SELECT u.*, r.name AS role
+  FROM users u
+  JOIN roles r ON u.role_id = r.id
+  WHERE u.email = $1
+`;
+
   const result = await db.query(query, [email]);
   return result.rows[0] || null;
 };

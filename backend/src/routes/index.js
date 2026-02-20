@@ -1,14 +1,15 @@
+// src/routes/index.js
 const express = require("express");
-const restaurantRoutes = require("./restaurant.routes");
-const authRoutes = require("./authRoutes");
-
 const router = express.Router();
 
-// Auth routes
-router.use("/auth", authRoutes);
+// Import your route files
+const searchRoutes = require("./searchRoutes");
+const restaurantRoutes = require("./restaurantRoutes");
+const authRoutes = require("./authRoutes"); 
 
-// Restaurant routes
+// Mount routes
+router.use("/search", searchRoutes);
 router.use("/restaurants", restaurantRoutes);
+router.use("/auth", authRoutes); 
 
-// Future route modules can be mounted here.
 module.exports = router;

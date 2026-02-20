@@ -30,3 +30,15 @@ CREATE TABLE IF NOT EXISTS restaurants (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Insert default roles
+INSERT INTO roles (name) VALUES ('user'), ('owner'), ('admin')
+ON CONFLICT DO NOTHING;
+
+UPDATE users
+SET role_id = 2
+WHERE email = 'carla@gmail.com';
+
+SELECT role_id FROM users WHERE email='carla@gmail.com';
+
+

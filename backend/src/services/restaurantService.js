@@ -1,22 +1,35 @@
-// backend/src/services/restaurantService.js
-// Service layer for restaurants (Story 7 + 8)
-const db = require("../config/db");
-const RestaurantModel = require("../models/restaurant.model");
+// src/services/restaurantService.js
+const restaurantRepository = require("../repositories/restaurantRepository");
 
-//Get all restaurants available (Story 7)
+const createRestaurant = async (data) => {
+  return await restaurantRepository.createRestaurant(data);
+};
 
 const getAllRestaurants = async () => {
-   const result = await RestaurantModel.getAllRestaurants(db);
-   return result.rows;
+  return await restaurantRepository.getAllRestaurants();
 };
-// Get only one restaurant by ID (Story 8)
 
 const getRestaurantById = async (id) => {
- const result = await RestaurantModel.getRestaurantById(db, id);
- return result.rows[0] || null;
+  return await restaurantRepository.getRestaurantById(id);
+};
+
+const updateRestaurant = async (id, data) => {
+  return await restaurantRepository.updateRestaurant(id, data);
+};
+
+const deleteRestaurant = async (id) => {
+  return await restaurantRepository.deleteRestaurant(id);
+};
+
+const searchRestaurants = async (query) => {
+  return await restaurantRepository.searchRestaurants(query);
 };
 
 module.exports = {
+  createRestaurant,
   getAllRestaurants,
   getRestaurantById,
+  updateRestaurant,
+  deleteRestaurant,
+  searchRestaurants,
 };
