@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { loginUser, registerUser, getCurrentUser } from "../services/authService";
+import { loginUser, registerUser, getCurrentUser, googleAuth } from "../services/authService";
 
 const AuthContext = createContext(null);
 
@@ -57,6 +57,18 @@ export function AuthProvider({ children }) {
     return data;
   }
 
+  async function googleLogin(idToken) {
+    const data = await googleAuth({ idToken });
+    const newToken = data.token ?? data.accessToken;
+
+    if (!newToken) throw new Error("No token returned from server");
+
+    localStorage.setItem("token", newToken);
+    setToken(newToken);
+    setUser(data.user ?? null);
+    return data;
+  }
+
   function logout() {
     localStorage.removeItem("token");
     setToken(null);
@@ -64,7 +76,7 @@ export function AuthProvider({ children }) {
   }
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout }),
+    () => ({ user, loading, login, register, googleLogin, logout }),
     [user, loading]
   );
 

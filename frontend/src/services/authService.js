@@ -15,6 +15,13 @@ export function loginUser({ email, password }) {
   });
 }
 
+export function googleAuth({ idToken }) {
+  return apiRequest("/auth/google", {
+    method: "POST",
+    body: JSON.stringify({ idToken }),
+  });
+}
+
 export function getCurrentUser() {
   return apiRequest("/me");
 }
