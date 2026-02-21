@@ -8,6 +8,9 @@ export default function Nav({
   onLogin,
   onSignup,
   onOpenMobile,
+  onGoSearch,
+  onGoHero,
+  onGoDiscover,
 }) {
   const [pillScrolled, setPillScrolled] = useState(false);
 
@@ -22,21 +25,28 @@ export default function Nav({
 
   return (
     <header className="nav">
-      <a className="brand" href="#">
+      {/* Brand (NOT sticky) */}
+      <a className="brand" href="#top" aria-label="Go to top">
         <span className="brand__mark">
-          <img src={logo} className="logo-img" alt="Logo" />
+          <img src={logo} className="logo-img" alt="DineSmart Logo" />
         </span>
       </a>
 
+      {/* Pill (sticky/fixed in CSS) */}
       <div className={`nav__pill ${pillScrolled ? "nav__pill--scrolled" : ""}`}>
         <nav className="nav__links">
-          <a href="#about">About</a>
-          <a href="#discover">Discover</a>
-          <a href="#map">Map</a>
+          <a href="#hero" onClick={(e) => { e.preventDefault(); onGoHero?.(); }}>
+  About
+</a>
+          <a href="#discover" onClick={(e) => { e.preventDefault(); onGoDiscover?.(); }}>
+  Discover
+</a>
+          <a href="#search" onClick={(e) => { e.preventDefault(); onGoSearch?.(); }}>
+  Search
+</a>
         </nav>
 
         <div className="nav__actions">
-          {/* keep same button styles to preserve layout */}
           {loading ? (
             <>
               <button className="btn btn--ghost" type="button" disabled>
@@ -47,11 +57,9 @@ export default function Nav({
               </button>
             </>
           ) : user ? (
-            <>
-              <button className="btn btn--ghost" type="button" onClick={onLogout}>
-                Log out
-              </button>
-            </>
+            <button className="btn btn--ghost" type="button" onClick={onLogout}>
+              Log out
+            </button>
           ) : (
             <>
               <button className="btn btn--ghost" type="button" onClick={onLogin}>
@@ -64,7 +72,6 @@ export default function Nav({
           )}
         </div>
 
-        {/* burger only visible on mobile via CSS */}
         <button
           className="nav__burger"
           id="burger"

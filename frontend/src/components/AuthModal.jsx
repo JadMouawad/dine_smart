@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../auth/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function AuthModal({
   isOpen,
@@ -8,12 +8,15 @@ export default function AuthModal({
   onClose,
   onToggleMode,
 }) {
-  const { login, register, googleLogin } = useAuth();
+  const { login, register } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const [accountType, setAccountType] = useState(null); // "user" | "restaurant" | null
 
   const copy = useMemo(() => {
     if (mode === "signup") {
@@ -42,6 +45,7 @@ export default function AuthModal({
     setName("");
     setPassword("");
     setError(null);
+    setAccountType(null);
   }, [isOpen, mode]);
 
   useEffect(() => {
@@ -58,24 +62,6 @@ export default function AuthModal({
     else document.body.classList.remove("modal-open");
     return () => document.body.classList.remove("modal-open");
   }, [isOpen]);
-
-  const handleGoogleSuccess = async (credentialResponse) => {
-    setError(null);
-    setLoading(true);
-    try {
-      await googleLogin(credentialResponse.credential);
-      onClose();
-    } catch (err) {
-      setError(err.message || "Google sign-in failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleError = () => {
-    setError("Google sign-in was cancelled or failed. Please try again.");
-  };
-
 
   if (!isOpen) return null;
 
@@ -99,96 +85,121 @@ export default function AuthModal({
           </div>
         )}
 
-        <form
-          className="form"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setError(null);
-            setLoading(true);
-            try {
-              if (mode === "signup") {
-                if (!name.trim()) throw new Error("Name is required");
-                await register(name, email, password);
-              } else {
-                await login(email, password);
-              }
-              setName("");
-              setEmail("");
-              setPassword("");
-              onClose();
-            } catch (err) {
-              setError(err.message || "Authentication failed");
-            } finally {
-              setLoading(false);
-            }
-          }}
-        >
-          <label className="field">
-            <span>Email</span>
-            <input
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={loading}
-            />
-          </label>
+        {mode === "signup" && !accountType ? (
+          <div className="account-type-select">
+            <button
+              type="button"
+              className="btn btn--ghost account-btn"
+              onClick={() => setAccountType("user")}
+            >
+              Sign up as User
+            </button>
 
-          {copy.showName && (
-            <label className="field" id="nameField">
-              <span>Full name</span>
+            <button
+              type="button"
+              className="btn btn--gold account-btn"
+              onClick={() => setAccountType("restaurant")}
+            >
+              Sign up as Restaurant
+            </button>
+          </div>
+        ) : (
+
+          <form
+            className="form"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setError(null);
+              setLoading(true);
+              try {
+                if (mode === "signup") {
+                  if (!name.trim()) throw new Error("Name is required");
+                  await register(name, email, password);
+                } else {
+                  await login(email, password);
+                }
+                setName("");
+                setEmail("");
+                setPassword("");
+                onClose();
+                if (mode === "signup" && accountType === "restaurant") {
+                  navigate("/owner/profile");
+                }
+              } catch (err) {
+                setError(err.message || "Authentication failed");
+              } finally {
+                setLoading(false);
+              }
+            }}
+          >
+            <label className="field">
+              <span>Email</span>
               <input
-                type="text"
-                placeholder="Your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
                 disabled={loading}
               />
             </label>
-          )}
 
-          <label className="field">
-            <span>Password</span>
-            <input
-              type="password"
-              placeholder="••••••••"
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={loading}
-            />
-          </label>
+            {copy.showName && (
+              <label className="field" id="nameField">
+                <span>Full name</span>
+                <input
+                  type="text"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={loading}
+                />
+              </label>
+            )}
 
-          <button className="btn btn--gold btn--xl" type="submit" disabled={loading}>
-            {loading ? "Loading..." : copy.primary}
-          </button>
+            <label className="field">
+              <span>Password</span>
+              <input
+                type="password"
+                placeholder="••••••••"
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </label>
 
-          <div className="divider">
-            <span>or</span>
-          </div>
-
-          <div style={{ width: "100%" }}>
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={handleGoogleError}
-              text={mode === "signup" ? "signup_with" : "signin_with"}
-              shape="rectangular"
-              theme="outline"
-              size="large"
-              width="360"
-              locale="en"
-            />
-          </div>
-
-          <p className="fineprint">
-            {copy.switchPrefix}{" "}
-            <button className="link" type="button" onClick={onToggleMode} disabled={loading}>
-              {copy.switchAction}
+            <button className="btn btn--gold btn--xl" type="submit" disabled={loading}>
+              {loading ? "Loading..." : copy.primary}
             </button>
-          </p>
-        </form>
+
+            <div className="divider">
+              <span>or</span>
+            </div>
+
+            <button
+              className="btn btn--google"
+              type="button"
+              onClick={() => alert("Google auth coming soon")}
+              disabled={loading}
+            >
+              <img
+                src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"
+                className="google-icon"
+                alt="Google logo"
+              />
+              Continue with Google
+            </button>
+
+            <p className="fineprint">
+              {copy.switchPrefix}{" "}
+              <button className="link" type="button" onClick={onToggleMode} disabled={loading}>
+                {copy.switchAction}
+              </button>
+            </p>
+          </form>
+        )}
       </div>
     </div>
   );
