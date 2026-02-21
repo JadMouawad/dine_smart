@@ -12,6 +12,7 @@
   --text: rgba(255, 255, 255, 0.92);
   --muted: rgba(255, 255, 255, 0.70);
   --shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+  --navH: 96px;
 }
 
 * {
@@ -79,19 +80,20 @@ a {
   min-height: 100vh;
   display: flex;
   justify-content: center;
+  align-items: stretch;    /* keeps card full height naturally */
 }
 
 .card {
   width: 100%;
   max-width: 1200px;
+  margin: 0 auto;          /* ✅ centers the entire landing page */
   padding: 32px 32px 0;
 }
 
 /* Nav */
 .nav {
-  position: sticky;
-  top: 0;
   position: relative;
+  top: 0;
 
   left: 0;
   right: 0;
@@ -190,6 +192,12 @@ a {
   background: rgba(255, 255, 255, 0.85);
   margin: 4px 0;
   border-radius: 99px;
+}
+
+/* When menu is open, navbar should scroll away */
+body.ds-nav-not-sticky .nav {
+  position: relative !important;
+  top: auto !important;
 }
 
 /* Hero */
@@ -556,7 +564,7 @@ a {
 
 .field span {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.78);
+  color: #ffffff;
 }
 
 .field input {
@@ -716,6 +724,14 @@ a {
     inset 0 0 6px rgba(201, 162, 39, 0.25);
 }
 
+.nav__links a.is-active {
+  color: #ffffff;
+  background: rgba(201, 162, 39, 0.12);
+  box-shadow:
+    0 0 12px rgba(201, 162, 39, 0.35),
+    inset 0 0 6px rgba(201, 162, 39, 0.25);
+}
+
 /* ========================= */
 /* NAVBAR PILL */
 /* ========================= */
@@ -854,7 +870,8 @@ body.modal-open .nav {
   width: 100vw !important;
   margin-left: calc(50% - 50vw) !important;
   margin-right: calc(50% - 50vw) !important;
-  position: relative !important;
+  position: sticky !important;
+  top: 0 !important;
 }
 
 .nav .brand {
@@ -1027,7 +1044,8 @@ body {
 /* Horizontal row carousel */
 .discover__carousel {
   position: relative;
-  overflow: visible;
+  overflow: hidden;
+  padding: 0 20px;
 }
 
 .discover__track {
@@ -1176,4 +1194,1796 @@ body {
 
   /* safety */
   clear: both !important;
+}
+
+.account-type-select {
+  display: flex;
+  gap: 18px;
+  margin-top: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.account-btn {
+  min-width: 220px;
+  padding: 16px 20px;
+  font-size: 15px;
+  border-radius: 18px;
+}
+
+.ownerShell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 100vh;
+  gap: 0;
+}
+
+.ownerSidebar {
+  height: 100vh;
+  position: sticky;
+  top: 0;
+
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.035);
+
+  padding: 18px 16px;
+  border-radius: 0;
+
+  box-shadow: none;
+}
+
+.ownerSidebar__logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px 18px;
+  margin-bottom: 8px;
+}
+
+.ownerSidebar__logoImg {
+  width: 150px;
+  height: auto;
+  object-fit: contain;
+}
+
+.ownerSidebar__item {
+  width: 100%;
+  text-align: left;
+
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(12, 19, 79, 0.16);
+
+  color: rgba(255, 255, 255, 0.88);
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+
+  border-radius: 16px;
+  padding: 14px 14px;
+
+  cursor: pointer;
+  margin-top: 14px;
+
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ownerSidebar__item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.35);
+  box-shadow: 0 0 18px rgba(201, 162, 39, 0.16);
+}
+
+.ownerSidebar__item.is-active {
+  border-color: rgba(201, 162, 39, 0.55);
+  box-shadow: 0 0 18px rgba(201, 162, 39, 0.22);
+}
+
+.ownerMain {
+  padding: 28px 28px 40px;
+  background: transparent;
+}
+
+.ownerProfile__title {
+  text-align: center;
+  margin: 1px 0 22px;
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 800;
+}
+
+.imageCard {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+  linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.10),
+    rgba(255, 255, 255, 0.03)
+  ),
+  rgba(12, 19, 79, 0.22);
+  border-radius: 22px;
+  padding: 18px;
+  backdrop-filter: blur(20px) saturate(160%);
+-webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+}
+
+.imageCard__preview {
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.14);
+  overflow: hidden;
+  margin-bottom: 12px;
+
+  position: relative;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.imageCard__img {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: transparent;
+  display: block;
+}
+
+/* Logo: show the whole logo (no cropping) */
+.imageCard__img--logo {
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.imageCard__placeholder {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.imageCard__icon {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.imageCard__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.imageCard__input {
+  display: none;
+}
+
+.imageCard__hint {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.70);
+}
+
+.formCard {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+  linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.10),
+    rgba(255, 255, 255, 0.03)
+  ),
+  rgba(12, 19, 79, 0.22);
+  border-radius: 22px;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+  backdrop-filter: blur(20px) saturate(160%);
+-webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+}
+
+.twoCols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.select {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+
+  padding: 12px 12px;
+  outline: none;
+
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-size: 14px;
+
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.85) 50%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.85) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%;
+  background-size:
+    6px 6px,
+    6px 6px;
+  background-repeat: no-repeat;
+}
+
+.select:focus {
+  border-color: rgba(201, 162, 39, 0.55);
+  box-shadow: 0 0 0 4px rgba(201, 162, 39, 0.12);
+}
+
+.select option {
+  background: #0c134f;
+  color: #ffffff;
+}
+
+.select option:checked {
+  background: #c9a227;
+  color: #0c134f;
+}
+
+.select option:hover {
+  background: #c9a227;
+  color: #ffffff;
+}
+
+.placeholderPage__title {
+  margin: 0 0 10px;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.placeholderPage__text {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+@media (max-width: 980px) {
+  .ownerShell {
+    grid-template-columns: 1fr;
+  }
+
+  .ownerProfile__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .twoCols {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 980px) {
+  .ownerShell {
+    grid-template-columns: 1fr;
+  }
+
+  .ownerSidebar {
+    height: auto;
+    position: relative;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .ownerMain {
+    padding: 18px;
+  }
+
+  .imageCard__preview--tall {
+    height: 260px;
+  }
+}
+
+input[type="time"] {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.9;
+}
+
+.ownerProfileGrid {
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  gap: 18px;
+  align-items: stretch;
+  min-height: calc(100vh - 140px);
+  height: calc(100vh - 140px);
+}
+
+.ownerProfileGrid__media {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 18px;
+  height: 100%;
+  min-height: 0;
+}
+
+.imageCard--equal {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 0;
+}
+
+.imageCard__title {
+  font-weight: 800;
+  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.imageCard__preview--equal {
+  height: 100%;
+  min-height: 0;
+}
+
+.formCard--matchHeight {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  padding: 30px;
+  min-height: 0;
+
+  /* makes items breathe vertically */
+  gap: 22px;
+}
+
+.formCard--matchHeight .field span {
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.formCard--matchHeight .field input,
+.formCard--matchHeight .select {
+  height: 60px;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.formCard--matchHeight .twoCols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.formCard__actions {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
+}
+
+@media (max-width: 980px) {
+  .ownerProfileGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .ownerProfileGrid__media {
+    grid-template-rows: auto;
+  }
+}
+
+.ownerArea__main {
+  padding: 28px 28px 40px;
+}
+
+.ownerNavLinks {
+  gap: 14px;
+}
+
+.ownerNavBtn {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+
+  transition:
+    background 0.25s ease,
+    box-shadow 0.25s ease,
+    color 0.25s ease;
+}
+
+.ownerNavBtn:hover {
+  color: #ffffff;
+  background: rgba(201, 162, 39, 0.10);
+  box-shadow: 0 0 14px rgba(201, 162, 39, 0.22);
+}
+
+.ownerNavBtn.is-active {
+  color: #ffffff;
+  background: rgba(201, 162, 39, 0.12);
+  box-shadow: 0 0 18px rgba(201, 162, 39, 0.25);
+}
+
+.ownerNav__actions {
+  gap: 10px;
+}
+
+.ownerAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  overflow: hidden;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(12, 19, 79, 0.18);
+
+  display: grid;
+  place-items: center;
+}
+
+.ownerAvatar__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ownerAvatar__fallback {
+  color: rgba(255, 255, 255, 0.88);
+  font-weight: 800;
+}
+
+.ownerArea .nav {
+  margin-top: 16px;
+}
+
+/* Make ONLY the logo preview a smaller square box */
+.imageCard__preview--logo {
+  width: 180px;
+  height: 180px;
+  margin: 0 auto 12px;
+}
+
+/* Make logo upload button match square width */
+.imageCard__btn--logo {
+  width: auto;
+  align-self: center;
+  padding: 10px 18px;
+}
+
+.imageCard__formats {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+}
+
+.formCard--matchHeight .field {
+  display: grid;
+  gap: 10px;
+}
+
+/* Make input placeholder text match PNG JPG color */
+.formCard--matchHeight input::placeholder {
+  color: rgba(255, 255, 255, 0.85);
+  opacity: 1;
+}
+
+/* Make form input boxes match image preview box style */
+.formCard--matchHeight input,
+.formCard--matchHeight .select {
+  background: rgba(0, 0, 0, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 16px;
+
+  padding: 0 14px;
+}
+
+.formCard--matchHeight input:focus,
+.formCard--matchHeight .select:focus {
+  border-color: rgba(201, 162, 39, 0.55);
+  box-shadow: 0 0 12px rgba(201, 162, 39, 0.18);
+}
+
+.ownerMenuPage__title {
+  text-align: center;
+  margin: 1px 0 16px;
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 800;
+}
+
+.ownerMenuPage__actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 0 auto 18px;
+  width: fit-content;
+  max-width: 780px;
+}
+
+.ownerMenuPage__actionBtn {
+  min-width: 160px;
+}
+
+.ownerMenuPage__sections {
+  display: grid;
+  gap: 12px;
+  margin: 0 auto 20px;
+  max-width: 780px;
+}
+
+.ownerMenuSectionBtn {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+
+  font-size: 22px;
+  font-weight: 800;
+  padding: 14px 0;
+
+  letter-spacing: 0.4px;
+}
+
+.menuModalHelper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(12, 19, 79, 0.18);
+}
+
+.menuModalHelper__text {
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 600;
+}
+
+.menuModalActions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.menuItemImageCard {
+  margin-top: 6px;
+}
+
+/* Items grid: 2 cards per row */
+.ownerMenuItemsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 10px;
+}
+
+/* Item card looks like your image cards */
+.menuItemCard {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03)),
+    rgba(12, 19, 79, 0.22);
+  border-radius: 22px;
+  padding: 16px;
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 14px;
+  align-items: center;
+  position: relative;
+}
+
+.menuItemCard__media {
+  width: 140px;
+  height: 110px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menuItemCard__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.menuItemCard__imgPlaceholder {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+  font-size: 13px;
+  text-align: center;
+  padding: 10px;
+}
+
+.menuItemCard__name {
+  font-weight: 800;
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 6px;
+}
+
+.menuItemCard__price {
+  color: rgba(201, 162, 39, 0.95);
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.menuItemCard__desc {
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.45;
+  margin-bottom: 8px;
+}
+
+.menuItemCard__meta {
+  color: rgba(255, 255, 255, 0.60);
+  font-size: 12px;
+}
+
+@media (max-width: 980px) {
+  .ownerMenuItemsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .menuItemCard {
+    grid-template-columns: 1fr;
+  }
+
+  .menuItemCard__media {
+    width: 100%;
+    height: 160px;
+  }
+}
+
+.ownerMenuSectionsStack {
+  display: grid;
+  gap: 18px;
+  margin-top: 6px;
+}
+
+.menuSectionBlock {
+  display: grid;
+  gap: 14px;
+}
+
+.menuSectionEmpty {
+  margin-top: 24px;
+  color: #ffffff;
+  text-align: center;
+  width: 100%;
+  white-space: nowrap;
+}
+
+.menuSectionHeader {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.kebabWrap {
+  position: relative;
+}
+
+.kebabBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.18);
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.kebabMenu {
+  position: absolute;
+  right: 0;
+  top: 44px;
+  background: rgba(12,19,79,0.95);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 14px;
+  padding: 6px;
+  z-index: 100;
+}
+
+.kebabItem {
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: white;
+  text-align: left;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.kebabItem:hover {
+  background: rgba(201,162,39,0.12);
+}
+
+.kebabItem--danger {
+  color: #ff0000;
+}
+
+.itemMinus {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+
+  border: 1px solid rgba(255, 60, 60, 0.95);
+  background: rgba(255, 40, 40, 0.95);
+  color: #ffffff;
+
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 0;
+
+  display: grid;
+  place-items: center;
+
+  box-shadow: 0 0 16px rgba(255, 40, 40, 0.35);
+}
+
+.itemMinus:hover {
+  background: rgba(255, 40, 40, 1);
+  box-shadow: 0 0 20px rgba(255, 40, 40, 0.5);
+}
+
+.kebabWrap--item {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.userArea__main {
+  padding: 28px 28px 40px;
+}
+
+.userNavLinks {
+  gap: 14px;
+}
+
+.userNav__actions {
+  gap: 10px;
+}
+
+.userAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(12, 19, 79, 0.18);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  outline: none;
+}
+
+.userAvatar {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.userAvatar:hover {
+  border-color: rgba(201, 162, 39, 0.35);
+  box-shadow: 0 0 18px rgba(201, 162, 39, 0.16);
+}
+
+.userAvatar__fallback {
+  color: rgba(255, 255, 255, 0.88);
+  font-weight: 800;
+}
+
+.userProfile__title {
+  text-align: center;
+  margin: 1px 0 22px;
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 800;
+}
+
+.userProfile__stack {
+  display: grid;
+  gap: 18px;
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+.imageCard--userProfile,
+.formCard--userProfile {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.10),
+      rgba(255, 255, 255, 0.03)
+    ),
+    rgba(12, 19, 79, 0.22);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+}
+
+.imageCard__preview--userProfile {
+  width: 220px;
+  height: 220px;
+  margin: 0 auto 12px;
+}
+
+.imageCard__btn--userProfile {
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 80px;
+
+  margin: 0 auto;          /* centers it */
+  justify-self: center;    /* if parent is grid */
+  align-self: center;      /* if parent is flex */
+}
+
+.imageCard--userProfile {
+  display: flex;
+  flex-direction: column;
+}
+
+.formCard--userProfile {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+}
+
+.formCard--userProfile .field span {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.formCard--userProfile .field input {
+  height: 44px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.92);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.14); /* matches the image preview box vibe */
+}
+
+.formCard--userProfile .field input:focus {
+  border-color: rgba(201, 162, 39, 0.55);
+  box-shadow: 0 0 0 4px rgba(201, 162, 39, 0.12);
+  outline: none;
+}
+
+.phoneRow {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.phoneRow__code {
+  height: 44px;
+}
+
+.phoneRow__number {
+  height: 44px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.92);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.14);
+  padding: 12px 12px;
+  outline: none;
+}
+
+.phoneRow__number:focus {
+  border-color: rgba(201, 162, 39, 0.55);
+  box-shadow: 0 0 0 4px rgba(201, 162, 39, 0.12);
+}
+
+.userAvatar__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ===== User Search ===== */
+.userSearchPage {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 18px 10px 40px;
+}
+
+.userSearchPage__title {
+  text-align: center;
+  margin: 8px 0 18px;
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 800;
+}
+
+.searchBarCard {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 14px;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03)),
+    rgba(12, 19, 79, 0.22);
+  border-radius: 22px;
+  padding: 16px;
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+}
+
+.searchInput {
+  height: 44px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.92);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.14);
+  padding: 12px 12px;
+  outline: none;
+}
+
+.searchInput:focus {
+  border-color: rgba(201, 162, 39, 0.55);
+  box-shadow: 0 0 0 4px rgba(201, 162, 39, 0.12);
+}
+
+.searchCuisineSelect {
+  height: 44px;
+}
+
+.restaurantGrid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* square-ish card */
+.restaurantCard {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03)),
+    rgba(12, 19, 79, 0.18);
+  border-radius: 22px;
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.restaurantCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(201, 162, 39, 0.35);
+  box-shadow: 0 0 18px rgba(201, 162, 39, 0.16);
+}
+
+.restaurantCard__cover {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  display: grid;
+  place-items: center;
+}
+
+.restaurantCard__coverImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.restaurantCard__coverPlaceholder {
+  color: rgba(255, 255, 255, 0.80);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.3px;
+}
+
+.restaurantCard__body {
+  padding: 12px 4px 4px;
+}
+
+.restaurantCard__nameRow{
+  display: grid;
+  grid-template-columns: 1fr auto; /* left text, right column */
+  column-gap: 10px;
+  row-gap: 0px;
+  align-items: start;
+}
+
+.restaurantCard__name {
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 16px;
+}
+
+.restaurantCard__rating {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.restaurantCard__cuisine {
+  margin-top: 0px;
+  color: rgba(201, 162, 39, 0.92);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.metaPill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.12);
+  color: rgba(255, 255, 255, 0.88);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.reviewCard {
+  margin-top: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.reviewCard__title {
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.reviewCard__row {
+  display: grid;
+  grid-template-columns: 110px 1fr 120px;
+  gap: 12px;
+  align-items: center;
+}
+
+.reviewCard__select {
+  height: 44px;
+}
+
+.reviewCard__input {
+  height: 44px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.92);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.14);
+  padding: 12px 12px;
+  outline: none;
+}
+
+.reviewCard__input:focus {
+  border-color: rgba(201, 162, 39, 0.55);
+  box-shadow: 0 0 0 4px rgba(201, 162, 39, 0.12);
+}
+
+.reviewCard__hint {
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+}
+
+.userMenuView {
+  margin-top: 18px;
+}
+
+.userMenuView__title {
+  margin: 0 0 12px;
+  font-weight: 900;
+  font-size: 22px;
+}
+
+@media (max-width: 1100px) {
+  .restaurantGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .searchBarCard {
+    grid-template-columns: 1fr;
+  }
+
+  .restaurantGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .reviewCard__row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .restaurantGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== More spacing between menu sections ===== */
+.userMenuSections {
+  display: grid;
+  gap: 22px;
+}
+
+.userMenuSectionBlock {
+  margin-top: 6px;
+}
+
+/* ===== Reviews tab ===== */
+.restaurantReviewsPage {
+  margin-top: 14px;
+}
+
+.restaurantReviewsHeader {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03)),
+    rgba(12, 19, 79, 0.22);
+  border-radius: 22px;
+  padding: 16px;
+
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+}
+
+.restaurantReviewsHeader__name {
+  font-weight: 900;
+  font-size: clamp(22px, 2.6vw, 34px);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.restaurantReviewsHeader__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.reviewsStack {
+  margin-top: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.reviewCardFull {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: 14px;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03)),
+    rgba(12, 19, 79, 0.18);
+  border-radius: 22px;
+  padding: 14px;
+
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+}
+
+.reviewCardFull__avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  overflow: hidden;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.reviewCardFull__avatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.reviewCardFull__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.reviewCardFull__userName {
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.reviewCardFull__date {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.reviewCardFull__stars {
+  margin-top: 6px;
+  color: rgba(201, 162, 39, 0.95);
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.reviewCardFull__text {
+  margin-top: 8px;
+  color: #ffffff;
+  line-height: 1.55;
+}
+
+/* ===== Add Review Card: match Review cards style ===== */
+.reviewCard {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03)),
+    rgba(12, 19, 79, 0.18);
+  border-radius: 22px;
+  padding: 14px;
+
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+}
+
+.reviewCard__title {
+  font-weight: 900;
+  color: #ffffff;
+  margin-bottom: 10px;
+}
+
+.reviewCard__row {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.reviewCard__select {
+  height: 44px;
+}
+
+.reviewCard__input {
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 12px 12px;
+  color: #ffffff;
+  outline: none;
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.reviewCard__input::placeholder {
+  color: #ffffff;
+}
+
+.reviewCard__input:focus {
+  border-color: rgba(201, 162, 39, 0.55);
+  box-shadow: 0 0 0 4px rgba(201, 162, 39, 0.12);
+}
+
+.reviewCard__hint {
+  margin-top: 10px;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* Responsive: stack nicely */
+@media (max-width: 720px) {
+  .reviewCard__row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Separator between Add Review and Existing Reviews ===== */
+.reviewsDivider {
+  margin: 18px 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.reviewsDivider::before,
+.reviewsDivider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.reviewsDivider__text {
+  white-space: nowrap;
+  color: #ffffff;
+}
+
+/* ===== Menu Section Slider (sticky UNDER the navbar) ===== */
+.userSearchPage .menuSectionSlider{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 18px;
+
+  position: sticky;
+  top: calc(var(--navH) + 14px);  /* 👈 key fix */
+  z-index: 50;                    /* below nav, above content */
+}
+
+.menuSectionSlider__arrow {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.18);
+  color: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  font-size: 24px;
+  line-height: 1;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.menuSectionSlider__arrow:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.35);
+  box-shadow: 0 0 18px rgba(201, 162, 39, 0.16);
+}
+
+.menuSectionSlider__pill {
+  flex: 1;
+  border-radius: 999px;
+  padding: 10px 12px;
+
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04)),
+    rgba(12, 19, 79, 0.22);
+
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.25),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.25),
+    0 14px 40px rgba(0, 0, 0, 0.20),
+    0 0 22px rgba(201, 162, 39, 0.12);
+
+  overflow: hidden;
+}
+
+.menuSectionSlider__track {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.menuSectionSlider__track::-webkit-scrollbar {
+  display: none;
+}
+
+.menuSectionSlider__btn {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+
+  transition: background 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
+}
+
+.menuSectionSlider__btn:hover {
+  color: #ffffff;
+  background: rgba(201, 162, 39, 0.10);
+  box-shadow: 0 0 14px rgba(201, 162, 39, 0.22);
+}
+
+/* =========================================================
+   USER SEARCH TOP CARD (FINAL - single source of truth)
+   ========================================================= */
+
+/* keep this variable (you already had it) */
+:root{
+  --ds-page-max: 1120px;
+}
+
+/* The card itself (narrow, centered, taller) */
+.userSearchTopCard{
+  max-width: 1120px;
+  width: 100%;
+  margin: 0 auto 18px;
+
+  /* NOT a heavy container */
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+
+  padding: 6px 2px; /* small clean spacing */
+  border-bottom: 1px solid rgba(255,255,255,0.32);
+  padding-bottom: 14px;
+}
+
+/* Left side */
+.userSearchTopCard__left{
+  display: grid;
+  grid-template-columns: 44px auto;  /* logo column + text column */
+  grid-template-areas:
+    "avatar title"
+    "meta   meta";                   /* meta starts under the logo */
+  column-gap: 12px;
+  row-gap: 10px;
+  align-items: center;
+}
+
+.userSearchTopCard__identity{
+  grid-area: title;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.userSearchTopCard__title{
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.15;
+  font-weight: 900;
+}
+
+/* Meta row: one line (no wrapping) */
+.userSearchTopCard__meta{
+  grid-area: meta;
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  justify-content: flex-start; /* keeps them “compressed” to the left */
+}
+
+/* Restaurant logo circle */
+.restaurantAvatar{
+  grid-area: avatar;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.restaurantAvatar__img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.restaurantAvatar__fallback{
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+}
+
+/* Right side: Back + Menu/Reviews */
+.userSearchTopCard__right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Tabs row */
+.detailsTabs,
+.detailsTabs--stacked{
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  justify-content: flex-end;
+}
+.detailsTabs .detailsTabBtn{ flex: 1; }
+
+.detailsTabBtn{
+  min-width: 110px;
+}
+
+/* Back button matches tab width */
+.backBtn--compact{
+  width: 100%;
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+.restaurantCard__ratingCol{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  margin-top: 2px;  /* tiny adjustment */
+}
+
+/* heart button */
+.favoriteHeartBtn{
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: rgba(255,255,255,0.65);
+  line-height: 0;
+}
+
+.favoriteHeartIcon{
+  width: 22px;
+  height: 22px;
+
+  fill: transparent;   /* empty when inactive */
+  stroke: currentColor;
+  stroke-width: 1.8;
+
+  transition: transform 0.2s ease, fill 0.2s ease, color 0.2s ease;
+}
+
+.favoriteHeartBtn:hover .favoriteHeartIcon{
+  transform: scale(1.08);
+}
+
+/* active = fully filled gold */
+.favoriteHeartBtn.is-active{
+  color: #C9A227;
+}
+.favoriteHeartBtn.is-active .favoriteHeartIcon{
+  fill: #C9A227;
+  stroke: #C9A227;
+}
+
+.reserveMiniBtn{
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  line-height: 1;
+}
+
+/* ===== Profile Extra Cards (Favorites + My Reviews) ===== */
+
+.profileExtraCard {
+  margin-top: 18px; /* spacing between cards */
+}
+
+/* Make titles match your other form/image card titles */
+.profileExtraCard .formCard__title {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  margin-bottom: 14px;
+}
+
+/* Stack items inside */
+.profileExtraCard__content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Favorite item style */
+.profileFavoriteItem {
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.06);
+  transition: background 0.2s ease;
+}
+
+.profileFavoriteItem:hover {
+  background: rgba(255,255,255,0.09);
+}
+
+.profileFavoriteItem__name {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.profileFavoriteItem__meta {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+/* Review item style */
+.profileReviewItem {
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.06);
+}
+
+.profileReviewItem__restaurant {
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.profileReviewItem__stars {
+  color: #C9A227;
+  margin-bottom: 6px;
+}
+
+.profileReviewItem__text {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* Empty state */
+.profileEmpty {
+  opacity: 0.6;
+  font-size: 14px;
+}
+
+/* ===== Section Fade Animation ===== */
+
+.fadeSection {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.fadeSection.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ===== Auto Infinite Scroll ===== */
+
+.autoScroll {
+  display: flex;
+  gap: 80px;
+  animation: scrollLoop 25s linear infinite;
+  width: max-content;
+}
+
+/* Pause when hovering ANY card */
+.autoScroll:hover {
+  animation-play-state: paused;
+}
+
+@keyframes scrollLoop {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.discover__carousel {
+  overflow: hidden;
+  position: relative;
+  padding: 0 120px;
+
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 8%,
+    black 92%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 8%,
+    black 92%,
+    transparent
+  );
+}
+
+#hero, #discover, #search {
+  scroll-margin-top: 120px;
+}
+
+/* ===== Kebab menu: premium DineSmart look ===== */
+.kebabBtn {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.18);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 20px;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kebabBtn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.35);
+  box-shadow: 0 0 18px rgba(201, 162, 39, 0.16);
+}
+
+.kebabMenu {
+  position: absolute;
+  right: 0;
+  top: 44px;
+
+  background: rgba(14, 18, 66, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 8px;
+  z-index: 200;
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+
+  min-width: 180px;
+}
+
+.kebabItem {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+
+  background: transparent;
+  border: 1px solid transparent;
+
+  color: rgba(255, 255, 255, 0.88);
+  text-align: left;
+  cursor: pointer;
+  font-weight: 600;
+
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kebabItem:hover {
+  background: rgba(201, 162, 39, 0.1);
+  border-color: rgba(201, 162, 39, 0.25);
+  box-shadow: 0 0 14px rgba(201, 162, 39, 0.16);
+  color: #fff;
+}
+
+.kebabItem--danger {
+  color: rgba(255, 0, 0, 0.95);
+}
+
+.kebabItem--danger:hover {
+  background: rgba(255, 80, 80, 0.12);
+  border-color: rgba(255, 80, 80, 0.25);
+  box-shadow: 0 0 14px rgba(255, 80, 80, 0.16);
+  color: #fff;
 }

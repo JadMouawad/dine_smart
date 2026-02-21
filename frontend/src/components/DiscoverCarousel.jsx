@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React from "react";
 import american from "../assets/cuisines/american.png";
 import middleEastern from "../assets/cuisines/middle-eastern.png";
 import french from "../assets/cuisines/french.png";
@@ -22,14 +22,6 @@ const CUISINES = [
 ];
 
 export default function DiscoverCarousel() {
-  const trackRef = useRef(null);
-
-  function scrollByAmount(dir) {
-    const el = trackRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir * el.clientWidth * 0.6, behavior: "smooth" });
-  }
-
   return (
     <section className="discover" id="discover">
       <div className="discover__inner">
@@ -39,32 +31,18 @@ export default function DiscoverCarousel() {
         </p>
 
         <div className="discover__carousel">
-          <button
-            className="discover__arrow discover__arrow--left"
-            type="button"
-            aria-label="Previous"
-            onClick={() => scrollByAmount(-1)}
-          >
-            ‹
-          </button>
 
-          <div className="discover__track" ref={trackRef}>
-            {CUISINES.map((c) => (
-              <div className="discover__card" key={c.label}>
+          <div className="discover__track autoScroll">
+
+            {[...CUISINES, ...CUISINES].map((c, index) => (
+              <div className="discover__card" key={c.label + index}>
                 <img src={c.src} alt={c.alt} />
                 <span className="discover__label">{c.label}</span>
               </div>
             ))}
+
           </div>
 
-          <button
-            className="discover__arrow discover__arrow--right"
-            type="button"
-            aria-label="Next"
-            onClick={() => scrollByAmount(1)}
-          >
-            ›
-          </button>
         </div>
       </div>
     </section>
