@@ -15,9 +15,22 @@ CREATE TABLE IF NOT EXISTS users (
   password VARCHAR(255),                        -- nullable: OAuth users have no password
   google_id VARCHAR(255) UNIQUE,                -- Google subject ID for OAuth users
   role_id INTEGER NOT NULL REFERENCES roles(id) ON UPDATE CASCADE,
+  is_verified BOOLEAN DEFAULT true,             -- false until email verified (local users)
+  provider VARCHAR(20) DEFAULT 'local',         -- 'local' | 'google'
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS email_verification_tokens (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token VARCHAR(255) NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_verification_token ON email_verification_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_email_verification_user_id ON email_verification_tokens(user_id);
 
 CREATE TABLE IF NOT EXISTS restaurants (
   id SERIAL PRIMARY KEY,

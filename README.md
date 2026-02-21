@@ -154,6 +154,14 @@ DB_SSL=false
 
 # JWT Configuration
 JWT_SECRET=your-super-secret-key-change-in-production-12345
+
+# Email Verification (for local registration)
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@example.com
+EMAIL_PASS=your-email-password
+EMAIL_FROM=noreply@dinesmart.com
+FRONTEND_URL=http://localhost:5173
 ```
 
 ### 4. Create Frontend Environment File (if needed)

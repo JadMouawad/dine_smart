@@ -7,12 +7,10 @@ const { validateRegister, validateLogin } = require("../validation/authValidatio
 const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    const result = await authService.registerUser(name, email, password);
+    await authService.registerUser(name, email, password);
 
     res.status(201).json({
-      message: "User registered successfully",
-      user: result.user,
-      token: result.token
+      message: "Verification email sent. Please verify your email."
     });
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -31,8 +29,14 @@ const login = async (req, res) => {
       token: result.token
     });
   } catch (err) {
-    res.status(401).json({ message: err.message });
+    const status = err.message === "Please verify your email before logging in." ? 403 : 401;
+    res.status(status).json({ message: err.message });
   }
+};
+
+// POST /auth/logout
+const logout = (req, res) => {
+  res.status(200).json({ message: "Logged out successfully" });
 };
 
 // POST /auth/google
@@ -59,5 +63,6 @@ const googleSignIn = async (req, res) => {
 module.exports = {
   register,
   login,
+  logout,
   googleSignIn
 };

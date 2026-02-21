@@ -5,11 +5,13 @@ const router = express.Router();
 // Import your route files
 const searchRoutes = require("./searchRoutes");
 const restaurantRoutes = require("./restaurantRoutes");
-const authRoutes = require("./authRoutes"); 
+const authRoutes = require("./authRoutes");
+const profileRoutes = require("./profileRoutes");
 
 // Mount routes
 router.use("/search", searchRoutes);
 router.use("/restaurants", restaurantRoutes);
-router.use("/auth", authRoutes); 
+router.use("/auth", authRoutes);
+router.use("/profile", profileRoutes); 
 
 module.exports = router;
