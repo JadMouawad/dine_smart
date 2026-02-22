@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { getReviewsByRestaurantId, createReview } from "../../services/reviewService";
+import { getAllRestaurants } from "../../services/restaurantService";
 
 const CUISINES = [
   "All",
@@ -11,54 +13,6 @@ const CUISINES = [
   "Italian",
   "Indian",
   "International",
-];
-
-// TEMP demo data (frontend only)
-const DEMO_RESTAURANTS = [
-  {
-    id: "r1",
-    name: "Luigi's Kitchen",
-    cuisine: "Italian",
-    rating: 4.6,
-    openingTime: "10:00",
-    closingTime: "23:00",
-    location: "Beirut",
-    coverUrl: "",
-    logoUrl: "https://i.pravatar.cc/80?img=11",
-    menu: [
-      {
-        sectionId: "s1",
-        sectionName: "Starters",
-        items: [
-          { id: "i1", name: "Bruschetta", price: "6.50", currency: "USD", description: "Tomato, basil, olive oil", imageUrl: "" },
-          { id: "i2", name: "Arancini", price: "7.00", currency: "USD", description: "Crispy rice balls", imageUrl: "" },
-          { id: "i3", name: "batata", price: "7.00", currency: "USD", description: "Crispy batata", imageUrl: "" },
-          { id: "i4", name: "kebbeh", price: "20.00", currency: "USD", description: "kebbeh meshweye", imageUrl: "" },
-        ],
-      },
-      {
-        sectionId: "s2",
-        sectionName: "Pasta",
-        items: [{ id: "i5", name: "Spaghetti Pomodoro", price: "10.00", currency: "USD", description: "Classic tomato sauce", imageUrl: "" }],
-      },
-      {
-        sectionId: "s3",
-        sectionName: "Pizza",
-        items: [{ id: "i6", name: "Pepperoni", price: "15.00", currency: "USD", description: "without vegetables", imageUrl: "" }],
-      },
-      {
-        sectionId: "s4",
-        sectionName: "Burgers",
-        items: [{ id: "i7", name: "Cheese burger", price: "11.50", currency: "USD", description: "served with fries", imageUrl: "" }],
-      },
-    ],
-    reviews: [
-      { id: "rev1", userName: "Maya", userAvatar: "https://i.pravatar.cc/80?img=12", date: "2026-02-18", stars: 5, text: "Amazing food and super fast service." },
-      { id: "rev2", userName: "Hussein", userAvatar: "https://i.pravatar.cc/80?img=32", date: "2026-02-15", stars: 4, text: "Great taste, portions could be bigger." },
-    ],
-  },
-  { id: "r2", name: "Saffron House", cuisine: "Indian", rating: 4.3, openingTime: "11:00", closingTime: "22:00", location: "Hamra", coverUrl: "", menu: [], reviews: [] },
-  { id: "r3", name: "Global Bites", cuisine: "International", rating: 4.1, openingTime: "09:00", closingTime: "21:00", location: "Downtown", coverUrl: "", menu: [], reviews: [] },
 ];
 
 const FAVORITES_KEY = "ds_favorites";
@@ -74,8 +28,18 @@ export default function UserSearch({
   const [query, setQuery] = useState("");
   const [cuisine, setCuisine] = useState("All");
 
+  const [restaurants, setRestaurants] = useState([]);
+  const [restaurantsLoading, setRestaurantsLoading] = useState(true);
+
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [detailsTab, setDetailsTab] = useState("menu"); // "menu" | "reviews"
+
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewError, setReviewError] = useState("");
+  const [reviewPosting, setReviewPosting] = useState(false);
 
   const [favorites, setFavorites] = useState(() => loadFavorites());
   const [activeSectionId, setActiveSectionId] = useState(null);
@@ -117,6 +81,15 @@ export default function UserSearch({
     });
   }
 
+  // Fetch real restaurants from backend on mount
+  useEffect(() => {
+    setRestaurantsLoading(true);
+    getAllRestaurants()
+      .then((data) => setRestaurants(Array.isArray(data) ? data : []))
+      .catch(() => setRestaurants([]))
+      .finally(() => setRestaurantsLoading(false));
+  }, []);
+
   // If coming from Favorites -> open restaurant
   useEffect(() => {
     if (!restaurantToOpen) return;
@@ -125,14 +98,25 @@ export default function UserSearch({
     clearRestaurantToOpen?.();
   }, [restaurantToOpen, clearRestaurantToOpen]);
 
+  // Fetch real reviews from backend when reviews tab is opened
+  useEffect(() => {
+    if (!selectedRestaurant || detailsTab !== "reviews") return;
+    setReviewsLoading(true);
+    setReviews([]);
+    getReviewsByRestaurantId(selectedRestaurant.id)
+      .then((data) => setReviews(Array.isArray(data) ? data : []))
+      .catch(() => setReviews([]))
+      .finally(() => setReviewsLoading(false));
+  }, [selectedRestaurant, detailsTab]);
+
   const filteredRestaurants = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return DEMO_RESTAURANTS.filter((r) => {
+    return restaurants.filter((r) => {
       const matchesName = !q || r.name.toLowerCase().includes(q);
       const matchesCuisine = cuisine === "All" || r.cuisine === cuisine || r.cuisine === "International";
       return matchesName && matchesCuisine;
     });
-  }, [query, cuisine]);
+  }, [query, cuisine, restaurants]);
 
   useEffect(() => {
   const active = query.trim().length > 0 || cuisine !== "All";
@@ -355,7 +339,12 @@ export default function UserSearch({
               <div className="reviewCard__title">Add a review</div>
 
               <div className="reviewCard__row">
-                <select className="select reviewCard__select" defaultValue="5">
+                <select
+                  className="select reviewCard__select"
+                  value={reviewRating}
+                  onChange={(e) => setReviewRating(Number(e.target.value))}
+                  disabled={reviewPosting}
+                >
                   <option value="5">5 ★</option>
                   <option value="4">4 ★</option>
                   <option value="3">3 ★</option>
@@ -363,54 +352,91 @@ export default function UserSearch({
                   <option value="1">1 ★</option>
                 </select>
 
-                <input className="reviewCard__input" type="text" placeholder="Write your review..." />
+                <input
+                  className="reviewCard__input"
+                  type="text"
+                  placeholder="Write your review..."
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  disabled={reviewPosting}
+                />
 
                 <button
                   className="btn btn--gold"
                   type="button"
-                  onClick={() => {
+                  disabled={reviewPosting}
+                  onClick={async () => {
                     if (!requireAuth()) return;
+                    if (!reviewComment.trim()) {
+                      setReviewError("Please write a comment.");
+                      return;
+                    }
+                    setReviewError("");
+                    setReviewPosting(true);
+                    try {
+                      await createReview(selectedRestaurant.id, {
+                        rating: reviewRating,
+                        comment: reviewComment.trim(),
+                      });
+                      setReviewComment("");
+                      setReviewRating(5);
+                      // Reload reviews
+                      const data = await getReviewsByRestaurantId(selectedRestaurant.id);
+                      setReviews(Array.isArray(data) ? data : []);
+                    } catch (err) {
+                      setReviewError(err.message || "Failed to post review.");
+                    } finally {
+                      setReviewPosting(false);
+                    }
                   }}
                 >
-                  Post
+                  {reviewPosting ? "Posting..." : "Post"}
                 </button>
               </div>
 
-              <div className="reviewCard__hint">Frontend only for now.</div>
+              {reviewError && (
+                <div style={{ color: "red", fontSize: 13, marginTop: 6 }}>{reviewError}</div>
+              )}
             </div>
 
             <div className="reviewsDivider">
               <span className="reviewsDivider__text">What Diners Say</span>
             </div>
 
-            {selectedRestaurant.reviews?.length ? (
+            {reviewsLoading ? (
+              <div className="menuSectionEmpty">Loading reviews...</div>
+            ) : reviews.length ? (
               <div className="reviewsStack">
-                {selectedRestaurant.reviews.map((rev) => (
+                {reviews.map((rev) => (
                   <div className="reviewCardFull" key={rev.id}>
                     <div className="reviewCardFull__left">
                       <div className="reviewCardFull__avatar">
-                        <img className="reviewCardFull__avatarImg" src={rev.userAvatar} alt={rev.userName} />
+                        <span className="reviewCardFull__avatarFallback">
+                          {(rev.user_name || rev.authorName || "?")[0].toUpperCase()}
+                        </span>
                       </div>
                     </div>
 
                     <div className="reviewCardFull__right">
                       <div className="reviewCardFull__top">
-                        <div className="reviewCardFull__userName">{rev.userName}</div>
-                        <div className="reviewCardFull__date">{rev.date}</div>
+                        <div className="reviewCardFull__userName">{rev.user_name || rev.authorName || "Anonymous"}</div>
+                        <div className="reviewCardFull__date">
+                          {rev.created_at ? new Date(rev.created_at).toLocaleDateString() : ""}
+                        </div>
                       </div>
 
                       <div className="reviewCardFull__stars">
-                        {"★".repeat(rev.stars)}
-                        {"☆".repeat(5 - rev.stars)}
+                        {"★".repeat(rev.rating)}
+                        {"☆".repeat(5 - rev.rating)}
                       </div>
 
-                      <div className="reviewCardFull__text">{rev.text}</div>
+                      <div className="reviewCardFull__text">{rev.comment}</div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="menuSectionEmpty">No reviews yet.</div>
+              <div className="menuSectionEmpty">No reviews yet. Be the first!</div>
             )}
           </div>
         )}
@@ -444,7 +470,12 @@ export default function UserSearch({
       </div>
 
       <div className="restaurantGrid">
-        {filteredRestaurants.map((r) => (
+        {restaurantsLoading ? (
+          <p style={{ padding: "20px", color: "#888" }}>Loading restaurants...</p>
+        ) : filteredRestaurants.length === 0 ? (
+          <p style={{ padding: "20px", color: "#888" }}>No restaurants found.</p>
+        ) : null}
+        {!restaurantsLoading && filteredRestaurants.map((r) => (
           <div
             key={r.id}
             className="restaurantCard"
@@ -498,7 +529,6 @@ export default function UserSearch({
           </div>
         ))}
 
-        {!filteredRestaurants.length && <div className="menuSectionEmpty">No restaurants match your search.</div>}
       </div>
     </div>
   );
