@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
@@ -8,8 +8,12 @@ export default function VerifyEmail() {
   const navigate = useNavigate();
   const [status, setStatus] = useState("verifying"); // "verifying" | "success" | "error"
   const [message, setMessage] = useState("");
+  const hasVerified = useRef(false);
 
   useEffect(() => {
+    if (hasVerified.current) return;
+    hasVerified.current = true;
+
     const token = searchParams.get("token");
     if (!token) {
       setStatus("error");
@@ -21,8 +25,12 @@ export default function VerifyEmail() {
       .then((res) => res.json())
       .then((data) => {
         if (data.message && data.message.toLowerCase().includes("verified")) {
+          // Auto-login: save the token returned by the backend
+          if (data.token) {
+            localStorage.setItem("token", data.token);
+          }
           setStatus("success");
-          setMessage("Your email has been verified! You can now log in.");
+          setMessage("Your email has been verified! You are now logged in.");
         } else {
           setStatus("error");
           setMessage(data.message || "Verification failed.");
@@ -67,7 +75,7 @@ export default function VerifyEmail() {
             <h2 style={{ color: "#16a34a" }}>Email Verified!</h2>
             <p style={{ color: "#666" }}>{message}</p>
             <button
-              onClick={() => navigate("/")}
+              onClick={() => window.location.href = "/"}
               style={{
                 marginTop: "24px",
                 padding: "12px 24px",
@@ -80,7 +88,7 @@ export default function VerifyEmail() {
                 fontWeight: "600"
               }}
             >
-              Go to Login
+              Go to Home
             </button>
           </>
         )}
