@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { createRestaurant } from "../../services/restaurantService";
+import { createRestaurant, getMyRestaurant, updateMyRestaurant } from "../../services/restaurantService";
 
 const CUISINES = [
     "American",
@@ -24,6 +24,21 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [existingRestaurant, setExistingRestaurant] = useState(null);
+
+    // Load existing restaurant on mount
+    useEffect(() => {
+        getMyRestaurant()
+            .then((restaurant) => {
+                setExistingRestaurant(restaurant);
+                setRestaurantName(restaurant.name || "");
+                setCuisineType(restaurant.cuisine || "");
+                setLocation(restaurant.address || "");
+            })
+            .catch(() => {
+                // No restaurant yet — stay in create mode
+            });
+    }, []);
 
     const logoPreviewUrl = useMemo(() => {
         if (!logoFile) return "";
@@ -76,22 +91,23 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
         setSuccess("");
         setLoading(true);
         try {
-            await createRestaurant({
+            const payload = {
                 name: restaurantName,
                 description: "",
                 cuisine: cuisineType,
                 address: location,
-            });
-            setSuccess("Restaurant created successfully!");
-            setRestaurantName("");
-            setOpeningTime("");
-            setClosingTime("");
-            setCuisineType("");
-            setLocation("");
-            setLogoFile(null);
-            setCoverFile(null);
+            };
+            if (existingRestaurant) {
+                const updated = await updateMyRestaurant(payload);
+                setExistingRestaurant(updated);
+                setSuccess("Restaurant updated successfully!");
+            } else {
+                const created = await createRestaurant(payload);
+                setExistingRestaurant(created);
+                setSuccess("Restaurant created successfully!");
+            }
         } catch (err) {
-            setError(err.message || "Failed to create restaurant.");
+            setError(err.message || "Failed to save restaurant.");
         } finally {
             setLoading(false);
         }
@@ -99,7 +115,7 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
 
     return (
         <div className="ownerProfile">
-            <h1 className="ownerProfile__title">Set Up Restaurant Profile</h1>
+            <h1 className="ownerProfile__title">{existingRestaurant ? "Edit Restaurant Profile" : "Set Up Restaurant Profile"}</h1>
 
             <form className="ownerProfile__form" onSubmit={onSubmit}>
                 <div className="ownerProfileGrid">

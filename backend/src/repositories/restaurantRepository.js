@@ -40,6 +40,11 @@ const updateRestaurant = async (id, data) => {
   return result.rows[0];
 };
 
+const getRestaurantByOwnerId = async (ownerId) => {
+  const result = await pool.query(`SELECT * FROM restaurants WHERE owner_id = $1 LIMIT 1`, [ownerId]);
+  return result.rows[0] || null;
+};
+
 const deleteRestaurant = async (id) => {
   const result = await pool.query(
     `DELETE FROM restaurants WHERE id = $1 RETURNING *`,
@@ -61,6 +66,7 @@ module.exports = {
   createRestaurant,
   getAllRestaurants,
   getRestaurantById,
+  getRestaurantByOwnerId,
   updateRestaurant,
   deleteRestaurant,
   searchRestaurants,

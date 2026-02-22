@@ -38,6 +38,17 @@ export async function createRestaurant(data) {
   });
 }
 
+export async function getMyRestaurant() {
+  return apiRequest("/restaurants/mine");
+}
+
+export async function updateMyRestaurant(data) {
+  return apiRequest("/restaurants/mine", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
 /**
  * Search restaurants (for future implementation)
  * @param {string} query - Search query

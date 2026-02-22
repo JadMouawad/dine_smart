@@ -13,6 +13,10 @@ const getRestaurantById = async (id) => {
   return await restaurantRepository.getRestaurantById(id);
 };
 
+const getRestaurantByOwnerId = async (ownerId) => {
+  return await restaurantRepository.getRestaurantByOwnerId(ownerId);
+};
+
 const updateRestaurant = async (id, data) => {
   return await restaurantRepository.updateRestaurant(id, data);
 };
@@ -29,6 +33,7 @@ module.exports = {
   createRestaurant,
   getAllRestaurants,
   getRestaurantById,
+  getRestaurantByOwnerId,
   updateRestaurant,
   deleteRestaurant,
   searchRestaurants,
