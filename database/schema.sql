@@ -55,4 +55,12 @@ WHERE email = 'carla@gmail.com';
 
 SELECT role_id FROM users WHERE email='carla@gmail.com';
 
-
+-- Test restaurants for backend search
+INSERT INTO restaurants (name, cuisine, description, address, phone, rating)
+VALUES
+  ('Test Italian Restaurant', 'Italian', 'A cozy Italian place', 'Beirut, Lebanon', '+961 01 234567', 4.5),
+  ('Little Italy', 'Italian', 'Famous for pizza and pasta', 'Beirut, Lebanon', '+961 01 234568', 4.2),
+  ('Sushi World', 'Japanese', 'Fresh sushi and rolls', 'Beirut, Lebanon', '+961 01 234569', 4.7),
+  ('Burger House', 'American', 'Burgers and fries', 'Beirut, Lebanon', '+961 01 234570', 4.0),
+  ('Curry Palace', 'Indian', 'Spicy Indian cuisine', 'Beirut, Lebanon', '+961 01 234571', 4.3)
+ON CONFLICT DO NOTHING;
