@@ -32,7 +32,7 @@ const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
  * @param {string} password - User's password (will be hashed)
  * @returns {Object} Empty object (JWT issued only after email verification)
  */
-const registerUser = async (fullName, email, password) => {
+const registerUser = async (fullName, email, password, roleId = 1) => {
   // Check if user already exists
   const existingUser = await User.findByEmail(pool, email);
   if (existingUser) {
@@ -47,7 +47,7 @@ const registerUser = async (fullName, email, password) => {
     fullName,
     email,
     password: hashedPassword,
-    roleId: 1 // Default user role
+    roleId // Use the role passed in (1=user, 2=owner)
   });
 
   // Create verification token and send email (no JWT until email verified)
@@ -101,7 +101,8 @@ const loginUser = async (email, password) => {
     user: {
       id: user.id,
       fullName: user.full_name,
-      email: user.email
+      email: user.email,
+      role: user.role
     },
     token
   };
@@ -161,7 +162,8 @@ const googleAuthUser = async (idToken) => {
     user: {
       id: user.id,
       fullName: user.full_name,
-      email: user.email
+      email: user.email,
+      role: user.role
     },
     token
   };

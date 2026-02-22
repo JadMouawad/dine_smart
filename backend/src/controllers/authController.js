@@ -6,8 +6,10 @@ const { validateRegister, validateLogin } = require("../validation/authValidatio
 // POST /auth/register
 const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-    await authService.registerUser(name, email, password);
+    const { name, email, password, role } = req.body;
+    // role: "user" -> roleId 1, "owner" -> roleId 2, default user
+    const roleId = role === "owner" ? 2 : 1;
+    await authService.registerUser(name, email, password, roleId);
 
     res.status(201).json({
       message: "Verification email sent. Please verify your email."
