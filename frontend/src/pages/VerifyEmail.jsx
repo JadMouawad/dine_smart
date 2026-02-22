@@ -29,8 +29,10 @@ export default function VerifyEmail() {
           if (data.token) {
             localStorage.setItem("token", data.token);
           }
-          setStatus("success");
-          setMessage("Your email has been verified! You are now logged in.");
+          // Redirect based on role
+          const role = data.user?.role;
+          const redirect = role === "owner" ? "/owner/profile" : "/user/profile";
+          window.location.href = redirect;
         } else {
           setStatus("error");
           setMessage(data.message || "Verification failed.");
