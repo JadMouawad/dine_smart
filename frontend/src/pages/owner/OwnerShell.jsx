@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../auth/AuthContext";
 import OwnerNav from "./OwnerNav.jsx";
 import OwnerProfile from "./OwnerProfile.jsx";
 import OwnerMenu from "./OwnerMenu.jsx";
@@ -7,7 +8,16 @@ import OwnerMenu from "./OwnerMenu.jsx";
 export default function OwnerShell() {
   const [active, setActive] = useState("profile");
   const navigate = useNavigate();
+  const { logout, loading } = useAuth();
   const [restaurantLogoUrl, setRestaurantLogoUrl] = useState("");
+
+  // Wait for auth to restore before rendering (so token is in localStorage for API calls)
+  if (loading) return null;
+
+  function handleLogout() {
+    logout();
+    navigate("/");
+  }
 
   return (
     <div className="ownerArea">
@@ -15,7 +25,7 @@ export default function OwnerShell() {
         active={active}
         onChange={setActive}
         avatarSrc={restaurantLogoUrl}
-        onLogout={() => navigate("/")}
+        onLogout={handleLogout}
       />
 
       <main className="ownerArea__main">

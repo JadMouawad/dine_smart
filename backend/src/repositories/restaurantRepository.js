@@ -2,11 +2,11 @@
 const pool = require("../config/db");
 
 const createRestaurant = async (data) => {
-  const { name, description, cuisine, address, ownerId } = data;
+  const { name, description, cuisine, address, openingTime, closingTime, ownerId } = data;
   const result = await pool.query(
-    `INSERT INTO restaurants (name, description, cuisine, address, owner_id)
-     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [name, description, cuisine, address, ownerId]
+    `INSERT INTO restaurants (name, description, cuisine, address, opening_time, closing_time, owner_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    [name, description, cuisine, address, openingTime || null, closingTime || null, ownerId]
   );
   return result.rows[0];
 };
@@ -40,6 +40,11 @@ const updateRestaurant = async (id, data) => {
   return result.rows[0];
 };
 
+const getRestaurantByOwnerId = async (ownerId) => {
+  const result = await pool.query(`SELECT * FROM restaurants WHERE owner_id = $1 LIMIT 1`, [ownerId]);
+  return result.rows[0] || null;
+};
+
 const deleteRestaurant = async (id) => {
   const result = await pool.query(
     `DELETE FROM restaurants WHERE id = $1 RETURNING *`,
@@ -61,6 +66,7 @@ module.exports = {
   createRestaurant,
   getAllRestaurants,
   getRestaurantById,
+  getRestaurantByOwnerId,
   updateRestaurant,
   deleteRestaurant,
   searchRestaurants,

@@ -29,7 +29,7 @@ const findById = async (db, id) => {
 };
 
 // Create new user (local registration: provider=local, is_verified=false until email verified)
-const create = async (db, { fullName, email, password, roleId = 3 }) => {
+const create = async (db, { fullName, email, password, roleId = 1 }) => {
   const query = `
     INSERT INTO users (full_name, email, password, role_id, provider, is_verified)
     VALUES ($1, $2, $3, $4, 'local', false)
@@ -48,20 +48,26 @@ const findByEmailWithPassword = async (db, email) => {
 
 // Find user by Google subject ID
 const findByGoogleId = async (db, googleId) => {
-  const query = "SELECT * FROM users WHERE google_id = $1";
+  const query = `
+    SELECT u.*, r.name AS role
+    FROM users u
+    JOIN roles r ON u.role_id = r.id
+    WHERE u.google_id = $1
+  `;
   const result = await db.query(query, [googleId]);
   return result.rows[0] || null;
 };
 
 // Create a new OAuth user (no password, provider=google, is_verified=true)
-const createOAuthUser = async (db, { fullName, email, googleId, roleId = 3 }) => {
-  const query = `
+const createOAuthUser = async (db, { fullName, email, googleId, roleId = 1 }) => {
+  const insertQuery = `
     INSERT INTO users (full_name, email, google_id, role_id, provider, is_verified)
     VALUES ($1, $2, $3, $4, 'google', true)
-    RETURNING id, full_name, email, role_id, is_verified, provider, created_at, updated_at
+    RETURNING id
   `;
-  const result = await db.query(query, [fullName, email, googleId, roleId]);
-  return result.rows[0];
+  const insertResult = await db.query(insertQuery, [fullName, email, googleId, roleId]);
+  const newId = insertResult.rows[0].id;
+  return findById(db, newId);
 };
 
 // Link a Google ID to an existing email-registered account (mark verified)
@@ -69,10 +75,10 @@ const linkGoogleId = async (db, userId, googleId) => {
   const query = `
     UPDATE users SET google_id = $1, provider = 'google', is_verified = true, updated_at = NOW()
     WHERE id = $2
-    RETURNING id, full_name, email, role_id, is_verified, provider, created_at, updated_at
+    RETURNING id
   `;
   const result = await db.query(query, [googleId, userId]);
-  return result.rows[0];
+  return findById(db, result.rows[0].id);
 };
 
 // Mark user as verified (for email verification flow)

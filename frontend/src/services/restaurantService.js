@@ -27,6 +27,29 @@ export async function getRestaurantById(id) {
 }
 
 /**
+ * Create a new restaurant (owner only)
+ * @param {Object} data - { name, description, cuisine, address }
+ * @returns {Promise} Created restaurant
+ */
+export async function createRestaurant(data) {
+  return apiRequest("/restaurants", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getMyRestaurant() {
+  return apiRequest("/restaurants/mine");
+}
+
+export async function updateMyRestaurant(data) {
+  return apiRequest("/restaurants/mine", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+/**
  * Search restaurants (for future implementation)
  * @param {string} query - Search query
  * @returns {Promise} Filtered restaurants

@@ -68,8 +68,11 @@ export default function AuthModal({
     setError(null);
     setLoading(true);
     try {
-      await googleLogin(credentialResponse.credential);
+      const data = await googleLogin(credentialResponse.credential);
+      const userRole = data?.user?.role;
       onClose();
+      if (userRole === "owner") navigate("/owner/profile");
+      else navigate("/user/profile");
     } catch (err) {
       setError(err.message || "Google sign-in failed");
     } finally {
@@ -132,17 +135,21 @@ export default function AuthModal({
               try {
                 if (mode === "signup") {
                   if (!name.trim()) throw new Error("Name is required");
-                  await register(name, email, password);
+                  const role = accountType === "restaurant" ? "owner" : "user";
+                  await register(name, email, password, role);
                 } else {
-                  await login(email, password);
+                  const data = await login(email, password);
+                  const userRole = data?.user?.role;
+                  setName(""); setEmail(""); setPassword("");
+                  onClose();
+                  if (userRole === "owner") navigate("/owner/profile");
+                  else navigate("/user/profile");
+                  return;
                 }
                 setName("");
                 setEmail("");
                 setPassword("");
                 onClose();
-                if (mode === "signup" && accountType === "restaurant") {
-                  navigate("/owner/profile");
-                }
               } catch (err) {
                 setError(err.message || "Authentication failed");
               } finally {

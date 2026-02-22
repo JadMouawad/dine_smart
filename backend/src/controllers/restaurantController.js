@@ -30,6 +30,29 @@ const getRestaurant = async (req, res) => {
   }
 };
 
+// GET /api/restaurants/mine — returns the restaurant owned by the logged-in owner
+const getMyRestaurant = async (req, res) => {
+  try {
+    const restaurant = await restaurantService.getRestaurantByOwnerId(req.user.id);
+    if (!restaurant) return res.status(404).json({ message: "No restaurant found" });
+    res.json(restaurant);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// PUT /api/restaurants/mine — update the restaurant owned by the logged-in owner
+const updateMyRestaurant = async (req, res) => {
+  try {
+    const restaurant = await restaurantService.getRestaurantByOwnerId(req.user.id);
+    if (!restaurant) return res.status(404).json({ message: "No restaurant found" });
+    const updated = await restaurantService.updateRestaurant(restaurant.id, req.body);
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 const updateRestaurant = async (req, res) => {
   try {
     const updated = await restaurantService.updateRestaurant(req.params.id, req.body);
@@ -52,6 +75,8 @@ module.exports = {
   createRestaurant,
   getAllRestaurants,
   getRestaurant,
+  getMyRestaurant,
+  updateMyRestaurant,
   updateRestaurant,
   deleteRestaurant,
 };

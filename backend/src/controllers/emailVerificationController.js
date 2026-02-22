@@ -21,7 +21,8 @@ const verifyEmail = async (req, res) => {
       user: {
         id: user.id,
         fullName: user.full_name,
-        email: user.email
+        email: user.email,
+        role: user.role
       },
       token: jwtToken
     });
