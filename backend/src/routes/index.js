@@ -12,6 +12,7 @@ const profileRoutes = require("./profileRoutes");
 router.use("/search", searchRoutes);
 router.use("/restaurants", restaurantRoutes);
 router.use("/auth", authRoutes);
-router.use("/profile", profileRoutes); 
+router.use("/profile", profileRoutes);
+router.use("/me", profileRoutes); // alias so frontend /api/me works
 
 module.exports = router;

@@ -13,6 +13,7 @@ import AuthModal from "./components/AuthModal.jsx";
 import OwnerShell from "./pages/owner/OwnerShell.jsx";
 import UserShell from "./pages/User/UserShell.jsx";
 import UserSearch from "./pages/User/UserSearch.jsx";
+import VerifyEmail from "./pages/VerifyEmail.jsx";
 
 function AppContent() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -94,7 +95,7 @@ useEffect(() => {
 
           <section id="search">
             <UserSearch
-  isGuest={true}
+  isGuest={!user}
   onRequireSignup={() => openModal("signup")}
   onSearchActiveChange={(active) => {
     if (active) setLandingView("search");
@@ -130,6 +131,9 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="/" element={<AppContent />} />
+
+        {/* Email verification */}
+        <Route path="/verify-email" element={<VerifyEmail />} />
 
         {/* Owner area */}
         <Route path="/owner/profile" element={<OwnerShell />} />
