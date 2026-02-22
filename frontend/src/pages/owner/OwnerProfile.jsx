@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { createRestaurant } from "../../services/restaurantService";
 
 const CUISINES = [
     "American",
@@ -20,6 +21,9 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
     const [location, setLocation] = useState("");
     const [logoFile, setLogoFile] = useState(null);
     const [coverFile, setCoverFile] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
 
     const logoPreviewUrl = useMemo(() => {
         if (!logoFile) return "";
@@ -66,21 +70,31 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
         setCoverFile(file);
     }
 
-    function onSubmit(e) {
+    async function onSubmit(e) {
         e.preventDefault();
-
-        const payload = {
-            restaurantName,
-            openingTime,
-            closingTime,
-            cuisineType,
-            location,
-            logoFile,
-            coverFile,
-        };
-
-        console.log("Restaurant profile payload:", payload);
-        alert("Saved (frontend only). Check console for payload.");
+        setError("");
+        setSuccess("");
+        setLoading(true);
+        try {
+            await createRestaurant({
+                name: restaurantName,
+                description: "",
+                cuisine: cuisineType,
+                address: location,
+            });
+            setSuccess("Restaurant created successfully!");
+            setRestaurantName("");
+            setOpeningTime("");
+            setClosingTime("");
+            setCuisineType("");
+            setLocation("");
+            setLogoFile(null);
+            setCoverFile(null);
+        } catch (err) {
+            setError(err.message || "Failed to create restaurant.");
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
@@ -203,9 +217,12 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
                             />
                         </label>
 
+                        {error && <div style={{ color: "red", fontSize: 13 }}>{error}</div>}
+                        {success && <div style={{ color: "green", fontSize: 13 }}>{success}</div>}
+
                         <div className="formCard__actions">
-                            <button className="btn btn--gold btn--xl" type="submit">
-                                Save
+                            <button className="btn btn--gold btn--xl" type="submit" disabled={loading}>
+                                {loading ? "Saving..." : "Save"}
                             </button>
                         </div>
                     </div>
