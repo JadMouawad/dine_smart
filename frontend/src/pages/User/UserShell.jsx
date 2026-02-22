@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../auth/AuthContext";
 import UserNav from "./UserNav.jsx";
 import UserSearch from "./UserSearch.jsx";
 import UserProfile from "./UserProfile.jsx";
@@ -10,6 +11,12 @@ export default function UserShell() {
     const [restaurantToOpen, setRestaurantToOpen] = useState(null);
     const [userAvatarUrl, setUserAvatarUrl] = useState("");
     const navigate = useNavigate();
+    const { logout } = useAuth();
+
+    function handleLogout() {
+        logout();
+        navigate("/");
+    }
 
     return (
         <div className="userArea">
@@ -17,7 +24,7 @@ export default function UserShell() {
                 active={active}
                 onChange={setActive}
                 avatarSrc={userAvatarUrl}
-                onLogout={() => navigate("/")}
+                onLogout={handleLogout}
             />
 
             <main className="userArea__main">
