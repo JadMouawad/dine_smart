@@ -34,9 +34,11 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
                 setRestaurantName(restaurant.name || "");
                 setCuisineType(restaurant.cuisine || "");
                 setLocation(restaurant.address || "");
+                setOpeningTime(restaurant.opening_time || "");
+                setClosingTime(restaurant.closing_time || "");
             })
-            .catch(() => {
-                // No restaurant yet — stay in create mode
+            .catch((err) => {
+                console.error("getMyRestaurant error:", err.message);
             });
     }, []);
 
@@ -96,6 +98,8 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
                 description: "",
                 cuisine: cuisineType,
                 address: location,
+                opening_time: openingTime,
+                closing_time: closingTime,
             };
             if (existingRestaurant) {
                 const updated = await updateMyRestaurant(payload);

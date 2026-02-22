@@ -11,7 +11,10 @@ export default function UserShell() {
     const [restaurantToOpen, setRestaurantToOpen] = useState(null);
     const [userAvatarUrl, setUserAvatarUrl] = useState("");
     const navigate = useNavigate();
-    const { logout } = useAuth();
+    const { logout, loading } = useAuth();
+
+    // Wait for auth to restore before rendering
+    if (loading) return null;
 
     function handleLogout() {
         logout();

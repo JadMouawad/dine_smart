@@ -8,8 +8,11 @@ import OwnerMenu from "./OwnerMenu.jsx";
 export default function OwnerShell() {
   const [active, setActive] = useState("profile");
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, loading } = useAuth();
   const [restaurantLogoUrl, setRestaurantLogoUrl] = useState("");
+
+  // Wait for auth to restore before rendering (so token is in localStorage for API calls)
+  if (loading) return null;
 
   function handleLogout() {
     logout();

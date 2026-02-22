@@ -2,11 +2,11 @@
 const pool = require("../config/db");
 
 const createRestaurant = async (data) => {
-  const { name, description, cuisine, address, ownerId } = data;
+  const { name, description, cuisine, address, openingTime, closingTime, ownerId } = data;
   const result = await pool.query(
-    `INSERT INTO restaurants (name, description, cuisine, address, owner_id)
-     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [name, description, cuisine, address, ownerId]
+    `INSERT INTO restaurants (name, description, cuisine, address, opening_time, closing_time, owner_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    [name, description, cuisine, address, openingTime || null, closingTime || null, ownerId]
   );
   return result.rows[0];
 };
