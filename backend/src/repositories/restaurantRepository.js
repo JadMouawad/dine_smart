@@ -25,12 +25,18 @@ const updateRestaurant = async (id, data) => {
   const fields = [];
   const values = [];
   let index = 1;
+for (const key in data) {
+  fields.push(`${key} = $${index}`);
 
-  for (const key in data) {
-    fields.push(`${key} = $${index}`);
+  // ✅ FIX: stringify menu JSON before saving
+  if (key === "menu_sections" || key === "menu") {
+    values.push(JSON.stringify(data[key]));
+  } else {
     values.push(data[key]);
-    index++;
   }
+
+  index++;
+}
 
   values.push(id);
   const result = await pool.query(
