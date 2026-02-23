@@ -103,7 +103,7 @@ export default function AuthModal({
         </div>
 
         {error && (
-          <div className="error-message" style={{ color: "red", padding: "10px", margin: "10px 0" }}>
+          <div className="modal__error" role="alert">
             {error}
           </div>
         )}
@@ -224,7 +224,7 @@ export default function AuthModal({
               <span>or</span>
             </div>
 
-            <div style={{ width: "100%" }}>
+            <div className="modal__googleWrap">
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
                 onError={handleGoogleError}

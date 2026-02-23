@@ -1,15 +1,55 @@
-// OwnerMenu.jsx (paste-ready)
-// - "Edit Section" becomes "Rename Section" and opens the SAME modal
-// - Removes the minus delete-mode behavior entirely
-// - Keeps edit/delete item via kebab menu (already matches theme once CSS is updated)
-
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { getMyRestaurant, updateMyRestaurant } from "../../services/restaurantService";
 
 const CURRENCIES = ["USD", "LBP", "EUR"];
+
+function normalizeMenuFromApi(menuSections) {
+  const list = Array.isArray(menuSections) ? menuSections : [];
+  const sections = [];
+  const items = [];
+  list.forEach((sec) => {
+    const sectionId = sec.sectionId || sec.section_id || sec.id;
+    const sectionName = sec.sectionName || sec.section_name || sec.name || "Section";
+    sections.push({ id: sectionId, name: sectionName });
+    (sec.items || []).forEach((it) => {
+      items.push({
+        id: it.id || `item-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        sectionId,
+        name: it.name || "",
+        price: it.price || "",
+        currency: it.currency || "USD",
+        description: it.description || "",
+        imagePreviewUrl: it.imageUrl || it.image_url || "",
+      });
+    });
+  });
+  return { sections, items };
+}
+
+function serializeMenuToApi(sections, items) {
+  return sections.map((s) => ({
+    sectionId: s.id,
+    sectionName: s.name,
+    items: items
+      .filter((i) => i.sectionId === s.id)
+      .map((i) => ({
+        id: i.id,
+        name: i.name,
+        price: i.price,
+        currency: i.currency,
+        description: i.description || "",
+        imageUrl: i.imagePreviewUrl || "",
+      })),
+  }));
+}
 
 export default function OwnerMenu() {
   const [sections, setSections] = useState([]);
   const [items, setItems] = useState([]);
+  const [menuLoading, setMenuLoading] = useState(true);
+  const [menuSaving, setMenuSaving] = useState(false);
+  const [menuSaveError, setMenuSaveError] = useState("");
+  const [menuSaveSuccess, setMenuSaveSuccess] = useState("");
 
   const [sectionModalOpen, setSectionModalOpen] = useState(false);
   const [itemModalOpen, setItemModalOpen] = useState(false);
@@ -39,6 +79,33 @@ export default function OwnerMenu() {
   const [openItemMenuId, setOpenItemMenuId] = useState(null);
   const [editingItemId, setEditingItemId] = useState(null);
   const [returnToItemAfterSection, setReturnToItemAfterSection] = useState(false);
+
+  useEffect(() => {
+    setMenuLoading(true);
+    getMyRestaurant()
+      .then((restaurant) => {
+        const raw = restaurant?.menu_sections ?? restaurant?.menu ?? [];
+        const { sections: s, items: i } = normalizeMenuFromApi(raw);
+        setSections(s);
+        setItems(i);
+      })
+      .catch(() => {})
+      .finally(() => setMenuLoading(false));
+  }, []);
+
+  async function saveMenuToBackend() {
+    setMenuSaveError("");
+    setMenuSaveSuccess("");
+    setMenuSaving(true);
+    try {
+      await updateMyRestaurant({ menu_sections: serializeMenuToApi(sections, items) });
+      setMenuSaveSuccess("Menu saved. It will appear for users when they view your restaurant.");
+    } catch (err) {
+      setMenuSaveError(err.message || "Failed to save menu.");
+    } finally {
+      setMenuSaving(false);
+    }
+  }
 
   const itemImagePreviewUrl = useMemo(() => {
     if (!itemImageFile) return "";
@@ -234,9 +301,20 @@ export default function OwnerMenu() {
     return map;
   }, [sections]);
 
+  if (menuLoading) {
+    return (
+      <div className="ownerMenuPage">
+        <p style={{ padding: "20px", color: "rgba(255,255,255,0.8)" }}>Loading menu...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="ownerMenuPage" onClick={closeAllMenus}>
-      <h1 className="ownerMenuPage__title">Edit Your Menu Smoothly</h1>
+      <h1 className="ownerMenuPage__title">Edit Your Menu</h1>
+
+      {menuSaveError && <p className="formCard__error" style={{ color: "#f88", marginBottom: 8 }}>{menuSaveError}</p>}
+      {menuSaveSuccess && <p className="formCard__success" style={{ color: "#8f8", marginBottom: 8 }}>{menuSaveSuccess}</p>}
 
       <div className="ownerMenuPage__actions">
         <button
@@ -252,6 +330,14 @@ export default function OwnerMenu() {
           onClick={openAddItem}
         >
           Add Item
+        </button>
+        <button
+          className="btn btn--gold ownerMenuPage__actionBtn"
+          type="button"
+          onClick={saveMenuToBackend}
+          disabled={menuSaving}
+        >
+          {menuSaving ? "Saving..." : "Save menu"}
         </button>
       </div>
 

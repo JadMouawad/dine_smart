@@ -584,6 +584,16 @@ body.ds-nav-not-sticky .nav {
   max-width: 320px;
 }
 
+.modal__error {
+  padding: 10px 12px;
+  margin: 0 0 12px;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  font-size: 14px;
+}
+
 /* Form */
 .form {
   display: grid;
@@ -628,6 +638,18 @@ body.ds-nav-not-sticky .nav {
   height: 1px;
   flex: 1;
   background: rgba(255, 255, 255, 0.12);
+}
+
+.modal__googleWrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 44px;
+}
+
+.modal__googleWrap > div {
+  margin: 0 auto;
 }
 
 .btn--google {
@@ -2219,8 +2241,8 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 .restaurantCard:hover {
   transform: translateY(-2px);
-  border-color: rgba(201, 162, 39, 0.35);
-  box-shadow: 0 0 18px rgba(201, 162, 39, 0.16);
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
 }
 
 .restaurantCard__cover {
@@ -2814,11 +2836,16 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   stroke: #C9A227;
 }
 
-.reserveMiniBtn{
+.reserveMiniBtn {
   padding: 6px 10px;
   font-size: 12px;
   border-radius: 999px;
   line-height: 1;
+}
+
+/* Keep gold button glow subtle inside cards to avoid overwhelming the card */
+.restaurantCard .btn--gold:hover {
+  box-shadow: 0 2px 12px rgba(201, 162, 39, 0.4);
 }
 
 /* ===== Profile Extra Cards (Favorites + My Reviews) ===== */

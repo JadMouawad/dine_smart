@@ -197,6 +197,13 @@ export default function UserSearch({
     );
   }
 
+  // Normalize menu from API (backend returns menu_sections; support legacy .menu)
+  const restaurantMenu = useMemo(() => {
+    if (!selectedRestaurant) return [];
+    const raw = selectedRestaurant.menu_sections ?? selectedRestaurant.menu;
+    return Array.isArray(raw) ? raw : [];
+  }, [selectedRestaurant]);
+
   // =========================
   // Details view (restaurant)
   // =========================
@@ -206,8 +213,8 @@ export default function UserSearch({
         <div className="userSearchTopCard">
           <div className="userSearchTopCard__left">
             <div className="restaurantAvatar" aria-label="Restaurant logo">
-              {selectedRestaurant.logoUrl ? (
-                <img className="restaurantAvatar__img" src={selectedRestaurant.logoUrl} alt={`${selectedRestaurant.name} logo`} />
+              {(selectedRestaurant.logoUrl || selectedRestaurant.logo_url) ? (
+                <img className="restaurantAvatar__img" src={selectedRestaurant.logoUrl || selectedRestaurant.logo_url} alt={`${selectedRestaurant.name} logo`} />
               ) : (
                 <span className="restaurantAvatar__fallback">{selectedRestaurant.name?.[0]?.toUpperCase() || "R"}</span>
               )}
@@ -284,7 +291,7 @@ export default function UserSearch({
           <div className="userMenuView">
             <h2 className="userMenuView__title">Menu</h2>
 
-            {selectedRestaurant.menu?.length ? (
+            {restaurantMenu.length ? (
               <div className="menuSectionSlider">
                 <button className="menuSectionSlider__arrow" type="button" onClick={() => slideSections(-1)} aria-label="Scroll sections left">
                   ‹
@@ -292,7 +299,7 @@ export default function UserSearch({
 
                 <div className="menuSectionSlider__pill" aria-label="Menu sections">
                   <div className="menuSectionSlider__track" ref={sliderTrackRef}>
-                    {selectedRestaurant.menu.map((sec) => (
+                    {restaurantMenu.map((sec) => (
                       <button
                         key={sec.sectionId}
                         type="button"
@@ -311,9 +318,9 @@ export default function UserSearch({
               </div>
             ) : null}
 
-            {selectedRestaurant.menu?.length ? (
+            {restaurantMenu.length ? (
               <div className="userMenuSections">
-                {selectedRestaurant.menu.map((sec) => (
+                {restaurantMenu.map((sec) => (
                   <div
                     className="menuSectionBlock userMenuSectionBlock"
                     key={sec.sectionId}
@@ -332,8 +339,8 @@ export default function UserSearch({
                       {sec.items.map((it) => (
                         <div className="menuItemCard" key={it.id}>
                           <div className="menuItemCard__media">
-                            {it.imageUrl ? (
-                              <img className="menuItemCard__img" src={it.imageUrl} alt={it.name} />
+                            {(it.imageUrl || it.image_url) ? (
+                              <img className="menuItemCard__img" src={it.imageUrl || it.image_url} alt={it.name} />
                             ) : (
                               <div className="menuItemCard__imgPlaceholder">PNG, JPG, or JPEG</div>
                             )}
@@ -521,7 +528,7 @@ export default function UserSearch({
             }}
           >
             <div className="restaurantCard__cover">
-              {r.coverUrl ? <img className="restaurantCard__coverImg" src={r.coverUrl} alt={r.name} /> : <div className="restaurantCard__coverPlaceholder">PNG, JPG, or JPEG</div>}
+              {(r.coverUrl || r.cover_url) ? <img className="restaurantCard__coverImg" src={r.coverUrl || r.cover_url} alt={r.name} /> : <div className="restaurantCard__coverPlaceholder">PNG, JPG, or JPEG</div>}
             </div>
 
             <div className="restaurantCard__body">

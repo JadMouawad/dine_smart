@@ -22,15 +22,25 @@ const getRestaurantById = async (id) => {
 };
 
 const updateRestaurant = async (id, data) => {
+  const allowedKeys = [
+    "name", "description", "cuisine", "address", "phone",
+    "opening_time", "closing_time", "menu_sections"
+  ];
   const fields = [];
   const values = [];
   let index = 1;
 
-  for (const key in data) {
+  for (const key of allowedKeys) {
+    if (!(key in data)) continue;
     fields.push(`${key} = $${index}`);
-    values.push(data[key]);
+    const val = data[key];
+    values.push(key === "menu_sections" && (Array.isArray(val) || typeof val === "object")
+      ? JSON.stringify(val)
+      : val);
     index++;
   }
+
+  if (fields.length === 0) return await getRestaurantById(id);
 
   values.push(id);
   const result = await pool.query(
