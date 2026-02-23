@@ -229,7 +229,7 @@ export default function AuthModal({
                 onSuccess={handleGoogleSuccess}
                 onError={handleGoogleError}
                 text={mode === "signup" ? "signup_with" : "signin_with"}
-                shape="rectangular"
+                shape="pill"
                 theme="outline"
                 size="large"
                 width="360"
