@@ -1,96 +1,118 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext.jsx";
+import { getProfile, updateProfile } from "../../services/profileService.js";
 
 export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant }) {
   const { user } = useAuth();
   const FAVORITES_KEY = "ds_favorites";
-const MY_REVIEWS_KEY = "ds_my_reviews";
+  const MY_REVIEWS_KEY = "ds_my_reviews";
 
-function loadFavorites() {
-  try {
-    return JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]");
-  } catch {
-    return [];
+  function loadFavorites() {
+    try {
+      return JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]");
+    } catch {
+      return [];
+    }
   }
-}
 
-function loadMyReviews() {
-  try {
-    return JSON.parse(localStorage.getItem(MY_REVIEWS_KEY) || "[]");
-  } catch {
-    return [];
+  function loadMyReviews() {
+    try {
+      return JSON.parse(localStorage.getItem(MY_REVIEWS_KEY) || "[]");
+    } catch {
+      return [];
+    }
   }
-}
 
-const [favorites, setFavorites] = useState(() => loadFavorites());
-const [myReviews, setMyReviews] = useState(() => loadMyReviews());
+  const [favorites, setFavorites] = useState(() => loadFavorites());
+  const [myReviews, setMyReviews] = useState(() => loadMyReviews());
 
-useEffect(() => {
-  setFavorites(loadFavorites());
-  setMyReviews(loadMyReviews());
-}, []);
+  useEffect(() => {
+    setFavorites(loadFavorites());
+    setMyReviews(loadMyReviews());
+  }, []);
 
   const [profileFile, setProfileFile] = useState(null);
-
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState("+961");
+  const [newPassword, setNewPassword] = useState("");
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState("");
+  const [profileSuccess, setProfileSuccess] = useState("");
 
-  // Prefill from auth user (once user is available) 
+  // Load profile from API when user is available
   useEffect(() => {
-  if (!user) return;
-
-  const nameFromUser = user.name ?? user.fullName ?? "";
-  const emailFromUser = user.email ?? "";
-
-  setFullName(nameFromUser);
-  setEmail(emailFromUser);
-}, [user]);
+    if (!user) return;
+    setProfileLoading(true);
+    getProfile()
+      .then((profile) => {
+        setFullName(profile.fullName ?? profile.full_name ?? user.name ?? user.fullName ?? "");
+        setEmail(profile.email ?? user.email ?? "");
+        setPhone(profile.phone ?? "");
+      })
+      .catch(() => {
+        setFullName(user.name ?? user.fullName ?? "");
+        setEmail(user.email ?? "");
+      })
+      .finally(() => setProfileLoading(false));
+  }, [user?.id]);
 
   const profilePreviewUrl = useMemo(() => {
-    if (!profileFile) return "";
-    return URL.createObjectURL(profileFile);
+    if (profileFile) return URL.createObjectURL(profileFile);
+    return "";
   }, [profileFile]);
 
   useEffect(() => {
-  if (!onAvatarPreviewChange) return;
-
-  if (profilePreviewUrl) onAvatarPreviewChange(profilePreviewUrl);
-  else onAvatarPreviewChange("");
-}, [profilePreviewUrl, onAvatarPreviewChange]);
+    if (!onAvatarPreviewChange) return;
+    if (profilePreviewUrl) onAvatarPreviewChange(profilePreviewUrl);
+    else onAvatarPreviewChange("");
+  }, [profilePreviewUrl, onAvatarPreviewChange]);
 
   function onPickProfile(e) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-
     const isImage = file.type && file.type.startsWith("image/");
     if (!isImage) {
       alert("Please select an image file (PNG, JPG, JPEG).");
       e.target.value = "";
       return;
     }
-
     setProfileFile(file);
   }
 
-  function onSubmit(e) {
+  async function onSubmit(e) {
     e.preventDefault();
-
+    setProfileError("");
+    setProfileSuccess("");
     const payload = {
       fullName: fullName.trim(),
       email: email.trim(),
-      phone: phone.trim(),
-      profileFile,
+      phone: phone.trim() ? `${countryCode}${phone.trim()}` : "",
     };
+    if (newPassword.trim()) payload.password = newPassword.trim();
+    try {
+      await updateProfile(payload);
+      setProfileSuccess("Profile saved successfully.");
+      setNewPassword("");
+    } catch (err) {
+      setProfileError(err.message || "Failed to save profile.");
+    }
+  }
 
-    console.log("User profile payload:", payload);
-    alert("Saved (frontend only). Check console for payload.");
+  if (profileLoading) {
+    return (
+      <div className="userProfile">
+        <p style={{ padding: "20px", color: "#888" }}>Loading profile...</p>
+      </div>
+    );
   }
 
   return (
     <div className="userProfile">
       <h1 className="userProfile__title">Your Profile</h1>
+      {profileError && <p className="formCard__error" style={{ color: "#c00", marginBottom: "12px" }}>{profileError}</p>}
+      {profileSuccess && <p className="formCard__success" style={{ color: "#0a0", marginBottom: "12px" }}>{profileSuccess}</p>}
 
       <div className="userProfile__stack">
         {/* Image Card */}
@@ -175,6 +197,17 @@ useEffect(() => {
     />
   </div>
 </label>
+
+          <label className="field">
+            <span>New password (leave blank to keep current)</span>
+            <input
+              type="password"
+              placeholder="Enter new password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+          </label>
 
           <div className="formCard__actions">
             <button className="btn btn--gold btn--xl" type="submit">

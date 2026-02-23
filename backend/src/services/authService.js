@@ -7,6 +7,7 @@
  * - JWT token generation and verification
  */
 
+const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
@@ -33,24 +34,20 @@ const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
  * @returns {Object} Empty object (JWT issued only after email verification)
  */
 const registerUser = async (fullName, email, password, roleId = 1) => {
-  // Check if user already exists
   const existingUser = await User.findByEmail(pool, email);
   if (existingUser) {
     throw new Error("Email already registered");
   }
 
-  // Hash password
   const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-  // Create new user (local: provider=local, is_verified=false)
   const user = await User.create(pool, {
     fullName,
     email,
     password: hashedPassword,
-    roleId // Use the role passed in (1=user, 2=owner)
+    roleId
   });
 
-  // Create verification token and send email (no JWT until email verified)
   await emailVerificationService.createTokenAndSendEmail(user.id, email, fullName);
 
   return {};
@@ -58,44 +55,31 @@ const registerUser = async (fullName, email, password, roleId = 1) => {
 
 /**
  * Login an existing user
- * @param {string} email - User's email
- * @param {string} password - User's password
- * @returns {Object} User data and JWT token
  */
 const loginUser = async (email, password) => {
-  // Find user by email
   const user = await User.findByEmail(pool, email);
   if (!user) {
     throw new Error("Invalid email or password");
   }
 
-  // Guard: OAuth-only users have no password
   if (!user.password) {
     throw new Error("This account uses Google sign-in. Please use the 'Continue with Google' button.");
   }
 
-  // Compare password with hash
   const passwordMatch = await bcrypt.compare(password, user.password);
   if (!passwordMatch) {
     throw new Error("Invalid email or password");
   }
 
-  // Block login for unverified local users
   if (user.provider === "local" && user.is_verified === false) {
     throw new Error("Please verify your email before logging in.");
   }
 
-  // Generate JWT token
- const token = jwt.sign(
-  {
-    id: user.id,
-    email: user.email,
-    role: user.role
-  },
-  JWT_SECRET,
-  { expiresIn: JWT_EXPIRES_IN }
-);
-
+  const token = jwt.sign(
+    { id: user.id, email: user.email, role: user.role },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN, jwtid: crypto.randomUUID() }
+  );
 
   return {
     user: {
@@ -110,11 +94,8 @@ const loginUser = async (email, password) => {
 
 /**
  * Authenticate a user via Google OAuth id_token
- * @param {string} idToken - The id_token JWT received from Google on the frontend
- * @returns {Object} User data and our application JWT token
  */
 const googleAuthUser = async (idToken) => {
-  // Verify the id_token with Google's servers
   let ticket;
   try {
     ticket = await googleClient.verifyIdToken({
@@ -135,27 +116,22 @@ const googleAuthUser = async (idToken) => {
     throw new Error("Google account email is not verified");
   }
 
-  // Try to find an existing user by Google ID
   let user = await User.findByGoogleId(pool, googleId);
 
   if (!user) {
-    // Check if a user already exists with this email
     const existingByEmail = await User.findByEmail(pool, email);
 
     if (existingByEmail) {
-      // Link the Google ID to the existing account
       user = await User.linkGoogleId(pool, existingByEmail.id, googleId);
     } else {
-      // Brand new user — create an OAuth-only account
       user = await User.createOAuthUser(pool, { fullName, email, googleId });
     }
   }
 
-  // Issue our own JWT — identical shape to loginUser
   const token = jwt.sign(
-    { id: user.id, email: user.email },
+    { id: user.id, email: user.email, role: user.role },
     JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN }
+    { expiresIn: JWT_EXPIRES_IN, jwtid: crypto.randomUUID() }
   );
 
   return {
@@ -171,8 +147,6 @@ const googleAuthUser = async (idToken) => {
 
 /**
  * Verify JWT token
- * @param {string} token - JWT token to verify
- * @returns {Object} Decoded token payload
  */
 const verifyToken = (token) => {
   try {
@@ -189,7 +163,7 @@ const generateTokenForUser = (user) => {
   return jwt.sign(
     { id: user.id, email: user.email, role: user.role },
     JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN }
+    { expiresIn: JWT_EXPIRES_IN, jwtid: crypto.randomUUID() }
   );
 };
 

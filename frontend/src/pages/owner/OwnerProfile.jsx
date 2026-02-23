@@ -237,6 +237,13 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
                             />
                         </label>
 
+                        <div className="ownerProfile__preview formCard" style={{ marginTop: "1rem", padding: "1rem", background: "#f8f8f8", borderRadius: "8px" }}>
+                            <div className="formCard__title" style={{ marginBottom: "0.5rem" }}>Preview</div>
+                            <p style={{ margin: 0, fontSize: "0.95rem" }}><strong>{restaurantName || "Restaurant name"}</strong></p>
+                            <p style={{ margin: "0.25rem 0 0", color: "#666", fontSize: "0.9rem" }}>{cuisineType || "Cuisine"} • {location || "Location"}</p>
+                            <p style={{ margin: "0.25rem 0 0", fontSize: "0.85rem" }}>Hours: {openingTime || "—"} – {closingTime || "—"}</p>
+                        </div>
+
                         {error && <div style={{ color: "red", fontSize: 13 }}>{error}</div>}
                         {success && <div style={{ color: "green", fontSize: 13 }}>{success}</div>}
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import logo from "../../assets/logo.png";
 
-export default function UserNav({ active, onChange, avatarSrc, onLogout }) {
+export default function UserNav({ active, onChange, avatarSrc, user, onLogout }) {
     const [pillScrolled, setPillScrolled] = useState(false);
 
     useEffect(() => {
@@ -74,7 +74,9 @@ export default function UserNav({ active, onChange, avatarSrc, onLogout }) {
                         {avatarSrc ? (
                             <img className="userAvatar__img" src={avatarSrc} alt="User avatar" />
                         ) : (
-                            <span className="userAvatar__fallback">U</span>
+                            <span className="userAvatar__fallback" aria-hidden="true">
+                                {(user?.fullName || user?.name || "U").charAt(0).toUpperCase()}
+                            </span>
                         )}
                     </button>
 

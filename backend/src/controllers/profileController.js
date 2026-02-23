@@ -14,6 +14,8 @@ const getProfile = async (req, res) => {
       role: profile.role,
       isVerified: profile.is_verified,
       provider: profile.provider,
+      phone: profile.phone || null,
+      profilePictureUrl: profile.profile_picture_url || null,
       createdAt: profile.created_at,
       updatedAt: profile.updated_at
     });
@@ -36,6 +38,8 @@ const updateProfile = async (req, res) => {
       role: profile.role,
       isVerified: profile.is_verified,
       provider: profile.provider,
+      phone: profile.phone || null,
+      profilePictureUrl: profile.profile_picture_url || null,
       createdAt: profile.created_at,
       updatedAt: profile.updated_at
     });

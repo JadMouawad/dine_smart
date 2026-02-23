@@ -18,6 +18,7 @@ export default function AuthModal({
   const [password, setPassword] = useState("");
 
   const [accountType, setAccountType] = useState(null); // "user" | "restaurant" | null
+  const [signupSuccess, setSignupSuccess] = useState(false); // show "check your email" after non-Google signup
 
   const copy = useMemo(() => {
     if (mode === "signup") {
@@ -47,6 +48,7 @@ export default function AuthModal({
     setPassword("");
     setError(null);
     setAccountType(null);
+    setSignupSuccess(false);
   }, [isOpen, mode]);
 
   useEffect(() => {
@@ -106,7 +108,18 @@ export default function AuthModal({
           </div>
         )}
 
-        {mode === "signup" && !accountType ? (
+        {signupSuccess ? (
+          <div className="modal__success" data-testid="signup-verification-message">
+            <div className="modal__successIcon" aria-hidden="true">✓</div>
+            <h3 className="modal__successTitle">Check your email</h3>
+            <p className="modal__successText">
+              We sent a verification link to your email. Click the link to verify your account, then you can log in.
+            </p>
+            <button type="button" className="btn btn--gold btn--xl" onClick={onClose}>
+              Got it
+            </button>
+          </div>
+        ) : mode === "signup" && !accountType ? (
           <div className="account-type-select">
             <button
               type="button"
@@ -136,7 +149,19 @@ export default function AuthModal({
                 if (mode === "signup") {
                   if (!name.trim()) throw new Error("Name is required");
                   const role = accountType === "restaurant" ? "owner" : "user";
-                  await register(name, email, password, role);
+                  const data = await register(name, email, password, role);
+                  // Backend sends verification email and returns message (no token until verified)
+                  if (data?.message && !data?.token) {
+                    setSignupSuccess(true);
+                    setName("");
+                    setEmail("");
+                    setPassword("");
+                    return;
+                  }
+                  setName("");
+                  setEmail("");
+                  setPassword("");
+                  onClose();
                 } else {
                   const data = await login(email, password);
                   const userRole = data?.user?.role;
@@ -146,10 +171,6 @@ export default function AuthModal({
                   else navigate("/user/profile");
                   return;
                 }
-                setName("");
-                setEmail("");
-                setPassword("");
-                onClose();
               } catch (err) {
                 setError(err.message || "Authentication failed");
               } finally {

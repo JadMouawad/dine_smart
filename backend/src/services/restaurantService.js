@@ -25,8 +25,8 @@ const deleteRestaurant = async (id) => {
   return await restaurantRepository.deleteRestaurant(id);
 };
 
-const searchRestaurants = async (query) => {
-  return await restaurantRepository.searchRestaurants(query);
+const searchRestaurants = async (query, cuisines) => {
+  return await restaurantRepository.searchRestaurants(query || "", cuisines);
 };
 
 module.exports = {

@@ -551,6 +551,39 @@ body.ds-nav-not-sticky .nav {
   line-height: 1.4;
 }
 
+.modal__success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 8px 0 16px;
+}
+.modal__successIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(201, 162, 39, 0.2);
+  color: var(--gold);
+  font-size: 28px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+.modal__successTitle {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+.modal__successText {
+  margin: 0 0 20px;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.5;
+  max-width: 320px;
+}
+
 /* Form */
 .form {
   display: grid;
@@ -1991,8 +2024,11 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 .userAvatar__fallback {
-  color: rgba(255, 255, 255, 0.88);
-  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  line-height: 1;
 }
 
 .userProfile__title {
@@ -2987,3 +3023,71 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   box-shadow: 0 0 14px rgba(255, 80, 80, 0.16);
   color: #fff;
 }
+
+/* Verify email page (standalone route) */
+.verifyEmail {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.verifyEmail__card {
+  background: var(--card);
+  border: 1px solid var(--stroke);
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.verifyEmail__state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.verifyEmail__spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: verifyEmailSpin 0.8s linear infinite;
+}
+@keyframes verifyEmailSpin {
+  to { transform: rotate(360deg); }
+}
+.verifyEmail__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+}
+.verifyEmail__icon--success {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+.verifyEmail__icon--error {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+.verifyEmail__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+.verifyEmail__title--success { color: #22c55e; }
+.verifyEmail__title--error { color: #ef4444; }
+.verifyEmail__text {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.verifyEmail .btn { margin-top: 8px; }

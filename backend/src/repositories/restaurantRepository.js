@@ -53,13 +53,42 @@ const deleteRestaurant = async (id) => {
   return result.rows[0];
 };
 
-const searchRestaurants = async (query) => {
-  const searchQuery = `%${query}%`;
-  const result = await pool.query(
-    `SELECT * FROM restaurants WHERE name ILIKE $1 OR cuisine ILIKE $1 OR description ILIKE $1`,
-    [searchQuery]
-  );
+const searchRestaurants = async (query, cuisines = []) => {
+  const trimmed = (query || "").trim();
+  const cuisineList = Array.isArray(cuisines) ? cuisines : [cuisines].filter(Boolean);
+
+  if (!trimmed && cuisineList.length === 0) {
+    const result = await pool.query(`SELECT * FROM restaurants ORDER BY name`);
+    return result.rows;
+  }
+
+  const conditions = [];
+  const values = [];
+  let idx = 1;
+
+  if (trimmed) {
+    const searchPattern = `%${trimmed}%`;
+    conditions.push(`(name ILIKE $${idx} OR cuisine ILIKE $${idx} OR description ILIKE $${idx})`);
+    values.push(searchPattern);
+    idx++;
+  }
+
+  if (cuisineList.length > 0) {
+    conditions.push(`cuisine = ANY($${idx}::text[])`);
+    values.push(cuisineList);
+    idx++;
+  }
+
+  const sql = `SELECT * FROM restaurants WHERE ${conditions.join(" AND ")} ORDER BY name`;
+  const result = await pool.query(sql, values);
   return result.rows;
+};
+
+const updateRestaurantRating = async (restaurantId, rating) => {
+  await pool.query(
+    `UPDATE restaurants SET rating = $1, updated_at = NOW() WHERE id = $2`,
+    [rating, restaurantId]
+  );
 };
 
 module.exports = {
@@ -70,4 +99,5 @@ module.exports = {
   updateRestaurant,
   deleteRestaurant,
   searchRestaurants,
+  updateRestaurantRating,
 };

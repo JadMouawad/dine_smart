@@ -11,7 +11,7 @@ export default function UserShell() {
     const [restaurantToOpen, setRestaurantToOpen] = useState(null);
     const [userAvatarUrl, setUserAvatarUrl] = useState("");
     const navigate = useNavigate();
-    const { logout, loading } = useAuth();
+    const { user, logout, loading } = useAuth();
 
     // Wait for auth to restore before rendering
     if (loading) return null;
@@ -27,26 +27,28 @@ export default function UserShell() {
                 active={active}
                 onChange={setActive}
                 avatarSrc={userAvatarUrl}
+                user={user}
                 onLogout={handleLogout}
             />
 
             <main className="userArea__main">
                 {active === "profile" && (
-  <UserProfile
-    onOpenRestaurant={(restaurant) => {
-      setRestaurantToOpen(restaurant);
-      setActive("search");
-    }}
-  />
-)}
+                    <UserProfile
+                      onAvatarPreviewChange={setUserAvatarUrl}
+                      onOpenRestaurant={(restaurant) => {
+                        setRestaurantToOpen(restaurant);
+                        setActive("search");
+                      }}
+                    />
+                  )}
 
                 {active === "search" && (
-  <UserSearch
-    goReservations={() => setActive("reservations")}
-    restaurantToOpen={restaurantToOpen}
-    clearRestaurantToOpen={() => setRestaurantToOpen(null)}
-  />
-)}
+                    <UserSearch
+                      goReservations={() => setActive("reservations")}
+                      restaurantToOpen={restaurantToOpen}
+                      clearRestaurantToOpen={() => setRestaurantToOpen(null)}
+                    />
+                  )}
 
                 {active === "reservations" && <UserReservations />}   
 

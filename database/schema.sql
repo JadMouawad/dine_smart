@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS users (
   role_id INTEGER NOT NULL REFERENCES roles(id) ON UPDATE CASCADE,
   is_verified BOOLEAN DEFAULT true,             -- false until email verified (local users)
   provider VARCHAR(20) DEFAULT 'local',         -- 'local' | 'google'
+  phone VARCHAR(30),
+  profile_picture_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -41,9 +43,25 @@ CREATE TABLE IF NOT EXISTS restaurants (
   phone VARCHAR(30),
   rating DECIMAL(3,2) DEFAULT 0,
   owner_id INTEGER REFERENCES users(id) ON UPDATE CASCADE ON DELETE SET NULL,
+  opening_time VARCHAR(20),
+  closing_time VARCHAR(20),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS reviews (
+  id SERIAL PRIMARY KEY,
+  restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  rating SMALLINT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment VARCHAR(500),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_reviews_restaurant_id ON reviews(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_user_restaurant ON reviews(user_id, restaurant_id);
 
 -- Insert default roles
 INSERT INTO roles (name) VALUES ('user'), ('owner'), ('admin')
@@ -51,9 +69,9 @@ ON CONFLICT DO NOTHING;
 
 UPDATE users
 SET role_id = 2
-WHERE email = 'carla@gmail.com';
+WHERE email = 'carlaayach@gmail.com';
 
-SELECT role_id FROM users WHERE email='carla@gmail.com';
+SELECT role_id FROM users WHERE email='carlaayach@gmail.com';
 
 -- Test restaurants for backend search
 INSERT INTO restaurants (name, cuisine, description, address, phone, rating)

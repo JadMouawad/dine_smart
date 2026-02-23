@@ -33,11 +33,15 @@ const createReview = async (req, res) => {
     if (!rating || rating < 1 || rating > 5) {
       return res.status(400).json({ message: "Rating must be between 1 and 5" });
     }
+    const commentStr = comment != null ? String(comment).trim() : "";
+    if (commentStr.length > 500) {
+      return res.status(400).json({ message: "Review comment must be at most 500 characters" });
+    }
 
     const userId = req.user.id;
     const result = await reviewService.createReview(restaurantId, userId, {
       rating: parseInt(rating, 10),
-      comment: comment || null,
+      comment: commentStr || null,
     });
 
     if (!result.success) {
@@ -61,11 +65,15 @@ const updateReview = async (req, res) => {
     if (!rating || rating < 1 || rating > 5) {
       return res.status(400).json({ message: "Rating must be between 1 and 5" });
     }
+    const commentStr = comment != null ? String(comment).trim() : "";
+    if (commentStr.length > 500) {
+      return res.status(400).json({ message: "Review comment must be at most 500 characters" });
+    }
 
     const userId = req.user.id;
     const result = await reviewService.updateReview(reviewId, userId, {
       rating: parseInt(rating, 10),
-      comment: comment ?? undefined,
+      comment: commentStr || null,
     });
 
     if (!result.success) {

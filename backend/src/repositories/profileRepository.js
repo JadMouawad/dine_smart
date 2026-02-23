@@ -10,12 +10,16 @@ const getById = async (userId) => {
 
 /**
  * Update user profile (allowlisted fields only)
- * Accepts fullName from API, maps to full_name in DB
+ * Accepts fullName, email, phone, profilePictureUrl, password (hashed by caller)
  */
 const updateById = async (userId, data) => {
   const updates = {};
   if (data.fullName !== undefined) updates.full_name = data.fullName;
   if (data.full_name !== undefined) updates.full_name = data.full_name;
+  if (data.email !== undefined) updates.email = data.email;
+  if (data.phone !== undefined) updates.phone = data.phone;
+  if (data.profilePictureUrl !== undefined) updates.profile_picture_url = data.profilePictureUrl;
+  if (data.password !== undefined) updates.password = data.password;
 
   if (Object.keys(updates).length === 0) {
     return await User.findById(pool, userId);

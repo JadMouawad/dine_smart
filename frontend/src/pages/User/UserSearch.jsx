@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getReviewsByRestaurantId, createReview } from "../../services/reviewService";
-import { getAllRestaurants } from "../../services/restaurantService";
+import { searchRestaurants, getRestaurantById } from "../../services/restaurantService";
 
 const CUISINES = [
   "All",
@@ -32,6 +32,7 @@ export default function UserSearch({
   const [restaurantsLoading, setRestaurantsLoading] = useState(true);
 
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  const [restaurantNotFound, setRestaurantNotFound] = useState(false);
   const [detailsTab, setDetailsTab] = useState("menu"); // "menu" | "reviews"
 
   const [reviews, setReviews] = useState([]);
@@ -81,21 +82,34 @@ export default function UserSearch({
     });
   }
 
-  // Fetch real restaurants from backend on mount
+  // Fetch restaurants from search API (query + cuisine)
   useEffect(() => {
     setRestaurantsLoading(true);
-    getAllRestaurants()
+    const cuisineParam = cuisine === "All" ? null : cuisine;
+    searchRestaurants(query.trim(), cuisineParam)
       .then((data) => setRestaurants(Array.isArray(data) ? data : []))
       .catch(() => setRestaurants([]))
       .finally(() => setRestaurantsLoading(false));
-  }, []);
+  }, [query, cuisine]);
 
-  // If coming from Favorites -> open restaurant
+  // If coming from Favorites -> open restaurant (validate by ID if needed)
   useEffect(() => {
     if (!restaurantToOpen) return;
-    setSelectedRestaurant(restaurantToOpen);
-    setDetailsTab("menu");
-    clearRestaurantToOpen?.();
+    setRestaurantNotFound(false);
+    if (restaurantToOpen.name != null) {
+      setSelectedRestaurant(restaurantToOpen);
+      setDetailsTab("menu");
+      clearRestaurantToOpen?.();
+      return;
+    }
+    const id = restaurantToOpen.id ?? restaurantToOpen;
+    getRestaurantById(id)
+      .then((r) => {
+        setSelectedRestaurant(r);
+        setDetailsTab("menu");
+      })
+      .catch(() => setRestaurantNotFound(true))
+      .finally(() => clearRestaurantToOpen?.());
   }, [restaurantToOpen, clearRestaurantToOpen]);
 
   // Fetch real reviews from backend when reviews tab is opened
@@ -109,14 +123,7 @@ export default function UserSearch({
       .finally(() => setReviewsLoading(false));
   }, [selectedRestaurant, detailsTab]);
 
-  const filteredRestaurants = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return restaurants.filter((r) => {
-      const matchesName = !q || r.name.toLowerCase().includes(q);
-      const matchesCuisine = cuisine === "All" || r.cuisine === cuisine || r.cuisine === "International";
-      return matchesName && matchesCuisine;
-    });
-  }, [query, cuisine, restaurants]);
+  const filteredRestaurants = restaurants;
 
   useEffect(() => {
   const active = query.trim().length > 0 || cuisine !== "All";
@@ -175,6 +182,22 @@ export default function UserSearch({
   }
 
   // =========================
+  // Invalid restaurant ID
+  // =========================
+  if (restaurantNotFound) {
+    return (
+      <div className="userSearchPage">
+        <div className="formCard formCard--userProfile" style={{ maxWidth: "400px", margin: "20px auto", textAlign: "center" }}>
+          <p style={{ marginBottom: "16px", color: "#666" }}>Restaurant not found or no longer available.</p>
+          <button type="button" className="btn btn--gold" onClick={() => setRestaurantNotFound(false)}>
+            Back to search
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================
   // Details view (restaurant)
   // =========================
   if (selectedRestaurant) {
@@ -197,7 +220,7 @@ export default function UserSearch({
                 <span className="metaPill">{selectedRestaurant.cuisine}</span>
                 <span className="metaPill">⭐ {selectedRestaurant.rating}</span>
                 <span className="metaPill">
-                  {selectedRestaurant.openingTime} - {selectedRestaurant.closingTime}
+                  {(selectedRestaurant.opening_time ?? selectedRestaurant.openingTime) || "—"} – {(selectedRestaurant.closing_time ?? selectedRestaurant.closingTime) || "—"}
                 </span>
               </div>
             </div>
@@ -251,7 +274,7 @@ export default function UserSearch({
             </button>
 
             {/* Back */}
-            <button className="btn btn--ghost topActionBtn" type="button" onClick={() => setSelectedRestaurant(null)}>
+            <button className="btn btn--ghost topActionBtn" type="button" onClick={() => { setSelectedRestaurant(null); setRestaurantNotFound(false); }}>
               Back
             </button>
           </div>
@@ -355,11 +378,17 @@ export default function UserSearch({
                 <input
                   className="reviewCard__input"
                   type="text"
-                  placeholder="Write your review..."
+                  placeholder="Write your review (max 500 characters)"
                   value={reviewComment}
                   onChange={(e) => setReviewComment(e.target.value)}
+                  maxLength={500}
                   disabled={reviewPosting}
                 />
+                {reviewComment.length > 0 && (
+                  <span className="reviewCard__charCount" style={{ fontSize: 12, color: "#888" }}>
+                    {reviewComment.length}/500
+                  </span>
+                )}
 
                 <button
                   className="btn btn--gold"
@@ -371,6 +400,10 @@ export default function UserSearch({
                       setReviewError("Please write a comment.");
                       return;
                     }
+                    if (reviewComment.trim().length > 500) {
+                      setReviewError("Review must be at most 500 characters.");
+                      return;
+                    }
                     setReviewError("");
                     setReviewPosting(true);
                     try {
@@ -380,9 +413,12 @@ export default function UserSearch({
                       });
                       setReviewComment("");
                       setReviewRating(5);
-                      // Reload reviews
-                      const data = await getReviewsByRestaurantId(selectedRestaurant.id);
-                      setReviews(Array.isArray(data) ? data : []);
+                      const [reviewsData, updatedRestaurant] = await Promise.all([
+                        getReviewsByRestaurantId(selectedRestaurant.id),
+                        getRestaurantById(selectedRestaurant.id),
+                      ]);
+                      setReviews(Array.isArray(reviewsData) ? reviewsData : []);
+                      setSelectedRestaurant(updatedRestaurant);
                     } catch (err) {
                       setReviewError(err.message || "Failed to post review.");
                     } finally {

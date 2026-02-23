@@ -19,9 +19,7 @@ function AppContent() {
   const [modalOpen, setModalOpen] = useState(false);
   const [mode, setMode] = useState("signup"); // "signup" | "login"
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [landingView, setLandingView] = useState("full"); 
-// "full" = hero+discover+search
-// "search" = only search section
+  const [landingView, setLandingView] = useState("full");
 
   const { user, loading, logout } = useAuth();
 
@@ -39,68 +37,57 @@ function AppContent() {
   const closeMobile = useCallback(() => setMobileOpen(false), []);
   const location = useLocation();
 
-const goToSection = useCallback((view, id) => {
-  setLandingView(view);
+  const goToSection = useCallback((view, id) => {
+    setLandingView(view);
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    });
+  }, []);
 
-  // Wait until React updates the DOM
-  requestAnimationFrame(() => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-  });
-}, []);
-
-useEffect(() => {
-  const hash = location.hash?.replace("#", "");
-
-  if (!hash) return;
-
-  if (hash === "search") {
-    goToSection("search", "search");
-  } else if (hash === "discover" || hash === "hero") {
-    goToSection("full", hash);
-  }
-}, [location.hash, goToSection]);
+  useEffect(() => {
+    const hash = location.hash?.replace("#", "");
+    if (!hash) return;
+    if (hash === "search") goToSection("search", "search");
+    else if (hash === "discover" || hash === "hero") goToSection("full", hash);
+  }, [location.hash, goToSection]);
 
   return (
     <>
       <Background />
 
-      {/* ✅ BACK TO ORIGINAL LAYOUT */}
       <main className="page">
         <section className="card" aria-label="DineSmart landing">
           <Nav
-  user={user}
-  loading={loading}
-  onLogout={logout}
-  onLogin={() => openModal("login")}
-  onSignup={() => openModal("signup")}
-  onOpenMobile={openMobile}
-
-  // ✅ these three fix your bug
-  onGoSearch={() => goToSection("search", "search")}
-  onGoDiscover={() => goToSection("full", "discover")}
-  onGoHero={() => goToSection("full", "hero")}
-/>
+            user={user}
+            loading={loading}
+            onLogout={logout}
+            onLogin={() => openModal("login")}
+            onSignup={() => openModal("signup")}
+            onOpenMobile={openMobile}
+            onGoSearch={() => goToSection("search", "search")}
+            onGoDiscover={() => goToSection("full", "discover")}
+            onGoHero={() => goToSection("full", "hero")}
+          />
 
           {landingView === "full" && (
-  <>
-    <section id="hero">
-      <Hero onGettingStarted={() => openModal("signup")} />
-    </section>
-
-    <section id="discover">
-      <DiscoverCarousel />
-    </section>
-  </>
-)}
+            <>
+              <section id="hero">
+                <Hero onGettingStarted={() => openModal("signup")} />
+              </section>
+              <section id="discover">
+                <DiscoverCarousel />
+              </section>
+            </>
+          )}
 
           <section id="search">
             <UserSearch
-  isGuest={!user}
-  onRequireSignup={() => openModal("signup")}
-  onSearchActiveChange={(active) => {
-    if (active) setLandingView("search");
-  }}
-/>
+              isGuest={!user}
+              onRequireSignup={() => openModal("signup")}
+              onSearchActiveChange={(active) => {
+                if (active) setLandingView("search");
+              }}
+            />
           </section>
         </section>
       </main>

@@ -50,23 +50,17 @@ export async function updateMyRestaurant(data) {
 }
 
 /**
- * Search restaurants (for future implementation)
+ * Search restaurants by name/description and optional cuisines
  * @param {string} query - Search query
+ * @param {string|string[]} cuisines - Optional cuisine or comma-separated list (e.g. "Italian" or "Italian,Japanese")
  * @returns {Promise} Filtered restaurants
  */
-export async function searchRestaurants(query) {
-  return apiRequest(`/restaurants?search=${encodeURIComponent(query)}`, {
-    method: "GET"
-  });
-}
-
-/**
- * Filter restaurants by cuisine (for future implementation)
- * @param {string} cuisine - Cuisine type
- * @returns {Promise} Filtered restaurants
- */
-export async function getRestaurantsByCuisine(cuisine) {
-  return apiRequest(`/restaurants?cuisine=${encodeURIComponent(cuisine)}`, {
-    method: "GET"
-  });
+export async function searchRestaurants(query, cuisines) {
+  const params = new URLSearchParams();
+  if (query != null && String(query).trim()) params.set("query", query.trim());
+  if (cuisines != null && cuisines !== "All") {
+    const list = Array.isArray(cuisines) ? cuisines : String(cuisines).split(",").map((c) => c.trim()).filter(Boolean);
+    if (list.length) params.set("cuisine", list.join(","));
+  }
+  return apiRequest(`/search?${params.toString()}`, { method: "GET" });
 }

@@ -1,5 +1,5 @@
 const emailVerificationService = require("../services/emailVerificationService");
-const authService = require("../services/authServices");
+const authService = require("../services/authService");
 
 /**
  * GET /api/auth/verify-email?token=...

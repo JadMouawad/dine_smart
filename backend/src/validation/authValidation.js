@@ -12,23 +12,22 @@ const isValidPassword = (password) => {
 };
 
 // Validation for registration input
-const validateRegister = (email, password) => {
-  // Check if fields exist
+const validateRegister = (name, email, password) => {
+  if (!name || typeof name !== "string") {
+    return "Full name is required";
+  }
+  if (!name.trim()) {
+    return "Full name cannot be empty";
+  }
   if (!email || !password) {
     return "Email and password are required";
   }
-
-  // Check email format
   if (!isValidEmail(email)) {
     return "Invalid email format";
   }
-
-  // Check password strength
   if (!isValidPassword(password)) {
     return "Password must be at least 6 characters long";
   }
-
-  // If everything is valid, return null
   return null;
 };
 

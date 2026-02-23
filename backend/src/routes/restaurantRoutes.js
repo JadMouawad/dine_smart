@@ -3,7 +3,7 @@ const router = express.Router();
 const restaurantController = require('../controllers/restaurantController');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
 const { authenticateToken } = require('../middleware/authMiddleware');
-const reviewRoutes = require('./review.routes');
+const reviewRoutes = require("./reviewRoutes");
 
 // Owner "my restaurant" routes (must be before /:id to avoid param conflict)
 router.get('/mine', authenticateToken, authorizeRoles('owner'), restaurantController.getMyRestaurant);
