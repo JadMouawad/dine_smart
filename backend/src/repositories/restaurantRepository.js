@@ -2,7 +2,7 @@
 const pool = require("../config/db");
 
 const createRestaurant = async (data) => {
-  const { name, description, cuisine, address, openingTime, closingTime, ownerId } = data;
+  const { name, description, cuisine, address, phone, rating, openingTime, closingTime, ownerId } = data;
   const result = await pool.query(
     `INSERT INTO restaurants (name, description, cuisine, address, opening_time, closing_time, owner_id)
      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
@@ -22,25 +22,15 @@ const getRestaurantById = async (id) => {
 };
 
 const updateRestaurant = async (id, data) => {
-  const allowedKeys = [
-    "name", "description", "cuisine", "address", "phone",
-    "opening_time", "closing_time", "menu_sections"
-  ];
   const fields = [];
   const values = [];
   let index = 1;
 
-  for (const key of allowedKeys) {
-    if (!(key in data)) continue;
+  for (const key in data) {
     fields.push(`${key} = $${index}`);
-    const val = data[key];
-    values.push(key === "menu_sections" && (Array.isArray(val) || typeof val === "object")
-      ? JSON.stringify(val)
-      : val);
+    values.push(data[key]);
     index++;
   }
-
-  if (fields.length === 0) return await getRestaurantById(id);
 
   values.push(id);
   const result = await pool.query(

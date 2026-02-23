@@ -31,18 +31,14 @@ export default function DiscoverCarousel() {
         </p>
 
         <div className="discover__carousel">
-
           <div className="discover__track autoScroll">
-
-            {[...CUISINES, ...CUISINES].map((c, index) => (
+            {[...CUISINES, ...CUISINES, ...CUISINES].map((c, index) => (
               <div className="discover__card" key={c.label + index}>
                 <img src={c.src} alt={c.alt} />
                 <span className="discover__label">{c.label}</span>
               </div>
             ))}
-
           </div>
-
         </div>
       </div>
     </section>
