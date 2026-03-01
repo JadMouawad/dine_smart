@@ -77,6 +77,7 @@ export function AuthProvider({ children }) {
       role,
       latitude: location.latitude,
       longitude: location.longitude,
+      phone: location.phone,
     });
     const newToken = data.token ?? data.accessToken;
 

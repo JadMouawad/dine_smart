@@ -16,7 +16,9 @@ export default function AuthModal({
   const [error, setError] = useState(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [signupLatitude, setSignupLatitude] = useState("");
   const [signupLongitude, setSignupLongitude] = useState("");
   const [locatingUser, setLocatingUser] = useState(false);
@@ -49,7 +51,9 @@ export default function AuthModal({
     if (!isOpen) return;
     setEmail("");
     setName("");
+    setPhone("");
     setPassword("");
+    setConfirmPassword("");
     setSignupLatitude("");
     setSignupLongitude("");
     setLocatingUser(false);
@@ -216,26 +220,38 @@ export default function AuthModal({
               try {
                 if (mode === "signup") {
                   if (!name.trim()) throw new Error("Name is required");
+                  const normalizedPhone = String(phone || "").replace(/\D/g, "");
+                  if (!normalizedPhone) throw new Error("Phone number is required");
+                  if (normalizedPhone.length < 7) throw new Error("Please enter a valid phone number");
+                  if (password !== confirmPassword) throw new Error("Password and confirm password do not match");
                   const latitude = Number(signupLatitude);
                   const longitude = Number(signupLongitude);
                   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
                     throw new Error("Please provide valid location coordinates.");
                   }
                   const role = accountType === "restaurant" ? "owner" : "user";
-                  const data = await register(name, email, password, role, { latitude, longitude });
+                  const data = await register(name, email, password, role, {
+                    latitude,
+                    longitude,
+                    phone: normalizedPhone,
+                  });
                   // Backend sends verification email and returns message (no token until verified)
                   if (data?.message && !data?.token) {
                     setSignupSuccess(true);
                     setName("");
                     setEmail("");
+                    setPhone("");
                     setPassword("");
+                    setConfirmPassword("");
                     setSignupLatitude("");
                     setSignupLongitude("");
                     return;
                   }
                   setName("");
                   setEmail("");
+                  setPhone("");
                   setPassword("");
+                  setConfirmPassword("");
                   setSignupLatitude("");
                   setSignupLongitude("");
                   onClose();
@@ -281,6 +297,20 @@ export default function AuthModal({
               </label>
             )}
 
+            {mode === "signup" && (
+              <label className="field">
+                <span>Phone number</span>
+                <input
+                  type="tel"
+                  placeholder="e.g. 03123456"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </label>
+            )}
+
             <label className="field">
               <span>Password</span>
               <input
@@ -293,6 +323,21 @@ export default function AuthModal({
                 disabled={loading}
               />
             </label>
+
+            {mode === "signup" && (
+              <label className="field">
+                <span>Confirm password</span>
+                <input
+                  type="password"
+                  placeholder="Confirm your password"
+                  minLength={6}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </label>
+            )}
 
             {mode === "signup" && (
               <>

@@ -30,13 +30,21 @@ const findById = async (db, id) => {
 };
 
 // Create new user (local registration: provider=local, is_verified=false until email verified)
-const create = async (db, { fullName, email, password, roleId = 1, latitude = null, longitude = null }) => {
+const create = async (db, {
+  fullName,
+  email,
+  password,
+  roleId = 1,
+  latitude = null,
+  longitude = null,
+  phone = null,
+}) => {
   const query = `
-    INSERT INTO users (full_name, email, password, role_id, provider, is_verified, latitude, longitude)
-    VALUES ($1, $2, $3, $4, 'local', false, $5, $6)
-    RETURNING id, full_name, email, role_id, is_verified, provider, is_suspended, suspended_at, latitude, longitude, created_at, updated_at
+    INSERT INTO users (full_name, email, password, role_id, provider, is_verified, latitude, longitude, phone)
+    VALUES ($1, $2, $3, $4, 'local', false, $5, $6, $7)
+    RETURNING id, full_name, email, role_id, is_verified, provider, is_suspended, suspended_at, latitude, longitude, phone, created_at, updated_at
   `;
-  const result = await db.query(query, [fullName, email, password, roleId, latitude, longitude]);
+  const result = await db.query(query, [fullName, email, password, roleId, latitude, longitude, phone]);
   return result.rows[0];
 };
 

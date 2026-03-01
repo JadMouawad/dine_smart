@@ -48,6 +48,7 @@ const registerUser = async (fullName, email, password, roleId = 1, location = {}
     roleId,
     latitude: location.latitude,
     longitude: location.longitude,
+    phone: location.phone,
   });
 
   await emailVerificationService.createTokenAndSendEmail(user.id, email, fullName);

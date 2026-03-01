@@ -12,7 +12,7 @@ const parseCoordinate = (value) => {
 // POST /auth/register
 const register = async (req, res) => {
   try {
-    const { name, email, password, role, latitude, longitude } = req.body;
+    const { name, email, password, role, latitude, longitude, phone } = req.body;
     const validationError = validateRegister(name, email, password);
     if (validationError) {
       return res.status(400).json({ message: validationError });
@@ -27,11 +27,16 @@ const register = async (req, res) => {
     if (parsedLatitude < -90 || parsedLatitude > 90 || parsedLongitude < -180 || parsedLongitude > 180) {
       return res.status(400).json({ message: "Invalid location coordinates." });
     }
+    const normalizedPhone = String(phone || "").replace(/\D/g, "");
+    if (!normalizedPhone || normalizedPhone.length < 7) {
+      return res.status(400).json({ message: "Valid phone number is required for signup." });
+    }
 
     const roleId = role === "owner" ? 2 : 1;
     await authService.registerUser(name, email, password, roleId, {
       latitude: parsedLatitude,
       longitude: parsedLongitude,
+      phone: normalizedPhone,
     });
 
     res.status(201).json({
