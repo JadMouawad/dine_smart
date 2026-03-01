@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 
-import { AuthProvider, useAuth } from "./auth/AuthContext.jsx";
+import { useAuth } from "./auth/AuthContext.jsx";
 
 import Background from "./components/Background.jsx";
 import Nav from "./components/Nav.jsx";
@@ -115,21 +115,19 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Routes>
-        <Route path="/" element={<AppContent />} />
+    <Routes>
+      <Route path="/" element={<AppContent />} />
 
-        {/* Email verification */}
-        <Route path="/verify-email" element={<VerifyEmail />} />
+      {/* Email verification */}
+      <Route path="/verify-email" element={<VerifyEmail />} />
 
-        {/* Owner area */}
-        <Route path="/owner/profile" element={<OwnerShell />} />
-        <Route path="/owner/*" element={<OwnerShell />} />
+      {/* Owner area */}
+      <Route path="/owner/profile" element={<OwnerShell />} />
+      <Route path="/owner/*" element={<OwnerShell />} />
 
-        {/* User area */}
-        <Route path="/user/profile" element={<UserShell />} />
-        <Route path="/user/*" element={<UserShell />} />
-      </Routes>
-    </AuthProvider>
+      {/* User area */}
+      <Route path="/user/profile" element={<UserShell />} />
+      <Route path="/user/*" element={<UserShell />} />
+    </Routes>
   );
 }

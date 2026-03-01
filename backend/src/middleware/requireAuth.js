@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
 const tokenBlacklistRepository = require("../repositories/tokenBlacklistRepository");
 
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+
 const requireAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -9,7 +11,7 @@ const requireAuth = async (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
 
     if (decoded.jti) {
       const blacklisted = await tokenBlacklistRepository.isBlacklisted(decoded.jti);

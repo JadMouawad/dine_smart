@@ -71,6 +71,88 @@ const deleteRestaurant = async (req, res) => {
   }
 };
 
+const TABLE_CONFIG_KEYS = [
+  "total_capacity",
+  "table_2_person",
+  "table_4_person",
+  "table_6_person",
+  "indoor_capacity",
+  "outdoor_capacity",
+];
+
+const parseTableConfigPayload = (payload) => {
+  const parsed = {};
+  for (const key of TABLE_CONFIG_KEYS) {
+    if (payload[key] == null || payload[key] === "") {
+      return { error: `${key} is required` };
+    }
+    const value = parseInt(payload[key], 10);
+    if (Number.isNaN(value)) {
+      return { error: `${key} must be a number` };
+    }
+    if (key === "total_capacity" && value <= 0) {
+      return { error: "total_capacity must be greater than 0" };
+    }
+    if (key !== "total_capacity" && value < 0) {
+      return { error: `${key} cannot be negative` };
+    }
+    parsed[key] = value;
+  }
+
+  if (parsed.indoor_capacity + parsed.outdoor_capacity > parsed.total_capacity) {
+    return { error: "indoor_capacity and outdoor_capacity cannot exceed total_capacity" };
+  }
+
+  return { parsed };
+};
+
+const getOwnerRestaurantTableConfig = async (req, res) => {
+  try {
+    const restaurantId = parseInt(req.params.id, 10);
+    if (Number.isNaN(restaurantId)) {
+      return res.status(400).json({ message: "Invalid restaurant ID" });
+    }
+
+    const ownedRestaurant = await restaurantService.getRestaurantByIdAndOwnerId(restaurantId, req.user.id);
+    if (!ownedRestaurant) {
+      return res.status(403).json({ message: "Forbidden: You can only manage your own restaurant" });
+    }
+
+    const config = await restaurantService.getTableConfigByRestaurantId(restaurantId);
+    if (!config) {
+      return res.status(404).json({ message: "Table configuration not found" });
+    }
+
+    return res.status(200).json(config);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+const upsertOwnerRestaurantTableConfig = async (req, res) => {
+  try {
+    const restaurantId = parseInt(req.params.id, 10);
+    if (Number.isNaN(restaurantId)) {
+      return res.status(400).json({ message: "Invalid restaurant ID" });
+    }
+
+    const ownedRestaurant = await restaurantService.getRestaurantByIdAndOwnerId(restaurantId, req.user.id);
+    if (!ownedRestaurant) {
+      return res.status(403).json({ message: "Forbidden: You can only manage your own restaurant" });
+    }
+
+    const { parsed, error } = parseTableConfigPayload(req.body);
+    if (error) {
+      return res.status(400).json({ message: error });
+    }
+
+    const saved = await restaurantService.upsertTableConfigByRestaurantId(restaurantId, parsed);
+    return res.status(200).json(saved);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   createRestaurant,
   getAllRestaurants,
@@ -79,4 +161,6 @@ module.exports = {
   updateMyRestaurant,
   updateRestaurant,
   deleteRestaurant,
+  getOwnerRestaurantTableConfig,
+  upsertOwnerRestaurantTableConfig,
 };

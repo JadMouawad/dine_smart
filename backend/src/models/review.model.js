@@ -13,7 +13,9 @@ async function createReview(db, { restaurantId, userId, rating, comment }) {
 async function getReviewsByRestaurant(db, restaurantId) {
   const query = `
     SELECT r.id, r.restaurant_id, r.user_id, r.rating, r.comment, r.created_at, r.updated_at,
-           u.full_name as user_name
+           u.full_name as user_name,
+           u.full_name as "authorName",
+           r.created_at as "createdAt"
     FROM reviews r
     JOIN users u ON r.user_id = u.id
     WHERE r.restaurant_id = $1

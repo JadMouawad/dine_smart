@@ -1,6 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getReviewsByRestaurantId, createReview } from "../../services/reviewService";
 import { searchRestaurants, getRestaurantById } from "../../services/restaurantService";
+import { getReservationAvailability } from "../../services/reservationService";
+import ReservationForm from "../../components/ReservationForm.jsx";
 
 const CUISINES = [
   "All",
@@ -17,8 +19,27 @@ const CUISINES = [
 
 const FAVORITES_KEY = "ds_favorites";
 
+function pad2(value) {
+  return String(value).padStart(2, "0");
+}
+
+function getCurrentSlotParams() {
+  const now = new Date();
+  const roundedMinutes = Math.ceil(now.getMinutes() / 15) * 15;
+  if (roundedMinutes >= 60) {
+    now.setHours(now.getHours() + 1);
+    now.setMinutes(0);
+  } else {
+    now.setMinutes(roundedMinutes);
+  }
+  now.setSeconds(0, 0);
+
+  const date = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+  const time = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+  return { date, time };
+}
+
 export default function UserSearch({
-  goReservations,
   isGuest = false,
   onRequireSignup,
   restaurantToOpen,
@@ -41,6 +62,9 @@ export default function UserSearch({
   const [reviewComment, setReviewComment] = useState("");
   const [reviewError, setReviewError] = useState("");
   const [reviewPosting, setReviewPosting] = useState(false);
+  const [reservationModalOpen, setReservationModalOpen] = useState(false);
+  const [reservationToast, setReservationToast] = useState("");
+  const [reservationAvailability, setReservationAvailability] = useState(null);
 
   const [favorites, setFavorites] = useState(() => loadFavorites());
   const [activeSectionId, setActiveSectionId] = useState(null);
@@ -123,6 +147,28 @@ export default function UserSearch({
       .finally(() => setReviewsLoading(false));
   }, [selectedRestaurant, detailsTab]);
 
+  useEffect(() => {
+    if (!reservationToast) return undefined;
+    const timeoutId = window.setTimeout(() => setReservationToast(""), 3500);
+    return () => window.clearTimeout(timeoutId);
+  }, [reservationToast]);
+
+  useEffect(() => {
+    if (!selectedRestaurant?.id) {
+      setReservationAvailability(null);
+      return;
+    }
+
+    const { date, time } = getCurrentSlotParams();
+    getReservationAvailability({
+      restaurantId: selectedRestaurant.id,
+      date,
+      time,
+    })
+      .then((availability) => setReservationAvailability(availability))
+      .catch(() => setReservationAvailability(null));
+  }, [selectedRestaurant?.id]);
+
   const filteredRestaurants = restaurants;
 
   useEffect(() => {
@@ -130,7 +176,7 @@ export default function UserSearch({
   onSearchActiveChange?.(active);
 }, [query, cuisine, onSearchActiveChange]);
 
-  // ✅ IMPORTANT: Disable sticky navbar ONLY while inside restaurant details (menu/reviews)
+  // âœ… IMPORTANT: Disable sticky navbar ONLY while inside restaurant details (menu/reviews)
   useEffect(() => {
     const inDetails = !!selectedRestaurant;
     document.body.classList.toggle("ds-nav-not-sticky", inDetails);
@@ -181,6 +227,28 @@ export default function UserSearch({
     el.scrollBy({ left: dir * el.clientWidth * 0.6, behavior: "smooth" });
   }
 
+  // Normalize menu from API (backend returns menu_sections; support legacy .menu)
+  const restaurantMenu = useMemo(() => {
+    if (!selectedRestaurant) return [];
+    const raw = selectedRestaurant.menu_sections ?? selectedRestaurant.menu;
+    return Array.isArray(raw) ? raw : [];
+  }, [selectedRestaurant]);
+
+  const availabilityBadge = useMemo(() => {
+    if (!reservationAvailability) return null;
+
+    const availableSeats = Number(reservationAvailability.available_seats || 0);
+    const totalCapacity = Number(reservationAvailability.total_capacity || 0);
+    if (totalCapacity <= 0) {
+      return { label: "Availability unavailable", tone: "warn" };
+    }
+
+    const ratio = availableSeats / totalCapacity;
+    if (ratio >= 0.6) return { label: `Seats: ${availableSeats} available`, tone: "good" };
+    if (ratio >= 0.25) return { label: `Seats: ${availableSeats} available`, tone: "warn" };
+    return { label: `Seats: ${availableSeats} available`, tone: "danger" };
+  }, [reservationAvailability]);
+
   // =========================
   // Invalid restaurant ID
   // =========================
@@ -197,19 +265,14 @@ export default function UserSearch({
     );
   }
 
-  // Normalize menu from API (backend returns menu_sections; support legacy .menu)
-  const restaurantMenu = useMemo(() => {
-    if (!selectedRestaurant) return [];
-    const raw = selectedRestaurant.menu_sections ?? selectedRestaurant.menu;
-    return Array.isArray(raw) ? raw : [];
-  }, [selectedRestaurant]);
-
   // =========================
   // Details view (restaurant)
   // =========================
   if (selectedRestaurant) {
     return (
       <div className="userSearchPage">
+        {reservationToast && <div className="inlineToast">{reservationToast}</div>}
+
         <div className="userSearchTopCard">
           <div className="userSearchTopCard__left">
             <div className="restaurantAvatar" aria-label="Restaurant logo">
@@ -225,10 +288,15 @@ export default function UserSearch({
 
               <div className="userSearchTopCard__meta">
                 <span className="metaPill">{selectedRestaurant.cuisine}</span>
-                <span className="metaPill">⭐ {selectedRestaurant.rating}</span>
+                <span className="metaPill">Rating {selectedRestaurant.rating}</span>
                 <span className="metaPill">
                   {(selectedRestaurant.opening_time ?? selectedRestaurant.openingTime) || "—"} – {(selectedRestaurant.closing_time ?? selectedRestaurant.closingTime) || "—"}
                 </span>
+                {availabilityBadge && (
+                  <span className={`metaPill metaPill--${availabilityBadge.tone}`}>
+                    {availabilityBadge.label}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -274,7 +342,7 @@ export default function UserSearch({
               type="button"
               onClick={() => {
                 if (!requireAuth()) return;
-                goReservations?.();
+                setReservationModalOpen(true);
               }}
             >
               Reserve
@@ -294,7 +362,7 @@ export default function UserSearch({
             {restaurantMenu.length ? (
               <div className="menuSectionSlider">
                 <button className="menuSectionSlider__arrow" type="button" onClick={() => slideSections(-1)} aria-label="Scroll sections left">
-                  ‹
+                  â€¹
                 </button>
 
                 <div className="menuSectionSlider__pill" aria-label="Menu sections">
@@ -313,7 +381,7 @@ export default function UserSearch({
                 </div>
 
                 <button className="menuSectionSlider__arrow" type="button" onClick={() => slideSections(1)} aria-label="Scroll sections right">
-                  ›
+                  â€º
                 </button>
               </div>
             ) : null}
@@ -375,11 +443,11 @@ export default function UserSearch({
                   onChange={(e) => setReviewRating(Number(e.target.value))}
                   disabled={reviewPosting}
                 >
-                  <option value="5">5 ★</option>
-                  <option value="4">4 ★</option>
-                  <option value="3">3 ★</option>
-                  <option value="2">2 ★</option>
-                  <option value="1">1 ★</option>
+                  <option value="5">5 â˜…</option>
+                  <option value="4">4 â˜…</option>
+                  <option value="3">3 â˜…</option>
+                  <option value="2">2 â˜…</option>
+                  <option value="1">1 â˜…</option>
                 </select>
 
                 <input
@@ -464,13 +532,13 @@ export default function UserSearch({
                       <div className="reviewCardFull__top">
                         <div className="reviewCardFull__userName">{rev.user_name || rev.authorName || "Anonymous"}</div>
                         <div className="reviewCardFull__date">
-                          {rev.created_at ? new Date(rev.created_at).toLocaleDateString() : ""}
+                          {(rev.created_at || rev.createdAt) ? new Date(rev.created_at || rev.createdAt).toLocaleDateString() : ""}
                         </div>
                       </div>
 
                       <div className="reviewCardFull__stars">
-                        {"★".repeat(rev.rating)}
-                        {"☆".repeat(5 - rev.rating)}
+                        {"â˜…".repeat(rev.rating)}
+                        {"â˜†".repeat(5 - rev.rating)}
                       </div>
 
                       <div className="reviewCardFull__text">{rev.comment}</div>
@@ -483,6 +551,23 @@ export default function UserSearch({
             )}
           </div>
         )}
+
+        <ReservationForm
+          isOpen={reservationModalOpen}
+          onClose={() => setReservationModalOpen(false)}
+          restaurant={selectedRestaurant}
+          onReserved={() => {
+            setReservationToast("Reservation confirmed! Check your email.");
+            const { date, time } = getCurrentSlotParams();
+            getReservationAvailability({
+              restaurantId: selectedRestaurant.id,
+              date,
+              time,
+            })
+              .then((availability) => setReservationAvailability(availability))
+              .catch(() => setReservationAvailability(null));
+          }}
+        />
       </div>
     );
   }
@@ -542,13 +627,15 @@ export default function UserSearch({
                     onClick={(e) => {
                       e.stopPropagation();
                       if (!requireAuth()) return;
-                      goReservations?.();
+                      setSelectedRestaurant(r);
+                      setDetailsTab("menu");
+                      setReservationModalOpen(true);
                     }}
                   >
                     Reserve
                   </button>
 
-                  <div className="restaurantCard__rating">⭐ {r.rating}</div>
+                  <div className="restaurantCard__rating">Rating {r.rating}</div>
 
                   <button
                     className={`favoriteHeartBtn ${isFavorited(r.id) ? "is-active" : ""}`}
@@ -576,3 +663,5 @@ export default function UserSearch({
     </div>
   );
 }
+
+

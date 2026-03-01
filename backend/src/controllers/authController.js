@@ -53,7 +53,8 @@ const logout = async (req, res) => {
       const token = authHeader.split(" ")[1];
       if (token) {
         const jwt = require("jsonwebtoken");
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const jwtSecret = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+        const decoded = jwt.verify(token, jwtSecret);
         if (decoded.jti && decoded.exp) {
           await tokenBlacklistRepository.add(decoded.jti, decoded.exp);
         }

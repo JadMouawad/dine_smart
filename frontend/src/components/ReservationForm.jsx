@@ -1,0 +1,257 @@
+import { useEffect, useMemo, useState } from "react";
+import { createReservation, getReservationAvailability } from "../services/reservationService";
+
+const PARTY_SIZE_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
+const SEATING_OPTIONS = [
+  { value: "", label: "No preference" },
+  { value: "indoor", label: "Indoor" },
+  { value: "outdoor", label: "Outdoor" },
+];
+
+function pad2(value) {
+  return String(value).padStart(2, "0");
+}
+
+function parseTimeToMinutes(value) {
+  const match = String(value || "").trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+  return (hours * 60) + minutes;
+}
+
+function toTimeValue(minutes) {
+  const normalized = ((minutes % (24 * 60)) + (24 * 60)) % (24 * 60);
+  return `${pad2(Math.floor(normalized / 60))}:${pad2(normalized % 60)}`;
+}
+
+function toLabel(minutes) {
+  const normalized = ((minutes % (24 * 60)) + (24 * 60)) % (24 * 60);
+  const hour24 = Math.floor(normalized / 60);
+  const minute = normalized % 60;
+  const hour12 = ((hour24 + 11) % 12) + 1;
+  const suffix = hour24 >= 12 ? "PM" : "AM";
+  return `${hour12}:${pad2(minute)} ${suffix}`;
+}
+
+function buildTimeOptions(openingTime, closingTime) {
+  const openingMinutes = parseTimeToMinutes(openingTime);
+  const closingMinutes = parseTimeToMinutes(closingTime);
+
+  if (openingMinutes == null || closingMinutes == null) {
+    const fallback = [];
+    for (let m = 17 * 60; m <= 22 * 60; m += 15) {
+      fallback.push({ value: toTimeValue(m), label: toLabel(m) });
+    }
+    return fallback;
+  }
+
+  const end = closingMinutes >= openingMinutes ? closingMinutes : closingMinutes + (24 * 60);
+  const options = [];
+  for (let minute = openingMinutes; minute <= end && options.length < 96; minute += 15) {
+    options.push({ value: toTimeValue(minute), label: toLabel(minute) });
+  }
+  return options;
+}
+
+function getTodayDateValue() {
+  const now = new Date();
+  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+}
+
+export default function ReservationForm({ isOpen, onClose, restaurant, onReserved }) {
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [partySize, setPartySize] = useState("2");
+  const [seatingPreference, setSeatingPreference] = useState("");
+  const [specialRequest, setSpecialRequest] = useState("");
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [availabilityInfo, setAvailabilityInfo] = useState(null);
+  const [availabilityError, setAvailabilityError] = useState("");
+
+  const today = useMemo(() => getTodayDateValue(), []);
+  const timeOptions = useMemo(
+    () => buildTimeOptions(restaurant?.opening_time ?? restaurant?.openingTime, restaurant?.closing_time ?? restaurant?.closingTime),
+    [restaurant]
+  );
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setDate("");
+    setTime("");
+    setPartySize("2");
+    setSeatingPreference("");
+    setSpecialRequest("");
+    setErrors({});
+    setSubmitting(false);
+    setAvailabilityInfo(null);
+    setAvailabilityError("");
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !restaurant?.id || !date || !time) {
+      setAvailabilityInfo(null);
+      setAvailabilityError("");
+      return;
+    }
+
+    let cancelled = false;
+    getReservationAvailability({ restaurantId: restaurant.id, date, time })
+      .then((info) => {
+        if (cancelled) return;
+        setAvailabilityInfo(info);
+        setAvailabilityError("");
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setAvailabilityInfo(null);
+        setAvailabilityError(error.message || "Could not load availability");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, restaurant?.id, date, time]);
+
+  if (!isOpen || !restaurant) return null;
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    const nextErrors = {};
+    if (!date) nextErrors.date = "Date is required.";
+    if (!time) nextErrors.time = "Time is required.";
+    if (!partySize) nextErrors.partySize = "Party size is required.";
+
+    if (date && date < today) {
+      nextErrors.date = "Date cannot be in the past.";
+    }
+
+    if (time && !timeOptions.some((option) => option.value === time)) {
+      nextErrors.time = "Selected time is outside restaurant hours.";
+    }
+
+    const parsedPartySize = Number(partySize);
+    if (!Number.isInteger(parsedPartySize) || parsedPartySize < 1 || parsedPartySize > 12) {
+      nextErrors.partySize = "Party size must be between 1 and 12.";
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      return;
+    }
+
+    setErrors({});
+    setSubmitting(true);
+    try {
+      const reservation = await createReservation({
+        restaurantId: restaurant.id,
+        date,
+        time,
+        partySize: parsedPartySize,
+        seatingPreference: seatingPreference || null,
+        specialRequest: specialRequest.trim(),
+      });
+      onReserved?.(reservation);
+      onClose?.();
+    } catch (error) {
+      setErrors((prev) => ({ ...prev, submit: error.message || "Failed to create reservation." }));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="modal is-open" aria-hidden="false" role="dialog" aria-modal="true">
+      <div className="modal__backdrop" onClick={onClose} />
+      <div className="modal__panel reservationModal" role="document">
+        <button className="modal__close" aria-label="Close" type="button" onClick={onClose}>
+          X
+        </button>
+
+        <h2 className="modal__title">Book Reservation</h2>
+        <p className="modal__subtitle">
+          {restaurant.name}
+        </p>
+
+        <form className="form" onSubmit={handleSubmit}>
+          <label className="field">
+            <span>Date</span>
+            <input
+              type="date"
+              value={date}
+              min={today}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
+          </label>
+          {errors.date && <div className="fieldError">{errors.date}</div>}
+
+          <label className="field">
+            <span>Time</span>
+            <select className="select" value={time} onChange={(e) => setTime(e.target.value)} required>
+              <option value="">Select a time</option>
+              {timeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {errors.time && <div className="fieldError">{errors.time}</div>}
+
+          <label className="field">
+            <span>Party Size</span>
+            <select className="select" value={partySize} onChange={(e) => setPartySize(e.target.value)} required>
+              {PARTY_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>
+                  {size} {size === 1 ? "guest" : "guests"}
+                </option>
+              ))}
+            </select>
+          </label>
+          {errors.partySize && <div className="fieldError">{errors.partySize}</div>}
+
+          <label className="field">
+            <span>Seating Preference (Optional)</span>
+            <select className="select" value={seatingPreference} onChange={(e) => setSeatingPreference(e.target.value)}>
+              {SEATING_OPTIONS.map((option) => (
+                <option key={option.value || "any"} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            <span>Special Request (Optional)</span>
+            <textarea
+              className="textarea"
+              value={specialRequest}
+              onChange={(e) => setSpecialRequest(e.target.value)}
+              maxLength={500}
+              rows={3}
+              placeholder="Allergies, celebration details, or accessibility requests"
+            />
+          </label>
+
+          {availabilityInfo && (
+            <div className="reservationAvailability">
+              {availabilityInfo.available_seats} seats available for this time slot
+            </div>
+          )}
+          {availabilityError && <div className="fieldError">{availabilityError}</div>}
+          {errors.submit && <div className="fieldError">{errors.submit}</div>}
+
+          <button className="btn btn--gold btn--xl" type="submit" disabled={submitting}>
+            {submitting ? "Booking..." : "BOOK RESERVATION"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+

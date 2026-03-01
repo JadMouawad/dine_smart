@@ -49,6 +49,19 @@ export async function updateMyRestaurant(data) {
   });
 }
 
+export async function getOwnerRestaurantTableConfig(restaurantId) {
+  return apiRequest(`/owner/restaurants/${restaurantId}/table-config`, {
+    method: "GET",
+  });
+}
+
+export async function saveOwnerRestaurantTableConfig(restaurantId, data) {
+  return apiRequest(`/owner/restaurants/${restaurantId}/table-config`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
 /**
  * Search restaurants by name/description and optional cuisines
  * @param {string} query - Search query

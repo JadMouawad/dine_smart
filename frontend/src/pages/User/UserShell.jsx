@@ -44,7 +44,6 @@ export default function UserShell() {
 
                 {active === "search" && (
                     <UserSearch
-                      goReservations={() => setActive("reservations")}
                       restaurantToOpen={restaurantToOpen}
                       clearRestaurantToOpen={() => setRestaurantToOpen(null)}
                     />

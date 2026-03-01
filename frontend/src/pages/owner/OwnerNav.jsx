@@ -51,6 +51,17 @@ export default function OwnerNav({ active, onChange, avatarSrc, onLogout }) {
 
           <a
             href="#"
+            className={tabClass("table-config")}
+            onClick={(e) => {
+              e.preventDefault();
+              onChange("table-config");
+            }}
+          >
+            Table Config
+          </a>
+
+          <a
+            href="#"
             className={tabClass("reservations")}
             onClick={(e) => {
               e.preventDefault();
