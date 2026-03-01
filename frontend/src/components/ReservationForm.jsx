@@ -71,6 +71,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
   const [submitting, setSubmitting] = useState(false);
   const [availabilityInfo, setAvailabilityInfo] = useState(null);
   const [availabilityError, setAvailabilityError] = useState("");
+  const [suggestedTimes, setSuggestedTimes] = useState([]);
 
   const today = useMemo(() => getTodayDateValue(), []);
   const timeOptions = useMemo(
@@ -89,6 +90,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
     setSubmitting(false);
     setAvailabilityInfo(null);
     setAvailabilityError("");
+    setSuggestedTimes([]);
   }, [isOpen]);
 
   useEffect(() => {
@@ -99,22 +101,29 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
     }
 
     let cancelled = false;
-    getReservationAvailability({ restaurantId: restaurant.id, date, time })
+    getReservationAvailability({
+      restaurantId: restaurant.id,
+      date,
+      time,
+      partySize: Number(partySize) || 2,
+    })
       .then((info) => {
         if (cancelled) return;
         setAvailabilityInfo(info);
+        setSuggestedTimes(Array.isArray(info?.suggested_times) ? info.suggested_times : []);
         setAvailabilityError("");
       })
       .catch((error) => {
         if (cancelled) return;
         setAvailabilityInfo(null);
+        setSuggestedTimes([]);
         setAvailabilityError(error.message || "Could not load availability");
       });
 
     return () => {
       cancelled = true;
     };
-  }, [isOpen, restaurant?.id, date, time]);
+  }, [isOpen, restaurant?.id, date, time, partySize]);
 
   if (!isOpen || !restaurant) return null;
 
@@ -159,6 +168,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
       onClose?.();
     } catch (error) {
       setErrors((prev) => ({ ...prev, submit: error.message || "Failed to create reservation." }));
+      setSuggestedTimes(Array.isArray(error?.payload?.suggested_times) ? error.payload.suggested_times : []);
     } finally {
       setSubmitting(false);
     }
@@ -243,6 +253,11 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
               {availabilityInfo.available_seats} seats available for this time slot
             </div>
           )}
+          {suggestedTimes.length > 0 && (
+            <div className="reservationAvailability reservationAvailability--suggested">
+              Suggested times: {suggestedTimes.join(", ")}
+            </div>
+          )}
           {availabilityError && <div className="fieldError">{availabilityError}</div>}
           {errors.submit && <div className="fieldError">{errors.submit}</div>}
 
@@ -254,4 +269,3 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
     </div>
   );
 }
-

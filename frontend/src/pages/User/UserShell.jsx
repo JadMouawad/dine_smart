@@ -1,17 +1,23 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import UserNav from "./UserNav.jsx";
 import UserSearch from "./UserSearch.jsx";
 import UserProfile from "./UserProfile.jsx";
 import UserReservations from "./UserReservations.jsx";
+import UserDiscover from "./UserDiscover.jsx";
+import UserExplore from "./UserExplore.jsx";
 
-export default function UserShell() {
-    const [active, setActive] = useState("search");
+export default function UserShell({ initialActive = "search" }) {
+    const [active, setActive] = useState(initialActive);
     const [restaurantToOpen, setRestaurantToOpen] = useState(null);
     const [userAvatarUrl, setUserAvatarUrl] = useState("");
     const navigate = useNavigate();
     const { user, logout, loading } = useAuth();
+
+    useEffect(() => {
+        setActive(initialActive);
+    }, [initialActive]);
 
     // Wait for auth to restore before rendering
     if (loading) return null;
@@ -49,9 +55,27 @@ export default function UserShell() {
                     />
                   )}
 
+                {active === "discover" && (
+                    <UserDiscover
+                      onOpenRestaurant={(restaurant) => {
+                        setRestaurantToOpen(restaurant);
+                        setActive("search");
+                      }}
+                    />
+                )}
+
+                {active === "explore" && (
+                    <UserExplore
+                      onOpenRestaurant={(restaurant) => {
+                        setRestaurantToOpen(restaurant);
+                        setActive("search");
+                      }}
+                    />
+                )}
+
                 {active === "reservations" && <UserReservations />}   
 
-                {active !== "profile" && active !== "search" && active !== "reservations" && (
+                {active !== "profile" && active !== "search" && active !== "reservations" && active !== "discover" && active !== "explore" && (
                     <div className="placeholderPage">
                         <h1 className="placeholderPage__title">
                             {active.charAt(0).toUpperCase() + active.slice(1)}

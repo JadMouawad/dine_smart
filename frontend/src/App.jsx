@@ -12,8 +12,10 @@ import AuthModal from "./components/AuthModal.jsx";
 
 import OwnerShell from "./pages/owner/OwnerShell.jsx";
 import UserShell from "./pages/User/UserShell.jsx";
+import AdminShell from "./pages/admin/AdminShell.jsx";
 import UserSearch from "./pages/User/UserSearch.jsx";
 import VerifyEmail from "./pages/VerifyEmail.jsx";
+import AdminRoute from "./routes/AdminRoute.jsx";
 
 function AppContent() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -125,7 +127,26 @@ export default function App() {
       <Route path="/owner/profile" element={<OwnerShell />} />
       <Route path="/owner/*" element={<OwnerShell />} />
 
+      {/* Admin area */}
+      <Route
+        path="/admin/dashboard"
+        element={
+          <AdminRoute>
+            <AdminShell />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/*"
+        element={
+          <AdminRoute>
+            <AdminShell />
+          </AdminRoute>
+        }
+      />
+
       {/* User area */}
+      <Route path="/explore" element={<UserShell initialActive="explore" />} />
       <Route path="/user/profile" element={<UserShell />} />
       <Route path="/user/*" element={<UserShell />} />
     </Routes>

@@ -40,6 +40,28 @@ export default function UserNav({ active, onChange, avatarSrc, user, onLogout })
 
                     <a
                         href="#"
+                        className={tabClass("discover")}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            onChange("discover");
+                        }}
+                    >
+                        Discover
+                    </a>
+
+                    <a
+                        href="#"
+                        className={tabClass("explore")}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            onChange("explore");
+                        }}
+                    >
+                        Explore
+                    </a>
+
+                    <a
+                        href="#"
                         className={tabClass("reservations")}
                         onClick={(e) => {
                             e.preventDefault();
@@ -49,16 +71,6 @@ export default function UserNav({ active, onChange, avatarSrc, user, onLogout })
                         Reservations
                     </a>
 
-                    <a
-                        href="#"
-                        className={tabClass("diney")}
-                        onClick={(e) => {
-                            e.preventDefault();
-                            onChange("diney");
-                        }}
-                    >
-                        Diney
-                    </a>
                 </nav>
 
                 <div className="nav__actions userNav__actions">

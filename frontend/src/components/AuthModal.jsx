@@ -73,7 +73,8 @@ export default function AuthModal({
       const data = await googleLogin(credentialResponse.credential);
       const userRole = data?.user?.role;
       onClose();
-      if (userRole === "owner") navigate("/owner/profile");
+      if (userRole === "admin") navigate("/admin/dashboard");
+      else if (userRole === "owner") navigate("/owner/profile");
       else navigate("/user/profile");
     } catch (err) {
       setError(err.message || "Google sign-in failed");
@@ -167,7 +168,8 @@ export default function AuthModal({
                   const userRole = data?.user?.role;
                   setName(""); setEmail(""); setPassword("");
                   onClose();
-                  if (userRole === "owner") navigate("/owner/profile");
+                  if (userRole === "admin") navigate("/admin/dashboard");
+                  else if (userRole === "owner") navigate("/owner/profile");
                   else navigate("/user/profile");
                   return;
                 }

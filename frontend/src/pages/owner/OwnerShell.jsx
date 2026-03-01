@@ -5,6 +5,8 @@ import OwnerNav from "./OwnerNav.jsx";
 import OwnerProfile from "./OwnerProfile.jsx";
 import OwnerMenu from "./OwnerMenu.jsx";
 import RestaurantTableConfig from "./RestaurantTableConfig.jsx";
+import OwnerEvents from "./OwnerEvents.jsx";
+import OwnerReviews from "./OwnerReviews.jsx";
 
 export default function OwnerShell() {
   const [active, setActive] = useState("profile");
@@ -38,7 +40,11 @@ export default function OwnerShell() {
 
         {active === "table-config" && <RestaurantTableConfig />}
 
-        {active !== "profile" && active !== "menu" && active !== "table-config" && (
+        {active === "events" && <OwnerEvents />}
+
+        {active === "reviews" && <OwnerReviews />}
+
+        {active !== "profile" && active !== "menu" && active !== "table-config" && active !== "events" && active !== "reviews" && (
           <div className="placeholderPage">
             <h1 className="placeholderPage__title">
               {active.charAt(0).toUpperCase() + active.slice(1)}

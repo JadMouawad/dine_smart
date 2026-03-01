@@ -29,7 +29,12 @@ export default function VerifyEmail() {
             localStorage.setItem("token", data.token);
           }
           const role = data.user?.role;
-          const redirect = role === "owner" ? "/owner/profile" : "/user/profile";
+          const redirect =
+            role === "admin"
+              ? "/admin/dashboard"
+              : role === "owner"
+                ? "/owner/profile"
+                : "/user/profile";
           window.location.href = redirect;
         } else {
           setStatus("error");

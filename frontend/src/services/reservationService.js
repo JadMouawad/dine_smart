@@ -31,13 +31,13 @@ export async function cancelReservation(reservationId) {
   });
 }
 
-export async function getReservationAvailability({ restaurantId, date, time }) {
+export async function getReservationAvailability({ restaurantId, date, time, partySize }) {
   const params = new URLSearchParams();
   params.set("restaurant_id", String(restaurantId));
   params.set("date", date);
   params.set("time", time);
+  if (partySize != null) params.set("party_size", String(partySize));
   return apiRequest(`/reservations/availability?${params.toString()}`, {
     method: "GET",
   });
 }
-

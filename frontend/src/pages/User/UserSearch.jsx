@@ -3,9 +3,10 @@ import { getReviewsByRestaurantId, createReview } from "../../services/reviewSer
 import { searchRestaurants, getRestaurantById } from "../../services/restaurantService";
 import { getReservationAvailability } from "../../services/reservationService";
 import ReservationForm from "../../components/ReservationForm.jsx";
+import LoadingSkeleton from "../../components/LoadingSkeleton.jsx";
+import EmptyState from "../../components/EmptyState.jsx";
 
 const CUISINES = [
-  "All",
   "American",
   "Middle Eastern",
   "French",
@@ -17,10 +18,18 @@ const CUISINES = [
   "International",
 ];
 
+const DIETARY_OPTIONS = ["Vegetarian", "Vegan", "Halal", "GF"];
+const PRICE_OPTIONS = ["$", "$$", "$$$", "$$$$"];
+
 const FAVORITES_KEY = "ds_favorites";
 
 function pad2(value) {
   return String(value).padStart(2, "0");
+}
+
+function getTodayDateValue() {
+  const now = new Date();
+  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
 }
 
 function getCurrentSlotParams() {
@@ -39,6 +48,65 @@ function getCurrentSlotParams() {
   return { date, time };
 }
 
+function toMinutesOfDay(value) {
+  if (!value || typeof value !== "string") return null;
+  const match = value.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+  return (hours * 60) + minutes;
+}
+
+function isOpenNow(openingTime, closingTime) {
+  const open = toMinutesOfDay(openingTime);
+  const close = toMinutesOfDay(closingTime);
+  if (open == null || close == null) return false;
+
+  const now = new Date();
+  const current = (now.getHours() * 60) + now.getMinutes();
+
+  if (close >= open) {
+    return current >= open && current <= close;
+  }
+
+  // Overnight schedule (example: 20:00 -> 02:00)
+  return current >= open || current <= close;
+}
+
+function getInitialFilters() {
+  return {
+    minRating: 1,
+    priceRange: [],
+    dietarySupport: [],
+    openNow: false,
+    verifiedOnly: true,
+    availabilityDate: "",
+    availabilityTime: "",
+    distanceEnabled: false,
+    distanceRadius: 25,
+    cuisines: [],
+  };
+}
+
+function parseDietarySupport(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "string") return [];
+  const normalized = value.trim();
+  if (!normalized) return [];
+  if (normalized.startsWith("{") && normalized.endsWith("}")) {
+    return normalized
+      .slice(1, -1)
+      .split(",")
+      .map((item) => item.replace(/^"|"$/g, "").trim())
+      .filter(Boolean);
+  }
+  return normalized
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 export default function UserSearch({
   isGuest = false,
   onRequireSignup,
@@ -47,9 +115,9 @@ export default function UserSearch({
   onSearchActiveChange
 }) {
   const [query, setQuery] = useState("");
-  const [cuisine, setCuisine] = useState("All");
 
   const [restaurants, setRestaurants] = useState([]);
+  const [baseRestaurants, setBaseRestaurants] = useState([]);
   const [restaurantsLoading, setRestaurantsLoading] = useState(true);
 
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
@@ -65,12 +133,18 @@ export default function UserSearch({
   const [reservationModalOpen, setReservationModalOpen] = useState(false);
   const [reservationToast, setReservationToast] = useState("");
   const [reservationAvailability, setReservationAvailability] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerFilters, setDrawerFilters] = useState(getInitialFilters());
+  const [filters, setFilters] = useState(getInitialFilters());
+  const [geo, setGeo] = useState({ latitude: null, longitude: null });
 
   const [favorites, setFavorites] = useState(() => loadFavorites());
   const [activeSectionId, setActiveSectionId] = useState(null);
 
   const sectionRefs = useRef({});
   const sliderTrackRef = useRef(null);
+  const drawerRef = useRef(null);
+  const scrollRestoreRef = useRef(null);
 
   function requireAuth() {
     if (isGuest) {
@@ -106,15 +180,150 @@ export default function UserSearch({
     });
   }
 
-  // Fetch restaurants from search API (query + cuisine)
+  function updateFilters(updater, preserveScroll = true) {
+    if (preserveScroll) {
+      scrollRestoreRef.current = window.scrollY;
+    }
+    setFilters((prev) => (typeof updater === "function" ? updater(prev) : updater));
+  }
+
+  function resetFilters() {
+    updateFilters(getInitialFilters());
+  }
+
+  function toggleDrawerArrayFilter(key, value) {
+    setDrawerFilters((prev) => {
+      const current = prev[key] || [];
+      return {
+        ...prev,
+        [key]: current.includes(value)
+          ? current.filter((item) => item !== value)
+          : [...current, value],
+      };
+    });
+  }
+
+  function toggleQuickTopRated() {
+    updateFilters((prev) => ({ ...prev, minRating: prev.minRating >= 4 ? 1 : 4 }));
+  }
+
+  function toggleQuickOpenNow() {
+    updateFilters((prev) => ({ ...prev, openNow: !prev.openNow }));
+  }
+
+  function toggleQuickAvailableToday() {
+    const { date, time } = getCurrentSlotParams();
+    updateFilters((prev) => {
+      const enabled = prev.availabilityDate === date;
+      return {
+        ...prev,
+        availabilityDate: enabled ? "" : date,
+        availabilityTime: enabled ? "" : (prev.availabilityTime || time),
+      };
+    });
+  }
+
+  function toggleQuickPrice() {
+    updateFilters((prev) => {
+      const enabled = prev.priceRange.length === 1 && prev.priceRange[0] === "$$";
+      return { ...prev, priceRange: enabled ? [] : ["$$"] };
+    });
+  }
+
+  function toggleQuickDietary() {
+    updateFilters((prev) => {
+      const has = prev.dietarySupport.includes("Vegetarian");
+      return {
+        ...prev,
+        dietarySupport: has
+          ? prev.dietarySupport.filter((item) => item !== "Vegetarian")
+          : [...prev.dietarySupport, "Vegetarian"],
+      };
+    });
+  }
+
+  function toggleQuickDistance() {
+    updateFilters((prev) => ({
+      ...prev,
+      distanceEnabled: !prev.distanceEnabled,
+      distanceRadius: prev.distanceRadius || 10,
+    }));
+  }
+
+  function openDrawer() {
+    setDrawerFilters(filters);
+    setDrawerOpen(true);
+  }
+
+  function closeDrawer() {
+    setDrawerOpen(false);
+  }
+
+  function applyDrawerFilters() {
+    updateFilters({ ...drawerFilters });
+    setDrawerOpen(false);
+  }
+
+  // Fetch restaurants from search API with advanced filters and a base set for option counts.
   useEffect(() => {
+    let cancelled = false;
     setRestaurantsLoading(true);
-    const cuisineParam = cuisine === "All" ? null : cuisine;
-    searchRestaurants(query.trim(), cuisineParam)
-      .then((data) => setRestaurants(Array.isArray(data) ? data : []))
-      .catch(() => setRestaurants([]))
-      .finally(() => setRestaurantsLoading(false));
-  }, [query, cuisine]);
+
+    const payload = {
+      minRating: filters.minRating,
+      priceRange: filters.priceRange,
+      dietarySupport: filters.dietarySupport,
+      openNow: filters.openNow,
+      verifiedOnly: filters.verifiedOnly,
+      availabilityDate: filters.availabilityDate || null,
+      availabilityTime: filters.availabilityTime || null,
+      latitude: geo.latitude,
+      longitude: geo.longitude,
+      distanceRadius: filters.distanceEnabled ? filters.distanceRadius : null,
+    };
+
+    Promise.all([
+      searchRestaurants(query.trim(), filters.cuisines, payload),
+      searchRestaurants(query.trim(), [], {
+        verifiedOnly: true,
+        latitude: geo.latitude,
+        longitude: geo.longitude,
+      }),
+    ])
+      .then(([filtered, base]) => {
+        if (cancelled) return;
+        setRestaurants(Array.isArray(filtered) ? filtered : []);
+        setBaseRestaurants(Array.isArray(base) ? base : []);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setRestaurants([]);
+        setBaseRestaurants([]);
+      })
+      .finally(() => {
+        if (!cancelled) setRestaurantsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [query, filters, geo.latitude, geo.longitude]);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setGeo({
+          latitude: Number(position.coords.latitude.toFixed(6)),
+          longitude: Number(position.coords.longitude.toFixed(6)),
+        });
+      },
+      () => {
+        setGeo({ latitude: null, longitude: null });
+      },
+      { timeout: 7000 }
+    );
+  }, []);
 
   // If coming from Favorites -> open restaurant (validate by ID if needed)
   useEffect(() => {
@@ -169,12 +378,34 @@ export default function UserSearch({
       .catch(() => setReservationAvailability(null));
   }, [selectedRestaurant?.id]);
 
+  useEffect(() => {
+    if (scrollRestoreRef.current == null) return;
+    const restoreTo = scrollRestoreRef.current;
+    scrollRestoreRef.current = null;
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: restoreTo, behavior: "auto" });
+    });
+  }, [restaurants]);
+
   const filteredRestaurants = restaurants;
 
   useEffect(() => {
-  const active = query.trim().length > 0 || cuisine !== "All";
-  onSearchActiveChange?.(active);
-}, [query, cuisine, onSearchActiveChange]);
+    const initial = getInitialFilters();
+    const active =
+      query.trim().length > 0
+      || filters.minRating !== initial.minRating
+      || filters.openNow !== initial.openNow
+      || filters.verifiedOnly !== initial.verifiedOnly
+      || filters.availabilityDate !== initial.availabilityDate
+      || filters.availabilityTime !== initial.availabilityTime
+      || filters.distanceEnabled !== initial.distanceEnabled
+      || Number(filters.distanceRadius) !== Number(initial.distanceRadius)
+      || filters.priceRange.length > 0
+      || filters.dietarySupport.length > 0
+      || filters.cuisines.length > 0;
+
+    onSearchActiveChange?.(active);
+  }, [query, filters, onSearchActiveChange]);
 
   // âœ… IMPORTANT: Disable sticky navbar ONLY while inside restaurant details (menu/reviews)
   useEffect(() => {
@@ -182,6 +413,51 @@ export default function UserSearch({
     document.body.classList.toggle("ds-nav-not-sticky", inDetails);
     return () => document.body.classList.remove("ds-nav-not-sticky");
   }, [selectedRestaurant]);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const panel = drawerRef.current;
+    if (!panel) return;
+
+    const previousActive = document.activeElement;
+    const focusableSelector = [
+      "button:not([disabled])",
+      "input:not([disabled])",
+      "select:not([disabled])",
+      "textarea:not([disabled])",
+      "[tabindex]:not([tabindex='-1'])",
+    ].join(",");
+
+    const focusable = Array.from(panel.querySelectorAll(focusableSelector));
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    first?.focus();
+
+    function onKeyDown(event) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setDrawerOpen(false);
+        return;
+      }
+      if (event.key !== "Tab" || focusable.length === 0) return;
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      if (previousActive && typeof previousActive.focus === "function") {
+        previousActive.focus();
+      }
+    };
+  }, [drawerOpen]);
 
   // Active section tracking
   useEffect(() => {
@@ -249,16 +525,58 @@ export default function UserSearch({
     return { label: `Seats: ${availableSeats} available`, tone: "danger" };
   }, [reservationAvailability]);
 
+  const optionCounts = useMemo(() => {
+    const counts = {
+      cuisine: Object.fromEntries(CUISINES.map((item) => [item, 0])),
+      price: Object.fromEntries(PRICE_OPTIONS.map((item) => [item, 0])),
+      dietary: Object.fromEntries(DIETARY_OPTIONS.map((item) => [item, 0])),
+      topRated: 0,
+      openNow: 0,
+      availableToday: 0,
+    };
+
+    const today = getTodayDateValue();
+    baseRestaurants.forEach((restaurant) => {
+      if (counts.cuisine[restaurant.cuisine] != null) counts.cuisine[restaurant.cuisine] += 1;
+      if (counts.price[restaurant.price_range] != null) counts.price[restaurant.price_range] += 1;
+
+      parseDietarySupport(restaurant.dietary_support).forEach((item) => {
+        if (counts.dietary[item] != null) counts.dietary[item] += 1;
+      });
+
+      if (Number(restaurant.rating || 0) >= 4) counts.topRated += 1;
+      if (isOpenNow(restaurant.opening_time ?? restaurant.openingTime, restaurant.closing_time ?? restaurant.closingTime)) counts.openNow += 1;
+      if (today) counts.availableToday += 1;
+    });
+
+    return counts;
+  }, [baseRestaurants]);
+
+  const activeFilterChips = useMemo(() => {
+    const chips = [];
+
+    if (filters.minRating > 1) chips.push({ key: "min", label: `Rating >= ${filters.minRating}`, clear: () => updateFilters((prev) => ({ ...prev, minRating: 1 })) });
+    if (filters.openNow) chips.push({ key: "open", label: "Open Now", clear: () => updateFilters((prev) => ({ ...prev, openNow: false })) });
+    if (filters.availabilityDate) chips.push({ key: "date", label: `Date: ${filters.availabilityDate}`, clear: () => updateFilters((prev) => ({ ...prev, availabilityDate: "", availabilityTime: "" })) });
+    if (filters.availabilityTime) chips.push({ key: "time", label: `Time: ${filters.availabilityTime}`, clear: () => updateFilters((prev) => ({ ...prev, availabilityTime: "" })) });
+    if (filters.distanceEnabled) chips.push({ key: "distance", label: `Distance: ${filters.distanceRadius}km`, clear: () => updateFilters((prev) => ({ ...prev, distanceEnabled: false })) });
+    filters.priceRange.forEach((price) => chips.push({ key: `price-${price}`, label: `Price ${price}`, clear: () => updateFilters((prev) => ({ ...prev, priceRange: prev.priceRange.filter((item) => item !== price) })) }));
+    filters.dietarySupport.forEach((dietary) => chips.push({ key: `dietary-${dietary}`, label: dietary, clear: () => updateFilters((prev) => ({ ...prev, dietarySupport: prev.dietarySupport.filter((item) => item !== dietary) })) }));
+    filters.cuisines.forEach((cuisine) => chips.push({ key: `cuisine-${cuisine}`, label: cuisine, clear: () => updateFilters((prev) => ({ ...prev, cuisines: prev.cuisines.filter((item) => item !== cuisine) })) }));
+
+    return chips;
+  }, [filters]);
+
   // =========================
   // Invalid restaurant ID
   // =========================
   if (restaurantNotFound) {
     return (
       <div className="userSearchPage">
-        <div className="formCard formCard--userProfile" style={{ maxWidth: "400px", margin: "20px auto", textAlign: "center" }}>
-          <p style={{ marginBottom: "16px", color: "#666" }}>Restaurant not found or no longer available.</p>
+        <div className="formCard formCard--userProfile userSearchNotFoundCard">
+          <p className="userSearchNotFoundCard__text">Restaurant not found or no longer available.</p>
           <button type="button" className="btn btn--gold" onClick={() => setRestaurantNotFound(false)}>
-            Back to search
+            Back to Search
           </button>
         </div>
       </div>
@@ -460,7 +778,7 @@ export default function UserSearch({
                   disabled={reviewPosting}
                 />
                 {reviewComment.length > 0 && (
-                  <span className="reviewCard__charCount" style={{ fontSize: 12, color: "#888" }}>
+                  <span className="reviewCard__charCount">
                     {reviewComment.length}/500
                   </span>
                 )}
@@ -506,7 +824,7 @@ export default function UserSearch({
               </div>
 
               {reviewError && (
-                <div style={{ color: "red", fontSize: 13, marginTop: 6 }}>{reviewError}</div>
+                <div className="fieldError reviewCard__status">{reviewError}</div>
               )}
             </div>
 
@@ -583,25 +901,109 @@ export default function UserSearch({
         <input
           className="searchInput"
           type="text"
-          placeholder="Type restaurant name..."
+          placeholder="Search by name, cuisine, or keyword"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            scrollRestoreRef.current = window.scrollY;
+            setQuery(e.target.value);
+          }}
+          aria-label="Search restaurants"
         />
+      </div>
 
-        <select className="select searchCuisineSelect" value={cuisine} onChange={(e) => setCuisine(e.target.value)}>
-          {CUISINES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
+      <div className="quickFiltersBar" role="toolbar" aria-label="Quick filters">
+        <button
+          type="button"
+          className={`quickFilterBtn ${filters.minRating >= 4 ? "is-active" : ""}`}
+          onClick={toggleQuickTopRated}
+          disabled={optionCounts.topRated === 0}
+          aria-pressed={filters.minRating >= 4}
+          aria-label="Toggle top rated"
+        >
+          Top Rated ({optionCounts.topRated})
+        </button>
+        <button
+          type="button"
+          className={`quickFilterBtn ${filters.openNow ? "is-active" : ""}`}
+          onClick={toggleQuickOpenNow}
+          disabled={optionCounts.openNow === 0}
+          aria-pressed={filters.openNow}
+          aria-label="Toggle open now"
+        >
+          Open Now ({optionCounts.openNow})
+        </button>
+        <button
+          type="button"
+          className={`quickFilterBtn ${filters.availabilityDate === getTodayDateValue() ? "is-active" : ""}`}
+          onClick={toggleQuickAvailableToday}
+          aria-pressed={filters.availabilityDate === getTodayDateValue()}
+          aria-label="Toggle available today"
+        >
+          Available Today ({optionCounts.availableToday})
+        </button>
+        <button
+          type="button"
+          className={`quickFilterBtn ${(filters.priceRange.length === 1 && filters.priceRange[0] === "$$") ? "is-active" : ""}`}
+          onClick={toggleQuickPrice}
+          disabled={optionCounts.price["$$"] === 0}
+          aria-pressed={filters.priceRange.length === 1 && filters.priceRange[0] === "$$"}
+          aria-label="Toggle price filter"
+        >
+          Price ({optionCounts.price["$$"] || 0})
+        </button>
+        <button
+          type="button"
+          className={`quickFilterBtn ${filters.dietarySupport.includes("Vegetarian") ? "is-active" : ""}`}
+          onClick={toggleQuickDietary}
+          disabled={optionCounts.dietary.Vegetarian === 0}
+          aria-pressed={filters.dietarySupport.includes("Vegetarian")}
+          aria-label="Toggle dietary filter"
+        >
+          Dietary ({optionCounts.dietary.Vegetarian || 0})
+        </button>
+        <button
+          type="button"
+          className={`quickFilterBtn ${filters.distanceEnabled ? "is-active" : ""}`}
+          onClick={toggleQuickDistance}
+          disabled={geo.latitude == null || geo.longitude == null}
+          aria-pressed={filters.distanceEnabled}
+          aria-label="Toggle distance filter"
+        >
+          Distance
+        </button>
+        <button type="button" className="quickFilterBtn quickFilterBtn--advanced" onClick={openDrawer} aria-haspopup="dialog" aria-expanded={drawerOpen}>
+          Advanced Filters
+        </button>
+      </div>
+
+      {activeFilterChips.length > 0 && (
+        <div className="activeFilterChips" aria-label="Active filters">
+          {activeFilterChips.map((chip) => (
+            <button key={chip.key} type="button" className="activeFilterChip" onClick={chip.clear}>
+              {chip.label}
+              <span className="activeFilterChip__x" aria-hidden="true">X</span>
+            </button>
           ))}
-        </select>
+          <button className="btn btn--ghost" type="button" onClick={resetFilters}>
+            Reset Filters
+          </button>
+        </div>
+      )}
+
+      <div className="searchResultsHeader">
+        <p className="searchResultsHeader__count">{filteredRestaurants.length} restaurants found</p>
       </div>
 
       <div className="restaurantGrid">
         {restaurantsLoading ? (
-          <p style={{ padding: "20px", color: "#888" }}>Loading restaurants...</p>
+          <LoadingSkeleton variant="card" count={8} className="restaurantGridSkeleton" />
         ) : filteredRestaurants.length === 0 ? (
-          <p style={{ padding: "20px", color: "#888" }}>No restaurants found.</p>
+          <EmptyState
+            title="No restaurants match your filters"
+            message="Try adjusting filters or reset to browse all available restaurants."
+            actionLabel="Reset Filters"
+            onAction={resetFilters}
+          />
         ) : null}
         {!restaurantsLoading && filteredRestaurants.map((r) => (
           <div
@@ -660,6 +1062,170 @@ export default function UserSearch({
         ))}
 
       </div>
+
+      {drawerOpen && (
+        <div className="filterDrawer" role="dialog" aria-modal="true" aria-label="Advanced filters">
+          <div className="filterDrawer__backdrop" onClick={closeDrawer} />
+          <aside className="filterDrawer__panel" ref={drawerRef}>
+            <header className="filterDrawer__header">
+              <h2>Advanced Filters</h2>
+              <button type="button" className="btn btn--ghost" onClick={closeDrawer} aria-label="Close advanced filters">
+                Close
+              </button>
+            </header>
+
+            <div className="filterDrawer__body">
+              <section className="filterDrawer__section">
+                <label className="filterDrawer__label" htmlFor="drawer-rating">Rating ({drawerFilters.minRating})</label>
+                <input
+                  id="drawer-rating"
+                  type="range"
+                  min="1"
+                  max="5"
+                  step="0.5"
+                  value={drawerFilters.minRating}
+                  onChange={(e) => setDrawerFilters((prev) => ({ ...prev, minRating: Number(e.target.value) }))}
+                  aria-label="Minimum rating"
+                />
+              </section>
+
+              <section className="filterDrawer__section">
+                <div className="filterDrawer__label">Price Range</div>
+                <div className="filterDrawer__options">
+                  {PRICE_OPTIONS.map((price) => {
+                    const count = optionCounts.price[price] || 0;
+                    const selected = drawerFilters.priceRange.includes(price);
+                    const disabled = count === 0 && !selected;
+                    return (
+                      <label key={price} className={`filterOption ${disabled ? "is-disabled" : ""}`}>
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          disabled={disabled}
+                          onChange={() => toggleDrawerArrayFilter("priceRange", price)}
+                          aria-label={`Price ${price}`}
+                        />
+                        <span>{price} ({count})</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className="filterDrawer__section">
+                <div className="filterDrawer__label">Dietary Support</div>
+                <div className="filterDrawer__options">
+                  {DIETARY_OPTIONS.map((dietary) => {
+                    const count = optionCounts.dietary[dietary] || 0;
+                    const selected = drawerFilters.dietarySupport.includes(dietary);
+                    const disabled = count === 0 && !selected;
+                    return (
+                      <label key={dietary} className={`filterOption ${disabled ? "is-disabled" : ""}`}>
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          disabled={disabled}
+                          onChange={() => toggleDrawerArrayFilter("dietarySupport", dietary)}
+                          aria-label={`Dietary ${dietary}`}
+                        />
+                        <span>{dietary} ({count})</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className="filterDrawer__section">
+                <div className="filterDrawer__label">Distance Radius</div>
+                <label className="filterOption">
+                  <input
+                    type="checkbox"
+                    checked={drawerFilters.distanceEnabled}
+                    onChange={(e) => setDrawerFilters((prev) => ({ ...prev, distanceEnabled: e.target.checked }))}
+                    disabled={geo.latitude == null || geo.longitude == null}
+                    aria-label="Enable distance radius"
+                  />
+                  <span>Enable distance filter</span>
+                </label>
+                <input
+                  type="range"
+                  min="1"
+                  max="50"
+                  value={drawerFilters.distanceRadius}
+                  disabled={!drawerFilters.distanceEnabled || geo.latitude == null || geo.longitude == null}
+                  onChange={(e) => setDrawerFilters((prev) => ({ ...prev, distanceRadius: Number(e.target.value) }))}
+                  aria-label="Distance radius in kilometers"
+                />
+                <div className="filterDrawer__hint">{drawerFilters.distanceRadius} km</div>
+              </section>
+
+              <section className="filterDrawer__section">
+                <div className="filterDrawer__label">Availability</div>
+                <div className="filterDrawer__grid">
+                  <label className="filterDrawer__field">
+                    <span>Date</span>
+                    <input
+                      type="date"
+                      value={drawerFilters.availabilityDate}
+                      onChange={(e) => setDrawerFilters((prev) => ({ ...prev, availabilityDate: e.target.value }))}
+                      aria-label="Availability date"
+                    />
+                  </label>
+                  <label className="filterDrawer__field">
+                    <span>Time</span>
+                    <input
+                      type="time"
+                      value={drawerFilters.availabilityTime}
+                      onChange={(e) => setDrawerFilters((prev) => ({ ...prev, availabilityTime: e.target.value }))}
+                      aria-label="Availability time"
+                    />
+                  </label>
+                </div>
+              </section>
+
+              <section className="filterDrawer__section">
+                <label className="filterOption">
+                  <input
+                    type="checkbox"
+                    checked={drawerFilters.verifiedOnly}
+                    onChange={(e) => setDrawerFilters((prev) => ({ ...prev, verifiedOnly: e.target.checked }))}
+                    aria-label="Verified restaurants only"
+                  />
+                  <span>Verified only</span>
+                </label>
+              </section>
+
+              <section className="filterDrawer__section">
+                <div className="filterDrawer__label">Cuisine</div>
+                <div className="filterDrawer__options filterDrawer__options--multi">
+                  {CUISINES.map((cuisine) => {
+                    const count = optionCounts.cuisine[cuisine] || 0;
+                    const selected = drawerFilters.cuisines.includes(cuisine);
+                    const disabled = count === 0 && !selected;
+                    return (
+                      <label key={cuisine} className={`filterOption ${disabled ? "is-disabled" : ""}`}>
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          disabled={disabled}
+                          onChange={() => toggleDrawerArrayFilter("cuisines", cuisine)}
+                          aria-label={`Cuisine ${cuisine}`}
+                        />
+                        <span>{cuisine} ({count})</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </section>
+            </div>
+
+            <footer className="filterDrawer__footer">
+              <button type="button" className="btn btn--ghost" onClick={() => setDrawerFilters(getInitialFilters())}>Reset</button>
+              <button type="button" className="btn btn--gold" onClick={applyDrawerFilters}>Apply Filters</button>
+            </footer>
+          </aside>
+        </div>
+      )}
     </div>
   );
 }

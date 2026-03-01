@@ -66,14 +66,117 @@ export async function saveOwnerRestaurantTableConfig(restaurantId, data) {
  * Search restaurants by name/description and optional cuisines
  * @param {string} query - Search query
  * @param {string|string[]} cuisines - Optional cuisine or comma-separated list (e.g. "Italian" or "Italian,Japanese")
+ * @param {Object} filters - Advanced filters
  * @returns {Promise} Filtered restaurants
  */
-export async function searchRestaurants(query, cuisines) {
+export async function searchRestaurants(query, cuisines, filters = {}) {
   const params = new URLSearchParams();
   if (query != null && String(query).trim()) params.set("query", query.trim());
   if (cuisines != null && cuisines !== "All") {
     const list = Array.isArray(cuisines) ? cuisines : String(cuisines).split(",").map((c) => c.trim()).filter(Boolean);
     if (list.length) params.set("cuisine", list.join(","));
   }
+
+  if (filters.minRating != null && filters.minRating !== "") {
+    params.set("min_rating", String(filters.minRating));
+  }
+  if (Array.isArray(filters.priceRange) && filters.priceRange.length) {
+    params.set("price_range", filters.priceRange.join(","));
+  }
+  if (Array.isArray(filters.dietarySupport) && filters.dietarySupport.length) {
+    params.set("dietary_support", filters.dietarySupport.join(","));
+  }
+  if (filters.openNow === true) {
+    params.set("open_now", "true");
+  }
+  if (filters.verifiedOnly === true) {
+    params.set("verified_only", "true");
+  }
+  if (filters.availabilitySlot) {
+    params.set("availability_slot", String(filters.availabilitySlot));
+  }
+  if (filters.availabilityDate) {
+    params.set("availability_date", String(filters.availabilityDate));
+  }
+  if (filters.availabilityTime) {
+    params.set("availability_time", String(filters.availabilityTime));
+  }
+  if (filters.latitude != null && filters.longitude != null) {
+    params.set("latitude", String(filters.latitude));
+    params.set("longitude", String(filters.longitude));
+  }
+  if (filters.distanceRadius != null && filters.distanceRadius !== "") {
+    params.set("distance_radius", String(filters.distanceRadius));
+  }
+
   return apiRequest(`/search?${params.toString()}`, { method: "GET" });
+}
+
+export async function getDiscoverFeed({ latitude, longitude, distanceRadius, limit = 8 } = {}) {
+  const params = new URLSearchParams();
+  if (latitude != null && longitude != null) {
+    params.set("latitude", String(latitude));
+    params.set("longitude", String(longitude));
+  }
+  if (distanceRadius != null) params.set("distance_radius", String(distanceRadius));
+  if (limit != null) params.set("limit", String(limit));
+  return apiRequest(`/discover?${params.toString()}`, { method: "GET" });
+}
+
+export async function getPublicEvents({ latitude, longitude, distanceRadius, limit = 40 } = {}) {
+  const params = new URLSearchParams();
+  if (latitude != null && longitude != null) {
+    params.set("latitude", String(latitude));
+    params.set("longitude", String(longitude));
+  }
+  if (distanceRadius != null) params.set("distance_radius", String(distanceRadius));
+  if (limit != null) params.set("limit", String(limit));
+  return apiRequest(`/events?${params.toString()}`, { method: "GET" });
+}
+
+export async function getRestaurantEvents(restaurantId) {
+  return apiRequest(`/restaurants/${restaurantId}/events`, { method: "GET" });
+}
+
+export async function createOwnerEvent(data) {
+  return apiRequest("/owner/events", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getOwnerEvents() {
+  return apiRequest("/owner/events", { method: "GET" });
+}
+
+export async function updateOwnerEvent(eventId, data) {
+  return apiRequest(`/owner/events/${eventId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteOwnerEvent(eventId) {
+  return apiRequest(`/owner/events/${eventId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function saveSearchFilters(name, filters) {
+  return apiRequest("/search/save", {
+    method: "POST",
+    body: JSON.stringify({ name, filters }),
+  });
+}
+
+export async function getSavedSearchFilters() {
+  return apiRequest("/search/saved", {
+    method: "GET",
+  });
+}
+
+export async function deleteSavedSearchFilter(savedSearchId) {
+  return apiRequest(`/search/saved/${savedSearchId}`, {
+    method: "DELETE",
+  });
 }
