@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../../auth/AuthContext.jsx";
 import { getDiscoverFeed } from "../../services/restaurantService";
 import LoadingSkeleton from "../../components/LoadingSkeleton.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
@@ -11,6 +12,46 @@ function formatDateRange(startDate, endDate) {
   const endLabel = end ? end.toLocaleDateString() : "";
   if (startLabel && endLabel && startLabel !== endLabel) return `${startLabel} - ${endLabel}`;
   return startLabel || endLabel || "Dates TBD";
+}
+
+function toDateValue(dateValue) {
+  if (!dateValue) return null;
+  const parsed = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function startOfDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function bucketEvents(events = []) {
+  const today = startOfDay(new Date());
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const buckets = {
+    today: [],
+    thisWeek: [],
+    later: [],
+  };
+
+  events.forEach((event) => {
+    const eventDate = toDateValue(event.start_date || event.event_date || event.end_date);
+    if (!eventDate) {
+      buckets.later.push(event);
+      return;
+    }
+    const dayDiff = Math.floor((startOfDay(eventDate).getTime() - today.getTime()) / msPerDay);
+
+    if (dayDiff <= 0) {
+      buckets.today.push(event);
+    } else if (dayDiff <= 7) {
+      buckets.thisWeek.push(event);
+    } else {
+      buckets.later.push(event);
+    }
+  });
+
+  return buckets;
 }
 
 function SectionRestaurants({ title, badge, restaurants, onOpenRestaurant }) {
@@ -37,9 +78,9 @@ function SectionRestaurants({ title, badge, restaurants, onOpenRestaurant }) {
                 </div>
               </div>
               <div className="restaurantCard__cuisine">{restaurant.cuisine || "Cuisine not set"}</div>
-              {restaurant.distance_km != null && (
-                <div className="discoverFeedCard__meta">{restaurant.distance_km} km away</div>
-              )}
+              <div className="discoverFeedCard__meta">
+                {restaurant.distance_km != null ? `${restaurant.distance_km} km away` : "Distance unavailable"}
+              </div>
               {(restaurant.active_event_count || 0) > 0 && <div className="discoverFeedCard__badge">{restaurant.active_event_count} event(s)</div>}
               <div className="discoverFeedCard__meta">
                 {(restaurant.rating || 0) >= 4.5 ? "New Restaurant" : "Recommended For You"}
@@ -53,10 +94,20 @@ function SectionRestaurants({ title, badge, restaurants, onOpenRestaurant }) {
 }
 
 export default function UserDiscover({ onOpenRestaurant }) {
+  const { user } = useAuth();
   const [feed, setFeed] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [coords, setCoords] = useState({ latitude: null, longitude: null });
+  const profileLatitude = Number(user?.latitude);
+  const profileLongitude = Number(user?.longitude);
+  const effectiveLatitude = coords.latitude != null
+    ? coords.latitude
+    : (Number.isFinite(profileLatitude) ? profileLatitude : null);
+  const effectiveLongitude = coords.longitude != null
+    ? coords.longitude
+    : (Number.isFinite(profileLongitude) ? profileLongitude : null);
+  const eventBuckets = bucketEvents(feed?.upcoming_events_nearby || []);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -80,8 +131,8 @@ export default function UserDiscover({ onOpenRestaurant }) {
     setError("");
 
     getDiscoverFeed({
-      latitude: coords.latitude,
-      longitude: coords.longitude,
+      latitude: effectiveLatitude,
+      longitude: effectiveLongitude,
       distanceRadius: 25,
       limit: 8,
     })
@@ -101,7 +152,7 @@ export default function UserDiscover({ onOpenRestaurant }) {
     return () => {
       cancelled = true;
     };
-  }, [coords.latitude, coords.longitude]);
+  }, [effectiveLatitude, effectiveLongitude]);
 
   if (loading) {
     return (
@@ -154,22 +205,68 @@ export default function UserDiscover({ onOpenRestaurant }) {
 
       <section className="discoverFeedSection">
         <div className="discoverFeedSection__header">
-          <h2>Upcoming Events Nearby</h2>
+          <h2>Upcoming Events</h2>
+          <span className="discoverSectionBadge">Curated Picks</span>
         </div>
-        <div className="discoverEventsCarousel">
+        <div className="discoverEventsBoard">
           {feed?.upcoming_events_nearby?.length ? (
-            feed.upcoming_events_nearby.map((event) => (
-              <article className="discoverEventCard" key={event.id}>
-                <div className="discoverEventCard__title">{event.title}</div>
-                <div className="discoverEventCard__restaurant">{event.restaurant_name}</div>
-                <div className="discoverEventCard__date">
-                  {formatDateRange(event.start_date, event.end_date)}
-                </div>
-                {event.description && <p className="discoverEventCard__desc">{event.description}</p>}
-              </article>
-            ))
+            <>
+              {eventBuckets.today.length > 0 && (
+                <section className="discoverEventSection">
+                  <div className="discoverEventSection__title">Today & Ongoing</div>
+                  <div className="discoverEventsCarousel">
+                    {eventBuckets.today.map((event) => (
+                      <article className="discoverEventCard" key={`today-${event.id}`}>
+                        <div className="discoverEventCard__title">{event.title}</div>
+                        <div className="discoverEventCard__restaurant">{event.restaurant_name}</div>
+                        <div className="discoverEventCard__date">
+                          {formatDateRange(event.start_date, event.end_date)}
+                        </div>
+                        {event.description && <p className="discoverEventCard__desc">{event.description}</p>}
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {eventBuckets.thisWeek.length > 0 && (
+                <section className="discoverEventSection">
+                  <div className="discoverEventSection__title">This Week</div>
+                  <div className="discoverEventsCarousel">
+                    {eventBuckets.thisWeek.map((event) => (
+                      <article className="discoverEventCard" key={`week-${event.id}`}>
+                        <div className="discoverEventCard__title">{event.title}</div>
+                        <div className="discoverEventCard__restaurant">{event.restaurant_name}</div>
+                        <div className="discoverEventCard__date">
+                          {formatDateRange(event.start_date, event.end_date)}
+                        </div>
+                        {event.description && <p className="discoverEventCard__desc">{event.description}</p>}
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {eventBuckets.later.length > 0 && (
+                <section className="discoverEventSection">
+                  <div className="discoverEventSection__title">Later</div>
+                  <div className="discoverEventsCarousel">
+                    {eventBuckets.later.map((event) => (
+                      <article className="discoverEventCard" key={`later-${event.id}`}>
+                        <div className="discoverEventCard__title">{event.title}</div>
+                        <div className="discoverEventCard__restaurant">{event.restaurant_name}</div>
+                        <div className="discoverEventCard__date">
+                          {formatDateRange(event.start_date, event.end_date)}
+                        </div>
+                        {event.description && <p className="discoverEventCard__desc">{event.description}</p>}
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
           ) : (
-            <EmptyState title="No upcoming events nearby" message="Check back soon for new promotions and events." />
+            <EmptyState title="No upcoming events" message="Check back soon for new promotions and events." />
           )}
         </div>
       </section>

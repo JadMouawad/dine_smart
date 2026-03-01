@@ -146,6 +146,7 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
   const latitude = Number.isFinite(Number(filters.latitude)) ? Number(filters.latitude) : null;
   const longitude = Number.isFinite(Number(filters.longitude)) ? Number(filters.longitude) : null;
   const distanceRadius = Number.isFinite(Number(filters.distanceRadius)) ? Number(filters.distanceRadius) : null;
+  const onlyLebanon = filters.onlyLebanon === true;
 
   const values = [];
   let idx = 1;
@@ -156,6 +157,13 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
   if (verifiedOnly) {
     conditions.push("r.is_verified = true");
     conditions.push("r.approval_status = 'approved'");
+  }
+
+  if (onlyLebanon) {
+    conditions.push("r.latitude IS NOT NULL");
+    conditions.push("r.longitude IS NOT NULL");
+    conditions.push("r.latitude BETWEEN 33.0 AND 34.75");
+    conditions.push("r.longitude BETWEEN 35.05 AND 36.7");
   }
 
   joins.push(`
@@ -274,7 +282,12 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
         0
       )
     `;
-    const availableExpression = `(${capacityExpression} - COALESCE(slot.booked_seats, 0))`;
+    const availableExpression = `
+      CASE
+        WHEN COALESCE(slot.booked_seats, 0) > 0 THEN 0
+        ELSE ${capacityExpression}
+      END
+    `;
 
     selectExtras.push(`${availableExpression}::int AS available_seats`);
     conditions.push(`${availableExpression} > 0`);

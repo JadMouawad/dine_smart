@@ -11,9 +11,10 @@ const resolveLoyaltyBadge = (reservationCount) => {
 };
 
 const getProfile = async (userId) => {
-  const [profile, reservationCount] = await Promise.all([
+  const [profile, reservationCount, reviews] = await Promise.all([
     profileRepository.getById(userId),
     profileRepository.getReservationCountByUserId(userId),
+    profileRepository.getReviewsByUserId(userId),
   ]);
 
   if (!profile) return null;
@@ -21,11 +22,20 @@ const getProfile = async (userId) => {
     ...profile,
     reservation_count: reservationCount,
     loyalty_badge: resolveLoyaltyBadge(reservationCount),
+    my_reviews: reviews,
   };
 };
 
 const updateProfile = async (userId, data) => {
   const updates = { ...data };
+  if (updates.latitude !== undefined) {
+    const parsedLatitude = Number(updates.latitude);
+    updates.latitude = Number.isFinite(parsedLatitude) ? parsedLatitude : null;
+  }
+  if (updates.longitude !== undefined) {
+    const parsedLongitude = Number(updates.longitude);
+    updates.longitude = Number.isFinite(parsedLongitude) ? parsedLongitude : null;
+  }
   if (updates.password != null && updates.password !== "") {
     updates.password = await bcrypt.hash(updates.password, SALT_ROUNDS);
   } else {

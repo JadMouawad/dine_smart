@@ -9,6 +9,7 @@ export default function AuthModal({
   onClose,
   onToggleMode,
 }) {
+  const DEFAULT_LEBANON_LOCATION = { latitude: 33.893791, longitude: 35.501777 };
   const { login, register, googleLogin } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -16,6 +17,9 @@ export default function AuthModal({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [signupLatitude, setSignupLatitude] = useState("");
+  const [signupLongitude, setSignupLongitude] = useState("");
+  const [locatingUser, setLocatingUser] = useState(false);
 
   const [accountType, setAccountType] = useState(null); // "user" | "restaurant" | null
   const [signupSuccess, setSignupSuccess] = useState(false); // show "check your email" after non-Google signup
@@ -46,6 +50,9 @@ export default function AuthModal({
     setEmail("");
     setName("");
     setPassword("");
+    setSignupLatitude("");
+    setSignupLongitude("");
+    setLocatingUser(false);
     setError(null);
     setAccountType(null);
     setSignupSuccess(false);
@@ -85,6 +92,66 @@ export default function AuthModal({
 
   const handleGoogleError = () => {
     setError("Google sign-in was cancelled or failed. Please try again.");
+  };
+
+  const fetchCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setError("Geolocation is not supported on this device.");
+      return;
+    }
+
+    const isSecureContextOk =
+      window.isSecureContext || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    if (!isSecureContextOk) {
+      setError("Location access requires HTTPS (or localhost). Open the site over HTTPS, then try again.");
+      return;
+    }
+
+    setLocatingUser(true);
+    setError(null);
+    const onSuccess = (position) => {
+      setSignupLatitude(String(Number(position.coords.latitude.toFixed(6))));
+      setSignupLongitude(String(Number(position.coords.longitude.toFixed(6))));
+      setLocatingUser(false);
+    };
+
+    const onFailure = (geoError, hasRetried = false) => {
+      if (!hasRetried) {
+        navigator.geolocation.getCurrentPosition(
+          onSuccess,
+          (retryError) => onFailure(retryError, true),
+          { enableHighAccuracy: false, timeout: 20000, maximumAge: 600000 }
+        );
+        return;
+      }
+
+      setLocatingUser(false);
+      if (geoError?.code === 1) {
+        setError("Location permission was denied. Allow location for this site in browser settings, then press Use My Current Location again.");
+        return;
+      }
+      if (geoError?.code === 2) {
+        setError("Could not determine your location. Please check GPS/network and try again.");
+        return;
+      }
+      if (geoError?.code === 3) {
+        setError("Location request timed out. Please try again or enter coordinates manually.");
+        return;
+      }
+      setError("Unable to fetch your location. Please allow location access or enter coordinates manually.");
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      onSuccess,
+      (geoError) => onFailure(geoError, false),
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
+  };
+
+  const useBeirutDefault = () => {
+    setSignupLatitude(String(DEFAULT_LEBANON_LOCATION.latitude));
+    setSignupLongitude(String(DEFAULT_LEBANON_LOCATION.longitude));
+    setError("Using default Beirut coordinates. You can edit them manually.");
   };
 
   if (!isOpen) return null;
@@ -149,19 +216,28 @@ export default function AuthModal({
               try {
                 if (mode === "signup") {
                   if (!name.trim()) throw new Error("Name is required");
+                  const latitude = Number(signupLatitude);
+                  const longitude = Number(signupLongitude);
+                  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+                    throw new Error("Please provide valid location coordinates.");
+                  }
                   const role = accountType === "restaurant" ? "owner" : "user";
-                  const data = await register(name, email, password, role);
+                  const data = await register(name, email, password, role, { latitude, longitude });
                   // Backend sends verification email and returns message (no token until verified)
                   if (data?.message && !data?.token) {
                     setSignupSuccess(true);
                     setName("");
                     setEmail("");
                     setPassword("");
+                    setSignupLatitude("");
+                    setSignupLongitude("");
                     return;
                   }
                   setName("");
                   setEmail("");
                   setPassword("");
+                  setSignupLatitude("");
+                  setSignupLongitude("");
                   onClose();
                 } else {
                   const data = await login(email, password);
@@ -217,6 +293,51 @@ export default function AuthModal({
                 disabled={loading}
               />
             </label>
+
+            {mode === "signup" && (
+              <>
+                <label className="field">
+                  <span>Location Latitude</span>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    placeholder="e.g. 33.893791"
+                    value={signupLatitude}
+                    onChange={(e) => setSignupLatitude(e.target.value)}
+                    required
+                    disabled={loading}
+                  />
+                </label>
+                <label className="field">
+                  <span>Location Longitude</span>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    placeholder="e.g. 35.501777"
+                    value={signupLongitude}
+                    onChange={(e) => setSignupLongitude(e.target.value)}
+                    required
+                    disabled={loading}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--xl"
+                  onClick={fetchCurrentLocation}
+                  disabled={loading || locatingUser}
+                >
+                  {locatingUser ? "Getting location..." : "Use My Current Location"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--xl"
+                  onClick={useBeirutDefault}
+                  disabled={loading || locatingUser}
+                >
+                  Use Beirut Default
+                </button>
+              </>
+            )}
 
             <button className="btn btn--gold btn--xl" type="submit" disabled={loading}>
               {loading ? "Loading..." : copy.primary}

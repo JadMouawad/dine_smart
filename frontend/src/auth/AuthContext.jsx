@@ -69,8 +69,15 @@ export function AuthProvider({ children }) {
     return data;
   }
 
-  async function register(name, email, password, role) {
-    const data = await registerUser({ name, email, password, role });
+  async function register(name, email, password, role, location = {}) {
+    const data = await registerUser({
+      name,
+      email,
+      password,
+      role,
+      latitude: location.latitude,
+      longitude: location.longitude,
+    });
     const newToken = data.token ?? data.accessToken;
 
     if (newToken) {

@@ -101,7 +101,6 @@ const getNearYou = async ({ latitude = null, longitude = null, radiusKm = null, 
           lngParam: "$2",
         })}
       ORDER BY
-        CASE WHEN ${latitude != null && longitude != null ? "distance_km" : "NULL"} IS NULL THEN 1 ELSE 0 END,
         distance_km ASC NULLS LAST,
         r.rating DESC
       LIMIT ${limitParam}

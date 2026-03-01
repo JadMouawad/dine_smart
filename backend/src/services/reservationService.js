@@ -8,6 +8,7 @@ const ReservationModel = require("../models/reservation.model");
 const { sendReservationConfirmationEmail } = require("../utils/emailSender");
 
 const MAX_PARTY_SIZE = 12;
+const MIN_RESERVATION_MINUTES = 12 * 60;
 const ALLOWED_SEATING_PREFERENCES = new Set(["indoor", "outdoor"]);
 
 const parseDateOnly = (value) => {
@@ -126,9 +127,9 @@ const getSuggestedTimes = async ({
       candidateTime
     );
     const bookedSeats = parseInt(bookedResult.rows[0]?.booked_seats, 10) || 0;
-    const availableSeats = Math.max(totalCapacity - bookedSeats, 0);
+    const availableSeats = bookedSeats > 0 ? 0 : Math.max(totalCapacity, 0);
 
-    if (availableSeats >= partySize) {
+    if (bookedSeats === 0 && availableSeats >= partySize) {
       suggestions.push(candidateTime.slice(0, 5));
     }
 
@@ -163,7 +164,7 @@ const getSlotAvailability = async ({ restaurantId, reservationDate, reservationT
     reservationTime
   );
   const bookedSeats = parseInt(bookedResult.rows[0]?.booked_seats, 10) || 0;
-  const availableSeats = Math.max(totalCapacity - bookedSeats, 0);
+  const availableSeats = bookedSeats > 0 ? 0 : Math.max(totalCapacity, 0);
 
   return {
     success: true,
@@ -201,6 +202,11 @@ const createReservation = async ({
     return { success: false, status: 400, error: "Reservation time is required" };
   }
 
+  const reservationMinutes = parseTimeToMinutes(normalizedTime);
+  if (reservationMinutes == null || reservationMinutes < MIN_RESERVATION_MINUTES) {
+    return { success: false, status: 400, error: "Reservation time must be 12:00 PM or later" };
+  }
+
   if (Number.isNaN(parsedPartySize) || parsedPartySize < 1 || parsedPartySize > MAX_PARTY_SIZE) {
     return { success: false, status: 400, error: `Party size must be between 1 and ${MAX_PARTY_SIZE}` };
   }
@@ -233,6 +239,25 @@ const createReservation = async ({
 
   if (!isWithinOperatingHours(normalizedTime, availability.restaurant.opening_time, availability.restaurant.closing_time)) {
     return { success: false, status: 400, error: "Reservation time is outside restaurant operating hours" };
+  }
+
+  if (availability.bookedSeats > 0) {
+    const suggestedTimes = await getSuggestedTimes({
+      restaurantId: parsedRestaurantId,
+      reservationDate: normalizedDate,
+      reservationTime: normalizedTime,
+      partySize: parsedPartySize,
+      restaurant: availability.restaurant,
+      totalCapacity: availability.totalCapacity,
+    });
+
+    return {
+      success: false,
+      status: 409,
+      error: "This time slot is already booked",
+      availableSeats: 0,
+      suggestedTimes,
+    };
   }
 
   if (availability.availableSeats < parsedPartySize) {
@@ -281,7 +306,7 @@ const createReservation = async ({
   }
 
   if (!createdReservation) {
-    return { success: false, status: 500, error: "Failed to generate reservation confirmation ID" };
+    return { success: false, status: 409, error: "This time slot is already booked" };
   }
 
   const user = await UserModel.findById(db, userId);
@@ -370,6 +395,10 @@ const getAvailability = async ({ restaurantId, reservationDate, reservationTime,
   if (!normalizedTime) {
     return { success: false, status: 400, error: "Invalid reservation time" };
   }
+  const requestedMinutes = parseTimeToMinutes(normalizedTime);
+  if (requestedMinutes == null || requestedMinutes < MIN_RESERVATION_MINUTES) {
+    return { success: false, status: 400, error: "Reservation time must be 12:00 PM or later" };
+  }
   if (Number.isNaN(parsedPartySize) || parsedPartySize < 1) {
     return { success: false, status: 400, error: "Invalid party size" };
   }
@@ -407,6 +436,8 @@ const getAvailability = async ({ restaurantId, reservationDate, reservationTime,
       total_capacity: availability.totalCapacity,
       booked_seats: availability.bookedSeats,
       available_seats: availability.availableSeats,
+      is_fully_booked: availability.availableSeats <= 0,
+      can_accommodate_party: availability.availableSeats >= parsedPartySize,
       suggested_times: suggestedTimes,
     },
   };

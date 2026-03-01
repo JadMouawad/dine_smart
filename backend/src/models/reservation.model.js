@@ -55,7 +55,16 @@ async function createReservation(db, data) {
       special_request,
       confirmation_id
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    SELECT
+      $1, $2, $3, $4, $5, $6, $7, $8
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM reservations existing
+      WHERE existing.restaurant_id = $2
+        AND existing.reservation_date = $3
+        AND existing.reservation_time = $4
+        AND existing.status = 'confirmed'
+    )
     RETURNING id, user_id, restaurant_id, reservation_date, reservation_time, party_size,
               seating_preference, special_request, status, confirmation_id, created_at, updated_at;
   `;

@@ -33,7 +33,7 @@ const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
  * @param {string} password - User's password (will be hashed)
  * @returns {Object} Empty object (JWT issued only after email verification)
  */
-const registerUser = async (fullName, email, password, roleId = 1) => {
+const registerUser = async (fullName, email, password, roleId = 1, location = {}) => {
   const existingUser = await User.findByEmail(pool, email);
   if (existingUser) {
     throw new Error("Email already registered");
@@ -45,7 +45,9 @@ const registerUser = async (fullName, email, password, roleId = 1) => {
     fullName,
     email,
     password: hashedPassword,
-    roleId
+    roleId,
+    latitude: location.latitude,
+    longitude: location.longitude,
   });
 
   await emailVerificationService.createTokenAndSendEmail(user.id, email, fullName);
@@ -89,7 +91,9 @@ const loginUser = async (email, password) => {
       id: user.id,
       fullName: user.full_name,
       email: user.email,
-      role: user.role
+      role: user.role,
+      latitude: user.latitude,
+      longitude: user.longitude,
     },
     token
   };
@@ -146,7 +150,9 @@ const googleAuthUser = async (idToken) => {
       id: user.id,
       fullName: user.full_name,
       email: user.email,
-      role: user.role
+      role: user.role,
+      latitude: user.latitude,
+      longitude: user.longitude,
     },
     token
   };

@@ -39,18 +39,29 @@ function toLabel(minutes) {
 function buildTimeOptions(openingTime, closingTime) {
   const openingMinutes = parseTimeToMinutes(openingTime);
   const closingMinutes = parseTimeToMinutes(closingTime);
+  const noonMinutes = 12 * 60;
 
   if (openingMinutes == null || closingMinutes == null) {
     const fallback = [];
-    for (let m = 17 * 60; m <= 22 * 60; m += 15) {
+    for (let m = noonMinutes; m <= 22 * 60; m += 15) {
       fallback.push({ value: toTimeValue(m), label: toLabel(m) });
     }
     return fallback;
   }
 
+  const start = Math.max(openingMinutes, noonMinutes);
   const end = closingMinutes >= openingMinutes ? closingMinutes : closingMinutes + (24 * 60);
+
+  if (end < start) {
+    const fallback = [];
+    for (let m = noonMinutes; m <= 22 * 60; m += 15) {
+      fallback.push({ value: toTimeValue(m), label: toLabel(m) });
+    }
+    return fallback;
+  }
+
   const options = [];
-  for (let minute = openingMinutes; minute <= end && options.length < 96; minute += 15) {
+  for (let minute = start; minute <= end && options.length < 96; minute += 15) {
     options.push({ value: toTimeValue(minute), label: toLabel(minute) });
   }
   return options;
@@ -72,6 +83,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
   const [availabilityInfo, setAvailabilityInfo] = useState(null);
   const [availabilityError, setAvailabilityError] = useState("");
   const [suggestedTimes, setSuggestedTimes] = useState([]);
+  const [timePickerRef, setTimePickerRef] = useState(null);
 
   const today = useMemo(() => getTodayDateValue(), []);
   const timeOptions = useMemo(
@@ -126,6 +138,33 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
   }, [isOpen, restaurant?.id, date, time, partySize]);
 
   if (!isOpen || !restaurant) return null;
+
+  const normalizedPartySize = Number(partySize) || 2;
+  const canAccommodateParty =
+    availabilityInfo?.can_accommodate_party ??
+    (availabilityInfo ? Number(availabilityInfo.available_seats || 0) >= normalizedPartySize : null);
+  const isFullyBooked =
+    availabilityInfo?.is_fully_booked ??
+    (availabilityInfo ? Number(availabilityInfo.available_seats || 0) <= 0 : null);
+  const slotStatusLabel = !availabilityInfo
+    ? ""
+    : isFullyBooked
+      ? "Booked"
+      : canAccommodateParty
+        ? "Available"
+        : "Limited availability";
+
+  const jumpToSuggestedTime = () => {
+    if (!Array.isArray(suggestedTimes) || suggestedTimes.length === 0) return;
+    const firstSuggested = String(suggestedTimes[0]).slice(0, 5);
+    setTime(firstSuggested);
+    if (timePickerRef && typeof timePickerRef.scrollIntoView === "function") {
+      timePickerRef.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    if (timePickerRef && typeof timePickerRef.focus === "function") {
+      timePickerRef.focus();
+    }
+  };
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -202,7 +241,13 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
 
           <label className="field">
             <span>Time</span>
-            <select className="select" value={time} onChange={(e) => setTime(e.target.value)} required>
+            <select
+              className="select"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              ref={setTimePickerRef}
+              required
+            >
               <option value="">Select a time</option>
               {timeOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -250,19 +295,34 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
 
           {availabilityInfo && (
             <div className="reservationAvailability">
-              {availabilityInfo.available_seats} seats available for this time slot
+              Time slot status: <strong>{slotStatusLabel}</strong><br />
+              {availabilityInfo.booked_seats} booked / {availabilityInfo.total_capacity} total seats
+              {" "}({availabilityInfo.available_seats} available)
             </div>
           )}
           {suggestedTimes.length > 0 && (
             <div className="reservationAvailability reservationAvailability--suggested">
               Suggested times: {suggestedTimes.join(", ")}
+              {isFullyBooked && (
+                <>
+                  <br />
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    onClick={jumpToSuggestedTime}
+                    style={{ marginTop: 8 }}
+                  >
+                    Jump to Next Available Time
+                  </button>
+                </>
+              )}
             </div>
           )}
           {availabilityError && <div className="fieldError">{availabilityError}</div>}
           {errors.submit && <div className="fieldError">{errors.submit}</div>}
 
-          <button className="btn btn--gold btn--xl" type="submit" disabled={submitting}>
-            {submitting ? "Booking..." : "BOOK RESERVATION"}
+          <button className="btn btn--gold btn--xl" type="submit" disabled={submitting || isFullyBooked === true}>
+            {submitting ? "Booking..." : (isFullyBooked ? "SLOT BOOKED" : "BOOK RESERVATION")}
           </button>
         </form>
       </div>

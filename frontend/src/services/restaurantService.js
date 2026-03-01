@@ -108,6 +108,9 @@ export async function searchRestaurants(query, cuisines, filters = {}) {
   if (filters.distanceRadius != null && filters.distanceRadius !== "") {
     params.set("distance_radius", String(filters.distanceRadius));
   }
+  if (filters.onlyLebanon === true) {
+    params.set("only_lebanon", "true");
+  }
 
   return apiRequest(`/search?${params.toString()}`, { method: "GET" });
 }

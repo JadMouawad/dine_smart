@@ -18,6 +18,8 @@ const updateById = async (userId, data) => {
   if (data.full_name !== undefined) updates.full_name = data.full_name;
   if (data.email !== undefined) updates.email = data.email;
   if (data.phone !== undefined) updates.phone = data.phone;
+  if (data.latitude !== undefined) updates.latitude = data.latitude;
+  if (data.longitude !== undefined) updates.longitude = data.longitude;
   if (data.profilePictureUrl !== undefined) updates.profile_picture_url = data.profilePictureUrl;
   if (data.password !== undefined) updates.password = data.password;
 
@@ -50,8 +52,30 @@ const getReservationCountByUserId = async (userId) => {
   return result.rows[0]?.reservation_count || 0;
 };
 
+const getReviewsByUserId = async (userId) => {
+  const result = await pool.query(
+    `
+      SELECT
+        rv.id,
+        rv.restaurant_id,
+        rv.rating,
+        rv.comment,
+        rv.created_at,
+        r.name AS restaurant_name
+      FROM reviews rv
+      JOIN restaurants r ON r.id = rv.restaurant_id
+      WHERE rv.user_id = $1
+      ORDER BY rv.created_at DESC
+    `,
+    [userId]
+  );
+
+  return result.rows;
+};
+
 module.exports = {
   getById,
   updateById,
   getReservationCountByUserId,
+  getReviewsByUserId,
 };

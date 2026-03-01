@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "../../auth/AuthContext.jsx";
 import { getReviewsByRestaurantId, createReview } from "../../services/reviewService";
 import { searchRestaurants, getRestaurantById } from "../../services/restaurantService";
 import { getReservationAvailability } from "../../services/reservationService";
@@ -20,8 +21,22 @@ const CUISINES = [
 
 const DIETARY_OPTIONS = ["Vegetarian", "Vegan", "Halal", "GF"];
 const PRICE_OPTIONS = ["$", "$$", "$$$", "$$$$"];
+const PRICE_LABELS = {
+  $: "Budget",
+  $$: "Moderate",
+  $$$: "Premium",
+  $$$$: "Luxury",
+};
+const DIETARY_LABELS = {
+  Vegetarian: "Vegetarian",
+  Vegan: "Vegan",
+  Halal: "Halal",
+  GF: "Gluten-Free",
+};
 
 const FAVORITES_KEY = "ds_favorites";
+const FILLED_STAR = "\u2605";
+const EMPTY_STAR = "\u2606";
 
 function pad2(value) {
   return String(value).padStart(2, "0");
@@ -76,7 +91,7 @@ function isOpenNow(openingTime, closingTime) {
 
 function getInitialFilters() {
   return {
-    minRating: 1,
+    minRating: 0,
     priceRange: [],
     dietarySupport: [],
     openNow: false,
@@ -114,6 +129,7 @@ export default function UserSearch({
   clearRestaurantToOpen,
   onSearchActiveChange
 }) {
+  const { user } = useAuth();
   const [query, setQuery] = useState("");
 
   const [restaurants, setRestaurants] = useState([]);
@@ -133,6 +149,7 @@ export default function UserSearch({
   const [reservationModalOpen, setReservationModalOpen] = useState(false);
   const [reservationToast, setReservationToast] = useState("");
   const [reservationAvailability, setReservationAvailability] = useState(null);
+  const [reservationSlot, setReservationSlot] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerFilters, setDrawerFilters] = useState(getInitialFilters());
   const [filters, setFilters] = useState(getInitialFilters());
@@ -204,7 +221,7 @@ export default function UserSearch({
   }
 
   function toggleQuickTopRated() {
-    updateFilters((prev) => ({ ...prev, minRating: prev.minRating >= 4 ? 1 : 4 }));
+    updateFilters((prev) => ({ ...prev, minRating: prev.minRating >= 4 ? 0 : 4 }));
   }
 
   function toggleQuickOpenNow() {
@@ -264,6 +281,22 @@ export default function UserSearch({
     setDrawerOpen(false);
   }
 
+  const profileGeo = useMemo(() => {
+    const latitude = Number(user?.latitude);
+    const longitude = Number(user?.longitude);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return { latitude: null, longitude: null };
+    }
+    return { latitude, longitude };
+  }, [user?.latitude, user?.longitude]);
+
+  const effectiveGeo = useMemo(() => {
+    if (geo.latitude != null && geo.longitude != null) {
+      return { latitude: geo.latitude, longitude: geo.longitude };
+    }
+    return profileGeo;
+  }, [geo.latitude, geo.longitude, profileGeo]);
+
   // Fetch restaurants from search API with advanced filters and a base set for option counts.
   useEffect(() => {
     let cancelled = false;
@@ -277,8 +310,8 @@ export default function UserSearch({
       verifiedOnly: filters.verifiedOnly,
       availabilityDate: filters.availabilityDate || null,
       availabilityTime: filters.availabilityTime || null,
-      latitude: geo.latitude,
-      longitude: geo.longitude,
+      latitude: effectiveGeo.latitude,
+      longitude: effectiveGeo.longitude,
       distanceRadius: filters.distanceEnabled ? filters.distanceRadius : null,
     };
 
@@ -286,8 +319,8 @@ export default function UserSearch({
       searchRestaurants(query.trim(), filters.cuisines, payload),
       searchRestaurants(query.trim(), [], {
         verifiedOnly: true,
-        latitude: geo.latitude,
-        longitude: geo.longitude,
+        latitude: effectiveGeo.latitude,
+        longitude: effectiveGeo.longitude,
       }),
     ])
       .then(([filtered, base]) => {
@@ -307,7 +340,7 @@ export default function UserSearch({
     return () => {
       cancelled = true;
     };
-  }, [query, filters, geo.latitude, geo.longitude]);
+  }, [query, filters, effectiveGeo.latitude, effectiveGeo.longitude]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -365,10 +398,11 @@ export default function UserSearch({
   useEffect(() => {
     if (!selectedRestaurant?.id) {
       setReservationAvailability(null);
+      setReservationSlot(null);
       return;
     }
 
-    const { date, time } = getCurrentSlotParams();
+    const { date, time } = reservationSlot || getCurrentSlotParams();
     getReservationAvailability({
       restaurantId: selectedRestaurant.id,
       date,
@@ -376,7 +410,7 @@ export default function UserSearch({
     })
       .then((availability) => setReservationAvailability(availability))
       .catch(() => setReservationAvailability(null));
-  }, [selectedRestaurant?.id]);
+  }, [selectedRestaurant?.id, reservationSlot]);
 
   useEffect(() => {
     if (scrollRestoreRef.current == null) return;
@@ -407,7 +441,7 @@ export default function UserSearch({
     onSearchActiveChange?.(active);
   }, [query, filters, onSearchActiveChange]);
 
-  // âœ… IMPORTANT: Disable sticky navbar ONLY while inside restaurant details (menu/reviews)
+  // Disable sticky navbar only while inside restaurant details (menu/reviews)
   useEffect(() => {
     const inDetails = !!selectedRestaurant;
     document.body.classList.toggle("ds-nav-not-sticky", inDetails);
@@ -555,13 +589,13 @@ export default function UserSearch({
   const activeFilterChips = useMemo(() => {
     const chips = [];
 
-    if (filters.minRating > 1) chips.push({ key: "min", label: `Rating >= ${filters.minRating}`, clear: () => updateFilters((prev) => ({ ...prev, minRating: 1 })) });
+    if (filters.minRating > 0) chips.push({ key: "min", label: `Rating >= ${filters.minRating}`, clear: () => updateFilters((prev) => ({ ...prev, minRating: 0 })) });
     if (filters.openNow) chips.push({ key: "open", label: "Open Now", clear: () => updateFilters((prev) => ({ ...prev, openNow: false })) });
     if (filters.availabilityDate) chips.push({ key: "date", label: `Date: ${filters.availabilityDate}`, clear: () => updateFilters((prev) => ({ ...prev, availabilityDate: "", availabilityTime: "" })) });
     if (filters.availabilityTime) chips.push({ key: "time", label: `Time: ${filters.availabilityTime}`, clear: () => updateFilters((prev) => ({ ...prev, availabilityTime: "" })) });
     if (filters.distanceEnabled) chips.push({ key: "distance", label: `Distance: ${filters.distanceRadius}km`, clear: () => updateFilters((prev) => ({ ...prev, distanceEnabled: false })) });
-    filters.priceRange.forEach((price) => chips.push({ key: `price-${price}`, label: `Price ${price}`, clear: () => updateFilters((prev) => ({ ...prev, priceRange: prev.priceRange.filter((item) => item !== price) })) }));
-    filters.dietarySupport.forEach((dietary) => chips.push({ key: `dietary-${dietary}`, label: dietary, clear: () => updateFilters((prev) => ({ ...prev, dietarySupport: prev.dietarySupport.filter((item) => item !== dietary) })) }));
+    filters.priceRange.forEach((price) => chips.push({ key: `price-${price}`, label: `Price: ${PRICE_LABELS[price] || price}`, clear: () => updateFilters((prev) => ({ ...prev, priceRange: prev.priceRange.filter((item) => item !== price) })) }));
+    filters.dietarySupport.forEach((dietary) => chips.push({ key: `dietary-${dietary}`, label: DIETARY_LABELS[dietary] || dietary, clear: () => updateFilters((prev) => ({ ...prev, dietarySupport: prev.dietarySupport.filter((item) => item !== dietary) })) }));
     filters.cuisines.forEach((cuisine) => chips.push({ key: `cuisine-${cuisine}`, label: cuisine, clear: () => updateFilters((prev) => ({ ...prev, cuisines: prev.cuisines.filter((item) => item !== cuisine) })) }));
 
     return chips;
@@ -609,6 +643,9 @@ export default function UserSearch({
                 <span className="metaPill">Rating {selectedRestaurant.rating}</span>
                 <span className="metaPill">
                   {(selectedRestaurant.opening_time ?? selectedRestaurant.openingTime) || "—"} – {(selectedRestaurant.closing_time ?? selectedRestaurant.closingTime) || "—"}
+                </span>
+                <span className="metaPill">
+                  {selectedRestaurant.distance_km != null ? `${selectedRestaurant.distance_km} km away` : "Distance unavailable"}
                 </span>
                 {availabilityBadge && (
                   <span className={`metaPill metaPill--${availabilityBadge.tone}`}>
@@ -680,7 +717,7 @@ export default function UserSearch({
             {restaurantMenu.length ? (
               <div className="menuSectionSlider">
                 <button className="menuSectionSlider__arrow" type="button" onClick={() => slideSections(-1)} aria-label="Scroll sections left">
-                  â€¹
+                  &#8249;
                 </button>
 
                 <div className="menuSectionSlider__pill" aria-label="Menu sections">
@@ -699,7 +736,7 @@ export default function UserSearch({
                 </div>
 
                 <button className="menuSectionSlider__arrow" type="button" onClick={() => slideSections(1)} aria-label="Scroll sections right">
-                  â€º
+                  &#8250;
                 </button>
               </div>
             ) : null}
@@ -761,11 +798,11 @@ export default function UserSearch({
                   onChange={(e) => setReviewRating(Number(e.target.value))}
                   disabled={reviewPosting}
                 >
-                  <option value="5">5 â˜…</option>
-                  <option value="4">4 â˜…</option>
-                  <option value="3">3 â˜…</option>
-                  <option value="2">2 â˜…</option>
-                  <option value="1">1 â˜…</option>
+                  <option value="5">5 {FILLED_STAR}</option>
+                  <option value="4">4 {FILLED_STAR}</option>
+                  <option value="3">3 {FILLED_STAR}</option>
+                  <option value="2">2 {FILLED_STAR}</option>
+                  <option value="1">1 {FILLED_STAR}</option>
                 </select>
 
                 <input
@@ -855,8 +892,8 @@ export default function UserSearch({
                       </div>
 
                       <div className="reviewCardFull__stars">
-                        {"â˜…".repeat(rev.rating)}
-                        {"â˜†".repeat(5 - rev.rating)}
+                        {FILLED_STAR.repeat(Math.max(0, Number(rev.rating) || 0))}
+                        {EMPTY_STAR.repeat(Math.max(0, 5 - (Number(rev.rating) || 0)))}
                       </div>
 
                       <div className="reviewCardFull__text">{rev.comment}</div>
@@ -874,9 +911,11 @@ export default function UserSearch({
           isOpen={reservationModalOpen}
           onClose={() => setReservationModalOpen(false)}
           restaurant={selectedRestaurant}
-          onReserved={() => {
+          onReserved={(reservation) => {
             setReservationToast("Reservation confirmed! Check your email.");
-            const { date, time } = getCurrentSlotParams();
+            const date = reservation?.reservation_date || reservationSlot?.date || getCurrentSlotParams().date;
+            const time = String(reservation?.reservation_time || reservationSlot?.time || getCurrentSlotParams().time).slice(0, 5);
+            setReservationSlot({ date, time });
             getReservationAvailability({
               restaurantId: selectedRestaurant.id,
               date,
@@ -965,7 +1004,7 @@ export default function UserSearch({
           type="button"
           className={`quickFilterBtn ${filters.distanceEnabled ? "is-active" : ""}`}
           onClick={toggleQuickDistance}
-          disabled={geo.latitude == null || geo.longitude == null}
+          disabled={effectiveGeo.latitude == null || effectiveGeo.longitude == null}
           aria-pressed={filters.distanceEnabled}
           aria-label="Toggle distance filter"
         >
@@ -1057,6 +1096,9 @@ export default function UserSearch({
               </div>
 
               <div className="restaurantCard__cuisine">{r.cuisine}</div>
+              <div className="discoverFeedCard__meta">
+                {r.distance_km != null ? `${r.distance_km} km away` : "Distance unavailable"}
+              </div>
             </div>
           </div>
         ))}
@@ -1080,7 +1122,7 @@ export default function UserSearch({
                 <input
                   id="drawer-rating"
                   type="range"
-                  min="1"
+                  min="0"
                   max="5"
                   step="0.5"
                   value={drawerFilters.minRating}
@@ -1105,7 +1147,7 @@ export default function UserSearch({
                           onChange={() => toggleDrawerArrayFilter("priceRange", price)}
                           aria-label={`Price ${price}`}
                         />
-                        <span>{price} ({count})</span>
+                        <span>{PRICE_LABELS[price] || price} ({count})</span>
                       </label>
                     );
                   })}
@@ -1128,7 +1170,7 @@ export default function UserSearch({
                           onChange={() => toggleDrawerArrayFilter("dietarySupport", dietary)}
                           aria-label={`Dietary ${dietary}`}
                         />
-                        <span>{dietary} ({count})</span>
+                        <span>{DIETARY_LABELS[dietary] || dietary} ({count})</span>
                       </label>
                     );
                   })}
@@ -1142,7 +1184,7 @@ export default function UserSearch({
                     type="checkbox"
                     checked={drawerFilters.distanceEnabled}
                     onChange={(e) => setDrawerFilters((prev) => ({ ...prev, distanceEnabled: e.target.checked }))}
-                    disabled={geo.latitude == null || geo.longitude == null}
+                    disabled={effectiveGeo.latitude == null || effectiveGeo.longitude == null}
                     aria-label="Enable distance radius"
                   />
                   <span>Enable distance filter</span>
@@ -1152,7 +1194,7 @@ export default function UserSearch({
                   min="1"
                   max="50"
                   value={drawerFilters.distanceRadius}
-                  disabled={!drawerFilters.distanceEnabled || geo.latitude == null || geo.longitude == null}
+                  disabled={!drawerFilters.distanceEnabled || effectiveGeo.latitude == null || effectiveGeo.longitude == null}
                   onChange={(e) => setDrawerFilters((prev) => ({ ...prev, distanceRadius: Number(e.target.value) }))}
                   aria-label="Distance radius in kilometers"
                 />

@@ -59,6 +59,7 @@ const searchRestaurants = async (req, res) => {
         latitude: parseNumber(req.query.latitude, null),
         longitude: parseNumber(req.query.longitude, null),
         distanceRadius: parseNumber(req.query.distance_radius, null),
+        onlyLebanon: parseBoolean(req.query.only_lebanon, false) === true,
       },
     });
 

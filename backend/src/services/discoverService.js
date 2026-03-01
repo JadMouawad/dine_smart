@@ -1,4 +1,5 @@
 const discoverRepository = require("../repositories/discoverRepository");
+const profileRepository = require("../repositories/profileRepository");
 
 const parsePositiveInt = (value, fallback) => {
   const parsed = parseInt(value, 10);
@@ -14,9 +15,21 @@ const parseNullableNumber = (value) => {
 
 const getDiscoverFeed = async ({ userId, query }) => {
   const limit = Math.min(parsePositiveInt(query.limit, 8), 20);
-  const latitude = parseNullableNumber(query.latitude);
-  const longitude = parseNullableNumber(query.longitude);
+  let latitude = parseNullableNumber(query.latitude);
+  let longitude = parseNullableNumber(query.longitude);
   const distanceRadius = parseNullableNumber(query.distance_radius);
+  if (latitude == null || longitude == null) {
+    try {
+      const profile = await profileRepository.getById(userId);
+      const profileLatitude = parseNullableNumber(profile?.latitude);
+      const profileLongitude = parseNullableNumber(profile?.longitude);
+      latitude = profileLatitude;
+      longitude = profileLongitude;
+    } catch (_) {
+      latitude = null;
+      longitude = null;
+    }
+  }
   const hasCoords = latitude != null && longitude != null;
 
   const [preferredCuisines, nearYou, popularRightNow, upcomingEventsNearby, highlyRated] = await Promise.all([
@@ -36,7 +49,7 @@ const getDiscoverFeed = async ({ userId, query }) => {
     discoverRepository.getUpcomingEventsNearby({
       latitude: hasCoords ? latitude : null,
       longitude: hasCoords ? longitude : null,
-      radiusKm: hasCoords ? distanceRadius : null,
+      radiusKm: null,
       limit,
     }),
     discoverRepository.getHighlyRated({

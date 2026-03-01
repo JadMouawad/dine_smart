@@ -2,34 +2,23 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { getProfile, updateProfile } from "../../services/profileService.js";
 
+const FAVORITES_KEY = "ds_favorites";
+const FILLED_STAR = "\u2605";
+const EMPTY_STAR = "\u2606";
+
+function loadFavorites() {
+  try {
+    return JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
 export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant }) {
   const { user } = useAuth();
-  const FAVORITES_KEY = "ds_favorites";
-  const MY_REVIEWS_KEY = "ds_my_reviews";
-
-  function loadFavorites() {
-    try {
-      return JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]");
-    } catch {
-      return [];
-    }
-  }
-
-  function loadMyReviews() {
-    try {
-      return JSON.parse(localStorage.getItem(MY_REVIEWS_KEY) || "[]");
-    } catch {
-      return [];
-    }
-  }
 
   const [favorites, setFavorites] = useState(() => loadFavorites());
-  const [myReviews, setMyReviews] = useState(() => loadMyReviews());
-
-  useEffect(() => {
-    setFavorites(loadFavorites());
-    setMyReviews(loadMyReviews());
-  }, []);
+  const [myReviews, setMyReviews] = useState([]);
 
   const [profileFile, setProfileFile] = useState(null);
   const [fullName, setFullName] = useState("");
@@ -41,7 +30,6 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const [profileError, setProfileError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState("");
 
-  // Load profile from API when user is available
   useEffect(() => {
     if (!user) return;
     setProfileLoading(true);
@@ -50,10 +38,23 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
         setFullName(profile.fullName ?? profile.full_name ?? user.name ?? user.fullName ?? "");
         setEmail(profile.email ?? user.email ?? "");
         setPhone(profile.phone ?? "");
+        setMyReviews(
+          Array.isArray(profile.myReviews)
+            ? profile.myReviews.map((review) => ({
+              id: review.id,
+              restaurantId: review.restaurantId ?? review.restaurant_id,
+              restaurantName: review.restaurantName ?? review.restaurant_name ?? "Restaurant",
+              stars: Number(review.stars ?? review.rating ?? 0),
+              text: review.text ?? review.comment ?? "",
+              createdAt: review.createdAt ?? review.created_at,
+            }))
+            : []
+        );
       })
       .catch(() => {
         setFullName(user.name ?? user.fullName ?? "");
         setEmail(user.email ?? "");
+        setMyReviews([]);
       })
       .finally(() => setProfileLoading(false));
   }, [user?.id]);
@@ -115,7 +116,6 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       {profileSuccess && <p className="formCard__success" style={{ color: "#0a0", marginBottom: "12px" }}>{profileSuccess}</p>}
 
       <div className="userProfile__stack">
-        {/* Image Card */}
         <div className="imageCard imageCard--userProfile">
           <div className="imageCard__title">Profile picture</div>
 
@@ -140,7 +140,6 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
           </label>
         </div>
 
-        {/* Form Card under it */}
         <form className="formCard formCard--userProfile" onSubmit={onSubmit}>
           <label className="field">
             <span>Full Name</span>
@@ -165,38 +164,37 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
           </label>
 
           <label className="field">
-  <span>Phone number</span>
+            <span>Phone number</span>
 
-  <div className="phoneRow">
-    <select
-      className="select phoneRow__code"
-      value={countryCode}
-      onChange={(e) => setCountryCode(e.target.value)}
-    >
-      <option value="+961">+961</option>
-      <option value="+1">+1</option>
-      <option value="+33">+33</option>
-      <option value="+44">+44</option>
-      <option value="+49">+49</option>
-      <option value="+971">+971</option>
-      <option value="+966">+966</option>
-    </select>
+            <div className="phoneRow">
+              <select
+                className="select phoneRow__code"
+                value={countryCode}
+                onChange={(e) => setCountryCode(e.target.value)}
+              >
+                <option value="+961">+961</option>
+                <option value="+1">+1</option>
+                <option value="+33">+33</option>
+                <option value="+44">+44</option>
+                <option value="+49">+49</option>
+                <option value="+971">+971</option>
+                <option value="+966">+966</option>
+              </select>
 
-    <input
-      className="phoneRow__number"
-      type="tel"
-      inputMode="numeric"
-      pattern="[0-9]*"
-      placeholder="Enter number"
-      value={phone}
-      onChange={(e) => {
-        // keep digits only
-        const digitsOnly = e.target.value.replace(/\D/g, "");
-        setPhone(digitsOnly);
-      }}
-    />
-  </div>
-</label>
+              <input
+                className="phoneRow__number"
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="Enter number"
+                value={phone}
+                onChange={(e) => {
+                  const digitsOnly = e.target.value.replace(/\D/g, "");
+                  setPhone(digitsOnly);
+                }}
+              />
+            </div>
+          </label>
 
           <label className="field">
             <span>New password (leave blank to keep current)</span>
@@ -214,64 +212,59 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
               Save
             </button>
           </div>
-          
         </form>
-        {/* Favorites Card */}
-<div className="formCard formCard--userProfile profileExtraCard">
-  <div className="formCard__title">Favorites</div>
 
-  {favorites.length ? (
-    <div className="profileExtraCard__content">
-      {favorites.map((r) => (
-        <div
-    key={r.id}
-    className="profileFavoriteItem"
-    onClick={() => onOpenRestaurant?.(r)}
-    style={{ cursor: "pointer" }}
-  >
-          <div className="profileFavoriteItem__name">{r.name}</div>
-          <div className="profileFavoriteItem__meta">
-            {r.cuisine} • ⭐ {r.rating}
-          </div>
+        <div className="formCard formCard--userProfile profileExtraCard">
+          <div className="formCard__title">Favorites</div>
+
+          {favorites.length ? (
+            <div className="profileExtraCard__content">
+              {favorites.map((r) => (
+                <div
+                  key={r.id}
+                  className="profileFavoriteItem"
+                  onClick={() => onOpenRestaurant?.(r)}
+                  style={{ cursor: "pointer" }}
+                >
+                  <div className="profileFavoriteItem__name">{r.name}</div>
+                  <div className="profileFavoriteItem__meta">
+                    {r.cuisine} - {FILLED_STAR} {r.rating}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="profileEmpty">No favorites yet.</div>
+          )}
         </div>
-      ))}
-    </div>
-  ) : (
-    <div className="profileEmpty">No favorites yet.</div>
-  )}
-</div>
 
+        <div className="formCard formCard--userProfile profileExtraCard">
+          <div className="formCard__title">My Reviews</div>
 
-{/* My Reviews Card */}
-<div className="formCard formCard--userProfile profileExtraCard">
-  <div className="formCard__title">My Reviews</div>
+          {myReviews.length ? (
+            <div className="profileExtraCard__content">
+              {myReviews.map((rev, index) => (
+                <div key={rev.id ?? index} className="profileReviewItem">
+                  <div className="profileReviewItem__restaurant">
+                    {rev.restaurantName}
+                  </div>
 
-  {myReviews.length ? (
-    <div className="profileExtraCard__content">
-      {myReviews.map((rev, index) => (
-        <div key={index} className="profileReviewItem">
-          <div className="profileReviewItem__restaurant">
-            {rev.restaurantName}
-          </div>
+                  <div className="profileReviewItem__stars">
+                    {FILLED_STAR.repeat(Math.max(0, Number(rev.stars) || 0))}
+                    {EMPTY_STAR.repeat(Math.max(0, 5 - (Number(rev.stars) || 0)))}
+                  </div>
 
-          <div className="profileReviewItem__stars">
-            {"★".repeat(rev.stars)}
-            {"☆".repeat(5 - rev.stars)}
-          </div>
-
-          <div className="profileReviewItem__text">
-            {rev.text}
-          </div>
+                  <div className="profileReviewItem__text">
+                    {rev.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="profileEmpty">No reviews yet.</div>
+          )}
         </div>
-      ))}
-    </div>
-  ) : (
-    <div className="profileEmpty">No reviews yet.</div>
-  )}
-</div>
       </div>
-      
-      {/* ===================== DASHBOARD CARDS ===================== */}
     </div>
   );
 }

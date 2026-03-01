@@ -13,12 +13,28 @@ const CUISINES = [
     "International",
 ];
 
+const PRICE_RANGE_OPTIONS = [
+    { value: "$", label: "Budget" },
+    { value: "$$", label: "Moderate" },
+    { value: "$$$", label: "Premium" },
+    { value: "$$$$", label: "Luxury" },
+];
+
+const DIETARY_OPTIONS = [
+    { value: "Vegetarian", label: "Vegetarian" },
+    { value: "Vegan", label: "Vegan" },
+    { value: "Halal", label: "Halal" },
+    { value: "GF", label: "Gluten-Free" },
+];
+
 export default function OwnerProfile({ onLogoPreviewChange }) {
     const [restaurantName, setRestaurantName] = useState("");
     const [openingTime, setOpeningTime] = useState("");
     const [closingTime, setClosingTime] = useState("");
     const [cuisineType, setCuisineType] = useState("");
     const [location, setLocation] = useState("");
+    const [priceRange, setPriceRange] = useState("");
+    const [dietarySupport, setDietarySupport] = useState([]);
     const [logoFile, setLogoFile] = useState(null);
     const [coverFile, setCoverFile] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -36,6 +52,8 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
                 setLocation(restaurant.address || "");
                 setOpeningTime(restaurant.opening_time || "");
                 setClosingTime(restaurant.closing_time || "");
+                setPriceRange(restaurant.price_range || "");
+                setDietarySupport(Array.isArray(restaurant.dietary_support) ? restaurant.dietary_support : []);
             })
             .catch((err) => {
                 console.error("getMyRestaurant error:", err.message);
@@ -100,6 +118,8 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
                 address: location,
                 opening_time: openingTime,
                 closing_time: closingTime,
+                price_range: priceRange || null,
+                dietary_support: dietarySupport,
             };
             if (existingRestaurant) {
                 const updated = await updateMyRestaurant(payload);
@@ -225,6 +245,51 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
                                 ))}
                             </select>
                         </label>
+
+                        <div className="ownerProfileFilterGroup">
+                            <span>Price category</span>
+                            <div className="ownerFilterChipRow">
+                                {PRICE_RANGE_OPTIONS.map((option) => (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        className={`ownerFilterChip ownerFilterChip--button ${priceRange === option.value ? "is-active" : ""}`}
+                                        onClick={() => setPriceRange((prev) => (prev === option.value ? "" : option.value))}
+                                    >
+                                        {option.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="ownerProfileFilterGroup">
+                            <span>Dietary support</span>
+                            <div className="ownerFilterChipRow">
+                                {DIETARY_OPTIONS.map((option) => {
+                                    const isActive = dietarySupport.includes(option.value);
+                                    return (
+                                        <label
+                                            key={option.value}
+                                            className={`ownerFilterChip ${isActive ? "is-active" : ""}`}
+                                        >
+                                            <input
+                                                className="ownerFilterChip__input"
+                                                type="checkbox"
+                                                checked={isActive}
+                                                onChange={() => {
+                                                    setDietarySupport((prev) => (
+                                                        prev.includes(option.value)
+                                                            ? prev.filter((item) => item !== option.value)
+                                                            : [...prev, option.value]
+                                                    ));
+                                                }}
+                                            />
+                                            <span>{option.label}</span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        </div>
 
                         <label className="field">
                             <span>Location</span>

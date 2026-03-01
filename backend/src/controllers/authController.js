@@ -3,16 +3,36 @@
 const authService = require("../services/authService");
 const { validateRegister, validateLogin } = require("../validation/authValidation");
 
+const parseCoordinate = (value) => {
+  if (value == null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 // POST /auth/register
 const register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, latitude, longitude } = req.body;
     const validationError = validateRegister(name, email, password);
     if (validationError) {
       return res.status(400).json({ message: validationError });
     }
+
+    const parsedLatitude = parseCoordinate(latitude);
+    const parsedLongitude = parseCoordinate(longitude);
+    const hasLocation = parsedLatitude != null && parsedLongitude != null;
+    if (!hasLocation) {
+      return res.status(400).json({ message: "Location (latitude and longitude) is required for signup." });
+    }
+    if (parsedLatitude < -90 || parsedLatitude > 90 || parsedLongitude < -180 || parsedLongitude > 180) {
+      return res.status(400).json({ message: "Invalid location coordinates." });
+    }
+
     const roleId = role === "owner" ? 2 : 1;
-    await authService.registerUser(name, email, password, roleId);
+    await authService.registerUser(name, email, password, roleId, {
+      latitude: parsedLatitude,
+      longitude: parsedLongitude,
+    });
 
     res.status(201).json({
       message: "Verification email sent. Please verify your email."

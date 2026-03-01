@@ -1,10 +1,10 @@
 import { apiRequest } from "./apiClient";
 
 // API endpoints
-export function registerUser({ name, email, password, role }) {
+export function registerUser({ name, email, password, role, latitude, longitude }) {
   return apiRequest("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ name, email, password, role }),
+    body: JSON.stringify({ name, email, password, role, latitude, longitude }),
   });
 }
 
