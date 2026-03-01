@@ -29,8 +29,8 @@ const deleteRestaurant = async (id) => {
   return await restaurantRepository.deleteRestaurant(id);
 };
 
-const searchRestaurants = async (query, cuisines) => {
-  return await restaurantRepository.searchRestaurants(query || "", cuisines);
+const searchRestaurants = async (query, cuisines, filters = {}) => {
+  return await restaurantRepository.searchRestaurants(query || "", cuisines, filters);
 };
 
 const getTableConfigByRestaurantId = async (restaurantId) => {

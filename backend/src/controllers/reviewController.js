@@ -105,9 +105,47 @@ const deleteReview = async (req, res) => {
   }
 };
 
+// POST /reviews/:id/flag - Flag review (user role)
+const flagReview = async (req, res) => {
+  try {
+    const result = await reviewService.flagReview({
+      reviewId: req.params.id,
+      userId: req.user.id,
+      reason: req.body.reason,
+    });
+
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+    return res.status(result.status).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// POST /owner/reviews/:id/respond - Owner response on review
+const respondToReviewAsOwner = async (req, res) => {
+  try {
+    const result = await reviewService.respondToReviewAsOwner({
+      reviewId: req.params.id,
+      ownerId: req.user.id,
+      ownerResponse: req.body.owner_response,
+    });
+
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+    return res.status(result.status).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getReviews,
   createReview,
   updateReview,
   deleteReview,
+  flagReview,
+  respondToReviewAsOwner,
 };

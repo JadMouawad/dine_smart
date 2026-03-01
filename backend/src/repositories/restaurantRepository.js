@@ -9,6 +9,12 @@ const createRestaurant = async (data) => {
     address,
     phone,
     rating,
+    latitude,
+    longitude,
+    priceRange,
+    price_range: priceRangeRaw,
+    dietarySupport,
+    dietary_support: dietarySupportRaw,
     openingTime,
     closingTime,
     opening_time: openingTimeRaw,
@@ -17,12 +23,32 @@ const createRestaurant = async (data) => {
   } = data;
   const openingValue = openingTime || openingTimeRaw || null;
   const closingValue = closingTime || closingTimeRaw || null;
+  const priceRangeValue = priceRange || priceRangeRaw || null;
+  const dietarySupportValue = Array.isArray(dietarySupport)
+    ? dietarySupport
+    : Array.isArray(dietarySupportRaw)
+      ? dietarySupportRaw
+      : [];
+
   const result = await pool.query(
     `INSERT INTO restaurants (
-      name, description, cuisine, address, opening_time, closing_time, owner_id, is_verified, approval_status
+      name, description, cuisine, address, opening_time, closing_time, latitude, longitude,
+      price_range, dietary_support, owner_id, is_verified, approval_status
     )
-     VALUES ($1, $2, $3, $4, $5, $6, $7, false, 'pending') RETURNING *`,
-    [name, description, cuisine, address, openingValue, closingValue, ownerId]
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::text[], $11, false, 'pending') RETURNING *`,
+    [
+      name,
+      description,
+      cuisine,
+      address,
+      openingValue,
+      closingValue,
+      latitude != null ? Number(latitude) : null,
+      longitude != null ? Number(longitude) : null,
+      priceRangeValue,
+      dietarySupportValue,
+      ownerId,
+    ]
   );
   const restaurant = result.rows[0];
 
@@ -106,42 +132,167 @@ const deleteRestaurant = async (id) => {
   return result.rows[0];
 };
 
-const searchRestaurants = async (query, cuisines = []) => {
+const searchRestaurants = async (query, cuisines = [], filters = {}) => {
   const trimmed = (query || "").trim();
-  const cuisineList = Array.isArray(cuisines) ? cuisines : [cuisines].filter(Boolean);
+  const cuisineList = Array.isArray(cuisines) ? cuisines.filter(Boolean) : [cuisines].filter(Boolean);
 
-  if (!trimmed && cuisineList.length === 0) {
-    const result = await pool.query(`
-      SELECT *
-      FROM restaurants
-      WHERE is_verified = true
-        AND approval_status = 'approved'
-      ORDER BY name
-    `);
-    return result.rows;
-  }
+  const minRating = Number.isFinite(Number(filters.minRating)) ? Number(filters.minRating) : null;
+  const priceRanges = Array.isArray(filters.priceRanges) ? filters.priceRanges.filter(Boolean) : [];
+  const verifiedOnly = filters.verifiedOnly !== false;
+  const dietarySupport = Array.isArray(filters.dietarySupport) ? filters.dietarySupport.filter(Boolean) : [];
+  const openNow = filters.openNow === true;
+  const availabilityDate = filters.availabilityDate ? String(filters.availabilityDate).trim() : null;
+  const availabilityTime = filters.availabilityTime ? String(filters.availabilityTime).trim() : null;
+  const latitude = Number.isFinite(Number(filters.latitude)) ? Number(filters.latitude) : null;
+  const longitude = Number.isFinite(Number(filters.longitude)) ? Number(filters.longitude) : null;
+  const distanceRadius = Number.isFinite(Number(filters.distanceRadius)) ? Number(filters.distanceRadius) : null;
 
-  const conditions = [
-    "is_verified = true",
-    "approval_status = 'approved'",
-  ];
   const values = [];
   let idx = 1;
+  const conditions = [];
+  const joins = [];
+  const selectExtras = [];
+
+  if (verifiedOnly) {
+    conditions.push("r.is_verified = true");
+    conditions.push("r.approval_status = 'approved'");
+  }
+
+  joins.push(`
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*)::int AS active_event_count
+      FROM events e
+      WHERE e.restaurant_id = r.id
+        AND e.is_active = true
+        AND e.end_date >= CURRENT_DATE
+    ) ev ON true
+  `);
+  selectExtras.push("COALESCE(ev.active_event_count, 0) AS active_event_count");
+
+  const hasCoords = latitude != null && longitude != null;
+  let distanceExpression = "NULL::numeric";
+  if (hasCoords) {
+    const latParam = `$${idx}`;
+    const lngParam = `$${idx + 1}`;
+    values.push(latitude, longitude);
+    idx += 2;
+
+    distanceExpression = `
+      (
+        6371 * ACOS(
+          LEAST(
+            1,
+            GREATEST(
+              -1,
+              COS(RADIANS(${latParam})) * COS(RADIANS(r.latitude)) * COS(RADIANS(r.longitude) - RADIANS(${lngParam}))
+              + SIN(RADIANS(${latParam})) * SIN(RADIANS(r.latitude))
+            )
+          )
+        )
+      )::numeric(10,2)
+    `;
+
+    if (distanceRadius != null && distanceRadius > 0) {
+      conditions.push(`${distanceExpression} <= $${idx}`);
+      values.push(distanceRadius);
+      idx += 1;
+    }
+  }
+  selectExtras.push(`${distanceExpression} AS distance_km`);
 
   if (trimmed) {
     const searchPattern = `%${trimmed}%`;
-    conditions.push(`(name ILIKE $${idx} OR cuisine ILIKE $${idx} OR description ILIKE $${idx})`);
+    conditions.push(`(r.name ILIKE $${idx} OR r.cuisine ILIKE $${idx} OR r.description ILIKE $${idx})`);
     values.push(searchPattern);
-    idx++;
+    idx += 1;
   }
 
   if (cuisineList.length > 0) {
-    conditions.push(`cuisine = ANY($${idx}::text[])`);
+    conditions.push(`r.cuisine = ANY($${idx}::text[])`);
     values.push(cuisineList);
-    idx++;
+    idx += 1;
   }
 
-  const sql = `SELECT * FROM restaurants WHERE ${conditions.join(" AND ")} ORDER BY name`;
+  if (minRating != null) {
+    conditions.push(`COALESCE(r.rating, 0) >= $${idx}`);
+    values.push(minRating);
+    idx += 1;
+  }
+
+  if (priceRanges.length > 0) {
+    conditions.push(`r.price_range = ANY($${idx}::text[])`);
+    values.push(priceRanges);
+    idx += 1;
+  }
+
+  if (dietarySupport.length > 0) {
+    conditions.push(`COALESCE(r.dietary_support, ARRAY[]::text[]) && $${idx}::text[]`);
+    values.push(dietarySupport);
+    idx += 1;
+  }
+
+  if (openNow) {
+    conditions.push(`
+      (
+        NULLIF(r.opening_time, '') IS NULL
+        OR NULLIF(r.closing_time, '') IS NULL
+        OR (
+          CASE
+            WHEN NULLIF(r.opening_time, '')::time <= NULLIF(r.closing_time, '')::time
+              THEN CURRENT_TIME BETWEEN NULLIF(r.opening_time, '')::time AND NULLIF(r.closing_time, '')::time
+            ELSE CURRENT_TIME >= NULLIF(r.opening_time, '')::time OR CURRENT_TIME <= NULLIF(r.closing_time, '')::time
+          END
+        )
+      )
+    `);
+  }
+
+  if (availabilityDate && availabilityTime) {
+    joins.push("LEFT JOIN restaurant_table_configs rtc ON rtc.restaurant_id = r.id");
+    joins.push(`
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(rs.party_size), 0)::int AS booked_seats
+        FROM reservations rs
+        WHERE rs.restaurant_id = r.id
+          AND rs.reservation_date = $${idx}
+          AND rs.reservation_time = $${idx + 1}::time
+          AND rs.status = 'confirmed'
+      ) slot ON true
+    `);
+    values.push(availabilityDate, availabilityTime);
+    idx += 2;
+
+    const capacityExpression = `
+      COALESCE(
+        NULLIF(
+          (COALESCE(rtc.table_2_person, 0) * 2)
+          + (COALESCE(rtc.table_4_person, 0) * 4)
+          + (COALESCE(rtc.table_6_person, 0) * 6),
+          0
+        ),
+        rtc.total_capacity,
+        0
+      )
+    `;
+    const availableExpression = `(${capacityExpression} - COALESCE(slot.booked_seats, 0))`;
+
+    selectExtras.push(`${availableExpression}::int AS available_seats`);
+    conditions.push(`${availableExpression} > 0`);
+  }
+
+  const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const orderBy = hasCoords
+    ? "ORDER BY distance_km ASC NULLS LAST, r.rating DESC, r.name ASC"
+    : "ORDER BY r.rating DESC, r.name ASC";
+
+  const sql = `
+    SELECT r.*, ${selectExtras.join(", ")}
+    FROM restaurants r
+    ${joins.join("\n")}
+    ${whereClause}
+    ${orderBy}
+  `;
+
   const result = await pool.query(sql, values);
   return result.rows;
 };

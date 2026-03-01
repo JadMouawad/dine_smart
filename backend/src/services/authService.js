@@ -74,6 +74,9 @@ const loginUser = async (email, password) => {
   if (user.provider === "local" && user.is_verified === false) {
     throw new Error("Please verify your email before logging in.");
   }
+  if (user.is_suspended === true) {
+    throw new Error("Your account has been suspended. Please contact support.");
+  }
 
   const token = jwt.sign(
     { id: user.id, email: user.email, role: user.role },
@@ -126,6 +129,10 @@ const googleAuthUser = async (idToken) => {
     } else {
       user = await User.createOAuthUser(pool, { fullName, email, googleId });
     }
+  }
+
+  if (user.is_suspended === true) {
+    throw new Error("Your account has been suspended. Please contact support.");
   }
 
   const token = jwt.sign(

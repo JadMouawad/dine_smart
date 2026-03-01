@@ -38,7 +38,11 @@ const login = async (req, res) => {
       token: result.token
     });
   } catch (err) {
-    const status = err.message === "Please verify your email before logging in." ? 403 : 401;
+    const status =
+      err.message === "Please verify your email before logging in." ||
+      err.message === "Your account has been suspended. Please contact support."
+        ? 403
+        : 401;
     res.status(status).json({ message: err.message });
   }
 };
@@ -83,7 +87,8 @@ const googleSignIn = async (req, res) => {
       token: result.token
     });
   } catch (err) {
-    res.status(401).json({ message: err.message });
+    const status = err.message === "Your account has been suspended. Please contact support." ? 403 : 401;
+    res.status(status).json({ message: err.message });
   }
 };
 

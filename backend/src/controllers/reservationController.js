@@ -19,6 +19,9 @@ const createReservation = async (req, res) => {
       return res.status(result.status).json({
         message: result.error,
         ...(result.availableSeats != null ? { available_seats: result.availableSeats } : {}),
+        ...(Array.isArray(result.suggestedTimes) && result.suggestedTimes.length > 0
+          ? { suggested_times: result.suggestedTimes }
+          : {}),
       });
     }
 
@@ -76,6 +79,7 @@ const getAvailability = async (req, res) => {
       restaurantId: req.query.restaurant_id,
       reservationDate: req.query.date,
       reservationTime: req.query.time,
+      partySize: req.query.party_size,
     });
 
     if (!result.success) {
@@ -94,4 +98,3 @@ module.exports = {
   cancelReservation,
   getAvailability,
 };
-

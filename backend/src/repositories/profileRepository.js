@@ -37,7 +37,21 @@ const updateById = async (userId, data) => {
   return await User.findById(pool, userId);
 };
 
+const getReservationCountByUserId = async (userId) => {
+  const result = await pool.query(
+    `
+      SELECT COUNT(*)::int AS reservation_count
+      FROM reservations
+      WHERE user_id = $1
+        AND status IN ('confirmed', 'completed', 'no-show')
+    `,
+    [userId]
+  );
+  return result.rows[0]?.reservation_count || 0;
+};
+
 module.exports = {
   getById,
-  updateById
+  updateById,
+  getReservationCountByUserId,
 };

@@ -90,10 +90,85 @@ const getAverageRating = async (restaurantId) => {
   return result.rows[0];
 };
 
+const flagReview = async ({ reviewId, userId, reason }) => {
+  const parsedReviewId = parseInt(reviewId, 10);
+  if (Number.isNaN(parsedReviewId)) {
+    return { success: false, status: 400, error: "Invalid review ID" };
+  }
+
+  const cleanReason = String(reason || "").trim();
+  if (!cleanReason) {
+    return { success: false, status: 400, error: "reason is required" };
+  }
+  if (cleanReason.length > 500) {
+    return { success: false, status: 400, error: "reason must be at most 500 characters" };
+  }
+
+  const reviewResult = await ReviewModel.getReviewById(db, parsedReviewId);
+  const review = reviewResult.rows[0];
+  if (!review) {
+    return { success: false, status: 404, error: "Review not found" };
+  }
+  if (review.user_id === parseInt(userId, 10)) {
+    return { success: false, status: 409, error: "You cannot flag your own review" };
+  }
+
+  const existingFlag = await ReviewModel.hasUserFlaggedReview(db, parsedReviewId, userId);
+  if (existingFlag.rows.length > 0) {
+    return { success: false, status: 409, error: "You have already flagged this review" };
+  }
+
+  try {
+    const created = await ReviewModel.createFlaggedReview(db, {
+      reviewId: parsedReviewId,
+      userId,
+      reason: cleanReason,
+    });
+    return { success: true, status: 201, data: created.rows[0] };
+  } catch (error) {
+    if (error.code === "23505") {
+      return { success: false, status: 409, error: "You have already flagged this review" };
+    }
+    throw error;
+  }
+};
+
+const respondToReviewAsOwner = async ({ reviewId, ownerId, ownerResponse }) => {
+  const parsedReviewId = parseInt(reviewId, 10);
+  if (Number.isNaN(parsedReviewId)) {
+    return { success: false, status: 400, error: "Invalid review ID" };
+  }
+
+  const responseText = String(ownerResponse || "").trim();
+  if (!responseText) {
+    return { success: false, status: 400, error: "owner_response is required" };
+  }
+  if (responseText.length > 1000) {
+    return { success: false, status: 400, error: "owner_response must be at most 1000 characters" };
+  }
+
+  const reviewWithOwner = await ReviewModel.getReviewWithRestaurantOwner(db, parsedReviewId);
+  const review = reviewWithOwner.rows[0];
+  if (!review) {
+    return { success: false, status: 404, error: "Review not found" };
+  }
+  if (parseInt(review.owner_id, 10) !== parseInt(ownerId, 10)) {
+    return { success: false, status: 403, error: "You can only respond to reviews for your own restaurant" };
+  }
+
+  const updated = await ReviewModel.updateOwnerResponse(db, {
+    reviewId: parsedReviewId,
+    ownerResponse: responseText,
+  });
+  return { success: true, status: 200, data: updated.rows[0] };
+};
+
 module.exports = {
   createReview,
   getReviewsByRestaurant,
   updateReview,
   deleteReview,
   getAverageRating,
+  flagReview,
+  respondToReviewAsOwner,
 };

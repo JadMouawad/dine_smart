@@ -64,6 +64,14 @@ const buildCapacityFromConfig = (tableConfig) => {
   return tableConfig.total_capacity || 0;
 };
 
+const toTimeValue = (minutes) => {
+  const dayMinutes = 24 * 60;
+  const normalized = ((minutes % dayMinutes) + dayMinutes) % dayMinutes;
+  const hours = Math.floor(normalized / 60);
+  const mins = normalized % 60;
+  return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:00`;
+};
+
 const createConfirmationId = () => {
   const chunk = crypto.randomBytes(4).toString("hex").toUpperCase();
   return `DS-${chunk}`;
@@ -84,6 +92,50 @@ const formatTimeForEmail = (value) => {
   const normalizedHours = ((hours + 11) % 12) + 1;
   const suffix = hours >= 12 ? "PM" : "AM";
   return `${normalizedHours}:${String(minutes).padStart(2, "0")} ${suffix}`;
+};
+
+const SUGGESTION_OFFSETS = [15, 30, 45, 60, 75, 90, -15, -30, -45, -60];
+
+const getSuggestedTimes = async ({
+  restaurantId,
+  reservationDate,
+  reservationTime,
+  partySize,
+  restaurant,
+  totalCapacity,
+}) => {
+  const baseMinutes = parseTimeToMinutes(reservationTime);
+  if (baseMinutes == null || !restaurant) return [];
+
+  const suggestions = [];
+  const seen = new Set();
+
+  for (const offset of SUGGESTION_OFFSETS) {
+    const candidateTime = toTimeValue(baseMinutes + offset);
+    if (!isWithinOperatingHours(candidateTime, restaurant.opening_time, restaurant.closing_time)) {
+      continue;
+    }
+
+    if (seen.has(candidateTime)) continue;
+    seen.add(candidateTime);
+
+    const bookedResult = await ReservationModel.getBookedSeatsForSlot(
+      db,
+      restaurantId,
+      reservationDate,
+      candidateTime
+    );
+    const bookedSeats = parseInt(bookedResult.rows[0]?.booked_seats, 10) || 0;
+    const availableSeats = Math.max(totalCapacity - bookedSeats, 0);
+
+    if (availableSeats >= partySize) {
+      suggestions.push(candidateTime.slice(0, 5));
+    }
+
+    if (suggestions.length >= 3) break;
+  }
+
+  return suggestions;
 };
 
 const getSlotAvailability = async ({ restaurantId, reservationDate, reservationTime }) => {
@@ -184,11 +236,21 @@ const createReservation = async ({
   }
 
   if (availability.availableSeats < parsedPartySize) {
+    const suggestedTimes = await getSuggestedTimes({
+      restaurantId: parsedRestaurantId,
+      reservationDate: normalizedDate,
+      reservationTime: normalizedTime,
+      partySize: parsedPartySize,
+      restaurant: availability.restaurant,
+      totalCapacity: availability.totalCapacity,
+    });
+
     return {
       success: false,
       status: 409,
       error: `Only ${availability.availableSeats} seats available`,
       availableSeats: availability.availableSeats,
+      suggestedTimes,
     };
   }
 
@@ -293,10 +355,11 @@ const cancelReservation = async ({ reservationId, requestingUserId, requestingUs
   return { success: true, status: 200, reservation: cancelled };
 };
 
-const getAvailability = async ({ restaurantId, reservationDate, reservationTime }) => {
+const getAvailability = async ({ restaurantId, reservationDate, reservationTime, partySize = null }) => {
   const parsedRestaurantId = parseInt(restaurantId, 10);
   const normalizedDate = String(reservationDate || "").trim();
   const normalizedTime = normalizeTime(reservationTime);
+  const parsedPartySize = partySize != null ? parseInt(partySize, 10) : 2;
 
   if (Number.isNaN(parsedRestaurantId)) {
     return { success: false, status: 400, error: "Invalid restaurant ID" };
@@ -306,6 +369,9 @@ const getAvailability = async ({ restaurantId, reservationDate, reservationTime 
   }
   if (!normalizedTime) {
     return { success: false, status: 400, error: "Invalid reservation time" };
+  }
+  if (Number.isNaN(parsedPartySize) || parsedPartySize < 1) {
+    return { success: false, status: 400, error: "Invalid party size" };
   }
 
   const availability = await getSlotAvailability({
@@ -318,6 +384,19 @@ const getAvailability = async ({ restaurantId, reservationDate, reservationTime 
     return availability;
   }
 
+  const lowCapacityThreshold = Math.max(2, Math.floor(availability.totalCapacity * 0.2));
+  const shouldSuggest = availability.availableSeats <= lowCapacityThreshold;
+  const suggestedTimes = shouldSuggest
+    ? await getSuggestedTimes({
+      restaurantId: parsedRestaurantId,
+      reservationDate: normalizedDate,
+      reservationTime: normalizedTime,
+      partySize: parsedPartySize,
+      restaurant: availability.restaurant,
+      totalCapacity: availability.totalCapacity,
+    })
+    : [];
+
   return {
     success: true,
     status: 200,
@@ -328,6 +407,7 @@ const getAvailability = async ({ restaurantId, reservationDate, reservationTime 
       total_capacity: availability.totalCapacity,
       booked_seats: availability.bookedSeats,
       available_seats: availability.availableSeats,
+      suggested_times: suggestedTimes,
     },
   };
 };
@@ -338,4 +418,3 @@ module.exports = {
   cancelReservation,
   getAvailability,
 };
-

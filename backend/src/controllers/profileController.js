@@ -16,6 +16,8 @@ const getProfile = async (req, res) => {
       provider: profile.provider,
       phone: profile.phone || null,
       profilePictureUrl: profile.profile_picture_url || null,
+      reservationCount: profile.reservation_count ?? 0,
+      loyaltyBadge: profile.loyalty_badge || "Newcomer",
       createdAt: profile.created_at,
       updatedAt: profile.updated_at
     });

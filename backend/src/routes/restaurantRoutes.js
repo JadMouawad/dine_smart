@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const restaurantController = require('../controllers/restaurantController');
+const eventController = require("../controllers/eventController");
 const { authorizeRoles } = require('../middleware/roleMiddleware');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const reviewRoutes = require("./reviewRoutes");
@@ -15,6 +16,7 @@ router.put('/:id', authenticateToken, authorizeRoles('owner'), restaurantControl
 router.delete('/:id', authenticateToken, authorizeRoles('owner'), restaurantController.deleteRestaurant);
 
 // Public routes
+router.get("/:id/events", eventController.getRestaurantPublicEvents);
 router.get('/:id', restaurantController.getRestaurant);
 router.get('/', restaurantController.getAllRestaurants);
 
