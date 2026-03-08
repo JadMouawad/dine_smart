@@ -8,9 +8,11 @@ import RestaurantTableConfig from "./RestaurantTableConfig.jsx";
 import OwnerEvents from "./OwnerEvents.jsx";
 import OwnerReviews from "./OwnerReviews.jsx";
 import OwnerReservations from "./OwnerReservations.jsx";
+import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 
 export default function OwnerShell() {
   const [active, setActive] = useState("profile");
+  const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
   const navigate = useNavigate();
   const { user, logout, loading } = useAuth();
   const [restaurantLogoUrl, setRestaurantLogoUrl] = useState("");
@@ -26,6 +28,7 @@ export default function OwnerShell() {
   if (!user || user.role !== "owner") return null;
 
   function handleLogout() {
+    setConfirmLogoutOpen(false);
     logout();
     navigate("/");
   }
@@ -36,7 +39,7 @@ export default function OwnerShell() {
         active={active}
         onChange={setActive}
         avatarSrc={restaurantLogoUrl}
-        onLogout={handleLogout}
+        onLogout={() => setConfirmLogoutOpen(true)}
       />
 
       <main className="ownerArea__main">
@@ -63,6 +66,16 @@ export default function OwnerShell() {
           </div>
         )}
       </main>
+
+      <ConfirmDialog
+        open={confirmLogoutOpen}
+        title="Sign out?"
+        message="Are you sure you want to sign out?"
+        confirmLabel="Sign Out"
+        cancelLabel="Cancel"
+        onConfirm={handleLogout}
+        onCancel={() => setConfirmLogoutOpen(false)}
+      />
     </div>
   );
 }

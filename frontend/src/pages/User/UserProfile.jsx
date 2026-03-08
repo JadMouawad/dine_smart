@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { getProfile, updateProfile } from "../../services/profileService.js";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 
 const FAVORITES_KEY = "ds_favorites";
 const FILLED_STAR = "\u2605";
@@ -41,6 +42,9 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState("+961");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
   const [reservationCount, setReservationCount] = useState(0);
   const [loyaltyBadge, setLoyaltyBadge] = useState("Newcomer");
   const [profileLoading, setProfileLoading] = useState(true);
@@ -112,6 +116,18 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
     e.preventDefault();
     setProfileError("");
     setProfileSuccess("");
+
+    if (newPassword.trim()) {
+      if (!confirmNewPassword.trim()) {
+        setProfileError("Please confirm your new password.");
+        return;
+      }
+      if (newPassword !== confirmNewPassword) {
+        setProfileError("New password and confirm password do not match.");
+        return;
+      }
+    }
+
     const payload = {
       fullName: fullName.trim(),
       email: email.trim(),
@@ -126,6 +142,9 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       setProfilePictureDataUrl("");
       setProfileSuccess("Profile saved successfully.");
       setNewPassword("");
+      setConfirmNewPassword("");
+      setShowNewPassword(false);
+      setShowConfirmNewPassword(false);
     } catch (err) {
       setProfileError(err.message || "Failed to save profile.");
     }
@@ -212,13 +231,44 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
 
           <label className="field">
             <span>New password (leave blank to keep current)</span>
-            <input
-              type="password"
-              placeholder="Enter new password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              autoComplete="new-password"
-            />
+            <div className="passwordFieldWrap">
+              <input
+                type={showNewPassword ? "text" : "password"}
+                placeholder="Enter new password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                className="passwordToggleBtn"
+                onClick={() => setShowNewPassword((prev) => !prev)}
+                aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+              >
+                {showNewPassword ? <FiEyeOff /> : <FiEye />}
+              </button>
+            </div>
+          </label>
+
+          <label className="field">
+            <span>Confirm new password</span>
+            <div className="passwordFieldWrap">
+              <input
+                type={showConfirmNewPassword ? "text" : "password"}
+                placeholder="Confirm new password"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                className="passwordToggleBtn"
+                onClick={() => setShowConfirmNewPassword((prev) => !prev)}
+                aria-label={showConfirmNewPassword ? "Hide confirm password" : "Show confirm password"}
+              >
+                {showConfirmNewPassword ? <FiEyeOff /> : <FiEye />}
+              </button>
+            </div>
           </label>
 
           <div className="formCard__actions">

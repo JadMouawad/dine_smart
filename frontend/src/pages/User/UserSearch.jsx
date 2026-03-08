@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import { FiArrowLeft, FiClock, FiMapPin, FiStar } from "react-icons/fi";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { getReviewsByRestaurantId, createReview } from "../../services/reviewService";
 import { searchRestaurants, getRestaurantById } from "../../services/restaurantService";
@@ -122,6 +123,16 @@ function parseDietarySupport(value) {
     .filter(Boolean);
 }
 
+function formatTimeLabel(timeValue) {
+  const [rawHour = "0", rawMinute = "00"] = String(timeValue || "").split(":");
+  const hour = Number(rawHour);
+  const minute = Number(rawMinute);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return String(timeValue || "");
+  const hour12 = ((hour + 11) % 12) + 1;
+  const suffix = hour >= 12 ? "PM" : "AM";
+  return `${hour12}:${String(minute).padStart(2, "0")} ${suffix}`;
+}
+
 export default function UserSearch({
   isGuest = false,
   onRequireSignup,
@@ -165,6 +176,8 @@ export default function UserSearch({
   const drawerRef = useRef(null);
   const scrollRestoreRef = useRef(null);
   const reservationInlineRef = useRef(null);
+  const menuSectionRef = useRef(null);
+  const reviewsSectionRef = useRef(null);
 
   function requireAuth() {
     if (isGuest || !user?.id) {
@@ -384,6 +397,7 @@ export default function UserSearch({
     if (restaurantToOpen.name != null) {
       setSelectedRestaurant(restaurantToOpen);
       setDetailsTab("menu");
+      setReservationInlineOpen(false);
       clearRestaurantToOpen?.();
       return;
     }
@@ -392,21 +406,22 @@ export default function UserSearch({
       .then((r) => {
         setSelectedRestaurant(r);
         setDetailsTab("menu");
+        setReservationInlineOpen(false);
       })
       .catch(() => setRestaurantNotFound(true))
       .finally(() => clearRestaurantToOpen?.());
   }, [restaurantToOpen, clearRestaurantToOpen]);
 
-  // Fetch real reviews from backend when reviews tab is opened
+  // Fetch reviews when restaurant details are opened
   useEffect(() => {
-    if (!selectedRestaurant || detailsTab !== "reviews") return;
+    if (!selectedRestaurant) return;
     setReviewsLoading(true);
     setReviews([]);
     getReviewsByRestaurantId(selectedRestaurant.id)
       .then((data) => setReviews(Array.isArray(data) ? data : []))
       .catch(() => setReviews([]))
       .finally(() => setReviewsLoading(false));
-  }, [selectedRestaurant, detailsTab]);
+  }, [selectedRestaurant]);
 
   useEffect(() => {
     if (!reservationToast) return undefined;
@@ -542,9 +557,8 @@ export default function UserSearch({
   // Active section tracking
   useEffect(() => {
     if (!selectedRestaurant) return;
-    if (detailsTab !== "menu") return;
 
-    const sections = selectedRestaurant.menu || [];
+    const sections = selectedRestaurant.menu_sections ?? selectedRestaurant.menu ?? [];
     if (!sections.length) return;
 
     setActiveSectionId((prev) => prev || sections[0].sectionId);
@@ -569,7 +583,7 @@ export default function UserSearch({
     });
 
     return () => observer.disconnect();
-  }, [selectedRestaurant, detailsTab]);
+  }, [selectedRestaurant]);
 
   function scrollToSection(sectionId) {
     const el = sectionRefs.current[sectionId];
@@ -595,15 +609,21 @@ export default function UserSearch({
 
     const availableSeats = Number(reservationAvailability.available_seats || 0);
     const totalCapacity = Number(reservationAvailability.total_capacity || 0);
+    const slotTime = String(
+      reservationSlot?.time
+      || reservationAvailability.reservation_time
+      || getCurrentSlotParams().time
+    ).slice(0, 5);
+    const slotLabel = formatTimeLabel(slotTime);
     if (totalCapacity <= 0) {
-      return { label: "Availability unavailable", tone: "warn" };
+      return { label: `Availability unavailable for ${slotLabel}`, tone: "warn" };
     }
 
     const ratio = availableSeats / totalCapacity;
-    if (ratio >= 0.6) return { label: `Seats: ${availableSeats} available`, tone: "good" };
-    if (ratio >= 0.25) return { label: `Seats: ${availableSeats} available`, tone: "warn" };
-    return { label: `Seats: ${availableSeats} available`, tone: "danger" };
-  }, [reservationAvailability]);
+    if (ratio >= 0.6) return { label: `${availableSeats} seats available at ${slotLabel}`, tone: "good" };
+    if (ratio >= 0.25) return { label: `${availableSeats} seats available at ${slotLabel}`, tone: "warn" };
+    return { label: `${availableSeats} seats available at ${slotLabel}`, tone: "danger" };
+  }, [reservationAvailability, reservationSlot?.time]);
 
   const restaurantHoursLabel = useMemo(() => {
     if (!selectedRestaurant) return "Hours unavailable";
@@ -688,21 +708,30 @@ export default function UserSearch({
   if (selectedRestaurant) {
     return (
       <div className="userSearchPage">
-        {reservationToast && <div className="inlineToast">{reservationToast}</div>}
+        {reservationToast && (
+          <div className="inlineToast">
+            {reservationToast}
+          </div>
+        )}
 
-        <section className="restaurantProfileHero">
+        <header className="restaurantPageHeader">
           <button
-            className="btn btn--ghost backArrowBtn backArrowBtn--topLeft"
+            className="btn btn--ghost restaurantPageHeader__backBtn"
             type="button"
             onClick={() => {
               setSelectedRestaurant(null);
               setRestaurantNotFound(false);
               setReservationInlineOpen(false);
             }}
-            aria-label="Go back"
+            aria-label="Back to Search"
           >
-            ←
+            <FiArrowLeft />
+            <span>Back to Search</span>
           </button>
+          <h2 className="restaurantPageHeader__title">Restaurant Page</h2>
+        </header>
+
+        <section className="restaurantProfileHero restaurantProfileHero--splitLayout">
           <div className="restaurantProfileHero__titleRow">
             <div className="restaurantProfileHero__logo">
               {(selectedRestaurant.logoUrl || selectedRestaurant.logo_url || selectedRestaurant.coverUrl || selectedRestaurant.cover_url) ? (
@@ -722,17 +751,17 @@ export default function UserSearch({
 
           <div className="restaurantHeroInfoCard">
             <div className="restaurantHeroInfoItem">
-              <span className="restaurantHeroInfoIcon">🍽️</span>
+              <span className="restaurantHeroInfoIcon">🍽</span>
               <span>{selectedRestaurant.cuisine || "Cuisine"}</span>
             </div>
             <div className="restaurantHeroInfoItem">
-              <span className="restaurantHeroInfoIcon">⭐</span>
+              <FiStar className="restaurantHeroInfoIcon" />
               <span>
                 {selectedRestaurant.rating ?? "N/A"} ({FILLED_STAR.repeat(ratingValue)}{EMPTY_STAR.repeat(Math.max(0, 5 - ratingValue))})
               </span>
             </div>
             <div className="restaurantHeroInfoItem">
-              <span className="restaurantHeroInfoIcon">📍</span>
+              <FiMapPin className="restaurantHeroInfoIcon" />
               <span>{selectedRestaurant.distance_km != null ? `${selectedRestaurant.distance_km} km` : "Distance unavailable"}</span>
             </div>
             <div className="restaurantHeroInfoItem">
@@ -740,7 +769,7 @@ export default function UserSearch({
               <span>{availabilityBadge ? availabilityBadge.label : "Seats unavailable"}</span>
             </div>
             <div className="restaurantHeroInfoItem">
-              <span className="restaurantHeroInfoIcon">🕒</span>
+              <FiClock className="restaurantHeroInfoIcon" />
               <span>{restaurantHoursLabel}</span>
             </div>
           </div>
@@ -765,6 +794,7 @@ export default function UserSearch({
               onClick={() => {
                 setDetailsTab("menu");
                 setReservationInlineOpen(false);
+                menuSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
             >
               Menu
@@ -775,6 +805,7 @@ export default function UserSearch({
               onClick={() => {
                 setDetailsTab("reviews");
                 setReservationInlineOpen(false);
+                reviewsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
             >
               Reviews
@@ -814,7 +845,7 @@ export default function UserSearch({
               isOpen={true}
               inline
               restaurant={selectedRestaurant}
-              onClose={() => setReservationInlineOpen(false)}
+              onClose={() => {}}
               onReserved={(reservation) => {
                 setReservationToast("Reservation confirmed! Check your email.");
                 const date = reservation?.reservation_date || reservationSlot?.date || getCurrentSlotParams().date;
@@ -844,7 +875,7 @@ export default function UserSearch({
         )}
 
         {detailsTab === "menu" ? (
-          <div className="userMenuView">
+          <div className="userMenuView" ref={menuSectionRef}>
             <h2 className="userMenuView__title">Menu</h2>
 
             {restaurantMenu.length ? (
@@ -920,7 +951,7 @@ export default function UserSearch({
             )}
           </div>
         ) : (
-          <div className="restaurantReviewsPage">
+          <div className="restaurantReviewsPage" ref={reviewsSectionRef}>
             <div className="reviewCard">
               <div className="reviewCard__title">Add a review</div>
 

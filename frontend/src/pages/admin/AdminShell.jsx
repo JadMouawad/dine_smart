@@ -6,6 +6,7 @@ import AdminDashboard from "./AdminDashboard.jsx";
 import PendingRestaurantsPage from "./PendingRestaurantsPage.jsx";
 import UserManagementPage from "./UserManagementPage.jsx";
 import FlaggedReviewsPage from "./FlaggedReviewsPage.jsx";
+import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 
 function tabFromPathname(pathname) {
   if (pathname.includes("/pending")) return "pending";
@@ -21,6 +22,7 @@ export default function AdminShell() {
 
   const [pendingFlagsCount, setPendingFlagsCount] = useState(0);
   const [pendingRestaurantsCount, setPendingRestaurantsCount] = useState(0);
+  const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
   const active = useMemo(() => tabFromPathname(location.pathname), [location.pathname]);
 
   useEffect(() => {
@@ -43,6 +45,7 @@ export default function AdminShell() {
   }
 
   function handleLogout() {
+    setConfirmLogoutOpen(false);
     logout();
     navigate("/");
   }
@@ -59,7 +62,7 @@ export default function AdminShell() {
       <AdminNav
         active={active}
         onChange={handleChange}
-        onLogout={handleLogout}
+        onLogout={() => setConfirmLogoutOpen(true)}
         pendingFlagsCount={pendingFlagsCount}
       />
 
@@ -91,6 +94,16 @@ export default function AdminShell() {
 
         {active === "users" && <UserManagementPage />}
       </main>
+
+      <ConfirmDialog
+        open={confirmLogoutOpen}
+        title="Sign out?"
+        message="Are you sure you want to sign out?"
+        confirmLabel="Sign Out"
+        cancelLabel="Cancel"
+        onConfirm={handleLogout}
+        onCancel={() => setConfirmLogoutOpen(false)}
+      />
     </div>
   );
 }

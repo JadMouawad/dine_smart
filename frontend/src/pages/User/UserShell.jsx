@@ -8,11 +8,13 @@ import UserReservations from "./UserReservations.jsx";
 import UserDiscover from "./UserDiscover.jsx";
 import UserExplore from "./UserExplore.jsx";
 import { getProfile } from "../../services/profileService.js";
+import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 
 export default function UserShell({ initialActive = "search" }) {
     const [active, setActive] = useState(initialActive);
     const [restaurantToOpen, setRestaurantToOpen] = useState(null);
     const [userAvatarUrl, setUserAvatarUrl] = useState("");
+    const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
     const navigate = useNavigate();
     const { user, logout, loading } = useAuth();
 
@@ -53,6 +55,7 @@ export default function UserShell({ initialActive = "search" }) {
     if (!user || user.role !== "user") return null;
 
     function handleLogout() {
+        setConfirmLogoutOpen(false);
         logout();
         navigate("/");
     }
@@ -64,7 +67,7 @@ export default function UserShell({ initialActive = "search" }) {
                 onChange={setActive}
                 avatarSrc={userAvatarUrl}
                 user={user}
-                onLogout={handleLogout}
+                onLogout={() => setConfirmLogoutOpen(true)}
             />
 
             <main className="userArea__main">
@@ -114,6 +117,16 @@ export default function UserShell({ initialActive = "search" }) {
                     </div>
                 )}
             </main>
+
+            <ConfirmDialog
+              open={confirmLogoutOpen}
+              title="Sign out?"
+              message="Are you sure you want to sign out?"
+              confirmLabel="Sign Out"
+              cancelLabel="Cancel"
+              onConfirm={handleLogout}
+              onCancel={() => setConfirmLogoutOpen(false)}
+            />
         </div>
     );
 }

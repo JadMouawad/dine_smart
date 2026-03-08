@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { cancelReservation, getReservationsByUserId } from "../../services/reservationService.js";
+import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 
 function toDateTimeValue(reservation) {
   const datePart = String(reservation.reservation_date || "").trim();
@@ -206,39 +207,27 @@ export default function UserReservations() {
         )}
       </section>
 
-      {confirmReservation && (
-        <div className="modal is-open">
-          <div className="modal__backdrop" onClick={() => setConfirmReservation(null)} />
-          <div className="modal__panel reservationConfirmModal" role="dialog" aria-modal="true" aria-labelledby="cancel-reservation-title">
-            <h3 id="cancel-reservation-title" className="reservationConfirmModal__title">
-              Are you sure you want to cancel this reservation?
-            </h3>
-            <p className="reservationConfirmModal__meta">
-              {confirmReservation.restaurant_name} on{" "}
-              {new Date(`${confirmReservation.reservation_date}T00:00:00`).toLocaleDateString()} at{" "}
-              {String(confirmReservation.reservation_time).slice(0, 5)}
-            </p>
-            <div className="reservationConfirmModal__actions">
-              <button
-                className="btn btn--gold"
-                type="button"
-                disabled={cancellingId === confirmReservation.id}
-                onClick={() => onCancelReservation(confirmReservation.id)}
-              >
-                {cancellingId === confirmReservation.id ? "Cancelling..." : "Yes"}
-              </button>
-              <button
-                className="btn btn--ghost"
-                type="button"
-                disabled={cancellingId === confirmReservation.id}
-                onClick={() => setConfirmReservation(null)}
-              >
-                No
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!confirmReservation}
+        title="Cancel this reservation?"
+        message={
+          confirmReservation
+            ? `${confirmReservation.restaurant_name} on ${new Date(`${confirmReservation.reservation_date}T00:00:00`).toLocaleDateString()} at ${String(confirmReservation.reservation_time).slice(0, 5)}.`
+            : ""
+        }
+        confirmLabel="Cancel Reservation"
+        cancelLabel="Keep Reservation"
+        busy={cancellingId === confirmReservation?.id}
+        busyLabel="Cancelling..."
+        onConfirm={() => {
+          if (!confirmReservation) return;
+          onCancelReservation(confirmReservation.id);
+        }}
+        onCancel={() => {
+          if (cancellingId === confirmReservation?.id) return;
+          setConfirmReservation(null);
+        }}
+      />
     </div>
   );
 }

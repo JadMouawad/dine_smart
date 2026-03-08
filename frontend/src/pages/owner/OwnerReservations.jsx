@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getOwnerReservations, updateOwnerReservationStatus } from "../../services/reservationService";
+import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 
 function toDateTimeValue(reservation) {
   const datePart = String(reservation.reservation_date || "").trim();
@@ -29,6 +30,7 @@ export default function OwnerReservations() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [updatingId, setUpdatingId] = useState(null);
+  const [confirmRejectReservation, setConfirmRejectReservation] = useState(null);
 
   async function loadReservations() {
     setError("");
@@ -100,6 +102,7 @@ export default function OwnerReservations() {
       setError(err.message || "Failed to update reservation status.");
     } finally {
       setUpdatingId(null);
+      setConfirmRejectReservation(null);
     }
   }
 
@@ -155,7 +158,7 @@ export default function OwnerReservations() {
                     className="btn btn--ghost"
                     type="button"
                     disabled={updatingId === reservation.id || isCancelled}
-                    onClick={() => handleAction(reservation.id, "reject")}
+                    onClick={() => setConfirmRejectReservation(reservation)}
                   >
                     Reject
                   </button>
@@ -165,6 +168,25 @@ export default function OwnerReservations() {
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmRejectReservation}
+        title="Cancel this reservation?"
+        message={
+          confirmRejectReservation
+            ? `Are you sure you want to cancel ${confirmRejectReservation.customer_name || "this guest"}'s reservation for ${formatDateTime(confirmRejectReservation)}?`
+            : ""
+        }
+        confirmLabel="Cancel Reservation"
+        cancelLabel="Keep Reservation"
+        busy={updatingId === confirmRejectReservation?.id}
+        busyLabel="Updating..."
+        onConfirm={() => {
+          if (!confirmRejectReservation) return;
+          handleAction(confirmRejectReservation.id, "reject");
+        }}
+        onCancel={() => setConfirmRejectReservation(null)}
+      />
     </div>
   );
 }

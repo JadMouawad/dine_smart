@@ -1,16 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
-import { useAuth } from "../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { FiEye, FiEyeOff } from "react-icons/fi";
+import { useAuth } from "../auth/AuthContext";
 
 export default function AuthModal({
   isOpen,
-  mode, // "signup" | "login"
+  mode,
   onClose,
   onToggleMode,
 }) {
   const { login, register, googleLogin } = useAuth();
   const navigate = useNavigate();
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [name, setName] = useState("");
@@ -18,11 +20,13 @@ export default function AuthModal({
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [signupLocation, setSignupLocation] = useState({ latitude: null, longitude: null });
   const [locatingUser, setLocatingUser] = useState(false);
 
-  const [accountType, setAccountType] = useState(null); // "user" | "restaurant" | null
-  const [signupSuccess, setSignupSuccess] = useState(false); // show "check your email" after non-Google signup
+  const [accountType, setAccountType] = useState(null);
+  const [signupSuccess, setSignupSuccess] = useState(false);
 
   const copy = useMemo(() => {
     if (mode === "signup") {
@@ -35,6 +39,7 @@ export default function AuthModal({
         showName: true,
       };
     }
+
     return {
       title: "Log in",
       subtitle: "Log in to explore restaurants and access special features",
@@ -52,6 +57,8 @@ export default function AuthModal({
     setPhone("");
     setPassword("");
     setConfirmPassword("");
+    setShowPassword(false);
+    setShowConfirmPassword(false);
     setSignupLocation({ latitude: null, longitude: null });
     setLocatingUser(false);
     setError(null);
@@ -60,10 +67,11 @@ export default function AuthModal({
   }, [isOpen, mode]);
 
   useEffect(() => {
-    function onKeyDown(e) {
+    function onKeyDown(event) {
       if (!isOpen) return;
-      if (e.key === "Escape") onClose();
+      if (event.key === "Escape") onClose();
     }
+
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [isOpen, onClose]);
@@ -103,6 +111,7 @@ export default function AuthModal({
 
     const isSecureContextOk =
       window.isSecureContext || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
     if (!isSecureContextOk) {
       setError("Location access requires HTTPS (or localhost). Open the site over HTTPS, then try again.");
       return;
@@ -110,6 +119,7 @@ export default function AuthModal({
 
     setLocatingUser(true);
     setError(null);
+
     const onSuccess = (position) => {
       setSignupLocation({
         latitude: Number(position.coords.latitude.toFixed(6)),
@@ -165,7 +175,7 @@ export default function AuthModal({
 
       <div className="modal__panel" role="document">
         <button className="modal__close" aria-label="Close" type="button" onClick={onClose}>
-          ✕
+          X
         </button>
 
         <div className="modal__header">
@@ -181,7 +191,7 @@ export default function AuthModal({
 
         {signupSuccess ? (
           <div className="modal__success" data-testid="signup-verification-message">
-            <div className="modal__successIcon" aria-hidden="true">✓</div>
+            <div className="modal__successIcon" aria-hidden="true">OK</div>
             <h3 className="modal__successTitle">Check your email</h3>
             <p className="modal__successText">
               We sent a verification link to your email. Click the link to verify your account, then you can log in.
@@ -209,27 +219,32 @@ export default function AuthModal({
             </button>
           </div>
         ) : (
-
           <form
             className="form"
-            onSubmit={async (e) => {
-              e.preventDefault();
+            onSubmit={async (event) => {
+              event.preventDefault();
               setError(null);
               setLoading(true);
+
               try {
                 if (mode === "signup") {
                   if (!name.trim()) throw new Error("Name is required");
+
                   const normalizedPhone = String(phone || "").replace(/\D/g, "");
                   if (!normalizedPhone) throw new Error("Phone number is required");
                   if (normalizedPhone.length < 7) throw new Error("Please enter a valid phone number");
-                  if (password !== confirmPassword) throw new Error("Password and confirm password do not match");
+
+                  if (password !== confirmPassword) {
+                    throw new Error("Password and confirm password do not match");
+                  }
+
                   const role = accountType === "restaurant" ? "owner" : "user";
                   const data = await register(name, email, password, role, {
                     latitude: signupLocation.latitude,
                     longitude: signupLocation.longitude,
                     phone: normalizedPhone,
                   });
-                  // Backend sends verification email and returns message (no token until verified)
+
                   if (data?.message && !data?.token) {
                     setSignupSuccess(true);
                     setName("");
@@ -240,6 +255,7 @@ export default function AuthModal({
                     setSignupLocation({ latitude: null, longitude: null });
                     return;
                   }
+
                   setName("");
                   setEmail("");
                   setPhone("");
@@ -250,12 +266,14 @@ export default function AuthModal({
                 } else {
                   const data = await login(email, password);
                   const userRole = data?.user?.role;
-                  setName(""); setEmail(""); setPassword("");
+                  setName("");
+                  setEmail("");
+                  setPassword("");
                   onClose();
+
                   if (userRole === "admin") navigate("/admin/dashboard");
                   else if (userRole === "owner") navigate("/owner/profile");
                   else navigate("/user/profile");
-                  return;
                 }
               } catch (err) {
                 setError(err.message || "Authentication failed");
@@ -270,7 +288,7 @@ export default function AuthModal({
                 type="email"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(event) => setEmail(event.target.value)}
                 required
                 disabled={loading}
               />
@@ -283,7 +301,7 @@ export default function AuthModal({
                   type="text"
                   placeholder="Your name"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(event) => setName(event.target.value)}
                   disabled={loading}
                 />
               </label>
@@ -296,7 +314,7 @@ export default function AuthModal({
                   type="tel"
                   placeholder="e.g. 03123456"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(event) => setPhone(event.target.value)}
                   required
                   disabled={loading}
                 />
@@ -305,29 +323,51 @@ export default function AuthModal({
 
             <label className="field">
               <span>Password</span>
-              <input
-                type="password"
-                placeholder="••••••••"
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
+              <div className="passwordFieldWrap">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="********"
+                  minLength={6}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className="passwordToggleBtn"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  disabled={loading}
+                >
+                  {showPassword ? <FiEyeOff /> : <FiEye />}
+                </button>
+              </div>
             </label>
 
             {mode === "signup" && (
               <label className="field">
                 <span>Confirm password</span>
-                <input
-                  type="password"
-                  placeholder="Confirm your password"
-                  minLength={6}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  disabled={loading}
-                />
+                <div className="passwordFieldWrap">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm your password"
+                    minLength={6}
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    required
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    className="passwordToggleBtn"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                    disabled={loading}
+                  >
+                    {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
+                  </button>
+                </div>
               </label>
             )}
 
