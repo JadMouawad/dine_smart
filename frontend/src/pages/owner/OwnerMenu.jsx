@@ -745,11 +745,12 @@ export default function OwnerMenu() {
 
                   <div className="menuModalActions">
                     <button
-                      className="btn btn--ghost"
+                      className="btn btn--ghost backArrowBtn backArrowBtn--inline"
                       type="button"
                       onClick={() => setItemStep(1)}
+                      aria-label="Go back"
                     >
-                      Back
+                      ←
                     </button>
 
                     <button className="btn btn--gold btn--xl" type="submit">

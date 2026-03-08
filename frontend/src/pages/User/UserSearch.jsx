@@ -660,10 +660,15 @@ export default function UserSearch({
     return (
       <div className="userSearchPage">
         <div className="formCard formCard--userProfile userSearchNotFoundCard">
-          <p className="userSearchNotFoundCard__text">Restaurant not found or no longer available.</p>
-          <button type="button" className="btn btn--gold" onClick={() => setRestaurantNotFound(false)}>
-            Back to Search
+          <button
+            type="button"
+            className="btn btn--ghost backArrowBtn backArrowBtn--topLeftInCard"
+            onClick={() => setRestaurantNotFound(false)}
+            aria-label="Go back"
+          >
+            ←
           </button>
+          <p className="userSearchNotFoundCard__text">Restaurant not found or no longer available.</p>
         </div>
       </div>
     );
@@ -678,6 +683,14 @@ export default function UserSearch({
         {reservationToast && <div className="inlineToast">{reservationToast}</div>}
 
         <section className="restaurantProfileHero">
+          <button
+            className="btn btn--ghost backArrowBtn backArrowBtn--topLeft"
+            type="button"
+            onClick={() => { setSelectedRestaurant(null); setRestaurantNotFound(false); }}
+            aria-label="Go back"
+          >
+            ←
+          </button>
           <h1 className="restaurantProfileHero__name">{selectedRestaurant.name}</h1>
 
           <div className="restaurantProfileHero__media">
@@ -756,9 +769,6 @@ export default function UserSearch({
               <svg viewBox="0 0 24 24" className="favoriteHeartIcon" aria-hidden="true">
                 <path d="M12 21s-7.2-4.6-9.6-9C.7 8.7 2.1 5.5 5.4 4.6c1.8-.5 3.6.1 4.8 1.4L12 7.8l1.8-1.8c1.2-1.3 3-1.9 4.8-1.4 3.3.9 4.7 4.1 3 7.4C19.2 16.4 12 21 12 21z" />
               </svg>
-            </button>
-            <button className="btn btn--ghost topActionBtn" type="button" onClick={() => { setSelectedRestaurant(null); setRestaurantNotFound(false); }}>
-              Back
             </button>
           </div>
         </section>

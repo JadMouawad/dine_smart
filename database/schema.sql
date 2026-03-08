@@ -184,11 +184,6 @@ CREATE INDEX IF NOT EXISTS idx_saved_searches_created_at ON saved_searches(creat
 INSERT INTO roles (name) VALUES ('user'), ('owner'), ('admin')
 ON CONFLICT DO NOTHING;
 
-UPDATE users
-SET role_id = 2
-WHERE email = 'carlaayach@gmail.com';
-
-SELECT role_id FROM users WHERE email='carlaayach@gmail.com';
 
 -- Test restaurants for backend search
 INSERT INTO restaurants (name, cuisine, description, address, phone, rating, is_verified, approval_status)
