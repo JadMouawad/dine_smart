@@ -2968,13 +2968,13 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 .userMenuView {
-  margin-top: 18px;
+  margin-top: 12px;
 }
 
 .userMenuView__title {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   font-weight: 900;
-  font-size: 22px;
+  font-size: 20px;
 }
 
 @media (max-width: 1100px) {
@@ -3006,7 +3006,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 /* ===== More spacing between menu sections ===== */
 .userMenuSections {
   display: grid;
-  gap: 22px;
+  gap: 16px;
 }
 
 .userMenuSectionBlock {
@@ -3120,12 +3120,30 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03)),
     rgba(12, 19, 79, 0.18);
-  border-radius: 22px;
-  padding: 14px;
+  border-radius: 18px;
+  padding: 16px;
 
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+}
+
+.reviewComposer {
+  display: grid;
+  gap: 10px;
+}
+
+.reviewComposer__top {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.reviewComposer__post {
+  min-height: 42px;
+  padding: 0 20px;
+  flex: 0 0 auto;
 }
 
 .reviewCard__title {
@@ -3877,6 +3895,14 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   border-color: rgba(59, 130, 246, 0.45);
 }
 
+.reviewCard__input--textarea {
+  min-height: 96px;
+  resize: vertical;
+  padding: 14px;
+  line-height: 1.5;
+  height: auto;
+}
+
 .statusBadge--valid {
   background: rgba(34, 197, 94, 0.2);
   border-color: rgba(34, 197, 94, 0.5);
@@ -4009,70 +4035,143 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 .restaurantProfileHero {
-  max-width: var(--ds-page-max);
-  margin: 0 auto 18px;
+  max-width: 980px;
+  margin: 0 auto 14px;
   display: grid;
-  gap: 14px;
+  gap: 8px;
   position: relative;
 }
 
 .restaurantProfileHero__name {
   margin: 0;
-  font-size: clamp(30px, 4vw, 48px);
+  font-size: clamp(20px, 2.2vw, 32px);
   font-weight: 900;
   letter-spacing: -0.02em;
   color: #fff;
-  padding-left: 56px;
+  padding-left: 44px;
+  line-height: 1.12;
+}
+
+.restaurantProfileHero__titleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.restaurantProfileHero__titleRow .restaurantProfileHero__name {
+  padding-left: 0;
+}
+
+.restaurantProfileHero__logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(8, 13, 43, 0.5);
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+}
+
+.restaurantProfileHero__logoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.restaurantProfileHero__logoFallback {
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 800;
+  font-size: 16px;
 }
 
 .restaurantProfileHero__media {
   position: relative;
-  border-radius: 22px;
+  border-radius: 16px;
   overflow: hidden;
-  min-height: 320px;
+  height: clamp(180px, 28vw, 260px);
+  min-height: 180px;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 20px 46px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
   background: linear-gradient(135deg, #1f2f6d, #0f173f 55%, #273978);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .restaurantProfileHero__img {
   width: 100%;
   height: 100%;
-  min-height: 320px;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   display: block;
+  background: rgba(8, 13, 43, 0.55);
 }
 
 .restaurantProfileHero__placeholder {
-  min-height: 320px;
+  min-height: 180px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(18px, 2.2vw, 28px);
+  font-size: clamp(14px, 1.5vw, 20px);
   font-weight: 800;
   color: rgba(255, 255, 255, 0.92);
   text-align: center;
-  padding: 22px;
+  padding: 14px;
 }
 
-.restaurantProfileHero__overlayCard {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 16px;
-  z-index: 2;
+.restaurantHeroInfoCard {
+  position: static;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(7, 13, 46, 0.68);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.26);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.restaurantHeroInfoItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.16);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.restaurantHeroInfoIcon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.restaurantProfileHero__metaRow {
+  margin-top: 2px;
 }
 
 .restaurantProfileHero__badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 16px;
-  background: rgba(7, 13, 46, 0.65);
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  background: rgba(7, 13, 46, 0.38);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+}
+
+.restaurantProfileHero__badges .metaPill {
+  padding: 5px 9px;
+  font-size: 11px;
 }
 
 .metaPill--button {
@@ -4082,19 +4181,117 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .restaurantProfileHero__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 6px;
   align-items: center;
 }
 
+.restaurantProfileHero__actions .btn {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.restaurantProfileHero__actions .favoriteHeartBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.14);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.restaurantActionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.restaurantActionTabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(6, 12, 42, 0.32);
+}
+
+.restaurantActionTab {
+  min-height: 38px;
+  min-width: 92px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.14);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.restaurantActionTab:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.4);
+}
+
+.restaurantActionTab.is-active {
+  border-color: rgba(201, 162, 39, 0.62);
+  background: rgba(201, 162, 39, 0.2);
+  color: #fff4cc;
+  box-shadow: 0 8px 18px rgba(201, 162, 39, 0.25);
+}
+
+.restaurantActionFavorite {
+  margin-left: 6px;
+  flex: 0 0 auto;
+}
+
+.userMenuView,
+.restaurantReviewsPage {
+  animation: restaurantSectionFade 0.2s ease;
+}
+
+@keyframes restaurantSectionFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.restaurantInlineReserve {
+  max-width: 980px;
+  margin: 10px auto 18px;
+}
+
+.restaurantInlineReserve__title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.reservationInlineForm {
+  border-radius: 16px;
+  padding: 14px;
+}
+
 .backArrowBtn {
-  min-width: 44px;
-  height: 44px;
+  min-width: 36px;
+  height: 36px;
   padding: 0;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 20px;
   line-height: 1;
   font-weight: 700;
 }
@@ -4157,17 +4354,54 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   .restaurantProfileHero__media,
   .restaurantProfileHero__img,
   .restaurantProfileHero__placeholder {
-    min-height: 240px;
+    min-height: 170px;
+    height: 170px;
   }
 
   .restaurantProfileHero__name {
-    padding-left: 52px;
+    padding-left: 40px;
   }
 
-  .restaurantProfileHero__overlayCard {
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
+  .restaurantProfileHero__titleRow {
+    gap: 8px;
+  }
+
+  .restaurantProfileHero__logo {
+    width: 40px;
+    height: 40px;
+  }
+
+  .restaurantInlineReserve {
+    margin-top: 6px;
+  }
+
+  .restaurantHeroInfoCard {
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .restaurantHeroInfoItem {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .restaurantActionBar {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .restaurantActionTabs {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .restaurantActionTab {
+    min-width: 82px;
+    font-size: 13px;
+  }
+
+  .reviewComposer__top {
+    flex-wrap: wrap;
   }
 
   .ownerProfileHeaderCard__left {
@@ -4520,6 +4754,8 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   color: rgba(255, 255, 255, 0.78);
   font-size: 12px;
   font-weight: 600;
+  margin-left: auto;
+  display: inline-flex;
 }
 
 .reviewCard__status {

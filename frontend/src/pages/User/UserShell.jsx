@@ -21,6 +21,12 @@ export default function UserShell({ initialActive = "search" }) {
     }, [initialActive]);
 
     useEffect(() => {
+        if (!loading && (!user || user.role !== "user")) {
+            navigate("/", { replace: true });
+        }
+    }, [loading, user, navigate]);
+
+    useEffect(() => {
         if (!user?.id) {
             setUserAvatarUrl("");
             return;
@@ -44,6 +50,7 @@ export default function UserShell({ initialActive = "search" }) {
 
     // Wait for auth to restore before rendering
     if (loading) return null;
+    if (!user || user.role !== "user") return null;
 
     function handleLogout() {
         logout();

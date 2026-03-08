@@ -72,7 +72,7 @@ function getTodayDateValue() {
   return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
 }
 
-export default function ReservationForm({ isOpen, onClose, restaurant, onReserved }) {
+export default function ReservationForm({ isOpen, onClose, restaurant, onReserved, inline = false }) {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [partySize, setPartySize] = useState("2");
@@ -137,7 +137,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
     };
   }, [isOpen, restaurant?.id, date, time, partySize]);
 
-  if (!isOpen || !restaurant) return null;
+  if ((!isOpen && !inline) || !restaurant) return null;
 
   const normalizedPartySize = Number(partySize) || 2;
   const canAccommodateParty =
@@ -217,20 +217,20 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
     }
   }
 
-  return (
-    <div className="modal is-open" aria-hidden="false" role="dialog" aria-modal="true">
-      <div className="modal__backdrop" onClick={onClose} />
-      <div className="modal__panel reservationModal" role="document">
+  const content = (
+    <>
+      {!inline && (
         <button className="modal__close" aria-label="Close" type="button" onClick={onClose}>
           X
         </button>
+      )}
 
-        <h2 className="modal__title">Book Reservation</h2>
-        <p className="modal__subtitle">
-          {restaurant.name}
-        </p>
+      <h2 className="modal__title">Book Reservation</h2>
+      <p className="modal__subtitle">
+        {restaurant.name}
+      </p>
 
-        <form className="form" onSubmit={handleSubmit}>
+      <form className="form" onSubmit={handleSubmit}>
           <label className="field">
             <span>Date</span>
             <input
@@ -328,7 +328,19 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
           <button className="btn btn--gold btn--xl" type="submit" disabled={submitting || isFullyBooked === true}>
             {submitting ? "Booking..." : (isFullyBooked ? "SLOT BOOKED" : "BOOK RESERVATION")}
           </button>
-        </form>
+      </form>
+    </>
+  );
+
+  if (inline) {
+    return <div className="formCard reservationInlineForm">{content}</div>;
+  }
+
+  return (
+    <div className="modal is-open" aria-hidden="false" role="dialog" aria-modal="true">
+      <div className="modal__backdrop" onClick={onClose} />
+      <div className="modal__panel reservationModal" role="document">
+        {content}
       </div>
     </div>
   );

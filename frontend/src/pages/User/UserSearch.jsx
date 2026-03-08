@@ -148,7 +148,7 @@ export default function UserSearch({
   const [reviewComment, setReviewComment] = useState("");
   const [reviewError, setReviewError] = useState("");
   const [reviewPosting, setReviewPosting] = useState(false);
-  const [reservationModalOpen, setReservationModalOpen] = useState(false);
+  const [reservationInlineOpen, setReservationInlineOpen] = useState(false);
   const [reservationToast, setReservationToast] = useState("");
   const [reservationAvailability, setReservationAvailability] = useState(null);
   const [reservationSlot, setReservationSlot] = useState(null);
@@ -164,13 +164,21 @@ export default function UserSearch({
   const sliderTrackRef = useRef(null);
   const drawerRef = useRef(null);
   const scrollRestoreRef = useRef(null);
+  const reservationInlineRef = useRef(null);
 
   function requireAuth() {
-    if (isGuest) {
+    if (isGuest || !user?.id) {
       onRequireSignup?.();
       return false;
     }
     return true;
+  }
+
+  function openInlineReservation() {
+    setReservationInlineOpen(true);
+    window.requestAnimationFrame(() => {
+      reservationInlineRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   function loadFavorites() {
@@ -686,12 +694,56 @@ export default function UserSearch({
           <button
             className="btn btn--ghost backArrowBtn backArrowBtn--topLeft"
             type="button"
-            onClick={() => { setSelectedRestaurant(null); setRestaurantNotFound(false); }}
+            onClick={() => {
+              setSelectedRestaurant(null);
+              setRestaurantNotFound(false);
+              setReservationInlineOpen(false);
+            }}
             aria-label="Go back"
           >
             ←
           </button>
-          <h1 className="restaurantProfileHero__name">{selectedRestaurant.name}</h1>
+          <div className="restaurantProfileHero__titleRow">
+            <div className="restaurantProfileHero__logo">
+              {(selectedRestaurant.logoUrl || selectedRestaurant.logo_url || selectedRestaurant.coverUrl || selectedRestaurant.cover_url) ? (
+                <img
+                  className="restaurantProfileHero__logoImg"
+                  src={selectedRestaurant.logoUrl || selectedRestaurant.logo_url || selectedRestaurant.coverUrl || selectedRestaurant.cover_url}
+                  alt={`${selectedRestaurant.name} logo`}
+                />
+              ) : (
+                <span className="restaurantProfileHero__logoFallback">
+                  {(selectedRestaurant.name || "R")[0]?.toUpperCase?.() || "R"}
+                </span>
+              )}
+            </div>
+            <h1 className="restaurantProfileHero__name">{selectedRestaurant.name}</h1>
+          </div>
+
+          <div className="restaurantHeroInfoCard">
+            <div className="restaurantHeroInfoItem">
+              <span className="restaurantHeroInfoIcon">🍽️</span>
+              <span>{selectedRestaurant.cuisine || "Cuisine"}</span>
+            </div>
+            <div className="restaurantHeroInfoItem">
+              <span className="restaurantHeroInfoIcon">⭐</span>
+              <span>
+                {selectedRestaurant.rating ?? "N/A"} ({FILLED_STAR.repeat(ratingValue)}{EMPTY_STAR.repeat(Math.max(0, 5 - ratingValue))})
+              </span>
+            </div>
+            <div className="restaurantHeroInfoItem">
+              <span className="restaurantHeroInfoIcon">📍</span>
+              <span>{selectedRestaurant.distance_km != null ? `${selectedRestaurant.distance_km} km` : "Distance unavailable"}</span>
+            </div>
+            <div className="restaurantHeroInfoItem">
+              <span className="restaurantHeroInfoIcon">🪑</span>
+              <span>{availabilityBadge ? availabilityBadge.label : "Seats unavailable"}</span>
+            </div>
+            <div className="restaurantHeroInfoItem">
+              <span className="restaurantHeroInfoIcon">🕒</span>
+              <span>{restaurantHoursLabel}</span>
+            </div>
+          </div>
 
           <div className="restaurantProfileHero__media">
             {(selectedRestaurant.coverUrl || selectedRestaurant.cover_url || selectedRestaurant.logoUrl || selectedRestaurant.logo_url) ? (
@@ -703,62 +755,44 @@ export default function UserSearch({
             ) : (
               <div className="restaurantProfileHero__placeholder">DineSmart • {selectedRestaurant.name}</div>
             )}
-
-            <div className="restaurantProfileHero__overlayCard">
-              <div className="restaurantProfileHero__badges">
-                <span className="metaPill">{selectedRestaurant.cuisine || "Cuisine"}</span>
-                <span className="metaPill">
-                  {FILLED_STAR.repeat(ratingValue)}
-                  {EMPTY_STAR.repeat(Math.max(0, 5 - ratingValue))}
-                  {" "}({selectedRestaurant.rating ?? "N/A"})
-                </span>
-                <span className="metaPill">
-                  {selectedRestaurant.distance_km != null ? `${selectedRestaurant.distance_km} km away` : "Distance unavailable"}
-                </span>
-                {availabilityBadge && (
-                  <button
-                    className={`metaPill metaPill--${availabilityBadge.tone} metaPill--button`}
-                    type="button"
-                    onClick={() => {
-                      if (!requireAuth()) return;
-                      setReservationModalOpen(true);
-                    }}
-                  >
-                    {availabilityBadge.label}
-                  </button>
-                )}
-                <span className="metaPill">{restaurantHoursLabel}</span>
-              </div>
-            </div>
           </div>
 
-          <div className="restaurantProfileHero__actions">
+          <div className="restaurantActionBar">
+            <div className="restaurantActionTabs">
             <button
-              className={`btn ${detailsTab === "menu" ? "btn--gold" : "btn--ghost"} detailsTabBtn`}
+              className={`restaurantActionTab ${detailsTab === "menu" ? "is-active" : ""}`}
               type="button"
-              onClick={() => setDetailsTab("menu")}
+              onClick={() => {
+                setDetailsTab("menu");
+                setReservationInlineOpen(false);
+              }}
             >
               Menu
             </button>
             <button
-              className={`btn ${detailsTab === "reviews" ? "btn--gold" : "btn--ghost"} detailsTabBtn`}
+              className={`restaurantActionTab ${detailsTab === "reviews" ? "is-active" : ""}`}
               type="button"
-              onClick={() => setDetailsTab("reviews")}
+              onClick={() => {
+                setDetailsTab("reviews");
+                setReservationInlineOpen(false);
+              }}
             >
               Reviews
             </button>
             <button
-              className="btn btn--ghost topActionBtn"
+              className={`restaurantActionTab ${reservationInlineOpen ? "is-active" : ""}`}
               type="button"
               onClick={() => {
                 if (!requireAuth()) return;
-                setReservationModalOpen(true);
+                setDetailsTab("menu");
+                openInlineReservation();
               }}
             >
               Reserve
             </button>
+            </div>
             <button
-              className={`favoriteHeartBtn ${isFavorited(selectedRestaurant.id) ? "is-active" : ""}`}
+              className={`favoriteHeartBtn restaurantActionFavorite ${isFavorited(selectedRestaurant.id) ? "is-active" : ""}`}
               type="button"
               onClick={() => {
                 if (!requireAuth()) return;
@@ -772,6 +806,42 @@ export default function UserSearch({
             </button>
           </div>
         </section>
+
+        {reservationInlineOpen && (
+          <section className="restaurantInlineReserve" ref={reservationInlineRef}>
+            <h2 className="restaurantInlineReserve__title">Reserve a Table</h2>
+            <ReservationForm
+              isOpen={true}
+              inline
+              restaurant={selectedRestaurant}
+              onClose={() => setReservationInlineOpen(false)}
+              onReserved={(reservation) => {
+                setReservationToast("Reservation confirmed! Check your email.");
+                const date = reservation?.reservation_date || reservationSlot?.date || getCurrentSlotParams().date;
+                const time = String(reservation?.reservation_time || reservationSlot?.time || getCurrentSlotParams().time).slice(0, 5);
+                setReservationSlot({ date, time });
+                getReservationAvailability({
+                  restaurantId: selectedRestaurant.id,
+                  date,
+                  time,
+                })
+                  .then((availability) => setReservationAvailability(availability))
+                  .catch(() => setReservationAvailability(null));
+                window.dispatchEvent(
+                  new CustomEvent("ds:reservation-changed", {
+                    detail: {
+                      reservationId: reservation?.id ?? null,
+                      restaurantId: selectedRestaurant.id,
+                      date,
+                      time,
+                      action: "created",
+                    },
+                  })
+                );
+              }}
+            />
+          </section>
+        )}
 
         {detailsTab === "menu" ? (
           <div className="userMenuView">
@@ -854,7 +924,8 @@ export default function UserSearch({
             <div className="reviewCard">
               <div className="reviewCard__title">Add a review</div>
 
-              <div className="reviewCard__row">
+              <div className="reviewComposer">
+                <div className="reviewComposer__top">
                 <select
                   className="select reviewCard__select"
                   value={reviewRating}
@@ -867,24 +938,8 @@ export default function UserSearch({
                   <option value="2">2 {FILLED_STAR}</option>
                   <option value="1">1 {FILLED_STAR}</option>
                 </select>
-
-                <input
-                  className="reviewCard__input"
-                  type="text"
-                  placeholder="Write your review (max 500 characters)"
-                  value={reviewComment}
-                  onChange={(e) => setReviewComment(e.target.value)}
-                  maxLength={500}
-                  disabled={reviewPosting}
-                />
-                {reviewComment.length > 0 && (
-                  <span className="reviewCard__charCount">
-                    {reviewComment.length}/500
-                  </span>
-                )}
-
                 <button
-                  className="btn btn--gold"
+                  className="btn btn--gold reviewComposer__post"
                   type="button"
                   disabled={reviewPosting}
                   onClick={async () => {
@@ -929,6 +984,18 @@ export default function UserSearch({
                 >
                   {reviewPosting ? "Posting..." : "Post"}
                 </button>
+                </div>
+
+                <textarea
+                  className="reviewCard__input reviewCard__input--textarea"
+                  placeholder="Write your review (max 500 characters)"
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  maxLength={500}
+                  rows={4}
+                  disabled={reviewPosting}
+                />
+                <span className="reviewCard__charCount">{reviewComment.length}/500</span>
               </div>
 
               {reviewError && (
@@ -978,35 +1045,6 @@ export default function UserSearch({
           </div>
         )}
 
-        <ReservationForm
-          isOpen={reservationModalOpen}
-          onClose={() => setReservationModalOpen(false)}
-          restaurant={selectedRestaurant}
-          onReserved={(reservation) => {
-            setReservationToast("Reservation confirmed! Check your email.");
-            const date = reservation?.reservation_date || reservationSlot?.date || getCurrentSlotParams().date;
-            const time = String(reservation?.reservation_time || reservationSlot?.time || getCurrentSlotParams().time).slice(0, 5);
-            setReservationSlot({ date, time });
-            getReservationAvailability({
-              restaurantId: selectedRestaurant.id,
-              date,
-              time,
-            })
-              .then((availability) => setReservationAvailability(availability))
-              .catch(() => setReservationAvailability(null));
-            window.dispatchEvent(
-              new CustomEvent("ds:reservation-changed", {
-                detail: {
-                  reservationId: reservation?.id ?? null,
-                  restaurantId: selectedRestaurant.id,
-                  date,
-                  time,
-                  action: "created",
-                },
-              })
-            );
-          }}
-        />
       </div>
     );
   }
@@ -1133,6 +1171,7 @@ export default function UserSearch({
             onClick={() => {
               setSelectedRestaurant(r);
               setDetailsTab("menu");
+              setReservationInlineOpen(false);
             }}
           >
             <div className="restaurantCard__cover">
@@ -1170,16 +1209,19 @@ export default function UserSearch({
                 <button
                   className="btn btn--gold reserveMiniBtn"
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!requireAuth()) return;
-                    setSelectedRestaurant(r);
-                    setDetailsTab("menu");
-                    setReservationModalOpen(true);
-                  }}
-                >
-                  Reserve
-                </button>
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!requireAuth()) return;
+              setSelectedRestaurant(r);
+              setDetailsTab("menu");
+              setReservationInlineOpen(true);
+              window.requestAnimationFrame(() => {
+                reservationInlineRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+              });
+            }}
+          >
+            Reserve
+          </button>
               </div>
             </div>
           </article>
