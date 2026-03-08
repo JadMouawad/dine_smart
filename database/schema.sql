@@ -64,6 +64,8 @@ CREATE TABLE IF NOT EXISTS restaurants (
   longitude NUMERIC(9, 6),
   price_range VARCHAR(4),
   dietary_support TEXT[] DEFAULT ARRAY[]::TEXT[],
+  logo_url TEXT,
+  cover_url TEXT,
   is_verified BOOLEAN DEFAULT false,
   approval_status restaurant_approval_status DEFAULT 'pending',
   rejection_reason VARCHAR(500),

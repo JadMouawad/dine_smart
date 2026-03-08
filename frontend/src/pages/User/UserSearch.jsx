@@ -127,7 +127,9 @@ export default function UserSearch({
   onRequireSignup,
   restaurantToOpen,
   clearRestaurantToOpen,
-  onSearchActiveChange
+  onSearchActiveChange,
+  initialCuisine = "",
+  initialCuisineToken = 0,
 }) {
   const { user } = useAuth();
   const [query, setQuery] = useState("");
@@ -358,6 +360,15 @@ export default function UserSearch({
     );
   }, []);
 
+  useEffect(() => {
+    const preset = String(initialCuisine || "").trim();
+    if (!preset) return;
+    setFilters((prev) => ({
+      ...prev,
+      cuisines: [preset],
+    }));
+  }, [initialCuisineToken, initialCuisine]);
+
   // If coming from Favorites -> open restaurant (validate by ID if needed)
   useEffect(() => {
     if (!restaurantToOpen) return;
@@ -411,6 +422,33 @@ export default function UserSearch({
       .then((availability) => setReservationAvailability(availability))
       .catch(() => setReservationAvailability(null));
   }, [selectedRestaurant?.id, reservationSlot]);
+
+  useEffect(() => {
+    function handleReservationChanged(event) {
+      if (!selectedRestaurant?.id) return;
+      const detail = event?.detail || {};
+      if (detail.restaurantId != null && Number(detail.restaurantId) !== Number(selectedRestaurant.id)) return;
+
+      const date = detail.date ? String(detail.date).slice(0, 10) : (reservationSlot?.date || getCurrentSlotParams().date);
+      const time = detail.time ? String(detail.time).slice(0, 5) : (reservationSlot?.time || getCurrentSlotParams().time);
+      setReservationSlot({ date, time });
+
+      getReservationAvailability({
+        restaurantId: selectedRestaurant.id,
+        date,
+        time,
+      })
+        .then((availability) => setReservationAvailability(availability))
+        .catch(() => setReservationAvailability(null));
+
+      getRestaurantById(selectedRestaurant.id)
+        .then((updatedRestaurant) => setSelectedRestaurant(updatedRestaurant))
+        .catch(() => {});
+    }
+
+    window.addEventListener("ds:reservation-changed", handleReservationChanged);
+    return () => window.removeEventListener("ds:reservation-changed", handleReservationChanged);
+  }, [selectedRestaurant?.id, reservationSlot?.date, reservationSlot?.time]);
 
   useEffect(() => {
     if (scrollRestoreRef.current == null) return;
@@ -559,6 +597,20 @@ export default function UserSearch({
     return { label: `Seats: ${availableSeats} available`, tone: "danger" };
   }, [reservationAvailability]);
 
+  const restaurantHoursLabel = useMemo(() => {
+    if (!selectedRestaurant) return "Hours unavailable";
+    const opening = selectedRestaurant.opening_time ?? selectedRestaurant.openingTime;
+    const closing = selectedRestaurant.closing_time ?? selectedRestaurant.closingTime;
+    if (!opening || !closing) return "Hours unavailable";
+    return `${String(opening).slice(0, 5)} - ${String(closing).slice(0, 5)}`;
+  }, [selectedRestaurant]);
+
+  const ratingValue = useMemo(() => {
+    const value = Number(selectedRestaurant?.rating ?? 0);
+    if (!Number.isFinite(value)) return 0;
+    return Math.max(0, Math.min(5, Math.round(value)));
+  }, [selectedRestaurant?.rating]);
+
   const optionCounts = useMemo(() => {
     const counts = {
       cuisine: Object.fromEntries(CUISINES.map((item) => [item, 0])),
@@ -625,73 +677,63 @@ export default function UserSearch({
       <div className="userSearchPage">
         {reservationToast && <div className="inlineToast">{reservationToast}</div>}
 
-        <div className="userSearchTopCard">
-          <div className="userSearchTopCard__left">
-            <div className="restaurantAvatar" aria-label="Restaurant logo">
-              {(selectedRestaurant.logoUrl || selectedRestaurant.logo_url) ? (
-                <img className="restaurantAvatar__img" src={selectedRestaurant.logoUrl || selectedRestaurant.logo_url} alt={`${selectedRestaurant.name} logo`} />
-              ) : (
-                <span className="restaurantAvatar__fallback">{selectedRestaurant.name?.[0]?.toUpperCase() || "R"}</span>
-              )}
-            </div>
+        <section className="restaurantProfileHero">
+          <h1 className="restaurantProfileHero__name">{selectedRestaurant.name}</h1>
 
-            <div className="userSearchTopCard__identity">
-              <h1 className="userSearchTopCard__title">{selectedRestaurant.name}</h1>
+          <div className="restaurantProfileHero__media">
+            {(selectedRestaurant.coverUrl || selectedRestaurant.cover_url || selectedRestaurant.logoUrl || selectedRestaurant.logo_url) ? (
+              <img
+                className="restaurantProfileHero__img"
+                src={selectedRestaurant.coverUrl || selectedRestaurant.cover_url || selectedRestaurant.logoUrl || selectedRestaurant.logo_url}
+                alt={`${selectedRestaurant.name} cover`}
+              />
+            ) : (
+              <div className="restaurantProfileHero__placeholder">DineSmart • {selectedRestaurant.name}</div>
+            )}
 
-              <div className="userSearchTopCard__meta">
-                <span className="metaPill">{selectedRestaurant.cuisine}</span>
-                <span className="metaPill">Rating {selectedRestaurant.rating}</span>
+            <div className="restaurantProfileHero__overlayCard">
+              <div className="restaurantProfileHero__badges">
+                <span className="metaPill">{selectedRestaurant.cuisine || "Cuisine"}</span>
                 <span className="metaPill">
-                  {(selectedRestaurant.opening_time ?? selectedRestaurant.openingTime) || "—"} – {(selectedRestaurant.closing_time ?? selectedRestaurant.closingTime) || "—"}
+                  {FILLED_STAR.repeat(ratingValue)}
+                  {EMPTY_STAR.repeat(Math.max(0, 5 - ratingValue))}
+                  {" "}({selectedRestaurant.rating ?? "N/A"})
                 </span>
                 <span className="metaPill">
                   {selectedRestaurant.distance_km != null ? `${selectedRestaurant.distance_km} km away` : "Distance unavailable"}
                 </span>
                 {availabilityBadge && (
-                  <span className={`metaPill metaPill--${availabilityBadge.tone}`}>
+                  <button
+                    className={`metaPill metaPill--${availabilityBadge.tone} metaPill--button`}
+                    type="button"
+                    onClick={() => {
+                      if (!requireAuth()) return;
+                      setReservationModalOpen(true);
+                    }}
+                  >
                     {availabilityBadge.label}
-                  </span>
+                  </button>
                 )}
+                <span className="metaPill">{restaurantHoursLabel}</span>
               </div>
             </div>
           </div>
 
-          <div className="userSearchTopCard__right userSearchTopCard__right--row">
-            {/* Heart */}
+          <div className="restaurantProfileHero__actions">
             <button
-              className={`favoriteHeartBtn favoriteHeartBtn--top ${isFavorited(selectedRestaurant.id) ? "is-active" : ""}`}
+              className={`btn ${detailsTab === "menu" ? "btn--gold" : "btn--ghost"} detailsTabBtn`}
               type="button"
-              onClick={() => {
-                if (!requireAuth()) return;
-                toggleFavorite(selectedRestaurant);
-              }}
-              aria-label={isFavorited(selectedRestaurant.id) ? "Remove from favorites" : "Add to favorites"}
+              onClick={() => setDetailsTab("menu")}
             >
-              <svg viewBox="0 0 24 24" className="favoriteHeartIcon">
-                <path d="M12 21s-7.2-4.6-9.6-9C.7 8.7 2.1 5.5 5.4 4.6c1.8-.5 3.6.1 4.8 1.4L12 7.8l1.8-1.8c1.2-1.3 3-1.9 4.8-1.4 3.3.9 4.7 4.1 3 7.4C19.2 16.4 12 21 12 21z" />
-              </svg>
+              Menu
             </button>
-
-            {/* Tabs */}
-            <div className="detailsTabs detailsTabs--inline">
-              <button
-                className={`btn ${detailsTab === "menu" ? "btn--gold" : "btn--ghost"} detailsTabBtn`}
-                type="button"
-                onClick={() => setDetailsTab("menu")}
-              >
-                Menu
-              </button>
-
-              <button
-                className={`btn ${detailsTab === "reviews" ? "btn--gold" : "btn--ghost"} detailsTabBtn`}
-                type="button"
-                onClick={() => setDetailsTab("reviews")}
-              >
-                Reviews
-              </button>
-            </div>
-
-            {/* Reserve */}
+            <button
+              className={`btn ${detailsTab === "reviews" ? "btn--gold" : "btn--ghost"} detailsTabBtn`}
+              type="button"
+              onClick={() => setDetailsTab("reviews")}
+            >
+              Reviews
+            </button>
             <button
               className="btn btn--ghost topActionBtn"
               type="button"
@@ -702,13 +744,24 @@ export default function UserSearch({
             >
               Reserve
             </button>
-
-            {/* Back */}
+            <button
+              className={`favoriteHeartBtn ${isFavorited(selectedRestaurant.id) ? "is-active" : ""}`}
+              type="button"
+              onClick={() => {
+                if (!requireAuth()) return;
+                toggleFavorite(selectedRestaurant);
+              }}
+              aria-label={isFavorited(selectedRestaurant.id) ? "Remove from favorites" : "Add to favorites"}
+            >
+              <svg viewBox="0 0 24 24" className="favoriteHeartIcon" aria-hidden="true">
+                <path d="M12 21s-7.2-4.6-9.6-9C.7 8.7 2.1 5.5 5.4 4.6c1.8-.5 3.6.1 4.8 1.4L12 7.8l1.8-1.8c1.2-1.3 3-1.9 4.8-1.4 3.3.9 4.7 4.1 3 7.4C19.2 16.4 12 21 12 21z" />
+              </svg>
+            </button>
             <button className="btn btn--ghost topActionBtn" type="button" onClick={() => { setSelectedRestaurant(null); setRestaurantNotFound(false); }}>
               Back
             </button>
           </div>
-        </div>
+        </section>
 
         {detailsTab === "menu" ? (
           <div className="userMenuView">
@@ -849,6 +902,14 @@ export default function UserSearch({
                       ]);
                       setReviews(Array.isArray(reviewsData) ? reviewsData : []);
                       setSelectedRestaurant(updatedRestaurant);
+                      window.dispatchEvent(
+                        new CustomEvent("ds:review-changed", {
+                          detail: {
+                            restaurantId: selectedRestaurant.id,
+                            action: "created",
+                          },
+                        })
+                      );
                     } catch (err) {
                       setReviewError(err.message || "Failed to post review.");
                     } finally {
@@ -923,6 +984,17 @@ export default function UserSearch({
             })
               .then((availability) => setReservationAvailability(availability))
               .catch(() => setReservationAvailability(null));
+            window.dispatchEvent(
+              new CustomEvent("ds:reservation-changed", {
+                detail: {
+                  reservationId: reservation?.id ?? null,
+                  restaurantId: selectedRestaurant.id,
+                  date,
+                  time,
+                  action: "created",
+                },
+              })
+            );
           }}
         />
       </div>
@@ -1045,62 +1117,62 @@ export default function UserSearch({
           />
         ) : null}
         {!restaurantsLoading && filteredRestaurants.map((r) => (
-          <div
+          <article
             key={r.id}
-            className="restaurantCard"
+            className="restaurantCard restaurantCard--search"
             onClick={() => {
               setSelectedRestaurant(r);
               setDetailsTab("menu");
             }}
           >
             <div className="restaurantCard__cover">
-              {(r.coverUrl || r.cover_url) ? <img className="restaurantCard__coverImg" src={r.coverUrl || r.cover_url} alt={r.name} /> : <div className="restaurantCard__coverPlaceholder">PNG, JPG, or JPEG</div>}
+              {(r.coverUrl || r.cover_url)
+                ? <img className="restaurantCard__coverImg" src={r.coverUrl || r.cover_url} alt={`${r.name} cover`} />
+                : <div className="restaurantCard__coverPlaceholder">No image</div>}
             </div>
 
             <div className="restaurantCard__body">
-              <div className="restaurantCard__nameRow">
+              <div className="restaurantCard__header">
                 <div className="restaurantCard__name">{r.name}</div>
-
-                <div className="restaurantCard__ratingCol">
-                  <button
-                    className="btn btn--gold reserveMiniBtn"
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!requireAuth()) return;
-                      setSelectedRestaurant(r);
-                      setDetailsTab("menu");
-                      setReservationModalOpen(true);
-                    }}
-                  >
-                    Reserve
-                  </button>
-
-                  <div className="restaurantCard__rating">Rating {r.rating}</div>
-
-                  <button
-                    className={`favoriteHeartBtn ${isFavorited(r.id) ? "is-active" : ""}`}
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!requireAuth()) return;
-                      toggleFavorite(r);
-                    }}
-                    aria-label={isFavorited(r.id) ? "Remove from favorites" : "Add to favorites"}
-                  >
-                    <svg viewBox="0 0 24 24" className="favoriteHeartIcon">
-                      <path d="M12 21s-7.2-4.6-9.6-9C.7 8.7 2.1 5.5 5.4 4.6c1.8-.5 3.6.1 4.8 1.4L12 7.8l1.8-1.8c1.2-1.3 3-1.9 4.8-1.4 3.3.9 4.7 4.1 3 7.4C19.2 16.4 12 21 12 21z" />
-                    </svg>
-                  </button>
-                </div>
+                <button
+                  className={`favoriteHeartBtn ${isFavorited(r.id) ? "is-active" : ""}`}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!requireAuth()) return;
+                    toggleFavorite(r);
+                  }}
+                  aria-label={isFavorited(r.id) ? "Remove from favorites" : "Add to favorites"}
+                >
+                  <svg viewBox="0 0 24 24" className="favoriteHeartIcon" aria-hidden="true">
+                    <path d="M12 21s-7.2-4.6-9.6-9C.7 8.7 2.1 5.5 5.4 4.6c1.8-.5 3.6.1 4.8 1.4L12 7.8l1.8-1.8c1.2-1.3 3-1.9 4.8-1.4 3.3.9 4.7 4.1 3 7.4C19.2 16.4 12 21 12 21z" />
+                  </svg>
+                </button>
               </div>
 
-              <div className="restaurantCard__cuisine">{r.cuisine}</div>
-              <div className="discoverFeedCard__meta">
-                {r.distance_km != null ? `${r.distance_km} km away` : "Distance unavailable"}
+              <div className="restaurantCard__cuisine">{r.cuisine || "Cuisine not set"}</div>
+              <div className="restaurantCard__metaLine">Rating {r.rating ?? "N/A"}</div>
+              <div className="restaurantCard__metaLine">
+                {r.distance_km != null ? `${r.distance_km} km away` : (r.address || "Location unavailable")}
+              </div>
+
+              <div className="restaurantCard__actions">
+                <button
+                  className="btn btn--gold reserveMiniBtn"
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!requireAuth()) return;
+                    setSelectedRestaurant(r);
+                    setDetailsTab("menu");
+                    setReservationModalOpen(true);
+                  }}
+                >
+                  Reserve
+                </button>
               </div>
             </div>
-          </div>
+          </article>
         ))}
 
       </div>

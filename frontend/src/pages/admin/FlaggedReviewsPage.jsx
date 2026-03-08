@@ -4,6 +4,7 @@ import {
   dismissFlaggedReview,
   getFlaggedReviews,
 } from "../../services/adminService";
+import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 
 export default function FlaggedReviewsPage({ onPendingCountChange }) {
   const [flags, setFlags] = useState([]);
@@ -11,6 +12,7 @@ export default function FlaggedReviewsPage({ onPendingCountChange }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busyId, setBusyId] = useState(null);
+  const [confirmDeleteFlag, setConfirmDeleteFlag] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,8 +63,6 @@ export default function FlaggedReviewsPage({ onPendingCountChange }) {
   }
 
   async function handleDelete(flagId) {
-    if (!window.confirm("Delete this review? This action cannot be undone.")) return;
-
     setMessage("");
     setError("");
     setBusyId(flagId);
@@ -119,7 +119,7 @@ export default function FlaggedReviewsPage({ onPendingCountChange }) {
                   className="btn btn--gold"
                   type="button"
                   disabled={busyId === flag.id || flag.status !== "pending"}
-                  onClick={() => handleDelete(flag.id)}
+                  onClick={() => setConfirmDeleteFlag(flag)}
                 >
                   Delete Review
                 </button>
@@ -128,6 +128,22 @@ export default function FlaggedReviewsPage({ onPendingCountChange }) {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmDeleteFlag}
+        title="Delete review?"
+        message="Are you sure you want to delete this review? This action cannot be undone."
+        confirmLabel="Yes"
+        cancelLabel="No"
+        busy={busyId === confirmDeleteFlag?.id}
+        busyLabel="Deleting..."
+        onConfirm={() => {
+          if (!confirmDeleteFlag) return;
+          handleDelete(confirmDeleteFlag.id);
+          setConfirmDeleteFlag(null);
+        }}
+        onCancel={() => setConfirmDeleteFlag(null)}
+      />
     </div>
   );
 }

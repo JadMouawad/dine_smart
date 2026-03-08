@@ -55,12 +55,42 @@ const getReservationsByUser = async (req, res) => {
   }
 };
 
+const getReservationsForOwner = async (req, res) => {
+  try {
+    const result = await reservationService.getReservationsForOwner(req.user.id);
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+    return res.status(200).json(result.reservations);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 const cancelReservation = async (req, res) => {
   try {
     const result = await reservationService.cancelReservation({
       reservationId: req.params.id,
       requestingUserId: req.user.id,
       requestingUserRole: req.user.role,
+    });
+
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+
+    return res.status(200).json(result.reservation);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const updateReservationStatusForOwner = async (req, res) => {
+  try {
+    const result = await reservationService.updateReservationStatusForOwner({
+      reservationId: req.params.id,
+      ownerId: req.user.id,
+      action: req.body.action,
     });
 
     if (!result.success) {
@@ -95,6 +125,8 @@ const getAvailability = async (req, res) => {
 module.exports = {
   createReservation,
   getReservationsByUser,
+  getReservationsForOwner,
   cancelReservation,
+  updateReservationStatusForOwner,
   getAvailability,
 };

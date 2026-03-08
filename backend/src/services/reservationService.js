@@ -5,7 +5,10 @@ const crypto = require("crypto");
 const db = require("../config/db");
 const UserModel = require("../models/User");
 const ReservationModel = require("../models/reservation.model");
-const { sendReservationConfirmationEmail } = require("../utils/emailSender");
+const {
+  sendReservationConfirmationEmail,
+  sendReservationCancellationEmail,
+} = require("../utils/emailSender");
 
 const MAX_PARTY_SIZE = 12;
 const MIN_RESERVATION_MINUTES = 12 * 60;
@@ -79,8 +82,13 @@ const createConfirmationId = () => {
 };
 
 const formatDateForEmail = (value) => {
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return value;
+  const raw = String(value || "").trim();
+  const dateOnly = raw.includes("T") ? raw.slice(0, 10) : raw;
+  const parts = dateOnly.split("-").map((part) => parseInt(part, 10));
+  if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) return raw;
+  const [year, month, day] = parts;
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime())) return raw;
   return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 };
 
@@ -127,9 +135,9 @@ const getSuggestedTimes = async ({
       candidateTime
     );
     const bookedSeats = parseInt(bookedResult.rows[0]?.booked_seats, 10) || 0;
-    const availableSeats = bookedSeats > 0 ? 0 : Math.max(totalCapacity, 0);
+    const availableSeats = Math.max(totalCapacity - bookedSeats, 0);
 
-    if (bookedSeats === 0 && availableSeats >= partySize) {
+    if (availableSeats >= partySize) {
       suggestions.push(candidateTime.slice(0, 5));
     }
 
@@ -164,7 +172,7 @@ const getSlotAvailability = async ({ restaurantId, reservationDate, reservationT
     reservationTime
   );
   const bookedSeats = parseInt(bookedResult.rows[0]?.booked_seats, 10) || 0;
-  const availableSeats = bookedSeats > 0 ? 0 : Math.max(totalCapacity, 0);
+  const availableSeats = Math.max(totalCapacity - bookedSeats, 0);
 
   return {
     success: true,
@@ -239,25 +247,6 @@ const createReservation = async ({
 
   if (!isWithinOperatingHours(normalizedTime, availability.restaurant.opening_time, availability.restaurant.closing_time)) {
     return { success: false, status: 400, error: "Reservation time is outside restaurant operating hours" };
-  }
-
-  if (availability.bookedSeats > 0) {
-    const suggestedTimes = await getSuggestedTimes({
-      restaurantId: parsedRestaurantId,
-      reservationDate: normalizedDate,
-      reservationTime: normalizedTime,
-      partySize: parsedPartySize,
-      restaurant: availability.restaurant,
-      totalCapacity: availability.totalCapacity,
-    });
-
-    return {
-      success: false,
-      status: 409,
-      error: "This time slot is already booked",
-      availableSeats: 0,
-      suggestedTimes,
-    };
   }
 
   if (availability.availableSeats < parsedPartySize) {
@@ -349,6 +338,16 @@ const getReservationsForUser = async (requestedUserId) => {
   return { success: true, status: 200, reservations: result.rows };
 };
 
+const getReservationsForOwner = async (ownerId) => {
+  const parsedOwnerId = parseInt(ownerId, 10);
+  if (Number.isNaN(parsedOwnerId)) {
+    return { success: false, status: 400, error: "Invalid owner ID" };
+  }
+
+  const result = await ReservationModel.getOwnerReservations(db, parsedOwnerId);
+  return { success: true, status: 200, reservations: result.rows };
+};
+
 const cancelReservation = async ({ reservationId, requestingUserId, requestingUserRole }) => {
   const parsedReservationId = parseInt(reservationId, 10);
   if (Number.isNaN(parsedReservationId)) {
@@ -377,7 +376,96 @@ const cancelReservation = async ({ reservationId, requestingUserId, requestingUs
     return { success: false, status: 409, error: "Reservation could not be cancelled" };
   }
 
+  const [reservationUser, restaurantResult] = await Promise.all([
+    UserModel.findById(db, existingReservation.user_id),
+    ReservationModel.getRestaurantById(db, existingReservation.restaurant_id),
+  ]);
+  const restaurant = restaurantResult.rows[0];
+
+  if (reservationUser?.email && restaurant?.name) {
+    try {
+      await sendReservationCancellationEmail({
+        to: reservationUser.email,
+        userName: reservationUser.full_name || "Guest",
+        restaurantName: restaurant.name,
+        reservationDate: formatDateForEmail(existingReservation.reservation_date),
+        reservationTime: formatTimeForEmail(existingReservation.reservation_time),
+        partySize: existingReservation.party_size,
+        confirmationId: existingReservation.confirmation_id,
+      });
+    } catch (error) {
+      console.warn("Failed to send reservation cancellation email:", error.message);
+    }
+  }
+
   return { success: true, status: 200, reservation: cancelled };
+};
+
+const updateReservationStatusForOwner = async ({ reservationId, ownerId, action }) => {
+  const parsedReservationId = parseInt(reservationId, 10);
+  const parsedOwnerId = parseInt(ownerId, 10);
+  const normalizedAction = String(action || "").trim().toLowerCase();
+
+  if (Number.isNaN(parsedReservationId)) {
+    return { success: false, status: 400, error: "Invalid reservation ID" };
+  }
+  if (Number.isNaN(parsedOwnerId)) {
+    return { success: false, status: 400, error: "Invalid owner ID" };
+  }
+  if (!["accept", "reject"].includes(normalizedAction)) {
+    return { success: false, status: 400, error: "Action must be accept or reject" };
+  }
+
+  const existingResult = await ReservationModel.getOwnerReservationById(db, {
+    reservationId: parsedReservationId,
+    ownerId: parsedOwnerId,
+  });
+  const existing = existingResult.rows[0];
+  if (!existing) {
+    return { success: false, status: 404, error: "Reservation not found" };
+  }
+
+  if (normalizedAction === "accept") {
+    if (existing.status === "cancelled") {
+      return { success: false, status: 409, error: "Cancelled reservations cannot be accepted" };
+    }
+    if (existing.status === "confirmed") {
+      return { success: true, status: 200, reservation: existing };
+    }
+  }
+
+  if (normalizedAction === "reject" && existing.status === "cancelled") {
+    return { success: true, status: 200, reservation: existing };
+  }
+
+  const nextStatus = normalizedAction === "accept" ? "confirmed" : "cancelled";
+  const updatedResult = await ReservationModel.updateOwnerReservationStatus(db, {
+    reservationId: parsedReservationId,
+    ownerId: parsedOwnerId,
+    status: nextStatus,
+  });
+  const updated = updatedResult.rows[0];
+  if (!updated) {
+    return { success: false, status: 409, error: "Reservation status could not be updated" };
+  }
+
+  if (nextStatus === "cancelled" && updated.customer_email && updated.restaurant_name) {
+    try {
+      await sendReservationCancellationEmail({
+        to: updated.customer_email,
+        userName: updated.customer_name || "Guest",
+        restaurantName: updated.restaurant_name,
+        reservationDate: formatDateForEmail(updated.reservation_date),
+        reservationTime: formatTimeForEmail(updated.reservation_time),
+        partySize: updated.party_size,
+        confirmationId: updated.confirmation_id,
+      });
+    } catch (error) {
+      console.warn("Failed to send owner-triggered cancellation email:", error.message);
+    }
+  }
+
+  return { success: true, status: 200, reservation: updated };
 };
 
 const getAvailability = async ({ restaurantId, reservationDate, reservationTime, partySize = null }) => {
@@ -446,6 +534,8 @@ const getAvailability = async ({ restaurantId, reservationDate, reservationTime,
 module.exports = {
   createReservation,
   getReservationsForUser,
+  getReservationsForOwner,
   cancelReservation,
+  updateReservationStatusForOwner,
   getAvailability,
 };

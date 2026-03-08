@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getMyRestaurant, updateMyRestaurant } from "../../services/restaurantService";
+import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 
 const CURRENCIES = ["USD", "LBP", "EUR"];
 
@@ -68,7 +69,7 @@ export default function OwnerMenu() {
   const [itemPrice, setItemPrice] = useState("");
   const [itemCurrency, setItemCurrency] = useState("USD");
   const [itemDesc, setItemDesc] = useState("");
-  const [itemImageFile, setItemImageFile] = useState(null);
+  const [itemImageDataUrl, setItemImageDataUrl] = useState("");
 
   const [openSectionMenuId, setOpenSectionMenuId] = useState(null);
 
@@ -78,7 +79,9 @@ export default function OwnerMenu() {
 
   const [openItemMenuId, setOpenItemMenuId] = useState(null);
   const [editingItemId, setEditingItemId] = useState(null);
+  const [editingItemImageUrl, setEditingItemImageUrl] = useState("");
   const [returnToItemAfterSection, setReturnToItemAfterSection] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   useEffect(() => {
     setMenuLoading(true);
@@ -107,10 +110,19 @@ export default function OwnerMenu() {
     }
   }
 
-  const itemImagePreviewUrl = useMemo(() => {
-    if (!itemImageFile) return "";
-    return URL.createObjectURL(itemImageFile);
-  }, [itemImageFile]);
+  const itemImagePreviewUrl = useMemo(
+    () => itemImageDataUrl || editingItemImageUrl || "",
+    [itemImageDataUrl, editingItemImageUrl]
+  );
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Failed to process image."));
+      reader.readAsDataURL(file);
+    });
+  }
 
   function closeAllMenus() {
     setOpenSectionMenuId(null);
@@ -180,6 +192,14 @@ export default function OwnerMenu() {
     setItems((prev) => prev.filter((it) => it.id !== itemId));
   }
 
+  function openDeleteConfirm(payload) {
+    setConfirmDelete(payload);
+  }
+
+  function closeDeleteConfirm() {
+    setConfirmDelete(null);
+  }
+
   function startEditItem(item) {
     setEditingItemId(item.id);
 
@@ -188,6 +208,8 @@ export default function OwnerMenu() {
     setItemPrice(item.price);
     setItemCurrency(item.currency);
     setItemDesc(item.description);
+    setItemImageDataUrl("");
+    setEditingItemImageUrl(item.imagePreviewUrl || "");
 
     setItemModalOpen(true);
     setItemStep(2);
@@ -201,15 +223,12 @@ export default function OwnerMenu() {
     setItemPrice("");
     setItemCurrency("USD");
     setItemDesc("");
-    setItemImageFile(null);
+    setItemImageDataUrl("");
+    setEditingItemImageUrl("");
     setItemModalOpen(true);
   }
 
-  function closeAddItem() {
-    setItemModalOpen(false);
-  }
-
-  function onPickItemImage(e) {
+  async function onPickItemImage(e) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
 
@@ -220,7 +239,13 @@ export default function OwnerMenu() {
       return;
     }
 
-    setItemImageFile(file);
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setItemImageDataUrl(dataUrl);
+      setEditingItemImageUrl("");
+    } catch (error) {
+      alert(error.message || "Failed to process image.");
+    }
   }
 
   function goToItemDetails(e) {
@@ -242,7 +267,7 @@ export default function OwnerMenu() {
       price: itemPrice.trim(),
       currency: itemCurrency,
       description: itemDesc.trim(),
-      imagePreviewUrl: itemImagePreviewUrl || "",
+      imagePreviewUrl: itemImageDataUrl || editingItemImageUrl || "",
     };
 
     // EDIT mode: update the existing item
@@ -262,6 +287,8 @@ export default function OwnerMenu() {
       );
 
       setEditingItemId(null);
+      setEditingItemImageUrl("");
+      setItemImageDataUrl("");
       setItemModalOpen(false);
       return;
     }
@@ -269,7 +296,8 @@ export default function OwnerMenu() {
     // ADD mode: create a new item
     const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
     setItems((prev) => [{ id, ...payload }, ...prev]);
-
+    setEditingItemImageUrl("");
+    setItemImageDataUrl("");
     setItemModalOpen(false);
   }
 
@@ -294,12 +322,12 @@ export default function OwnerMenu() {
     setSectionModalOpen(true);
   }
 
-  // (kept; not required, but harmless)
-  const sectionNameById = useMemo(() => {
-    const map = new Map();
-    sections.forEach((s) => map.set(s.id, s.name));
-    return map;
-  }, [sections]);
+  function closeItemModalAndReset() {
+    setItemModalOpen(false);
+    setEditingItemId(null);
+    setEditingItemImageUrl("");
+    setItemImageDataUrl("");
+  }
 
   if (menuLoading) {
     return (
@@ -311,7 +339,12 @@ export default function OwnerMenu() {
 
   return (
     <div className="ownerMenuPage" onClick={closeAllMenus}>
-      <h1 className="ownerMenuPage__title">Edit Your Menu</h1>
+      <header className="ownerMenuPage__header">
+        <h1 className="ownerMenuPage__title">Edit Your Menu</h1>
+        <p className="ownerMenuPage__subtitle">
+          Organize sections and items so guests can browse your menu quickly.
+        </p>
+      </header>
 
       {menuSaveError && <p className="formCard__error" style={{ color: "#f88", marginBottom: 8 }}>{menuSaveError}</p>}
       {menuSaveSuccess && <p className="formCard__success" style={{ color: "#8f8", marginBottom: 8 }}>{menuSaveSuccess}</p>}
@@ -342,15 +375,26 @@ export default function OwnerMenu() {
       </div>
 
       <div className="ownerMenuSectionsStack">
+        {!sections.length && (
+          <div className="menuSectionEmpty menuSectionEmpty--page">
+            No sections yet. Start by adding a section, then add items.
+          </div>
+        )}
+
         {sections.map((s) => {
           const sectionItems = items.filter((it) => it.sectionId === s.id);
 
           return (
             <div className="menuSectionBlock" key={s.id}>
               <div className="menuSectionHeader">
-                <button className="btn btn--gold ownerMenuSectionBtn">
-                  {s.name}
-                </button>
+                <div className="ownerMenuSectionInfo">
+                  <button className="btn btn--gold ownerMenuSectionBtn">
+                    {s.name}
+                  </button>
+                  <span className="ownerMenuSectionCount">
+                    {sectionItems.length} item{sectionItems.length === 1 ? "" : "s"}
+                  </span>
+                </div>
 
                 <div className="kebabWrap">
                   <button
@@ -386,7 +430,14 @@ export default function OwnerMenu() {
                         className="kebabItem kebabItem--danger"
                         type="button"
                         onClick={() => {
-                          deleteSection(s.id);
+                          openDeleteConfirm({
+                            title: "Delete section?",
+                            message: `Are you sure you want to delete "${s.name}" and all items inside it?`,
+                            onConfirm: () => {
+                              deleteSection(s.id);
+                              closeDeleteConfirm();
+                            },
+                          });
                           setOpenSectionMenuId(null);
                         }}
                       >
@@ -435,7 +486,14 @@ export default function OwnerMenu() {
                               className="kebabItem kebabItem--danger"
                               type="button"
                               onClick={() => {
-                                deleteItem(it.id);
+                                openDeleteConfirm({
+                                  title: "Delete menu item?",
+                                  message: `Are you sure you want to delete "${it.name}"?`,
+                                  onConfirm: () => {
+                                    deleteItem(it.id);
+                                    closeDeleteConfirm();
+                                  },
+                                });
                                 setOpenItemMenuId(null);
                               }}
                             >
@@ -536,12 +594,12 @@ export default function OwnerMenu() {
       {/* Add / Edit Item Modal */}
       {itemModalOpen && (
         <div className="modal is-open" role="dialog" aria-modal="true">
-          <div className="modal__backdrop" onClick={closeAddItem} />
+          <div className="modal__backdrop" onClick={closeItemModalAndReset} />
           <div className="modal__panel" role="document">
             <button
               className="modal__close"
               type="button"
-              onClick={closeAddItem}
+              onClick={closeItemModalAndReset}
               aria-label="Close"
             >
               ✕
@@ -704,6 +762,16 @@ export default function OwnerMenu() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title={confirmDelete?.title || "Delete item?"}
+        message={confirmDelete?.message || "Are you sure you want to delete this item?"}
+        confirmLabel="Yes"
+        cancelLabel="No"
+        onConfirm={() => confirmDelete?.onConfirm?.()}
+        onCancel={closeDeleteConfirm}
+      />
     </div>
   );
 }

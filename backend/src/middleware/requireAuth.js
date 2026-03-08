@@ -3,14 +3,23 @@ const tokenBlacklistRepository = require("../repositories/tokenBlacklistReposito
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
+const extractToken = (authHeader) => {
+  const raw = String(authHeader || "").trim();
+  if (!raw) return null;
+
+  const bearerMatch = raw.match(/^Bearer\s+(.+)$/i);
+  const token = bearerMatch ? bearerMatch[1].trim() : raw;
+  if (!token) return null;
+
+  return token.replace(/^"+|"+$/g, "");
+};
+
 const requireAuth = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
+    const token = extractToken(req.headers.authorization);
+    if (!token) {
       return res.status(401).json({ message: "Authorization token required" });
     }
-
-    const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, JWT_SECRET);
 
     if (decoded.jti) {

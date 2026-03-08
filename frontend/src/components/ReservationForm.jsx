@@ -203,7 +203,11 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
         seatingPreference: seatingPreference || null,
         specialRequest: specialRequest.trim(),
       });
-      onReserved?.(reservation);
+      onReserved?.({
+        ...reservation,
+        reservation_date: date,
+        reservation_time: `${time}:00`,
+      });
       onClose?.();
     } catch (error) {
       setErrors((prev) => ({ ...prev, submit: error.message || "Failed to create reservation." }));

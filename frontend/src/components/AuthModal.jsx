@@ -9,7 +9,6 @@ export default function AuthModal({
   onClose,
   onToggleMode,
 }) {
-  const DEFAULT_LEBANON_LOCATION = { latitude: 33.893791, longitude: 35.501777 };
   const { login, register, googleLogin } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -19,8 +18,7 @@ export default function AuthModal({
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [signupLatitude, setSignupLatitude] = useState("");
-  const [signupLongitude, setSignupLongitude] = useState("");
+  const [signupLocation, setSignupLocation] = useState({ latitude: null, longitude: null });
   const [locatingUser, setLocatingUser] = useState(false);
 
   const [accountType, setAccountType] = useState(null); // "user" | "restaurant" | null
@@ -54,8 +52,7 @@ export default function AuthModal({
     setPhone("");
     setPassword("");
     setConfirmPassword("");
-    setSignupLatitude("");
-    setSignupLongitude("");
+    setSignupLocation({ latitude: null, longitude: null });
     setLocatingUser(false);
     setError(null);
     setAccountType(null);
@@ -114,8 +111,11 @@ export default function AuthModal({
     setLocatingUser(true);
     setError(null);
     const onSuccess = (position) => {
-      setSignupLatitude(String(Number(position.coords.latitude.toFixed(6))));
-      setSignupLongitude(String(Number(position.coords.longitude.toFixed(6))));
+      setSignupLocation({
+        latitude: Number(position.coords.latitude.toFixed(6)),
+        longitude: Number(position.coords.longitude.toFixed(6)),
+      });
+      setError("Location added successfully.");
       setLocatingUser(false);
     };
 
@@ -142,7 +142,7 @@ export default function AuthModal({
         setError("Location request timed out. Please try again or enter coordinates manually.");
         return;
       }
-      setError("Unable to fetch your location. Please allow location access or enter coordinates manually.");
+      setError("Unable to fetch your location. You can continue without location.");
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -152,10 +152,9 @@ export default function AuthModal({
     );
   };
 
-  const useBeirutDefault = () => {
-    setSignupLatitude(String(DEFAULT_LEBANON_LOCATION.latitude));
-    setSignupLongitude(String(DEFAULT_LEBANON_LOCATION.longitude));
-    setError("Using default Beirut coordinates. You can edit them manually.");
+  const continueWithoutLocation = () => {
+    setSignupLocation({ latitude: null, longitude: null });
+    setError("Continuing without location. Explore map will default to Beirut.");
   };
 
   if (!isOpen) return null;
@@ -224,15 +223,10 @@ export default function AuthModal({
                   if (!normalizedPhone) throw new Error("Phone number is required");
                   if (normalizedPhone.length < 7) throw new Error("Please enter a valid phone number");
                   if (password !== confirmPassword) throw new Error("Password and confirm password do not match");
-                  const latitude = Number(signupLatitude);
-                  const longitude = Number(signupLongitude);
-                  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-                    throw new Error("Please provide valid location coordinates.");
-                  }
                   const role = accountType === "restaurant" ? "owner" : "user";
                   const data = await register(name, email, password, role, {
-                    latitude,
-                    longitude,
+                    latitude: signupLocation.latitude,
+                    longitude: signupLocation.longitude,
                     phone: normalizedPhone,
                   });
                   // Backend sends verification email and returns message (no token until verified)
@@ -243,8 +237,7 @@ export default function AuthModal({
                     setPhone("");
                     setPassword("");
                     setConfirmPassword("");
-                    setSignupLatitude("");
-                    setSignupLongitude("");
+                    setSignupLocation({ latitude: null, longitude: null });
                     return;
                   }
                   setName("");
@@ -252,8 +245,7 @@ export default function AuthModal({
                   setPhone("");
                   setPassword("");
                   setConfirmPassword("");
-                  setSignupLatitude("");
-                  setSignupLongitude("");
+                  setSignupLocation({ latitude: null, longitude: null });
                   onClose();
                 } else {
                   const data = await login(email, password);
@@ -341,30 +333,6 @@ export default function AuthModal({
 
             {mode === "signup" && (
               <>
-                <label className="field">
-                  <span>Location Latitude</span>
-                  <input
-                    type="number"
-                    step="0.000001"
-                    placeholder="e.g. 33.893791"
-                    value={signupLatitude}
-                    onChange={(e) => setSignupLatitude(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                </label>
-                <label className="field">
-                  <span>Location Longitude</span>
-                  <input
-                    type="number"
-                    step="0.000001"
-                    placeholder="e.g. 35.501777"
-                    value={signupLongitude}
-                    onChange={(e) => setSignupLongitude(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                </label>
                 <button
                   type="button"
                   className="btn btn--ghost btn--xl"
@@ -376,11 +344,16 @@ export default function AuthModal({
                 <button
                   type="button"
                   className="btn btn--ghost btn--xl"
-                  onClick={useBeirutDefault}
+                  onClick={continueWithoutLocation}
                   disabled={loading || locatingUser}
                 >
-                  Use Beirut Default
+                  Continue Without Location
                 </button>
+                {signupLocation.latitude != null && signupLocation.longitude != null && (
+                  <div className="modal__hint" aria-live="polite">
+                    Location captured.
+                  </div>
+                )}
               </>
             )}
 

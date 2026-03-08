@@ -22,6 +22,8 @@ function AppContent() {
   const [mode, setMode] = useState("signup"); // "signup" | "login"
   const [mobileOpen, setMobileOpen] = useState(false);
   const [landingView, setLandingView] = useState("full");
+  const [searchPresetCuisine, setSearchPresetCuisine] = useState("");
+  const [searchPresetToken, setSearchPresetToken] = useState(0);
 
   const { user, loading, logout } = useAuth();
 
@@ -77,19 +79,29 @@ function AppContent() {
                 <Hero onGettingStarted={() => openModal("signup")} />
               </section>
               <section id="discover">
-                <DiscoverCarousel />
+                <DiscoverCarousel
+                  onSelectCuisine={(cuisineLabel) => {
+                    setSearchPresetCuisine(cuisineLabel);
+                    setSearchPresetToken((prev) => prev + 1);
+                    goToSection("search", "search");
+                  }}
+                />
               </section>
             </>
           )}
 
           <section id="search">
-            <UserSearch
-              isGuest={!user}
-              onRequireSignup={() => openModal("signup")}
-              onSearchActiveChange={(active) => {
-                if (active) setLandingView("search");
-              }}
-            />
+            {landingView === "search" && (
+              <UserSearch
+                isGuest={!user}
+                onRequireSignup={() => openModal("signup")}
+                onSearchActiveChange={(active) => {
+                  if (active) setLandingView("search");
+                }}
+                initialCuisine={searchPresetCuisine}
+                initialCuisineToken={searchPresetToken}
+              />
+            )}
           </section>
         </section>
       </main>

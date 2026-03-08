@@ -41,3 +41,14 @@ export async function getReservationAvailability({ restaurantId, date, time, par
     method: "GET",
   });
 }
+
+export async function getOwnerReservations() {
+  return apiRequest("/owner/reservations", { method: "GET" });
+}
+
+export async function updateOwnerReservationStatus(reservationId, action) {
+  return apiRequest(`/owner/reservations/${reservationId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ action }),
+  });
+}

@@ -35,18 +35,20 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
     const [location, setLocation] = useState("");
     const [priceRange, setPriceRange] = useState("");
     const [dietarySupport, setDietarySupport] = useState([]);
-    const [logoFile, setLogoFile] = useState(null);
-    const [coverFile, setCoverFile] = useState(null);
+    const [logoDataUrl, setLogoDataUrl] = useState("");
+    const [coverDataUrl, setCoverDataUrl] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [existingRestaurant, setExistingRestaurant] = useState(null);
+    const [isEditing, setIsEditing] = useState(true);
 
     // Load existing restaurant on mount
     useEffect(() => {
         getMyRestaurant()
             .then((restaurant) => {
                 setExistingRestaurant(restaurant);
+                setIsEditing(false);
                 setRestaurantName(restaurant.name || "");
                 setCuisineType(restaurant.cuisine || "");
                 setLocation(restaurant.address || "");
@@ -54,44 +56,39 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
                 setClosingTime(restaurant.closing_time || "");
                 setPriceRange(restaurant.price_range || "");
                 setDietarySupport(Array.isArray(restaurant.dietary_support) ? restaurant.dietary_support : []);
+                setLogoDataUrl(restaurant.logo_url || restaurant.logoUrl || "");
+                setCoverDataUrl(restaurant.cover_url || restaurant.coverUrl || "");
             })
             .catch((err) => {
                 console.error("getMyRestaurant error:", err.message);
             });
     }, []);
 
-    const logoPreviewUrl = useMemo(() => {
-        if (!logoFile) return "";
-        return URL.createObjectURL(logoFile);
-    }, [logoFile]);
+    const logoPreviewUrl = useMemo(() => (
+        logoDataUrl || existingRestaurant?.logo_url || existingRestaurant?.logoUrl || ""
+    ), [logoDataUrl, existingRestaurant]);
 
-    const coverPreviewUrl = useMemo(() => {
-        if (!coverFile) return "";
-        return URL.createObjectURL(coverFile);
-    }, [coverFile]);
+    const coverPreviewUrl = useMemo(() => (
+        coverDataUrl || existingRestaurant?.cover_url || existingRestaurant?.coverUrl || ""
+    ), [coverDataUrl, existingRestaurant]);
+
+    const profileName = restaurantName.trim() || existingRestaurant?.name || "Your Restaurant";
 
     useEffect(() => {
         if (!onLogoPreviewChange) return;
-
-        if (logoPreviewUrl) onLogoPreviewChange(logoPreviewUrl);
-        else onLogoPreviewChange("");
+        onLogoPreviewChange(logoPreviewUrl || "");
     }, [logoPreviewUrl, onLogoPreviewChange]);
 
-    function onPickLogo(e) {
-        const file = e.target.files && e.target.files[0];
-        if (!file) return;
-
-        const isImage = file.type && file.type.startsWith("image/");
-        if (!isImage) {
-            alert("Please select an image file (PNG, JPG, JPEG).");
-            e.target.value = "";
-            return;
-        }
-
-        setLogoFile(file);
+    function readFileAsDataUrl(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result || ""));
+            reader.onerror = () => reject(new Error("Failed to read file."));
+            reader.readAsDataURL(file);
+        });
     }
 
-    function onPickCover(e) {
+    async function onPickLogo(e) {
         const file = e.target.files && e.target.files[0];
         if (!file) return;
 
@@ -102,7 +99,31 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
             return;
         }
 
-        setCoverFile(file);
+        try {
+            const dataUrl = await readFileAsDataUrl(file);
+            setLogoDataUrl(dataUrl);
+        } catch (error) {
+            alert(error.message || "Failed to process image.");
+        }
+    }
+
+    async function onPickCover(e) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        const isImage = file.type && file.type.startsWith("image/");
+        if (!isImage) {
+            alert("Please select an image file (PNG, JPG, JPEG).");
+            e.target.value = "";
+            return;
+        }
+
+        try {
+            const dataUrl = await readFileAsDataUrl(file);
+            setCoverDataUrl(dataUrl);
+        } catch (error) {
+            alert(error.message || "Failed to process image.");
+        }
     }
 
     async function onSubmit(e) {
@@ -120,15 +141,19 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
                 closing_time: closingTime,
                 price_range: priceRange || null,
                 dietary_support: dietarySupport,
+                logo_url: logoPreviewUrl || null,
+                cover_url: coverPreviewUrl || null,
             };
             if (existingRestaurant) {
                 const updated = await updateMyRestaurant(payload);
                 setExistingRestaurant(updated);
                 setSuccess("Restaurant updated successfully!");
+                setIsEditing(false);
             } else {
                 const created = await createRestaurant(payload);
                 setExistingRestaurant(created);
                 setSuccess("Restaurant created successfully!");
+                setIsEditing(false);
             }
         } catch (err) {
             setError(err.message || "Failed to save restaurant.");
@@ -137,10 +162,70 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
         }
     }
 
+    function startEditing() {
+        setError("");
+        setSuccess("");
+        setIsEditing(true);
+    }
+
     return (
         <div className="ownerProfile">
             <h1 className="ownerProfile__title">{existingRestaurant ? "Edit Restaurant Profile" : "Set Up Restaurant Profile"}</h1>
 
+            {existingRestaurant && !isEditing ? (
+                <section className="formCard ownerProfileViewCard">
+                    <div className="ownerProfileViewGrid">
+                        <div className="ownerProfileViewRow">
+                            <span className="ownerProfileViewLabel">Restaurant name</span>
+                            <span className="ownerProfileViewValue">{existingRestaurant.name || "Not set"}</span>
+                        </div>
+                        <div className="ownerProfileViewRow">
+                            <span className="ownerProfileViewLabel">Logo</span>
+                            <span className="ownerProfileViewValue">
+                                {logoPreviewUrl ? <img className="ownerProfileViewImage ownerProfileViewImage--logo" src={logoPreviewUrl} alt={`${profileName} logo`} /> : "Not set"}
+                            </span>
+                        </div>
+                        <div className="ownerProfileViewRow">
+                            <span className="ownerProfileViewLabel">Background image</span>
+                            <span className="ownerProfileViewValue">
+                                {coverPreviewUrl ? <img className="ownerProfileViewImage" src={coverPreviewUrl} alt={`${profileName} background`} /> : "Not set"}
+                            </span>
+                        </div>
+                        <div className="ownerProfileViewRow">
+                            <span className="ownerProfileViewLabel">Cuisine</span>
+                            <span className="ownerProfileViewValue">{existingRestaurant.cuisine || "Not set"}</span>
+                        </div>
+                        <div className="ownerProfileViewRow">
+                            <span className="ownerProfileViewLabel">Hours</span>
+                            <span className="ownerProfileViewValue">
+                                {(existingRestaurant.opening_time || "").slice(0, 5) || "--:--"} - {(existingRestaurant.closing_time || "").slice(0, 5) || "--:--"}
+                            </span>
+                        </div>
+                        <div className="ownerProfileViewRow">
+                            <span className="ownerProfileViewLabel">Location</span>
+                            <span className="ownerProfileViewValue">{existingRestaurant.address || "Not set"}</span>
+                        </div>
+                        <div className="ownerProfileViewRow">
+                            <span className="ownerProfileViewLabel">Price category</span>
+                            <span className="ownerProfileViewValue">{existingRestaurant.price_range || "Not set"}</span>
+                        </div>
+                        <div className="ownerProfileViewRow">
+                            <span className="ownerProfileViewLabel">Dietary support</span>
+                            <span className="ownerProfileViewValue">
+                                {Array.isArray(existingRestaurant.dietary_support) && existingRestaurant.dietary_support.length
+                                    ? existingRestaurant.dietary_support.join(", ")
+                                    : "Not set"}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="formCard__actions">
+                        <button className="btn btn--gold btn--xl" type="button" onClick={startEditing}>
+                            Edit
+                        </button>
+                    </div>
+                </section>
+            ) : (
             <form className="ownerProfile__form" onSubmit={onSubmit}>
                 <div className="ownerProfileGrid">
                     <div className="ownerProfileGrid__media">
@@ -294,8 +379,9 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
                         <label className="field">
                             <span>Location</span>
                             <input
+                                className="ownerProfile__locationInput"
                                 type="text"
-                                placeholder="Enter location"
+                                placeholder="Enter Your Location"
                                 value={location}
                                 onChange={(e) => setLocation(e.target.value)}
                                 required
@@ -304,8 +390,8 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
 
                         
 
-                        {error && <div style={{ color: "red", fontSize: 13 }}>{error}</div>}
-                        {success && <div style={{ color: "green", fontSize: 13 }}>{success}</div>}
+                        {error && <div className="ownerProfile__feedback ownerProfile__feedback--error">{error}</div>}
+                        {success && <div className="ownerProfile__feedback ownerProfile__feedback--success">{success}</div>}
 
                         <div className="formCard__actions">
                             <button className="btn btn--gold btn--xl" type="submit" disabled={loading}>
@@ -315,6 +401,7 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
                     </div>
                 </div>
             </form>
+            )}
         </div>
     );
 }

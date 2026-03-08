@@ -65,7 +65,7 @@ async function createReservation(db, data) {
         AND existing.reservation_time = $4
         AND existing.status = 'confirmed'
     )
-    RETURNING id, user_id, restaurant_id, reservation_date, reservation_time, party_size,
+    RETURNING id, user_id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time, party_size,
               seating_preference, special_request, status, confirmation_id, created_at, updated_at;
   `;
 
@@ -83,7 +83,7 @@ async function createReservation(db, data) {
 
 async function getReservationById(db, reservationId) {
   const query = `
-    SELECT id, user_id, restaurant_id, reservation_date, reservation_time, party_size,
+    SELECT id, user_id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time, party_size,
            seating_preference, special_request, status, confirmation_id, created_at, updated_at
     FROM reservations
     WHERE id = $1;
@@ -93,7 +93,7 @@ async function getReservationById(db, reservationId) {
 
 async function getUserReservations(db, userId) {
   const query = `
-    SELECT r.id, r.user_id, r.restaurant_id, r.reservation_date, r.reservation_time, r.party_size,
+    SELECT r.id, r.user_id, r.restaurant_id, r.reservation_date::text AS reservation_date, r.reservation_time::text AS reservation_time, r.party_size,
            r.seating_preference, r.special_request, r.status, r.confirmation_id, r.created_at, r.updated_at,
            rest.name AS restaurant_name, rest.address AS restaurant_address
     FROM reservations r
@@ -110,10 +110,63 @@ async function cancelReservation(db, reservationId) {
     SET status = 'cancelled', updated_at = NOW()
     WHERE id = $1
       AND status = 'confirmed'
-    RETURNING id, user_id, restaurant_id, reservation_date, reservation_time, party_size,
+    RETURNING id, user_id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time, party_size,
               seating_preference, special_request, status, confirmation_id, created_at, updated_at;
   `;
   return db.query(query, [reservationId]);
+}
+
+async function getOwnerReservations(db, ownerId) {
+  const query = `
+    SELECT r.id, r.user_id, r.restaurant_id, r.reservation_date::text AS reservation_date, r.reservation_time::text AS reservation_time,
+           r.party_size, r.seating_preference, r.special_request, r.status, r.confirmation_id, r.created_at, r.updated_at,
+           rest.name AS restaurant_name, rest.address AS restaurant_address,
+           u.full_name AS customer_name, u.email AS customer_email
+    FROM reservations r
+    JOIN restaurants rest ON rest.id = r.restaurant_id
+    JOIN users u ON u.id = r.user_id
+    WHERE rest.owner_id = $1
+    ORDER BY r.reservation_date DESC, r.reservation_time DESC, r.created_at DESC;
+  `;
+  return db.query(query, [ownerId]);
+}
+
+async function getOwnerReservationById(db, { reservationId, ownerId }) {
+  const query = `
+    SELECT r.id, r.user_id, r.restaurant_id, r.reservation_date::text AS reservation_date, r.reservation_time::text AS reservation_time,
+           r.party_size, r.seating_preference, r.special_request, r.status, r.confirmation_id, r.created_at, r.updated_at,
+           rest.name AS restaurant_name, rest.address AS restaurant_address,
+           u.full_name AS customer_name, u.email AS customer_email
+    FROM reservations r
+    JOIN restaurants rest ON rest.id = r.restaurant_id
+    JOIN users u ON u.id = r.user_id
+    WHERE r.id = $1
+      AND rest.owner_id = $2
+    LIMIT 1;
+  `;
+  return db.query(query, [reservationId, ownerId]);
+}
+
+async function updateOwnerReservationStatus(db, { reservationId, ownerId, status }) {
+  const query = `
+    WITH updated AS (
+      UPDATE reservations r
+      SET status = $3, updated_at = NOW()
+      FROM restaurants rest
+      WHERE r.id = $1
+        AND r.restaurant_id = rest.id
+        AND rest.owner_id = $2
+      RETURNING r.id, r.user_id, r.restaurant_id, r.reservation_date::text AS reservation_date, r.reservation_time::text AS reservation_time,
+                r.party_size, r.seating_preference, r.special_request, r.status, r.confirmation_id, r.created_at, r.updated_at
+    )
+    SELECT updated.*,
+           rest.name AS restaurant_name, rest.address AS restaurant_address,
+           u.full_name AS customer_name, u.email AS customer_email
+    FROM updated
+    JOIN restaurants rest ON rest.id = updated.restaurant_id
+    JOIN users u ON u.id = updated.user_id;
+  `;
+  return db.query(query, [reservationId, ownerId, status]);
 }
 
 module.exports = {
@@ -124,5 +177,8 @@ module.exports = {
   getReservationById,
   getUserReservations,
   cancelReservation,
+  getOwnerReservations,
+  getOwnerReservationById,
+  updateOwnerReservationStatus,
 };
 

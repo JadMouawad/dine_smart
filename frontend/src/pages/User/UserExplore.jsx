@@ -11,8 +11,8 @@ const LEBANON_BOUNDS = {
   maxLng: 36.7,
 };
 const LEBANON_CENTER = {
-  lat: 33.8547,
-  lng: 35.8623,
+  lat: 33.893791,
+  lng: 35.501777,
 };
 
 const CUISINES = [
@@ -275,7 +275,7 @@ export default function UserExplore({ onOpenRestaurant }) {
     return {
       lat: LEBANON_CENTER.lat,
       lng: LEBANON_CENTER.lng,
-      label: "Lebanon",
+      label: "Beirut",
     };
   }, [selectedRestaurant, effectiveCoords.latitude, effectiveCoords.longitude, restaurantsWithCoords]);
 

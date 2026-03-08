@@ -6,6 +6,7 @@ import {
   getOwnerEvents,
   updateOwnerEvent,
 } from "../../services/restaurantService";
+import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 
 const initialForm = {
   title: "",
@@ -24,6 +25,7 @@ export default function OwnerEvents() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [confirmDeleteEvent, setConfirmDeleteEvent] = useState(null);
 
   async function loadData() {
     setLoading(true);
@@ -206,7 +208,11 @@ export default function OwnerEvents() {
                   <button className="btn btn--ghost" type="button" onClick={() => startEdit(event)}>
                     Edit
                   </button>
-                  <button className="btn btn--ghost" type="button" onClick={() => handleDelete(event.id)}>
+                  <button
+                    className="btn btn--ghost"
+                    type="button"
+                    onClick={() => setConfirmDeleteEvent(event)}
+                  >
                     Delete
                   </button>
                 </div>
@@ -219,6 +225,25 @@ export default function OwnerEvents() {
           ))
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!confirmDeleteEvent}
+        title="Delete event?"
+        message={
+          confirmDeleteEvent
+            ? `Are you sure you want to delete "${confirmDeleteEvent.title}"?`
+            : "Are you sure you want to delete this event?"
+        }
+        confirmLabel="Yes"
+        cancelLabel="No"
+        onConfirm={async () => {
+          if (!confirmDeleteEvent) return;
+          const id = confirmDeleteEvent.id;
+          setConfirmDeleteEvent(null);
+          await handleDelete(id);
+        }}
+        onCancel={() => setConfirmDeleteEvent(null)}
+      />
     </div>
   );
 }

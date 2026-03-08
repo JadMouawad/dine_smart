@@ -5,6 +5,7 @@ import {
   getAdminUsers,
   suspendAdminUser,
 } from "../../services/adminService";
+import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 
 const PAGE_SIZE = 10;
 
@@ -18,6 +19,7 @@ export default function UserManagementPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busyId, setBusyId] = useState(null);
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState(null);
 
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [selectedUserDetails, setSelectedUserDetails] = useState(null);
@@ -107,8 +109,6 @@ export default function UserManagementPage() {
   }
 
   async function handleDelete(userId) {
-    if (!window.confirm("Delete this user and related data?")) return;
-
     setMessage("");
     setError("");
     setBusyId(userId);
@@ -222,7 +222,7 @@ export default function UserManagementPage() {
                           disabled={busyId === user.id}
                           onClick={(event) => {
                             event.stopPropagation();
-                            handleDelete(user.id);
+                            setConfirmDeleteUser(user);
                           }}
                         >
                           Delete
@@ -297,6 +297,26 @@ export default function UserManagementPage() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={!!confirmDeleteUser}
+        title="Delete user?"
+        message={
+          confirmDeleteUser
+            ? `Are you sure you want to delete ${confirmDeleteUser.full_name || confirmDeleteUser.email}? This will remove related data.`
+            : "Are you sure you want to delete this user?"
+        }
+        confirmLabel="Yes"
+        cancelLabel="No"
+        busy={busyId === confirmDeleteUser?.id}
+        busyLabel="Deleting..."
+        onConfirm={() => {
+          if (!confirmDeleteUser) return;
+          handleDelete(confirmDeleteUser.id);
+          setConfirmDeleteUser(null);
+        }}
+        onCancel={() => setConfirmDeleteUser(null)}
+      />
     </div>
   );
 }

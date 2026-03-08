@@ -1,6 +1,22 @@
 // src/repositories/restaurantRepository.js
 const pool = require("../config/db");
 
+let restaurantColumnsCache = null;
+
+const getRestaurantColumns = async () => {
+  if (restaurantColumnsCache) return restaurantColumnsCache;
+
+  const result = await pool.query(`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'restaurants'
+  `);
+
+  restaurantColumnsCache = new Set(result.rows.map((row) => row.column_name));
+  return restaurantColumnsCache;
+};
+
 const createRestaurant = async (data) => {
   const {
     name,
@@ -15,40 +31,77 @@ const createRestaurant = async (data) => {
     price_range: priceRangeRaw,
     dietarySupport,
     dietary_support: dietarySupportRaw,
+    logoUrl,
+    logo_url: logoUrlRaw,
+    coverUrl,
+    cover_url: coverUrlRaw,
     openingTime,
     closingTime,
     opening_time: openingTimeRaw,
     closing_time: closingTimeRaw,
     ownerId,
   } = data;
+
   const openingValue = openingTime || openingTimeRaw || null;
   const closingValue = closingTime || closingTimeRaw || null;
   const priceRangeValue = priceRange || priceRangeRaw || null;
+  const logoValue = logoUrl || logoUrlRaw || null;
+  const coverValue = coverUrl || coverUrlRaw || null;
   const dietarySupportValue = Array.isArray(dietarySupport)
     ? dietarySupport
     : Array.isArray(dietarySupportRaw)
       ? dietarySupportRaw
       : [];
 
+  const restaurantColumns = await getRestaurantColumns();
+  const includeLogo = restaurantColumns.has("logo_url");
+  const includeCover = restaurantColumns.has("cover_url");
+
+  const columns = [
+    "name",
+    "description",
+    "cuisine",
+    "address",
+    "opening_time",
+    "closing_time",
+    "latitude",
+    "longitude",
+    "price_range",
+    "dietary_support",
+    ...(includeLogo ? ["logo_url"] : []),
+    ...(includeCover ? ["cover_url"] : []),
+    "owner_id",
+    "is_verified",
+    "approval_status",
+  ];
+
+  const values = [
+    name,
+    description,
+    cuisine,
+    address,
+    openingValue,
+    closingValue,
+    latitude != null ? Number(latitude) : null,
+    longitude != null ? Number(longitude) : null,
+    priceRangeValue,
+    dietarySupportValue,
+    ...(includeLogo ? [logoValue] : []),
+    ...(includeCover ? [coverValue] : []),
+    ownerId,
+    true,
+    "approved",
+  ];
+
+  const placeholders = values.map((_, index) =>
+    columns[index] === "dietary_support" ? `$${index + 1}::text[]` : `$${index + 1}`
+  );
+
   const result = await pool.query(
-    `INSERT INTO restaurants (
-      name, description, cuisine, address, opening_time, closing_time, latitude, longitude,
-      price_range, dietary_support, owner_id, is_verified, approval_status
-    )
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::text[], $11, false, 'pending') RETURNING *`,
-    [
-      name,
-      description,
-      cuisine,
-      address,
-      openingValue,
-      closingValue,
-      latitude != null ? Number(latitude) : null,
-      longitude != null ? Number(longitude) : null,
-      priceRangeValue,
-      dietarySupportValue,
-      ownerId,
-    ]
+    `INSERT INTO restaurants (${columns.join(", ")})
+     VALUES (${placeholders.join(", ")})
+     RETURNING *`,
+    values
   );
   const restaurant = result.rows[0];
 
@@ -87,21 +140,53 @@ const getRestaurantById = async (id) => {
 };
 
 const updateRestaurant = async (id, data) => {
+  const restaurantColumns = await getRestaurantColumns();
+  const allowedColumns = new Set([
+    "name",
+    "description",
+    "cuisine",
+    "address",
+    "phone",
+    "rating",
+    "owner_id",
+    "opening_time",
+    "closing_time",
+    "latitude",
+    "longitude",
+    "price_range",
+    "dietary_support",
+    "is_verified",
+    "approval_status",
+    "rejection_reason",
+    "menu_sections",
+    "logo_url",
+    "cover_url",
+  ]);
+
   const fields = [];
   const values = [];
   let index = 1;
-for (const key in data) {
-  fields.push(`${key} = $${index}`);
 
-  // ✅ FIX: stringify menu JSON before saving
-  if (key === "menu_sections" || key === "menu") {
-    values.push(JSON.stringify(data[key]));
-  } else {
-    values.push(data[key]);
+  for (const key in data) {
+    const normalizedKey = key === "menu" ? "menu_sections" : key;
+    if (!allowedColumns.has(normalizedKey)) continue;
+    if (!restaurantColumns.has(normalizedKey)) continue;
+
+    fields.push(`${normalizedKey} = $${index}`);
+
+    if (normalizedKey === "menu_sections") {
+      values.push(JSON.stringify(data[key]));
+    } else {
+      values.push(data[key]);
+    }
+
+    index += 1;
   }
 
-  index++;
-}
+  if (fields.length === 0) {
+    const existing = await pool.query(`SELECT * FROM restaurants WHERE id = $1`, [id]);
+    return existing.rows[0] || null;
+  }
 
   values.push(id);
   const result = await pool.query(
@@ -112,7 +197,16 @@ for (const key in data) {
 };
 
 const getRestaurantByOwnerId = async (ownerId) => {
-  const result = await pool.query(`SELECT * FROM restaurants WHERE owner_id = $1 LIMIT 1`, [ownerId]);
+  const result = await pool.query(
+    `
+      SELECT *
+      FROM restaurants
+      WHERE owner_id = $1
+      ORDER BY is_verified DESC, updated_at DESC, created_at DESC
+      LIMIT 1
+    `,
+    [ownerId]
+  );
   return result.rows[0] || null;
 };
 
@@ -131,7 +225,6 @@ const deleteRestaurant = async (id) => {
   );
   return result.rows[0];
 };
-
 const searchRestaurants = async (query, cuisines = [], filters = {}) => {
   const trimmed = (query || "").trim();
   const cuisineList = Array.isArray(cuisines) ? cuisines.filter(Boolean) : [cuisines].filter(Boolean);
@@ -379,3 +472,7 @@ module.exports = {
   getTableConfigByRestaurantId,
   upsertTableConfigByRestaurantId,
 };
+
+
+
+

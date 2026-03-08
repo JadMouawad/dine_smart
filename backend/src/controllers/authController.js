@@ -21,10 +21,11 @@ const register = async (req, res) => {
     const parsedLatitude = parseCoordinate(latitude);
     const parsedLongitude = parseCoordinate(longitude);
     const hasLocation = parsedLatitude != null && parsedLongitude != null;
-    if (!hasLocation) {
-      return res.status(400).json({ message: "Location (latitude and longitude) is required for signup." });
+    const hasPartialLocation = (parsedLatitude != null && parsedLongitude == null) || (parsedLatitude == null && parsedLongitude != null);
+    if (hasPartialLocation) {
+      return res.status(400).json({ message: "Please provide both latitude and longitude, or skip location." });
     }
-    if (parsedLatitude < -90 || parsedLatitude > 90 || parsedLongitude < -180 || parsedLongitude > 180) {
+    if (hasLocation && (parsedLatitude < -90 || parsedLatitude > 90 || parsedLongitude < -180 || parsedLongitude > 180)) {
       return res.status(400).json({ message: "Invalid location coordinates." });
     }
     const normalizedPhone = String(phone || "").replace(/\D/g, "");
@@ -34,8 +35,8 @@ const register = async (req, res) => {
 
     const roleId = role === "owner" ? 2 : 1;
     await authService.registerUser(name, email, password, roleId, {
-      latitude: parsedLatitude,
-      longitude: parsedLongitude,
+      latitude: hasLocation ? parsedLatitude : null,
+      longitude: hasLocation ? parsedLongitude : null,
       phone: normalizedPhone,
     });
 

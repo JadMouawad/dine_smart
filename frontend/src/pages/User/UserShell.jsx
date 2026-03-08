@@ -7,6 +7,7 @@ import UserProfile from "./UserProfile.jsx";
 import UserReservations from "./UserReservations.jsx";
 import UserDiscover from "./UserDiscover.jsx";
 import UserExplore from "./UserExplore.jsx";
+import { getProfile } from "../../services/profileService.js";
 
 export default function UserShell({ initialActive = "search" }) {
     const [active, setActive] = useState(initialActive);
@@ -18,6 +19,28 @@ export default function UserShell({ initialActive = "search" }) {
     useEffect(() => {
         setActive(initialActive);
     }, [initialActive]);
+
+    useEffect(() => {
+        if (!user?.id) {
+            setUserAvatarUrl("");
+            return;
+        }
+
+        let mounted = true;
+        getProfile()
+            .then((profile) => {
+                if (!mounted) return;
+                const avatar = profile?.profilePictureUrl ?? profile?.profile_picture_url ?? "";
+                setUserAvatarUrl(avatar);
+            })
+            .catch(() => {
+                if (mounted) setUserAvatarUrl("");
+            });
+
+        return () => {
+            mounted = false;
+        };
+    }, [user?.id]);
 
     // Wait for auth to restore before rendering
     if (loading) return null;

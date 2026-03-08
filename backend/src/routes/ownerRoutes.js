@@ -3,6 +3,7 @@ const router = express.Router();
 const restaurantController = require("../controllers/restaurantController");
 const reviewController = require("../controllers/reviewController");
 const eventController = require("../controllers/eventController");
+const reservationController = require("../controllers/reservationController");
 const { authenticateToken } = require("../middleware/authMiddleware");
 const { authorizeRoles } = require("../middleware/roleMiddleware");
 
@@ -53,6 +54,20 @@ router.post(
   authenticateToken,
   authorizeRoles("owner"),
   reviewController.respondToReviewAsOwner
+);
+
+router.get(
+  "/reservations",
+  authenticateToken,
+  authorizeRoles("owner"),
+  reservationController.getReservationsForOwner
+);
+
+router.patch(
+  "/reservations/:id/status",
+  authenticateToken,
+  authorizeRoles("owner"),
+  reservationController.updateReservationStatusForOwner
 );
 
 module.exports = router;

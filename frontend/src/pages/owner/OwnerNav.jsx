@@ -96,14 +96,6 @@ export default function OwnerNav({ active, onChange, avatarSrc, onLogout }) {
         </nav>
 
         <div className="nav__actions ownerNav__actions">
-          <div className="ownerAvatar" aria-label="Restaurant logo">
-            {avatarSrc ? (
-              <img className="ownerAvatar__img" src={avatarSrc} alt="Restaurant logo" />
-            ) : (
-              <span className="ownerAvatar__fallback">R</span>
-            )}
-          </div>
-
           <button className="btn btn--ghost" type="button" onClick={onLogout}>
             Log out
           </button>
@@ -115,6 +107,7 @@ export default function OwnerNav({ active, onChange, avatarSrc, onLogout }) {
           <span></span>
         </button>
       </div>
+
     </header>
   );
 }

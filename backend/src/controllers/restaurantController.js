@@ -46,7 +46,11 @@ const updateMyRestaurant = async (req, res) => {
   try {
     const restaurant = await restaurantService.getRestaurantByOwnerId(req.user.id);
     if (!restaurant) return res.status(404).json({ message: "No restaurant found" });
-    const updated = await restaurantService.updateRestaurant(restaurant.id, req.body);
+    const updated = await restaurantService.updateRestaurant(restaurant.id, {
+      ...req.body,
+      is_verified: true,
+      approval_status: "approved",
+    });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ message: err.message });

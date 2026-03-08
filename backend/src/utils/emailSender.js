@@ -101,7 +101,53 @@ const sendReservationConfirmationEmail = async ({
   await transporter.sendMail(mailOptions);
 };
 
+const sendReservationCancellationEmail = async ({
+  to,
+  userName = "Guest",
+  restaurantName,
+  reservationDate,
+  reservationTime,
+  partySize,
+  confirmationId,
+}) => {
+  const confirmationLine = confirmationId
+    ? `<p><strong>Confirmation ID:</strong> ${confirmationId}</p>`
+    : "";
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Reservation cancelled - DineSmart</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2>Reservation Cancelled</h2>
+      <p>Hi ${userName},</p>
+      <p>Your reservation has been cancelled successfully.</p>
+      ${confirmationLine}
+      <p><strong>Restaurant:</strong> ${restaurantName}</p>
+      <p><strong>Date:</strong> ${reservationDate}</p>
+      <p><strong>Time:</strong> ${reservationTime}</p>
+      <p><strong>Seats:</strong> ${partySize}</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+      <p style="font-size: 12px; color: #888;">DineSmart - Reservation update</p>
+    </body>
+    </html>
+  `;
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    to,
+    subject: "Your DineSmart reservation was cancelled",
+    html,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
 module.exports = {
   sendVerificationEmail,
   sendReservationConfirmationEmail,
+  sendReservationCancellationEmail,
 };

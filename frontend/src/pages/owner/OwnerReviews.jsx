@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { getReviewsByRestaurantId, respondToReviewAsOwner } from "../../services/reviewService";
 import { getMyRestaurant } from "../../services/restaurantService";
 
+const FILLED_STAR = "\u2605";
+const EMPTY_STAR = "\u2606";
+
 export default function OwnerReviews() {
   const [restaurant, setRestaurant] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -29,6 +32,22 @@ export default function OwnerReviews() {
 
   useEffect(() => {
     loadReviews();
+  }, []);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      loadReviews();
+    }, 20000);
+
+    function onReviewChanged() {
+      loadReviews();
+    }
+
+    window.addEventListener("ds:review-changed", onReviewChanged);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("ds:review-changed", onReviewChanged);
+    };
   }, []);
 
   async function saveResponse(reviewId) {
@@ -94,8 +113,14 @@ export default function OwnerReviews() {
                 </button>
               </div>
               <div className="reviewCardFull__stars">
-                {"*".repeat(review.rating)}{" "}
+                {FILLED_STAR.repeat(Math.max(0, Number(review.rating) || 0))}
+                {EMPTY_STAR.repeat(Math.max(0, 5 - (Number(review.rating) || 0)))}
               </div>
+              <p className="reservationCard__meta">
+                {review.created_at || review.createdAt
+                  ? new Date(review.created_at || review.createdAt).toLocaleString()
+                  : "Date unavailable"}
+              </p>
               <p>{review.comment}</p>
 
               {review.owner_response && (

@@ -84,6 +84,14 @@ export default function RestaurantTableConfig() {
     };
   }, [form]);
 
+  function applyTableBasedCapacity() {
+    const table2 = toNumber(form.table_2_person);
+    const table4 = toNumber(form.table_4_person);
+    const table6 = toNumber(form.table_6_person);
+    const computed = (table2 * 2) + (table4 * 4) + (table6 * 6);
+    setForm((prev) => ({ ...prev, total_capacity: String(Math.max(computed, 1)) }));
+  }
+
   function updateField(field, value) {
     if (value === "") {
       setForm((prev) => ({ ...prev, [field]: "" }));
@@ -165,6 +173,18 @@ export default function RestaurantTableConfig() {
       {error && <div className="fieldError">{error}</div>}
 
       <form className="formCard ownerTableConfigCard" onSubmit={onSubmit}>
+        <div className="ownerTableConfigSummary">
+          <div className="capacityPreview">
+            Total capacity target: {preview.total}
+          </div>
+          <div className="capacityPreview">
+            Table-based seats: {preview.tableBased}
+          </div>
+          <div className={`capacityPreview ${preview.zonesValid ? "" : "capacityPreview--warn"}`}>
+            Zone seats: {preview.zoneTotal} / {preview.total}
+          </div>
+        </div>
+
         <label className="field">
           <span>Total Capacity</span>
           <input
@@ -175,6 +195,12 @@ export default function RestaurantTableConfig() {
             required
           />
         </label>
+
+        <div className="ownerEventActions">
+          <button className="btn btn--ghost" type="button" onClick={applyTableBasedCapacity}>
+            Use Table-Based Capacity
+          </button>
+        </div>
 
         <div className="ownerTableConfigSectionTitle">Table Distribution</div>
         <div className="ownerTableConfigColumns">

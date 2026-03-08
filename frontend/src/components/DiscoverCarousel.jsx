@@ -21,7 +21,7 @@ const CUISINES = [
   { src: international, label: "International", alt: "International" },
 ];
 
-export default function DiscoverCarousel() {
+export default function DiscoverCarousel({ onSelectCuisine }) {
   return (
     <section className="discover" id="discover">
       <div className="discover__inner">
@@ -33,10 +33,16 @@ export default function DiscoverCarousel() {
         <div className="discover__carousel">
           <div className="discover__track autoScroll">
             {[...CUISINES, ...CUISINES, ...CUISINES].map((c, index) => (
-              <div className="discover__card" key={c.label + index}>
+              <button
+                className="discover__card"
+                key={c.label + index}
+                type="button"
+                onClick={() => onSelectCuisine?.(c.label)}
+                aria-label={`View ${c.label} restaurants`}
+              >
                 <img src={c.src} alt={c.alt} />
                 <span className="discover__label">{c.label}</span>
-              </div>
+              </button>
             ))}
           </div>
         </div>

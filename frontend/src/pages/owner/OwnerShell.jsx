@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import OwnerNav from "./OwnerNav.jsx";
@@ -7,15 +7,23 @@ import OwnerMenu from "./OwnerMenu.jsx";
 import RestaurantTableConfig from "./RestaurantTableConfig.jsx";
 import OwnerEvents from "./OwnerEvents.jsx";
 import OwnerReviews from "./OwnerReviews.jsx";
+import OwnerReservations from "./OwnerReservations.jsx";
 
 export default function OwnerShell() {
   const [active, setActive] = useState("profile");
   const navigate = useNavigate();
-  const { logout, loading } = useAuth();
+  const { user, logout, loading } = useAuth();
   const [restaurantLogoUrl, setRestaurantLogoUrl] = useState("");
+
+  useEffect(() => {
+    if (!loading && (!user || user.role !== "owner")) {
+      navigate("/", { replace: true });
+    }
+  }, [loading, user, navigate]);
 
   // Wait for auth to restore before rendering (so token is in localStorage for API calls)
   if (loading) return null;
+  if (!user || user.role !== "owner") return null;
 
   function handleLogout() {
     logout();
@@ -44,7 +52,9 @@ export default function OwnerShell() {
 
         {active === "reviews" && <OwnerReviews />}
 
-        {active !== "profile" && active !== "menu" && active !== "table-config" && active !== "events" && active !== "reviews" && (
+        {active === "reservations" && <OwnerReservations />}
+
+        {active !== "profile" && active !== "menu" && active !== "table-config" && active !== "events" && active !== "reviews" && active !== "reservations" && (
           <div className="placeholderPage">
             <h1 className="placeholderPage__title">
               {active.charAt(0).toUpperCase() + active.slice(1)}
