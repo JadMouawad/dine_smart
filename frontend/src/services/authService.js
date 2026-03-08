@@ -15,10 +15,10 @@ export function loginUser({ email, password }) {
   });
 }
 
-export function googleAuth({ idToken }) {
+export function googleAuth({ idToken, role }) {
   return apiRequest("/auth/google", {
     method: "POST",
-    body: JSON.stringify({ idToken }),
+    body: JSON.stringify({ idToken, role }),
   });
 }
 

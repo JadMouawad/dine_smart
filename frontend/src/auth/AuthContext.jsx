@@ -90,8 +90,8 @@ export function AuthProvider({ children }) {
     return data;
   }
 
-  async function googleLogin(idToken) {
-    const data = await googleAuth({ idToken });
+  async function googleLogin(idToken, role) {
+    const data = await googleAuth({ idToken, role });
     const newToken = data.token ?? data.accessToken;
 
     if (!newToken) throw new Error("No token returned from server");

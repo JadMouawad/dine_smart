@@ -86,7 +86,8 @@ export default function AuthModal({
     setError(null);
     setLoading(true);
     try {
-      const data = await googleLogin(credentialResponse.credential);
+      const role = accountType === "restaurant" ? "owner" : "user";
+      const data = await googleLogin(credentialResponse.credential, role);
       const userRole = data?.user?.role;
       onClose();
       if (userRole === "admin") navigate("/admin/dashboard");

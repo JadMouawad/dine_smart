@@ -103,7 +103,7 @@ const loginUser = async (email, password) => {
 /**
  * Authenticate a user via Google OAuth id_token
  */
-const googleAuthUser = async (idToken) => {
+const googleAuthUser = async (idToken, role) => {
   let ticket;
   try {
     ticket = await googleClient.verifyIdToken({
@@ -132,7 +132,8 @@ const googleAuthUser = async (idToken) => {
     if (existingByEmail) {
       user = await User.linkGoogleId(pool, existingByEmail.id, googleId);
     } else {
-      user = await User.createOAuthUser(pool, { fullName, email, googleId });
+      const roleId = role === "owner" ? 2 : 1;
+      user = await User.createOAuthUser(pool, { fullName, email, googleId, roleId });
     }
   }
 
