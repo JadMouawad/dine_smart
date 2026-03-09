@@ -1,5 +1,5 @@
 const emailVerificationService = require("../services/emailVerificationService");
-const authService = require("../services/authServices");
+const authService = require("../services/authService");
 
 /**
  * GET /api/auth/verify-email?token=...
@@ -14,6 +14,9 @@ const verifyEmail = async (req, res) => {
     }
 
     const { user } = await emailVerificationService.verifyToken(token);
+    if (user?.is_suspended === true) {
+      return res.status(403).json({ message: "Your account has been suspended. Please contact support." });
+    }
     const jwtToken = authService.generateTokenForUser(user);
 
     res.status(200).json({

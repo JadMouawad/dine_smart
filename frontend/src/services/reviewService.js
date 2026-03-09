@@ -10,3 +10,17 @@ export async function createReview(restaurantId, { rating, comment }) {
     body: JSON.stringify({ rating, comment }),
   });
 }
+
+export async function flagReview(reviewId, reason) {
+  return apiRequest(`/reviews/${reviewId}/flag`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function respondToReviewAsOwner(reviewId, ownerResponse) {
+  return apiRequest(`/owner/reviews/${reviewId}/respond`, {
+    method: "POST",
+    body: JSON.stringify({ owner_response: ownerResponse }),
+  });
+}

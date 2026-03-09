@@ -19,7 +19,8 @@ const findByEmail = async (db, email) => {
 // Find user by ID
 const findById = async (db, id) => {
   const query = `
-    SELECT u.id, u.full_name, u.email, u.role_id, u.is_verified, u.provider, u.created_at, u.updated_at, r.name AS role
+    SELECT u.id, u.full_name, u.email, u.role_id, u.is_verified, u.provider, u.is_suspended, u.suspended_at,
+           u.phone, u.latitude, u.longitude, u.profile_picture_url, u.created_at, u.updated_at, r.name AS role
     FROM users u
     LEFT JOIN roles r ON u.role_id = r.id
     WHERE u.id = $1
@@ -29,13 +30,21 @@ const findById = async (db, id) => {
 };
 
 // Create new user (local registration: provider=local, is_verified=false until email verified)
-const create = async (db, { fullName, email, password, roleId = 1 }) => {
+const create = async (db, {
+  fullName,
+  email,
+  password,
+  roleId = 1,
+  latitude = null,
+  longitude = null,
+  phone = null,
+}) => {
   const query = `
-    INSERT INTO users (full_name, email, password, role_id, provider, is_verified)
-    VALUES ($1, $2, $3, $4, 'local', false)
-    RETURNING id, full_name, email, role_id, is_verified, provider, created_at, updated_at
+    INSERT INTO users (full_name, email, password, role_id, provider, is_verified, latitude, longitude, phone)
+    VALUES ($1, $2, $3, $4, 'local', false, $5, $6, $7)
+    RETURNING id, full_name, email, role_id, is_verified, provider, is_suspended, suspended_at, latitude, longitude, phone, created_at, updated_at
   `;
-  const result = await db.query(query, [fullName, email, password, roleId]);
+  const result = await db.query(query, [fullName, email, password, roleId, latitude, longitude, phone]);
   return result.rows[0];
 };
 
@@ -86,7 +95,7 @@ const markVerified = async (db, userId) => {
   const query = `
     UPDATE users SET is_verified = true, updated_at = NOW()
     WHERE id = $1
-    RETURNING id, full_name, email, role_id, is_verified, provider, created_at, updated_at
+    RETURNING id, full_name, email, role_id, is_verified, provider, is_suspended, suspended_at, latitude, longitude, created_at, updated_at
   `;
   const result = await db.query(query, [userId]);
   return result.rows[0] || null;

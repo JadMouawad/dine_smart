@@ -6,7 +6,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState("verifying"); // "verifying" | "success" | "error"
+  const [status, setStatus] = useState("verifying");
   const [message, setMessage] = useState("");
   const hasVerified = useRef(false);
 
@@ -21,17 +21,20 @@ export default function VerifyEmail() {
       return;
     }
 
-    fetch(`${API_BASE}/auth/verify-email?token=${token}`, { method: "GET" })
+    fetch(`${API_BASE}/auth/verify-email?token=${encodeURIComponent(token)}`, { method: "GET" })
       .then((res) => res.json())
       .then((data) => {
         if (data.message && data.message.toLowerCase().includes("verified")) {
-          // Auto-login: save the token returned by the backend
           if (data.token) {
             localStorage.setItem("token", data.token);
           }
-          // Redirect based on role
           const role = data.user?.role;
-          const redirect = role === "owner" ? "/owner/profile" : "/user/profile";
+          const redirect =
+            role === "admin"
+              ? "/admin/dashboard"
+              : role === "owner"
+                ? "/owner/profile"
+                : "/user/profile";
           window.location.href = redirect;
         } else {
           setStatus("error");
@@ -45,78 +48,36 @@ export default function VerifyEmail() {
   }, [searchParams]);
 
   return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      minHeight: "100vh",
-      fontFamily: "Arial, sans-serif",
-      background: "#f9f9f9",
-      padding: "20px"
-    }}>
-      <div style={{
-        background: "#fff",
-        borderRadius: "12px",
-        padding: "40px",
-        maxWidth: "420px",
-        width: "100%",
-        textAlign: "center",
-        boxShadow: "0 4px 20px rgba(0,0,0,0.08)"
-      }}>
+    <div className="verifyEmail">
+      <div className="verifyEmail__card">
         {status === "verifying" && (
-          <>
-            <h2>Verifying your email...</h2>
-            <p style={{ color: "#666" }}>Please wait a moment.</p>
-          </>
+          <div className="verifyEmail__state">
+            <div className="verifyEmail__spinner" aria-hidden="true" />
+            <h2 className="verifyEmail__title">Verifying your email</h2>
+            <p className="verifyEmail__text">Please wait a moment.</p>
+          </div>
         )}
 
         {status === "success" && (
-          <>
-            <div style={{ fontSize: "48px", marginBottom: "16px" }}>✅</div>
-            <h2 style={{ color: "#16a34a" }}>Email Verified!</h2>
-            <p style={{ color: "#666" }}>{message}</p>
-            <button
-              onClick={() => window.location.href = "/"}
-              style={{
-                marginTop: "24px",
-                padding: "12px 24px",
-                background: "#d4a017",
-                color: "#fff",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontSize: "15px",
-                fontWeight: "600"
-              }}
-            >
+          <div className="verifyEmail__state">
+            <div className="verifyEmail__icon verifyEmail__icon--success">✓</div>
+            <h2 className="verifyEmail__title verifyEmail__title--success">Email verified</h2>
+            <p className="verifyEmail__text">{message}</p>
+            <button type="button" className="btn btn--gold" onClick={() => (window.location.href = "/")}>
               Go to Home
             </button>
-          </>
+          </div>
         )}
 
         {status === "error" && (
-          <>
-            <div style={{ fontSize: "48px", marginBottom: "16px" }}>❌</div>
-            <h2 style={{ color: "#dc2626" }}>Verification Failed</h2>
-            <p style={{ color: "#666" }}>{message}</p>
-            <button
-              onClick={() => navigate("/")}
-              style={{
-                marginTop: "24px",
-                padding: "12px 24px",
-                background: "#d4a017",
-                color: "#fff",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontSize: "15px",
-                fontWeight: "600"
-              }}
-            >
+          <div className="verifyEmail__state">
+            <div className="verifyEmail__icon verifyEmail__icon--error">✕</div>
+            <h2 className="verifyEmail__title verifyEmail__title--error">Verification failed</h2>
+            <p className="verifyEmail__text">{message}</p>
+            <button type="button" className="btn btn--gold" onClick={() => navigate("/")}>
               Go Home
             </button>
-          </>
+          </div>
         )}
       </div>
     </div>

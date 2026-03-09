@@ -14,6 +14,22 @@ const getProfile = async (req, res) => {
       role: profile.role,
       isVerified: profile.is_verified,
       provider: profile.provider,
+      phone: profile.phone || null,
+      latitude: profile.latitude != null ? Number(profile.latitude) : null,
+      longitude: profile.longitude != null ? Number(profile.longitude) : null,
+      profilePictureUrl: profile.profile_picture_url || null,
+      reservationCount: profile.reservation_count ?? 0,
+      loyaltyBadge: profile.loyalty_badge || "Newcomer",
+      myReviews: Array.isArray(profile.my_reviews)
+        ? profile.my_reviews.map((review) => ({
+          id: review.id,
+          restaurantId: review.restaurant_id,
+          restaurantName: review.restaurant_name,
+          stars: review.rating,
+          text: review.comment || "",
+          createdAt: review.created_at,
+        }))
+        : [],
       createdAt: profile.created_at,
       updatedAt: profile.updated_at
     });
@@ -36,6 +52,10 @@ const updateProfile = async (req, res) => {
       role: profile.role,
       isVerified: profile.is_verified,
       provider: profile.provider,
+      phone: profile.phone || null,
+      latitude: profile.latitude != null ? Number(profile.latitude) : null,
+      longitude: profile.longitude != null ? Number(profile.longitude) : null,
+      profilePictureUrl: profile.profile_picture_url || null,
       createdAt: profile.created_at,
       updatedAt: profile.updated_at
     });

@@ -1,0 +1,541 @@
+// backend/src/services/reservationService.js
+// Business logic for reservations and slot availability.
+
+const crypto = require("crypto");
+const db = require("../config/db");
+const UserModel = require("../models/User");
+const ReservationModel = require("../models/reservation.model");
+const {
+  sendReservationConfirmationEmail,
+  sendReservationCancellationEmail,
+} = require("../utils/emailSender");
+
+const MAX_PARTY_SIZE = 12;
+const MIN_RESERVATION_MINUTES = 12 * 60;
+const ALLOWED_SEATING_PREFERENCES = new Set(["indoor", "outdoor"]);
+
+const parseDateOnly = (value) => {
+  if (!value) return null;
+  const parsed = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+};
+
+const parseTimeToMinutes = (value) => {
+  if (!value) return null;
+  const match = String(value).trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (!match) return null;
+  const hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+  return (hours * 60) + minutes;
+};
+
+const normalizeTime = (value) => {
+  const match = String(value || "").trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (!match) return null;
+  const hours = match[1].padStart(2, "0");
+  const minutes = match[2];
+  return `${hours}:${minutes}:00`;
+};
+
+const isWithinOperatingHours = (reservationTime, openingTime, closingTime) => {
+  const reservationMinutes = parseTimeToMinutes(reservationTime);
+  if (reservationMinutes == null) return false;
+
+  const openingMinutes = parseTimeToMinutes(openingTime);
+  const closingMinutes = parseTimeToMinutes(closingTime);
+
+  if (openingMinutes == null || closingMinutes == null) return true;
+
+  if (openingMinutes <= closingMinutes) {
+    return reservationMinutes >= openingMinutes && reservationMinutes <= closingMinutes;
+  }
+
+  return reservationMinutes >= openingMinutes || reservationMinutes <= closingMinutes;
+};
+
+const buildCapacityFromConfig = (tableConfig) => {
+  const tableBasedCapacity =
+    ((tableConfig.table_2_person || 0) * 2) +
+    ((tableConfig.table_4_person || 0) * 4) +
+    ((tableConfig.table_6_person || 0) * 6);
+
+  if (tableBasedCapacity > 0) {
+    return tableBasedCapacity;
+  }
+
+  return tableConfig.total_capacity || 0;
+};
+
+const toTimeValue = (minutes) => {
+  const dayMinutes = 24 * 60;
+  const normalized = ((minutes % dayMinutes) + dayMinutes) % dayMinutes;
+  const hours = Math.floor(normalized / 60);
+  const mins = normalized % 60;
+  return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:00`;
+};
+
+const createConfirmationId = () => {
+  const chunk = crypto.randomBytes(4).toString("hex").toUpperCase();
+  return `DS-${chunk}`;
+};
+
+const formatDateForEmail = (value) => {
+  const raw = String(value || "").trim();
+  const dateOnly = raw.includes("T") ? raw.slice(0, 10) : raw;
+  const parts = dateOnly.split("-").map((part) => parseInt(part, 10));
+  if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) return raw;
+  const [year, month, day] = parts;
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime())) return raw;
+  return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+};
+
+const formatTimeForEmail = (value) => {
+  const [hoursStr = "0", minutesStr = "00"] = String(value).split(":");
+  const hours = parseInt(hoursStr, 10);
+  const minutes = parseInt(minutesStr, 10);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return value;
+
+  const normalizedHours = ((hours + 11) % 12) + 1;
+  const suffix = hours >= 12 ? "PM" : "AM";
+  return `${normalizedHours}:${String(minutes).padStart(2, "0")} ${suffix}`;
+};
+
+const SUGGESTION_OFFSETS = [15, 30, 45, 60, 75, 90, -15, -30, -45, -60];
+
+const getSuggestedTimes = async ({
+  restaurantId,
+  reservationDate,
+  reservationTime,
+  partySize,
+  restaurant,
+  totalCapacity,
+}) => {
+  const baseMinutes = parseTimeToMinutes(reservationTime);
+  if (baseMinutes == null || !restaurant) return [];
+
+  const suggestions = [];
+  const seen = new Set();
+
+  for (const offset of SUGGESTION_OFFSETS) {
+    const candidateTime = toTimeValue(baseMinutes + offset);
+    if (!isWithinOperatingHours(candidateTime, restaurant.opening_time, restaurant.closing_time)) {
+      continue;
+    }
+
+    if (seen.has(candidateTime)) continue;
+    seen.add(candidateTime);
+
+    const bookedResult = await ReservationModel.getBookedSeatsForSlot(
+      db,
+      restaurantId,
+      reservationDate,
+      candidateTime
+    );
+    const bookedSeats = parseInt(bookedResult.rows[0]?.booked_seats, 10) || 0;
+    const availableSeats = Math.max(totalCapacity - bookedSeats, 0);
+
+    if (availableSeats >= partySize) {
+      suggestions.push(candidateTime.slice(0, 5));
+    }
+
+    if (suggestions.length >= 3) break;
+  }
+
+  return suggestions;
+};
+
+const getSlotAvailability = async ({ restaurantId, reservationDate, reservationTime }) => {
+  const restaurantResult = await ReservationModel.getRestaurantById(db, restaurantId);
+  const restaurant = restaurantResult.rows[0];
+  if (!restaurant) {
+    return { success: false, status: 404, error: "Restaurant not found" };
+  }
+
+  if (!restaurant.is_verified || restaurant.approval_status !== "approved") {
+    return { success: false, status: 403, error: "Restaurant is not accepting reservations yet" };
+  }
+
+  const configResult = await ReservationModel.getTableConfigByRestaurantId(db, restaurantId);
+  const tableConfig = configResult.rows[0];
+  if (!tableConfig) {
+    return { success: false, status: 409, error: "Table configuration is not set for this restaurant" };
+  }
+
+  const totalCapacity = buildCapacityFromConfig(tableConfig);
+  const bookedResult = await ReservationModel.getBookedSeatsForSlot(
+    db,
+    restaurantId,
+    reservationDate,
+    reservationTime
+  );
+  const bookedSeats = parseInt(bookedResult.rows[0]?.booked_seats, 10) || 0;
+  const availableSeats = Math.max(totalCapacity - bookedSeats, 0);
+
+  return {
+    success: true,
+    restaurant,
+    totalCapacity,
+    bookedSeats,
+    availableSeats,
+  };
+};
+
+const createReservation = async ({
+  userId,
+  restaurantId,
+  reservationDate,
+  reservationTime,
+  partySize,
+  seatingPreference,
+  specialRequest,
+}) => {
+  const parsedRestaurantId = parseInt(restaurantId, 10);
+  const parsedPartySize = parseInt(partySize, 10);
+  const normalizedDate = String(reservationDate || "").trim();
+  const normalizedTime = normalizeTime(reservationTime);
+  const cleanedSpecialRequest = specialRequest != null ? String(specialRequest).trim() : null;
+
+  if (Number.isNaN(parsedRestaurantId)) {
+    return { success: false, status: 400, error: "Invalid restaurant ID" };
+  }
+
+  if (!normalizedDate) {
+    return { success: false, status: 400, error: "Reservation date is required" };
+  }
+
+  if (!normalizedTime) {
+    return { success: false, status: 400, error: "Reservation time is required" };
+  }
+
+  const reservationMinutes = parseTimeToMinutes(normalizedTime);
+  if (reservationMinutes == null || reservationMinutes < MIN_RESERVATION_MINUTES) {
+    return { success: false, status: 400, error: "Reservation time must be 12:00 PM or later" };
+  }
+
+  if (Number.isNaN(parsedPartySize) || parsedPartySize < 1 || parsedPartySize > MAX_PARTY_SIZE) {
+    return { success: false, status: 400, error: `Party size must be between 1 and ${MAX_PARTY_SIZE}` };
+  }
+
+  const parsedDate = parseDateOnly(normalizedDate);
+  if (!parsedDate) {
+    return { success: false, status: 400, error: "Invalid reservation date" };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (parsedDate < today) {
+    return { success: false, status: 400, error: "Reservation date cannot be in the past" };
+  }
+
+  const normalizedSeating = seatingPreference ? String(seatingPreference).trim().toLowerCase() : null;
+  if (normalizedSeating && !ALLOWED_SEATING_PREFERENCES.has(normalizedSeating)) {
+    return { success: false, status: 400, error: "Invalid seating preference" };
+  }
+
+  const availability = await getSlotAvailability({
+    restaurantId: parsedRestaurantId,
+    reservationDate: normalizedDate,
+    reservationTime: normalizedTime,
+  });
+
+  if (!availability.success) {
+    return availability;
+  }
+
+  if (!isWithinOperatingHours(normalizedTime, availability.restaurant.opening_time, availability.restaurant.closing_time)) {
+    return { success: false, status: 400, error: "Reservation time is outside restaurant operating hours" };
+  }
+
+  if (availability.availableSeats < parsedPartySize) {
+    const suggestedTimes = await getSuggestedTimes({
+      restaurantId: parsedRestaurantId,
+      reservationDate: normalizedDate,
+      reservationTime: normalizedTime,
+      partySize: parsedPartySize,
+      restaurant: availability.restaurant,
+      totalCapacity: availability.totalCapacity,
+    });
+
+    return {
+      success: false,
+      status: 409,
+      error: `Only ${availability.availableSeats} seats available`,
+      availableSeats: availability.availableSeats,
+      suggestedTimes,
+    };
+  }
+
+  let createdReservation = null;
+  let confirmationId = null;
+
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    confirmationId = createConfirmationId();
+    try {
+      const insertResult = await ReservationModel.createReservation(db, {
+        userId,
+        restaurantId: parsedRestaurantId,
+        reservationDate: normalizedDate,
+        reservationTime: normalizedTime,
+        partySize: parsedPartySize,
+        seatingPreference: normalizedSeating,
+        specialRequest: cleanedSpecialRequest,
+        confirmationId,
+      });
+      createdReservation = insertResult.rows[0];
+      break;
+    } catch (error) {
+      // unique_violation for confirmation_id can happen in rare collisions
+      if (error.code !== "23505") {
+        throw error;
+      }
+    }
+  }
+
+  if (!createdReservation) {
+    return { success: false, status: 409, error: "This time slot is already booked" };
+  }
+
+  const user = await UserModel.findById(db, userId);
+  if (user?.email) {
+    try {
+      await sendReservationConfirmationEmail({
+        to: user.email,
+        userName: user.full_name || "Guest",
+        restaurantName: availability.restaurant.name,
+        reservationDate: formatDateForEmail(normalizedDate),
+        reservationTime: formatTimeForEmail(normalizedTime),
+        partySize: parsedPartySize,
+        confirmationId,
+        seatingPreference: normalizedSeating,
+        specialRequest: cleanedSpecialRequest,
+      });
+    } catch (error) {
+      // Reservation should still succeed if email sending fails.
+      console.warn("Failed to send reservation confirmation email:", error.message);
+    }
+  }
+
+  return {
+    success: true,
+    status: 201,
+    reservation: {
+      ...createdReservation,
+      restaurant_name: availability.restaurant.name,
+    },
+  };
+};
+
+const getReservationsForUser = async (requestedUserId) => {
+  const parsedUserId = parseInt(requestedUserId, 10);
+  if (Number.isNaN(parsedUserId)) {
+    return { success: false, status: 400, error: "Invalid user ID" };
+  }
+
+  const result = await ReservationModel.getUserReservations(db, parsedUserId);
+  return { success: true, status: 200, reservations: result.rows };
+};
+
+const getReservationsForOwner = async (ownerId) => {
+  const parsedOwnerId = parseInt(ownerId, 10);
+  if (Number.isNaN(parsedOwnerId)) {
+    return { success: false, status: 400, error: "Invalid owner ID" };
+  }
+
+  const result = await ReservationModel.getOwnerReservations(db, parsedOwnerId);
+  return { success: true, status: 200, reservations: result.rows };
+};
+
+const cancelReservation = async ({ reservationId, requestingUserId, requestingUserRole }) => {
+  const parsedReservationId = parseInt(reservationId, 10);
+  if (Number.isNaN(parsedReservationId)) {
+    return { success: false, status: 400, error: "Invalid reservation ID" };
+  }
+
+  const existingResult = await ReservationModel.getReservationById(db, parsedReservationId);
+  const existingReservation = existingResult.rows[0];
+  if (!existingReservation) {
+    return { success: false, status: 404, error: "Reservation not found" };
+  }
+
+  const isOwner = existingReservation.user_id === parseInt(requestingUserId, 10);
+  const isAdmin = requestingUserRole === "admin";
+  if (!isOwner && !isAdmin) {
+    return { success: false, status: 403, error: "You can only cancel your own reservation" };
+  }
+
+  if (existingReservation.status !== "confirmed") {
+    return { success: false, status: 409, error: `Reservation is already ${existingReservation.status}` };
+  }
+
+  const result = await ReservationModel.cancelReservation(db, parsedReservationId);
+  const cancelled = result.rows[0];
+  if (!cancelled) {
+    return { success: false, status: 409, error: "Reservation could not be cancelled" };
+  }
+
+  const [reservationUser, restaurantResult] = await Promise.all([
+    UserModel.findById(db, existingReservation.user_id),
+    ReservationModel.getRestaurantById(db, existingReservation.restaurant_id),
+  ]);
+  const restaurant = restaurantResult.rows[0];
+
+  if (reservationUser?.email && restaurant?.name) {
+    try {
+      await sendReservationCancellationEmail({
+        to: reservationUser.email,
+        userName: reservationUser.full_name || "Guest",
+        restaurantName: restaurant.name,
+        reservationDate: formatDateForEmail(existingReservation.reservation_date),
+        reservationTime: formatTimeForEmail(existingReservation.reservation_time),
+        partySize: existingReservation.party_size,
+        confirmationId: existingReservation.confirmation_id,
+      });
+    } catch (error) {
+      console.warn("Failed to send reservation cancellation email:", error.message);
+    }
+  }
+
+  return { success: true, status: 200, reservation: cancelled };
+};
+
+const updateReservationStatusForOwner = async ({ reservationId, ownerId, action }) => {
+  const parsedReservationId = parseInt(reservationId, 10);
+  const parsedOwnerId = parseInt(ownerId, 10);
+  const normalizedAction = String(action || "").trim().toLowerCase();
+
+  if (Number.isNaN(parsedReservationId)) {
+    return { success: false, status: 400, error: "Invalid reservation ID" };
+  }
+  if (Number.isNaN(parsedOwnerId)) {
+    return { success: false, status: 400, error: "Invalid owner ID" };
+  }
+  if (!["accept", "reject"].includes(normalizedAction)) {
+    return { success: false, status: 400, error: "Action must be accept or reject" };
+  }
+
+  const existingResult = await ReservationModel.getOwnerReservationById(db, {
+    reservationId: parsedReservationId,
+    ownerId: parsedOwnerId,
+  });
+  const existing = existingResult.rows[0];
+  if (!existing) {
+    return { success: false, status: 404, error: "Reservation not found" };
+  }
+
+  if (normalizedAction === "accept") {
+    if (existing.status === "cancelled") {
+      return { success: false, status: 409, error: "Cancelled reservations cannot be accepted" };
+    }
+    if (existing.status === "confirmed") {
+      return { success: true, status: 200, reservation: existing };
+    }
+  }
+
+  if (normalizedAction === "reject" && existing.status === "cancelled") {
+    return { success: true, status: 200, reservation: existing };
+  }
+
+  const nextStatus = normalizedAction === "accept" ? "confirmed" : "cancelled";
+  const updatedResult = await ReservationModel.updateOwnerReservationStatus(db, {
+    reservationId: parsedReservationId,
+    ownerId: parsedOwnerId,
+    status: nextStatus,
+  });
+  const updated = updatedResult.rows[0];
+  if (!updated) {
+    return { success: false, status: 409, error: "Reservation status could not be updated" };
+  }
+
+  if (nextStatus === "cancelled" && updated.customer_email && updated.restaurant_name) {
+    try {
+      await sendReservationCancellationEmail({
+        to: updated.customer_email,
+        userName: updated.customer_name || "Guest",
+        restaurantName: updated.restaurant_name,
+        reservationDate: formatDateForEmail(updated.reservation_date),
+        reservationTime: formatTimeForEmail(updated.reservation_time),
+        partySize: updated.party_size,
+        confirmationId: updated.confirmation_id,
+      });
+    } catch (error) {
+      console.warn("Failed to send owner-triggered cancellation email:", error.message);
+    }
+  }
+
+  return { success: true, status: 200, reservation: updated };
+};
+
+const getAvailability = async ({ restaurantId, reservationDate, reservationTime, partySize = null }) => {
+  const parsedRestaurantId = parseInt(restaurantId, 10);
+  const normalizedDate = String(reservationDate || "").trim();
+  const normalizedTime = normalizeTime(reservationTime);
+  const parsedPartySize = partySize != null ? parseInt(partySize, 10) : 2;
+
+  if (Number.isNaN(parsedRestaurantId)) {
+    return { success: false, status: 400, error: "Invalid restaurant ID" };
+  }
+  if (!normalizedDate || !parseDateOnly(normalizedDate)) {
+    return { success: false, status: 400, error: "Invalid reservation date" };
+  }
+  if (!normalizedTime) {
+    return { success: false, status: 400, error: "Invalid reservation time" };
+  }
+  const requestedMinutes = parseTimeToMinutes(normalizedTime);
+  if (requestedMinutes == null || requestedMinutes < MIN_RESERVATION_MINUTES) {
+    return { success: false, status: 400, error: "Reservation time must be 12:00 PM or later" };
+  }
+  if (Number.isNaN(parsedPartySize) || parsedPartySize < 1) {
+    return { success: false, status: 400, error: "Invalid party size" };
+  }
+
+  const availability = await getSlotAvailability({
+    restaurantId: parsedRestaurantId,
+    reservationDate: normalizedDate,
+    reservationTime: normalizedTime,
+  });
+
+  if (!availability.success) {
+    return availability;
+  }
+
+  const lowCapacityThreshold = Math.max(2, Math.floor(availability.totalCapacity * 0.2));
+  const shouldSuggest = availability.availableSeats <= lowCapacityThreshold;
+  const suggestedTimes = shouldSuggest
+    ? await getSuggestedTimes({
+      restaurantId: parsedRestaurantId,
+      reservationDate: normalizedDate,
+      reservationTime: normalizedTime,
+      partySize: parsedPartySize,
+      restaurant: availability.restaurant,
+      totalCapacity: availability.totalCapacity,
+    })
+    : [];
+
+  return {
+    success: true,
+    status: 200,
+    availability: {
+      restaurant_id: parsedRestaurantId,
+      reservation_date: normalizedDate,
+      reservation_time: normalizedTime,
+      total_capacity: availability.totalCapacity,
+      booked_seats: availability.bookedSeats,
+      available_seats: availability.availableSeats,
+      is_fully_booked: availability.availableSeats <= 0,
+      can_accommodate_party: availability.availableSeats >= parsedPartySize,
+      suggested_times: suggestedTimes,
+    },
+  };
+};
+
+module.exports = {
+  createReservation,
+  getReservationsForUser,
+  getReservationsForOwner,
+  cancelReservation,
+  updateReservationStatusForOwner,
+  getAvailability,
+};

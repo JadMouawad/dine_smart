@@ -502,6 +502,8 @@ body.ds-nav-not-sticky .nav {
   inset: 0;
   display: none;
   z-index: 60;
+  overflow-y: auto;
+  padding: 20px 0;
 }
 
 .modal.is-open {
@@ -517,13 +519,27 @@ body.ds-nav-not-sticky .nav {
 .modal__panel {
   position: relative;
   width: min(480px, calc(100% - 32px));
-  margin: 80px auto 0;
+  margin: 48px auto 0;
   background: rgba(14, 18, 66, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 18px;
   box-shadow: var(--shadow);
   padding: 22px;
   backdrop-filter: blur(12px);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+@media (max-width: 640px) {
+  .modal {
+    padding: 12px 0;
+  }
+
+  .modal__panel {
+    margin-top: 12px;
+    max-height: calc(100vh - 24px);
+    padding: 18px;
+  }
 }
 
 .modal__close {
@@ -549,6 +565,56 @@ body.ds-nav-not-sticky .nav {
   margin: 0 0 16px;
   color: rgba(255, 255, 255, 0.72);
   line-height: 1.4;
+}
+
+.modal__success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 8px 0 16px;
+}
+.modal__successIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(201, 162, 39, 0.2);
+  color: var(--gold);
+  font-size: 28px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+.modal__successTitle {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+.modal__successText {
+  margin: 0 0 20px;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.5;
+  max-width: 320px;
+}
+
+.modal__error {
+  padding: 10px 12px;
+  margin: 0 0 12px;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  font-size: 14px;
+}
+
+.modal__hint {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(201, 162, 39, 0.95);
 }
 
 /* Form */
@@ -595,6 +661,18 @@ body.ds-nav-not-sticky .nav {
   height: 1px;
   flex: 1;
   background: rgba(255, 255, 255, 0.12);
+}
+
+.modal__googleWrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 44px;
+}
+
+.modal__googleWrap > div {
+  margin: 0 auto;
 }
 
 .btn--google {
@@ -1288,6 +1366,125 @@ body {
   font-weight: 800;
 }
 
+.ownerProfileHeaderCard {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04)),
+    rgba(12, 19, 79, 0.2);
+  border-radius: 20px;
+  padding: 16px;
+  margin: 0 0 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.ownerProfileHeaderCard__left {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.ownerProfileHeaderCard__avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(8, 13, 43, 0.48);
+}
+
+.ownerProfileHeaderCard__avatar--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 900;
+  font-size: 26px;
+}
+
+.ownerProfileHeaderCard__name {
+  margin: 0;
+  font-size: clamp(24px, 2.8vw, 34px);
+  font-weight: 900;
+}
+
+.ownerProfileHeaderCard__subtitle {
+  margin: 6px 0 0;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.45;
+}
+
+.ownerProfileHeaderCard__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ownerProfile__feedback {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ownerProfile__feedback--error {
+  color: #fca5a5;
+}
+
+.ownerProfile__feedback--success {
+  color: #86efac;
+}
+
+.ownerProfileViewCard {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.ownerProfileViewGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.ownerProfileViewRow {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.ownerProfileViewLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.72);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.ownerProfileViewValue {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.94);
+  line-height: 1.45;
+}
+
+.ownerProfileViewImage {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.ownerProfileViewImage--logo {
+  width: 92px;
+  height: 92px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
 .imageCard {
   border: 1px solid rgba(255, 255, 255, 0.12);
   background:
@@ -1497,9 +1694,9 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   display: grid;
   grid-template-columns: 0.95fr 1.05fr;
   gap: 18px;
-  align-items: stretch;
-  min-height: calc(100vh - 140px);
-  height: calc(100vh - 140px);
+  align-items: start;
+  min-height: 0;
+  height: auto;
 }
 
 .ownerProfileGrid__media {
@@ -1528,7 +1725,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 .formCard--matchHeight {
-  height: 100%;
+  height: auto;
   display: flex;
   flex-direction: column;
 
@@ -1557,6 +1754,65 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+}
+
+.ownerProfileFilterGroup {
+  display: grid;
+  gap: 10px;
+}
+
+.ownerProfileFilterGroup > span {
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.ownerFilterChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ownerFilterChip {
+  position: relative;
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(7, 13, 46, 0.68);
+  color: rgba(255, 255, 255, 0.92);
+  padding: 10px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.ownerFilterChip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.55);
+  background: rgba(10, 18, 59, 0.9);
+}
+
+.ownerFilterChip.is-active {
+  border-color: rgba(201, 162, 39, 0.66);
+  background: rgba(201, 162, 39, 0.2);
+  color: #ffffff;
+}
+
+.ownerFilterChip__input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ownerFilterChip--button {
+  appearance: none;
 }
 
 .formCard__actions {
@@ -1616,16 +1872,20 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 .ownerAvatar {
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
   border-radius: 999px;
   overflow: hidden;
-
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(12, 19, 79, 0.18);
-
   display: grid;
   place-items: center;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ownerAvatar:hover {
+  border-color: rgba(201, 162, 39, 0.55);
+  box-shadow: 0 0 18px rgba(201, 162, 39, 0.22);
 }
 
 .ownerAvatar__img {
@@ -1637,6 +1897,14 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .ownerAvatar__fallback {
   color: rgba(255, 255, 255, 0.88);
   font-weight: 800;
+}
+
+.ownerNav__profileDock {
+  position: absolute;
+  right: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
 }
 
 .ownerArea .nav {
@@ -1667,6 +1935,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .formCard--matchHeight .field {
   display: grid;
   gap: 10px;
+  min-width: 0;
 }
 
 /* Make input placeholder text match PNG JPG color */
@@ -1678,11 +1947,32 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 /* Make form input boxes match image preview box style */
 .formCard--matchHeight input,
 .formCard--matchHeight .select {
+  width: 100%;
+  min-width: 0;
   background: rgba(0, 0, 0, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 16px;
 
   padding: 0 14px;
+}
+
+.ownerProfile__locationInput {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 60px;
+  padding: 0 14px;
+  line-height: normal;
+  font-size: 16px;
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  letter-spacing: normal;
+}
+
+.ownerProfile__locationInput::placeholder {
+  color: rgba(255, 255, 255, 0.85);
+  opacity: 1;
 }
 
 .formCard--matchHeight input:focus,
@@ -1691,43 +1981,352 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   box-shadow: 0 0 12px rgba(201, 162, 39, 0.18);
 }
 
-.ownerMenuPage__title {
-  text-align: center;
-  margin: 1px 0 16px;
-  font-size: clamp(28px, 3vw, 42px);
+.ownerTableConfigPage {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.ownerTableConfigCard {
+  gap: 14px;
+}
+
+.ownerTableConfigSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ownerTableConfigSectionTitle {
+  color: rgba(255, 255, 255, 0.92);
   font-weight: 800;
+  font-size: 16px;
+  margin-top: 2px;
+}
+
+.ownerTableConfigColumns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.capacityPreview {
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  background: rgba(201, 162, 39, 0.12);
+  border-radius: 12px;
+  padding: 12px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+
+.capacityPreview--warn {
+  border-color: rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.18);
+}
+
+@media (max-width: 820px) {
+  .ownerTableConfigColumns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.adminArea__main {
+  padding: 28px 28px 40px;
+}
+
+.adminNavLinks {
+  gap: 12px;
+}
+
+.adminNav__actions {
+  gap: 10px;
+}
+
+.adminAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(12, 19, 79, 0.18);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.adminNavBadge {
+  margin-left: 8px;
+  display: inline-flex;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(201, 162, 39, 0.25);
+  border: 1px solid rgba(201, 162, 39, 0.5);
+  color: #fff;
+}
+
+.adminPage {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.adminStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.adminStatCard {
+  gap: 8px;
+}
+
+.adminStatCard__label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 700;
+}
+
+.adminStatCard__value {
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.adminQuickActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.adminActivityCard {
+  margin-top: 14px;
+}
+
+.adminActivityList {
+  display: grid;
+  gap: 10px;
+}
+
+.adminActivityItem {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.adminActivityItem__title {
+  font-weight: 700;
+  color: #fff;
+}
+
+.adminActivityItem__subtitle {
+  margin-top: 3px;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 14px;
+}
+
+.adminActivityItem__meta {
+  margin-top: 3px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+}
+
+.adminCardList {
+  display: grid;
+  gap: 12px;
+}
+
+.adminEntityCard {
+  gap: 8px;
+}
+
+.adminEntityCard__title {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.adminEntityCard__meta {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+}
+
+.adminEntityCard__actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.adminFilters {
+  grid-template-columns: 2fr 1fr 1fr;
+  align-items: center;
+}
+
+.adminUsersLayout {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1.3fr 0.9fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.adminUsersTableCard {
+  overflow: hidden;
+}
+
+.adminTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.adminTable th,
+.adminTable td {
+  text-align: left;
+  padding: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 14px;
+}
+
+.adminTable tbody tr {
+  cursor: pointer;
+}
+
+.adminTable tbody tr:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.adminTable tbody tr.is-active {
+  background: rgba(201, 162, 39, 0.14);
+}
+
+.adminTableActions {
+  display: flex;
+  gap: 8px;
+}
+
+.adminPagination {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.adminUserDetailsCard {
+  gap: 10px;
+}
+
+.adminDetailLine {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.adminReviewHistory {
+  display: grid;
+  gap: 10px;
+}
+
+.adminReviewItem {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.adminReviewItem__title {
+  font-weight: 700;
+}
+
+.adminReviewItem__meta {
+  margin-top: 2px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.adminReviewItem__text {
+  margin-top: 4px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 980px) {
+  .adminStatsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .adminFilters {
+    grid-template-columns: 1fr;
+  }
+
+  .adminUsersLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ownerMenuPage {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.ownerMenuPage__header {
+  margin-bottom: 14px;
+}
+
+.ownerMenuPage__title {
+  text-align: left;
+  margin: 0 0 6px;
+  font-size: clamp(24px, 2.2vw, 34px);
+  font-weight: 800;
+}
+
+.ownerMenuPage__subtitle {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .ownerMenuPage__actions {
   display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin: 0 auto 18px;
-  width: fit-content;
-  max-width: 780px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 10px;
+  margin: 0 0 14px;
 }
 
 .ownerMenuPage__actionBtn {
-  min-width: 160px;
+  min-width: 138px;
+  min-height: 42px;
 }
 
-.ownerMenuPage__sections {
-  display: grid;
-  gap: 12px;
-  margin: 0 auto 20px;
-  max-width: 780px;
+.ownerMenuSectionInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
 
 .ownerMenuSectionBtn {
-  width: 100%;
+  width: fit-content;
   justify-content: center;
   text-align: center;
-
-  font-size: 22px;
+  font-size: 16px;
   font-weight: 800;
-  padding: 14px 0;
+  padding: 10px 16px;
+  letter-spacing: 0.2px;
+}
 
-  letter-spacing: 0.4px;
+.ownerMenuSectionCount {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+  font-weight: 600;
+  padding-left: 2px;
 }
 
 .menuModalHelper {
@@ -1757,37 +2356,47 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   margin-top: 6px;
 }
 
-/* Items grid: 2 cards per row */
+.menuItemImageCard .imageCard__preview--equal {
+  width: 100%;
+  min-height: 180px;
+  height: 180px;
+}
+
+.menuItemImageCard .imageCard__img {
+  position: static;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .ownerMenuItemsGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-  margin-top: 10px;
+  gap: 12px;
+  margin-top: 8px;
 }
 
-/* Item card looks like your image cards */
 .menuItemCard {
   border: 1px solid rgba(255, 255, 255, 0.12);
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03)),
     rgba(12, 19, 79, 0.22);
-  border-radius: 22px;
-  padding: 16px;
+  border-radius: 18px;
+  padding: 12px;
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
-
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
   display: grid;
-  grid-template-columns: 140px 1fr;
-  gap: 14px;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
   align-items: center;
   position: relative;
 }
 
 .menuItemCard__media {
-  width: 140px;
-  height: 110px;
-  border-radius: 16px;
+  width: 120px;
+  height: 94px;
+  border-radius: 12px;
   overflow: hidden;
   border: 1px dashed rgba(255, 255, 255, 0.18);
   background: rgba(0, 0, 0, 0.14);
@@ -1813,21 +2422,24 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 .menuItemCard__name {
   font-weight: 800;
-  font-size: 18px;
+  font-size: 16px;
   color: rgba(255, 255, 255, 0.95);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
+  line-height: 1.25;
 }
 
 .menuItemCard__price {
   color: rgba(201, 162, 39, 0.95);
+  font-size: 14px;
   font-weight: 800;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .menuItemCard__desc {
   color: rgba(255, 255, 255, 0.85);
-  line-height: 1.45;
-  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 0;
 }
 
 .menuItemCard__meta {
@@ -1835,7 +2447,59 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   font-size: 12px;
 }
 
+.ownerMenuSectionsStack {
+  display: grid;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.menuSectionBlock {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    rgba(12, 19, 79, 0.2);
+}
+
+.menuSectionEmpty {
+  color: rgba(255, 255, 255, 0.82);
+  text-align: left;
+  width: 100%;
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 6px 2px;
+}
+
+.menuSectionEmpty--page {
+  text-align: center;
+  padding: 16px 14px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+}
+
+.menuSectionHeader {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
 @media (max-width: 980px) {
+  .ownerMenuPage__title {
+    text-align: center;
+  }
+
+  .ownerMenuPage__subtitle {
+    text-align: center;
+  }
+
+  .ownerMenuPage__actions {
+    justify-content: center;
+  }
+
   .ownerMenuItemsGrid {
     grid-template-columns: 1fr;
   }
@@ -1846,34 +2510,17 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
   .menuItemCard__media {
     width: 100%;
+    height: 148px;
+  }
+
+  .menuSectionHeader {
+    align-items: start;
+  }
+
+  .menuItemImageCard .imageCard__preview--equal {
+    min-height: 160px;
     height: 160px;
   }
-}
-
-.ownerMenuSectionsStack {
-  display: grid;
-  gap: 18px;
-  margin-top: 6px;
-}
-
-.menuSectionBlock {
-  display: grid;
-  gap: 14px;
-}
-
-.menuSectionEmpty {
-  margin-top: 24px;
-  color: #ffffff;
-  text-align: center;
-  width: 100%;
-  white-space: nowrap;
-}
-
-.menuSectionHeader {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 10px;
 }
 
 .kebabWrap {
@@ -1968,11 +2615,11 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 .userAvatar {
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
   border-radius: 999px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(12, 19, 79, 0.18);
   display: grid;
   place-items: center;
@@ -1982,17 +2629,20 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 .userAvatar {
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .userAvatar:hover {
-  border-color: rgba(201, 162, 39, 0.35);
-  box-shadow: 0 0 18px rgba(201, 162, 39, 0.16);
+  border-color: rgba(201, 162, 39, 0.55);
+  box-shadow: 0 0 18px rgba(201, 162, 39, 0.22);
 }
 
-.userAvatar__fallback {
-  color: rgba(255, 255, 255, 0.88);
-  font-weight: 800;
+.userNav__profileDock {
+  position: absolute;
+  right: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
 }
 
 .userProfile__title {
@@ -2000,13 +2650,6 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   margin: 1px 0 22px;
   font-size: clamp(28px, 3vw, 42px);
   font-weight: 800;
-}
-
-.userProfile__stack {
-  display: grid;
-  gap: 18px;
-  max-width: 820px;
-  margin: 0 auto;
 }
 
 .imageCard--userProfile,
@@ -2183,8 +2826,8 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 .restaurantCard:hover {
   transform: translateY(-2px);
-  border-color: rgba(201, 162, 39, 0.35);
-  box-shadow: 0 0 18px rgba(201, 162, 39, 0.16);
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
 }
 
 .restaurantCard__cover {
@@ -2227,6 +2870,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   font-weight: 800;
   color: rgba(255, 255, 255, 0.92);
   font-size: 16px;
+  line-height: 1.25;
 }
 
 .restaurantCard__rating {
@@ -2240,6 +2884,31 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   color: rgba(201, 162, 39, 0.92);
   font-weight: 700;
   font-size: 13px;
+}
+
+.restaurantCard--search .restaurantCard__body {
+  display: grid;
+  gap: 8px;
+  padding: 12px 4px 6px;
+}
+
+.restaurantCard__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.restaurantCard__metaLine {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.restaurantCard__actions {
+  margin-top: 4px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .metaPill {
@@ -2299,13 +2968,13 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 .userMenuView {
-  margin-top: 18px;
+  margin-top: 12px;
 }
 
 .userMenuView__title {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   font-weight: 900;
-  font-size: 22px;
+  font-size: 20px;
 }
 
 @media (max-width: 1100px) {
@@ -2337,7 +3006,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 /* ===== More spacing between menu sections ===== */
 .userMenuSections {
   display: grid;
-  gap: 22px;
+  gap: 16px;
 }
 
 .userMenuSectionBlock {
@@ -2451,12 +3120,30 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03)),
     rgba(12, 19, 79, 0.18);
-  border-radius: 22px;
-  padding: 14px;
+  border-radius: 18px;
+  padding: 16px;
 
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+}
+
+.reviewComposer {
+  display: grid;
+  gap: 10px;
+}
+
+.reviewComposer__top {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.reviewComposer__post {
+  min-height: 42px;
+  padding: 0 20px;
+  flex: 0 0 auto;
 }
 
 .reviewCard__title {
@@ -2778,11 +3465,16 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   stroke: #C9A227;
 }
 
-.reserveMiniBtn{
+.reserveMiniBtn {
   padding: 6px 10px;
   font-size: 12px;
   border-radius: 999px;
   line-height: 1;
+}
+
+/* Keep gold button glow subtle inside cards to avoid overwhelming the card */
+.restaurantCard .btn--gold:hover {
+  box-shadow: 0 2px 12px rgba(201, 162, 39, 0.4);
 }
 
 /* ===== Profile Extra Cards (Favorites + My Reviews) ===== */
@@ -2987,3 +3679,1975 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   box-shadow: 0 0 14px rgba(255, 80, 80, 0.16);
   color: #fff;
 }
+
+/* Verify email page (standalone route) */
+.verifyEmail {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.verifyEmail__card {
+  background: var(--card);
+  border: 1px solid var(--stroke);
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.verifyEmail__state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.verifyEmail__spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: verifyEmailSpin 0.8s linear infinite;
+}
+@keyframes verifyEmailSpin {
+  to { transform: rotate(360deg); }
+}
+.verifyEmail__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+}
+.verifyEmail__icon--success {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+.verifyEmail__icon--error {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+.verifyEmail__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+.verifyEmail__title--success { color: #22c55e; }
+.verifyEmail__title--error { color: #ef4444; }
+.verifyEmail__text {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.verifyEmail .btn { margin-top: 8px; }
+
+/* Reservation form + feedback */
+.reservationModal {
+  width: min(560px, calc(100% - 32px));
+}
+
+.textarea {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 12px;
+  color: rgba(255, 255, 255, 0.92);
+  outline: none;
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  resize: vertical;
+  min-height: 88px;
+}
+
+.textarea:focus {
+  border-color: rgba(201, 162, 39, 0.55);
+  box-shadow: 0 0 0 4px rgba(201, 162, 39, 0.12);
+}
+
+.fieldError {
+  margin-top: -2px;
+  margin-bottom: 6px;
+  color: #fca5a5;
+  font-size: 13px;
+}
+
+.reservationAvailability {
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  background: rgba(201, 162, 39, 0.12);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.inlineToast {
+  margin-bottom: 12px;
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  background: rgba(201, 162, 39, 0.18);
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.metaPill--good {
+  border-color: rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.18);
+}
+
+.metaPill--warn {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.2);
+}
+
+.metaPill--danger {
+  border-color: rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.22);
+}
+
+.userReservationsPage {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 18px 10px 40px;
+}
+
+.reservationSection {
+  margin-top: 18px;
+}
+
+.reservationSection__title {
+  margin: 0 0 10px;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.reservationList {
+  display: grid;
+  gap: 12px;
+}
+
+.reservationCard {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03)),
+    rgba(12, 19, 79, 0.18);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+.reservationCard__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.reservationCard__name {
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.reservationCard__meta {
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+}
+
+.reservationCard__actions {
+  margin-top: 12px;
+}
+
+.statusBadge {
+  text-transform: capitalize;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.statusBadge--confirmed {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+.statusBadge--cancelled {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+.statusBadge--no-show {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.45);
+}
+
+.statusBadge--completed {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.45);
+}
+
+.reviewCard__input--textarea {
+  min-height: 96px;
+  resize: vertical;
+  padding: 14px;
+  line-height: 1.5;
+  height: auto;
+}
+
+.statusBadge--valid {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.statusBadge--invalid {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.reservationConfirmModal {
+  width: min(500px, calc(100% - 32px));
+  margin-top: 96px;
+  position: relative;
+}
+
+.reservationConfirmModal__title {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.reservationConfirmModal__meta {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.reservationConfirmModal__actions {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.confirmDialog {
+  width: min(500px, calc(100% - 32px));
+  margin-top: 96px;
+}
+
+.confirmDialog__title {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.confirmDialog__message {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.45;
+}
+
+.confirmDialog__actions {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.userRestaurantHero {
+  max-width: var(--ds-page-max);
+  margin: 0 auto 14px;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03)),
+    rgba(12, 19, 79, 0.2);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.26);
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.userRestaurantHero__img {
+  width: 100%;
+  height: 320px;
+  object-fit: cover;
+  display: block;
+}
+
+.userRestaurantHero__placeholder {
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 700;
+  padding: 28px;
+}
+
+.userSearchTopCard {
+  max-width: var(--ds-page-max);
+  margin: 0 auto 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03)),
+    rgba(12, 19, 79, 0.2);
+  border-radius: 20px;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: start;
+}
+
+.userSearchTopCard__left {
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.restaurantAvatar {
+  width: 62px;
+  height: 62px;
+}
+
+.userSearchTopCard__title {
+  font-size: clamp(24px, 3vw, 34px);
+}
+
+.userSearchTopCard__meta {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.userSearchTopCard__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.restaurantProfileHero {
+  max-width: 980px;
+  margin: 0 auto 14px;
+  display: grid;
+  gap: 8px;
+  position: relative;
+}
+
+.restaurantProfileHero__name {
+  margin: 0;
+  font-size: clamp(20px, 2.2vw, 32px);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #fff;
+  padding-left: 44px;
+  line-height: 1.12;
+}
+
+.restaurantProfileHero__titleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.restaurantProfileHero__titleRow .restaurantProfileHero__name {
+  padding-left: 0;
+}
+
+.restaurantProfileHero__logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(8, 13, 43, 0.5);
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+}
+
+.restaurantProfileHero__logoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.restaurantProfileHero__logoFallback {
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.restaurantProfileHero__media {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  height: clamp(180px, 28vw, 260px);
+  min-height: 180px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
+  background: linear-gradient(135deg, #1f2f6d, #0f173f 55%, #273978);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.restaurantProfileHero__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  background: rgba(8, 13, 43, 0.55);
+}
+
+.restaurantProfileHero__placeholder {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(14px, 1.5vw, 20px);
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+  text-align: center;
+  padding: 14px;
+}
+
+.restaurantHeroInfoCard {
+  position: static;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(7, 13, 46, 0.68);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.26);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.restaurantHeroInfoItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.16);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.restaurantHeroInfoIcon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.restaurantProfileHero__metaRow {
+  margin-top: 2px;
+}
+
+.restaurantProfileHero__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  background: rgba(7, 13, 46, 0.38);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.restaurantProfileHero__badges .metaPill {
+  padding: 5px 9px;
+  font-size: 11px;
+}
+
+.metaPill--button {
+  cursor: pointer;
+}
+
+.restaurantProfileHero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.restaurantProfileHero__actions .btn {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.restaurantProfileHero__actions .favoriteHeartBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.14);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.restaurantActionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.restaurantActionTabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(6, 12, 42, 0.32);
+}
+
+.restaurantActionTab {
+  min-height: 38px;
+  min-width: 92px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.14);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.restaurantActionTab:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.4);
+}
+
+.restaurantActionTab.is-active {
+  border-color: rgba(201, 162, 39, 0.62);
+  background: rgba(201, 162, 39, 0.2);
+  color: #fff4cc;
+  box-shadow: 0 8px 18px rgba(201, 162, 39, 0.25);
+}
+
+.restaurantActionFavorite {
+  margin-left: 6px;
+  flex: 0 0 auto;
+}
+
+.userMenuView,
+.restaurantReviewsPage {
+  animation: restaurantSectionFade 0.2s ease;
+}
+
+@keyframes restaurantSectionFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.restaurantInlineReserve {
+  max-width: 980px;
+  margin: 10px auto 18px;
+}
+
+.restaurantInlineReserve__title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.reservationInlineForm {
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.backArrowBtn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.backArrowBtn--topLeft {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+}
+
+.backArrowBtn--topLeftInCard {
+  align-self: flex-start;
+}
+
+.backArrowBtn--inline {
+  min-width: 42px;
+  height: 42px;
+}
+
+@media (max-width: 980px) {
+  .userNav__profileDock {
+    right: 76px;
+  }
+
+  .reservationConfirmModal {
+    margin-top: 68px;
+  }
+
+  .confirmDialog {
+    margin-top: 68px;
+  }
+
+  .userRestaurantHero {
+    min-height: 220px;
+  }
+
+  .userRestaurantHero__img {
+    height: 240px;
+  }
+
+  .userSearchTopCard {
+    grid-template-columns: 1fr;
+  }
+
+  .userSearchTopCard__left {
+    grid-template-columns: 52px 1fr;
+  }
+
+  .restaurantAvatar {
+    width: 52px;
+    height: 52px;
+  }
+
+  .userSearchTopCard__right {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .restaurantProfileHero__media,
+  .restaurantProfileHero__img,
+  .restaurantProfileHero__placeholder {
+    min-height: 170px;
+    height: 170px;
+  }
+
+  .restaurantProfileHero__name {
+    padding-left: 40px;
+  }
+
+  .restaurantProfileHero__titleRow {
+    gap: 8px;
+  }
+
+  .restaurantProfileHero__logo {
+    width: 40px;
+    height: 40px;
+  }
+
+  .restaurantInlineReserve {
+    margin-top: 6px;
+  }
+
+  .restaurantHeroInfoCard {
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .restaurantHeroInfoItem {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .restaurantActionBar {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .restaurantActionTabs {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .restaurantActionTab {
+    min-width: 82px;
+    font-size: 13px;
+  }
+
+  .reviewComposer__top {
+    flex-wrap: wrap;
+  }
+
+  .ownerProfileHeaderCard__left {
+    grid-template-columns: 1fr;
+  }
+}
+
+.profileFavoriteItem--button {
+  width: 100%;
+  border: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.userProfile {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.userProfileHero {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03)),
+    rgba(12, 19, 79, 0.2);
+  border-radius: 22px;
+  padding: 18px;
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.24);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.userProfileHero__avatar {
+  width: 92px;
+  height: 92px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.userProfileHero__name {
+  margin: 0;
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 900;
+}
+
+.userProfileHero__email {
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.userProfileHero__meta {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.userProfileHero__uploadBtn {
+  white-space: nowrap;
+}
+
+.userProfile__feedbackError,
+.userProfile__feedbackSuccess {
+  margin: 10px 0 0;
+}
+
+.userProfileLayout {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.userProfileFormCard {
+  margin: 0;
+}
+
+.userProfileSide {
+  display: grid;
+  gap: 16px;
+}
+
+@media (max-width: 980px) {
+  .userProfileHero {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .userProfileLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.advancedFiltersPanel {
+  background: #ffffff;
+  border: 1px solid rgba(16, 28, 61, 0.12);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.advancedFiltersRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.filterGroup {
+  background: rgba(16, 28, 61, 0.04);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.filterGroup__label {
+  color: #101c3d;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.filterGroup__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.savedSearchPanel {
+  border-top: 1px solid rgba(16, 28, 61, 0.12);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.savedSearchPanel__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.savedSearchPanel__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.savedSearchChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.discoverFeedSection {
+  margin-bottom: 22px;
+}
+
+.discoverFeedSection__header h2 {
+  margin: 0 0 10px;
+  color: #101c3d;
+}
+
+.discoverFeedCard__badge {
+  margin-top: 8px;
+  display: inline-block;
+  background: #c9a227;
+  color: #101c3d;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.discoverFeedCard__meta {
+  margin-top: 6px;
+  color: #495671;
+  font-size: 13px;
+}
+
+.discoverEventsCarousel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.discoverEventCard {
+  background: #fff;
+  border: 1px solid rgba(16, 28, 61, 0.12);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.discoverEventCard__title {
+  font-weight: 700;
+  color: #101c3d;
+}
+
+.discoverEventCard__restaurant {
+  margin-top: 4px;
+  color: #495671;
+}
+
+.discoverEventCard__date {
+  margin-top: 6px;
+  color: #101c3d;
+  font-size: 13px;
+}
+
+.discoverEventCard__desc {
+  margin-top: 8px;
+  color: #36425d;
+  font-size: 14px;
+}
+
+.exploreLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 14px;
+}
+
+.exploreMapPanel,
+.exploreListPanel {
+  background: #fff;
+  border: 1px solid rgba(16, 28, 61, 0.12);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.exploreMapCanvas {
+  position: relative;
+  min-height: 360px;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(201, 162, 39, 0.24), transparent 34%),
+    radial-gradient(circle at 80% 70%, rgba(16, 28, 61, 0.16), transparent 38%),
+    linear-gradient(135deg, #f7fafc, #e7edf6);
+  border: 1px solid rgba(16, 28, 61, 0.12);
+}
+
+.exploreMarker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid #101c3d;
+  background: #c9a227;
+  color: #101c3d;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.exploreMarker.is-active {
+  box-shadow: 0 0 0 3px rgba(16, 28, 61, 0.2);
+}
+
+.explorePreviewCard {
+  margin-top: 12px;
+  border: 1px solid rgba(16, 28, 61, 0.14);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.exploreList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.exploreListCard.is-active {
+  border-color: #c9a227;
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.2);
+}
+
+.ownerResponseBlock {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(16, 28, 61, 0.06);
+  border-left: 3px solid #c9a227;
+  border-radius: 10px;
+}
+
+.ownerResponseBlock__label {
+  font-weight: 600;
+  color: #101c3d;
+  margin-bottom: 4px;
+}
+
+.ownerResponseBlock__text {
+  color: #2e3b58;
+}
+
+.reviewCardFull__actions {
+  margin-top: 10px;
+}
+
+.reservationAvailability--suggested {
+  background: rgba(201, 162, 39, 0.18);
+  border: 1px solid rgba(201, 162, 39, 0.45);
+}
+
+.ownerEventActions {
+  display: flex;
+  gap: 8px;
+}
+
+.ownerReservationActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .exploreLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .ownerTableConfigSummary {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   Phase 4 Stabilization UX overrides (UI-only)
+   ========================================================= */
+
+.userSearchPage .searchBarCard {
+  grid-template-columns: 1fr;
+}
+
+.userSearchNotFoundCard {
+  max-width: 540px;
+  margin: 16px auto 0;
+}
+
+.userSearchNotFoundCard__text {
+  margin: 0 0 12px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.reviewCard__charCount {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: auto;
+  display: inline-flex;
+}
+
+.reviewCard__status {
+  margin-top: 10px;
+}
+
+.quickFiltersBar {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.quickFilterBtn {
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(7, 13, 46, 0.72);
+  color: rgba(255, 255, 255, 0.92);
+  padding: 10px 16px;
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.quickFilterBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.55);
+  background: rgba(11, 20, 62, 0.9);
+}
+
+.quickFilterBtn.is-active {
+  border-color: rgba(201, 162, 39, 0.6);
+  background: rgba(201, 162, 39, 0.2);
+  color: #fff;
+}
+
+.quickFilterBtn--advanced {
+  background: rgba(201, 162, 39, 0.16);
+  border-color: rgba(201, 162, 39, 0.45);
+}
+
+.quickFilterBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.quickFilterBtn:focus-visible,
+.activeFilterChip:focus-visible,
+.filterDrawer__footer .btn:focus-visible {
+  outline: 2px solid rgba(201, 162, 39, 0.85);
+  outline-offset: 2px;
+}
+
+.activeFilterChips {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.activeFilterChip {
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.activeFilterChip__x {
+  margin-left: 8px;
+  opacity: 0.9;
+}
+
+.searchResultsHeader {
+  margin-top: 14px;
+}
+
+.searchResultsHeader__count {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 600;
+}
+
+.filterDrawer {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.filterDrawer__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 8, 30, 0.7);
+  z-index: 0;
+  pointer-events: auto;
+}
+
+.filterDrawer__panel {
+  position: relative;
+  z-index: 1;
+  width: min(440px, 100%);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(650px 450px at 20% 5%, rgba(201, 162, 39, 0.12), transparent 60%),
+    linear-gradient(180deg, rgba(10, 18, 53, 0.98), rgba(8, 13, 42, 0.98));
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: -20px 0 44px rgba(0, 0, 0, 0.45);
+  padding: 18px;
+  color: rgba(255, 255, 255, 0.92);
+  color-scheme: dark;
+}
+
+.filterDrawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.filterDrawer__header h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.filterDrawer__body {
+  padding: 14px 2px 10px;
+  overflow-y: auto;
+  display: grid;
+  gap: 14px;
+}
+
+.filterDrawer__section {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 12px;
+}
+
+.filterDrawer__label {
+  display: block;
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.filterDrawer__options {
+  display: grid;
+  gap: 8px;
+}
+
+.filterDrawer__options--multi {
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.filterOption {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: rgba(8, 13, 41, 0.52);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.filterOption input {
+  accent-color: #c9a227;
+}
+
+.filterOption:focus-within {
+  border-color: rgba(201, 162, 39, 0.6);
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.16);
+}
+
+.filterOption.is-disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.filterDrawer input[type="range"] {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.filterDrawer__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.filterDrawer__field {
+  display: grid;
+  gap: 6px;
+}
+
+.filterDrawer__field span {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.filterDrawer__field input {
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.95);
+  padding: 0 10px;
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.filterDrawer__hint {
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.filterDrawer__footer {
+  margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  padding-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.filterDrawer__footer .btn {
+  min-height: 44px;
+}
+
+.loadingSkeleton {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+}
+
+.loadingSkeleton--card {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.loadingSkeleton--list {
+  grid-template-columns: 1fr;
+}
+
+.loadingSkeleton__item {
+  height: 92px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(100deg, rgba(255, 255, 255, 0.05) 20%, rgba(255, 255, 255, 0.13) 40%, rgba(255, 255, 255, 0.05) 60%),
+    rgba(8, 13, 42, 0.58);
+  background-size: 220% 100%;
+  animation: loadingSkeletonShimmer 1.15s linear infinite;
+}
+
+.loadingSkeleton--card .loadingSkeleton__item {
+  height: 260px;
+}
+
+@keyframes loadingSkeletonShimmer {
+  to {
+    background-position: -120% 0;
+  }
+}
+
+.restaurantGridSkeleton {
+  grid-column: 1 / -1;
+}
+
+.emptyState {
+  grid-column: 1 / -1;
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  border-radius: 16px;
+  background: rgba(8, 13, 42, 0.55);
+  text-align: center;
+  padding: 24px 16px;
+}
+
+.emptyState__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.emptyState__message {
+  margin: 8px auto 0;
+  color: rgba(255, 255, 255, 0.78);
+  max-width: 620px;
+}
+
+.emptyState__action {
+  margin-top: 14px;
+  min-height: 44px;
+}
+
+.advancedFiltersPanel {
+  background:
+    linear-gradient(180deg, rgba(12, 19, 79, 0.35), rgba(12, 19, 79, 0.22)),
+    rgba(0, 0, 0, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.filterGroup {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.filterGroup__label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.savedSearchPanel {
+  border-top-color: rgba(255, 255, 255, 0.16);
+}
+
+.discoverFeedSection {
+  margin-bottom: 22px;
+}
+
+.discoverFeedSection__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.discoverFeedSection__header h2 {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.discoverSectionBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(201, 162, 39, 0.2);
+  border: 1px solid rgba(201, 162, 39, 0.45);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.discoverFeedCard__badge {
+  color: #fff;
+}
+
+.discoverFeedCard__meta {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.discoverEventsCarousel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.discoverEventCard {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03)),
+    rgba(12, 19, 79, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.discoverEventCard__title {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.discoverEventCard__restaurant,
+.discoverEventCard__date,
+.discoverEventCard__desc {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.discoverEventsBoard {
+  display: grid;
+  gap: 14px;
+}
+
+.discoverEventSection {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  background:
+    radial-gradient(420px 220px at 8% 0%, rgba(201, 162, 39, 0.12), transparent 62%),
+    linear-gradient(180deg, rgba(12, 19, 79, 0.28), rgba(12, 19, 79, 0.14)),
+    rgba(0, 0, 0, 0.16);
+  padding: 12px;
+}
+
+.discoverEventSection__title {
+  margin-bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 162, 39, 0.45);
+  background: rgba(201, 162, 39, 0.2);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.discoverEventCard {
+  border-radius: 14px;
+  padding: 14px;
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)),
+    rgba(5, 10, 34, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.discoverEventCard__title {
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.discoverEventCard__restaurant {
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.discoverEventCard__date {
+  margin-top: 8px;
+  color: rgba(201, 162, 39, 0.96);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.discoverEventCard__desc {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.exploreMapPanel,
+.exploreListPanel {
+  background:
+    linear-gradient(180deg, rgba(12, 19, 79, 0.34), rgba(12, 19, 79, 0.2)),
+    rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.exploreMapCanvas {
+  min-height: 420px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(201, 162, 39, 0.24), transparent 34%),
+    radial-gradient(circle at 78% 74%, rgba(88, 116, 196, 0.22), transparent 38%),
+    linear-gradient(145deg, rgba(9, 15, 48, 0.95), rgba(7, 12, 38, 0.98));
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.exploreMapEmbed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 12px;
+}
+
+.exploreMarker {
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(16, 28, 61, 0.8);
+  background: #c9a227;
+  color: #101c3d;
+}
+
+.exploreMarker.is-active {
+  box-shadow: 0 0 0 4px rgba(201, 162, 39, 0.28);
+}
+
+.exploreMarker:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.95);
+  outline-offset: 2px;
+}
+
+.explorePreviewCard {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(5, 10, 34, 0.44);
+}
+
+.explorePreviewCard h3 {
+  margin: 0;
+}
+
+.explorePreviewCard p {
+  margin: 6px 0 0;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.exploreMapLegend {
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 13px;
+}
+
+.exploreList {
+  max-height: 640px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.exploreListCard {
+  outline: none;
+}
+
+.exploreListCard:focus-visible {
+  border-color: rgba(201, 162, 39, 0.62);
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.24);
+}
+
+.exploreListCard.is-active {
+  border-color: #c9a227;
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.2);
+}
+
+.ownerResponseBlock {
+  background: rgba(16, 28, 61, 0.35);
+  border-left-color: #c9a227;
+}
+
+.ownerResponseBlock__label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.ownerResponseBlock__text {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+@media (max-width: 768px) {
+  .filterDrawer__panel {
+    width: 100%;
+    border-left: none;
+    padding: 16px 14px;
+  }
+
+  .filterDrawer__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quickFilterBtn {
+    flex: 1 1 calc(50% - 10px);
+  }
+}
+
+/* =========================================================
+   UX refresh overrides
+   ========================================================= */
+
+.passwordFieldWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.passwordFieldWrap input {
+  width: 100%;
+  padding-right: 46px;
+}
+
+.passwordToggleBtn {
+  position: absolute;
+  right: 10px;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.78);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.passwordToggleBtn:hover {
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.react-datepicker-wrapper,
+.react-datepicker__input-container {
+  width: 100%;
+}
+
+.datePickerInput {
+  width: 100%;
+}
+
+.reservationTimeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.timeSlotToggleBtn {
+  margin-top: 10px;
+  min-height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(8, 13, 42, 0.55);
+  color: rgba(255, 255, 255, 0.92);
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.16s ease, transform 0.16s ease;
+}
+
+.timeSlotToggleBtn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.6);
+}
+
+.timeSlotBtn {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 12px;
+  min-height: 42px;
+  background: rgba(8, 13, 42, 0.62);
+  color: rgba(255, 255, 255, 0.95);
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.14s ease, border-color 0.14s ease;
+}
+
+.timeSlotBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.65);
+}
+
+.timeSlotBtn.is-selected {
+  border-color: rgba(201, 162, 39, 0.76);
+}
+
+.timeSlotBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.timeSlotBtn__activeBg {
+  position: absolute;
+  inset: 0;
+  background: rgba(201, 162, 39, 0.22);
+}
+
+.timeSlotBtn__label {
+  position: relative;
+  z-index: 1;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.reservationHint {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 12px;
+}
+
+.reservationSuggestedTimes {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.suggestedTimeBtn {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(8, 13, 42, 0.6);
+  color: rgba(255, 255, 255, 0.95);
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.suggestedTimeBtn.is-selected {
+  border-color: rgba(201, 162, 39, 0.7);
+  background: rgba(201, 162, 39, 0.2);
+}
+
+.restaurantPageHeader {
+  max-width: 1240px;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.restaurantPageHeader__backBtn {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.restaurantPageHeader__title {
+  margin: 0;
+  font-size: clamp(16px, 1.8vw, 22px);
+  color: rgba(255, 255, 255, 0.86);
+  font-weight: 700;
+}
+
+.restaurantProfileHero--splitLayout {
+  max-width: 1240px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(280px, 0.42fr) minmax(0, 0.58fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.restaurantProfileHero--splitLayout .restaurantProfileHero__media {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  min-height: 240px;
+  height: clamp(240px, 34vw, 360px);
+}
+
+.restaurantProfileHero--splitLayout .restaurantProfileHero__img {
+  object-fit: cover;
+}
+
+.restaurantProfileHero--splitLayout .restaurantProfileHero__titleRow,
+.restaurantProfileHero--splitLayout .restaurantHeroInfoCard,
+.restaurantProfileHero--splitLayout .restaurantActionBar {
+  grid-column: 2;
+}
+
+.restaurantProfileHero__name--split {
+  padding-left: 0;
+}
+
+.restaurantHeroInfoItem--good {
+  border-color: rgba(34, 197, 94, 0.46);
+  background: rgba(34, 197, 94, 0.22);
+}
+
+.restaurantHeroInfoItem--warn {
+  border-color: rgba(251, 191, 36, 0.46);
+  background: rgba(251, 191, 36, 0.22);
+}
+
+.restaurantHeroInfoItem--danger {
+  border-color: rgba(239, 68, 68, 0.44);
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.exploreFiltersPanel {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  padding: 14px;
+  background:
+    radial-gradient(520px 260px at 12% 0%, rgba(201, 162, 39, 0.12), transparent 64%),
+    linear-gradient(180deg, rgba(12, 19, 79, 0.28), rgba(12, 19, 79, 0.16)),
+    rgba(0, 0, 0, 0.14);
+  margin-bottom: 14px;
+}
+
+.exploreFiltersPanel__top {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.exploreFilterGroup {
+  margin-top: 10px;
+}
+
+.exploreFilterGroup__label {
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.exploreChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.exploreMapCanvas .leaflet-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+}
+
+.explorePopup {
+  min-width: 160px;
+  display: grid;
+  gap: 6px;
+}
+
+.ownerProfileMapField {
+  margin-top: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.ownerProfileMapField__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.ownerProfileMapField__hint {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.ownerProfileMapPicker {
+  width: 100%;
+  height: 280px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.ownerProfileMapPicker .leaflet-container {
+  width: 100%;
+  height: 100%;
+}
+
+.ownerProfileMapCoords {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 980px) {
+  .restaurantPageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .restaurantProfileHero--splitLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .restaurantProfileHero--splitLayout .restaurantProfileHero__media {
+    grid-column: auto;
+    grid-row: auto;
+    min-height: 220px;
+    height: clamp(220px, 48vw, 300px);
+  }
+
+  .restaurantProfileHero--splitLayout .restaurantProfileHero__titleRow,
+  .restaurantProfileHero--splitLayout .restaurantHeroInfoCard,
+  .restaurantProfileHero--splitLayout .restaurantActionBar {
+    grid-column: auto;
+  }
+
+  .exploreFiltersPanel__top {
+    grid-template-columns: 1fr;
+  }
+}
+

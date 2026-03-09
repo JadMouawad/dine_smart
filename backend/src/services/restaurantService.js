@@ -17,6 +17,10 @@ const getRestaurantByOwnerId = async (ownerId) => {
   return await restaurantRepository.getRestaurantByOwnerId(ownerId);
 };
 
+const getRestaurantByIdAndOwnerId = async (restaurantId, ownerId) => {
+  return await restaurantRepository.getRestaurantByIdAndOwnerId(restaurantId, ownerId);
+};
+
 const updateRestaurant = async (id, data) => {
   return await restaurantRepository.updateRestaurant(id, data);
 };
@@ -25,8 +29,16 @@ const deleteRestaurant = async (id) => {
   return await restaurantRepository.deleteRestaurant(id);
 };
 
-const searchRestaurants = async (query) => {
-  return await restaurantRepository.searchRestaurants(query);
+const searchRestaurants = async (query, cuisines, filters = {}) => {
+  return await restaurantRepository.searchRestaurants(query || "", cuisines, filters);
+};
+
+const getTableConfigByRestaurantId = async (restaurantId) => {
+  return await restaurantRepository.getTableConfigByRestaurantId(restaurantId);
+};
+
+const upsertTableConfigByRestaurantId = async (restaurantId, config) => {
+  return await restaurantRepository.upsertTableConfigByRestaurantId(restaurantId, config);
 };
 
 module.exports = {
@@ -34,7 +46,10 @@ module.exports = {
   getAllRestaurants,
   getRestaurantById,
   getRestaurantByOwnerId,
+  getRestaurantByIdAndOwnerId,
   updateRestaurant,
   deleteRestaurant,
   searchRestaurants,
+  getTableConfigByRestaurantId,
+  upsertTableConfigByRestaurantId,
 };

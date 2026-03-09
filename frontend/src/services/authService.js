@@ -1,10 +1,10 @@
 import { apiRequest } from "./apiClient";
 
 // API endpoints
-export function registerUser({ name, email, password, role }) {
+export function registerUser({ name, email, password, role, latitude, longitude, phone }) {
   return apiRequest("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ name, email, password, role }),
+    body: JSON.stringify({ name, email, password, role, latitude, longitude, phone }),
   });
 }
 
@@ -15,10 +15,10 @@ export function loginUser({ email, password }) {
   });
 }
 
-export function googleAuth({ idToken }) {
+export function googleAuth({ idToken, role }) {
   return apiRequest("/auth/google", {
     method: "POST",
-    body: JSON.stringify({ idToken }),
+    body: JSON.stringify({ idToken, role }),
   });
 }
 

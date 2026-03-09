@@ -2,9 +2,34 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { loginUser, registerUser, getCurrentUser, googleAuth } from "../services/authService";
 
 const AuthContext = createContext(null);
+const TOKEN_KEY = "token";
+
+function readStoredToken() {
+  const localToken = localStorage.getItem(TOKEN_KEY);
+  if (localToken) return localToken;
+
+  // Backward compatibility for older builds that used sessionStorage.
+  const legacySessionToken = sessionStorage.getItem(TOKEN_KEY);
+  if (legacySessionToken) {
+    localStorage.setItem(TOKEN_KEY, legacySessionToken);
+    sessionStorage.removeItem(TOKEN_KEY);
+  }
+
+  return legacySessionToken;
+}
+
+function persistToken(token) {
+  localStorage.setItem(TOKEN_KEY, token);
+  sessionStorage.removeItem(TOKEN_KEY);
+}
+
+function clearToken() {
+  localStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+}
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem("token"));
+  const [token, setToken] = useState(() => readStoredToken());
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -19,7 +44,7 @@ export function AuthProvider({ children }) {
       const me = await getCurrentUser();
       setUser(me.user ?? me);
     } catch {
-      localStorage.removeItem("token");
+      clearToken();
       setToken(null);
       setUser(null);
     } finally {
@@ -38,18 +63,26 @@ export function AuthProvider({ children }) {
 
     if (!newToken) throw new Error("No token returned from server");
 
-    localStorage.setItem("token", newToken);
+    persistToken(newToken);
     setToken(newToken);
     setUser(data.user ?? null);
     return data;
   }
 
-  async function register(name, email, password, role) {
-    const data = await registerUser({ name, email, password, role });
+  async function register(name, email, password, role, location = {}) {
+    const data = await registerUser({
+      name,
+      email,
+      password,
+      role,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      phone: location.phone,
+    });
     const newToken = data.token ?? data.accessToken;
 
     if (newToken) {
-      localStorage.setItem("token", newToken);
+      persistToken(newToken);
       setToken(newToken);
     }
 
@@ -57,20 +90,20 @@ export function AuthProvider({ children }) {
     return data;
   }
 
-  async function googleLogin(idToken) {
-    const data = await googleAuth({ idToken });
+  async function googleLogin(idToken, role) {
+    const data = await googleAuth({ idToken, role });
     const newToken = data.token ?? data.accessToken;
 
     if (!newToken) throw new Error("No token returned from server");
 
-    localStorage.setItem("token", newToken);
+    persistToken(newToken);
     setToken(newToken);
     setUser(data.user ?? null);
     return data;
   }
 
   function logout() {
-    localStorage.removeItem("token");
+    clearToken();
     setToken(null);
     setUser(null);
   }
