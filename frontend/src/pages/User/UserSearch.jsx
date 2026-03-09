@@ -1046,9 +1046,17 @@ export default function UserSearch({
                   <div className="reviewCardFull" key={rev.id}>
                     <div className="reviewCardFull__left">
                       <div className="reviewCardFull__avatar">
-                        <span className="reviewCardFull__avatarFallback">
-                          {(rev.user_name || rev.authorName || "?")[0].toUpperCase()}
-                        </span>
+                        {(rev.profilePictureUrl || rev.profile_picture_url) ? (
+                          <img
+                            className="reviewCardFull__avatarImg"
+                            src={rev.profilePictureUrl || rev.profile_picture_url}
+                            alt={`${rev.user_name || rev.authorName || "User"} avatar`}
+                          />
+                        ) : (
+                          <span className="reviewCardFull__avatarFallback">
+                            {(rev.user_name || rev.authorName || "?")[0].toUpperCase()}
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -1066,6 +1074,13 @@ export default function UserSearch({
                       </div>
 
                       <div className="reviewCardFull__text">{rev.comment}</div>
+
+                      {rev.owner_response && (
+                        <div className="ownerResponseBlock">
+                          <div className="ownerResponseBlock__label">Restaurant response</div>
+                          <div className="ownerResponseBlock__text">{rev.owner_response}</div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

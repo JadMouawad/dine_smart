@@ -120,9 +120,9 @@ export default function UserShell({ initialActive = "search" }) {
 
             <ConfirmDialog
               open={confirmLogoutOpen}
-              title="Sign out?"
-              message="Are you sure you want to sign out?"
-              confirmLabel="Sign Out"
+              title="Log out?"
+              message="Are you sure you want to log out?"
+              confirmLabel="Log Out"
               cancelLabel="Cancel"
               onConfirm={handleLogout}
               onCancel={() => setConfirmLogoutOpen(false)}

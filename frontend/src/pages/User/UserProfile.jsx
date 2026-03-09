@@ -41,6 +41,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState("+961");
+  const [accountProvider, setAccountProvider] = useState(() => String(user?.provider || "local").toLowerCase());
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -59,6 +60,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
         setFullName(profile.fullName ?? profile.full_name ?? user.name ?? user.fullName ?? "");
         setEmail(profile.email ?? user.email ?? "");
         setPhone(profile.phone ?? "");
+        setAccountProvider(String(profile.provider ?? user.provider ?? "local").toLowerCase());
         setProfilePictureUrl(profile.profilePictureUrl ?? profile.profile_picture_url ?? "");
         setReservationCount(Number(profile.reservationCount ?? 0));
         setLoyaltyBadge(profile.loyaltyBadge ?? "Newcomer");
@@ -78,11 +80,14 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       .catch(() => {
         setFullName(user.name ?? user.fullName ?? "");
         setEmail(user.email ?? "");
+        setAccountProvider(String(user.provider ?? "local").toLowerCase());
         setMyReviews([]);
         setProfilePictureUrl("");
       })
       .finally(() => setProfileLoading(false));
   }, [user?.id]);
+
+  const isGoogleAccount = accountProvider === "google";
 
   const avatarSrc = useMemo(() => {
     return profilePictureDataUrl || profilePictureUrl || DEFAULT_AVATAR;
@@ -117,7 +122,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
     setProfileError("");
     setProfileSuccess("");
 
-    if (newPassword.trim()) {
+    if (!isGoogleAccount && newPassword.trim()) {
       if (!confirmNewPassword.trim()) {
         setProfileError("Please confirm your new password.");
         return;
@@ -134,7 +139,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       phone: phone.trim() ? `${countryCode}${phone.trim()}` : "",
       profilePictureUrl: profilePictureDataUrl || profilePictureUrl || "",
     };
-    if (newPassword.trim()) payload.password = newPassword.trim();
+    if (!isGoogleAccount && newPassword.trim()) payload.password = newPassword.trim();
     try {
       const updated = await updateProfile(payload);
       const savedAvatar = updated?.profilePictureUrl ?? payload.profilePictureUrl;
@@ -229,47 +234,58 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
             </div>
           </label>
 
-          <label className="field">
-            <span>New password (leave blank to keep current)</span>
-            <div className="passwordFieldWrap">
-              <input
-                type={showNewPassword ? "text" : "password"}
-                placeholder="Enter new password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                autoComplete="new-password"
-              />
-              <button
-                type="button"
-                className="passwordToggleBtn"
-                onClick={() => setShowNewPassword((prev) => !prev)}
-                aria-label={showNewPassword ? "Hide new password" : "Show new password"}
-              >
-                {showNewPassword ? <FiEyeOff /> : <FiEye />}
-              </button>
+          {isGoogleAccount ? (
+            <div className="field">
+              <span>Password</span>
+              <p className="userProfileFormHint">
+                You signed in with Google. Password changes are managed in your Google account.
+              </p>
             </div>
-          </label>
+          ) : (
+            <>
+              <label className="field">
+                <span>New password (leave blank to keep current)</span>
+                <div className="passwordFieldWrap">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    placeholder="Enter new password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    className="passwordToggleBtn"
+                    onClick={() => setShowNewPassword((prev) => !prev)}
+                    aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+                  >
+                    {showNewPassword ? <FiEyeOff /> : <FiEye />}
+                  </button>
+                </div>
+              </label>
 
-          <label className="field">
-            <span>Confirm new password</span>
-            <div className="passwordFieldWrap">
-              <input
-                type={showConfirmNewPassword ? "text" : "password"}
-                placeholder="Confirm new password"
-                value={confirmNewPassword}
-                onChange={(e) => setConfirmNewPassword(e.target.value)}
-                autoComplete="new-password"
-              />
-              <button
-                type="button"
-                className="passwordToggleBtn"
-                onClick={() => setShowConfirmNewPassword((prev) => !prev)}
-                aria-label={showConfirmNewPassword ? "Hide confirm password" : "Show confirm password"}
-              >
-                {showConfirmNewPassword ? <FiEyeOff /> : <FiEye />}
-              </button>
-            </div>
-          </label>
+              <label className="field">
+                <span>Confirm new password</span>
+                <div className="passwordFieldWrap">
+                  <input
+                    type={showConfirmNewPassword ? "text" : "password"}
+                    placeholder="Confirm new password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    className="passwordToggleBtn"
+                    onClick={() => setShowConfirmNewPassword((prev) => !prev)}
+                    aria-label={showConfirmNewPassword ? "Hide confirm password" : "Show confirm password"}
+                  >
+                    {showConfirmNewPassword ? <FiEyeOff /> : <FiEye />}
+                  </button>
+                </div>
+              </label>
+            </>
+          )}
 
           <div className="formCard__actions">
             <button className="btn btn--gold btn--xl" type="submit">

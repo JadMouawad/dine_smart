@@ -126,7 +126,8 @@ export default function OwnerReservations() {
       ) : (
         <div className="reservationList">
           {sortedReservations.map((reservation) => {
-            const isCancelled = String(reservation.status).toLowerCase() === "cancelled";
+            const normalizedStatus = String(reservation.status || "").toLowerCase();
+            const canTakeAction = !["confirmed", "cancelled", "completed", "no-show"].includes(normalizedStatus);
             return (
               <article className="reservationCard" key={reservation.id}>
                 <div className="reservationCard__top">
@@ -145,24 +146,26 @@ export default function OwnerReservations() {
                 <div className="reservationCard__meta">
                   Customer email: {reservation.customer_email || "N/A"}
                 </div>
-                <div className="reservationCard__actions ownerReservationActions">
-                  <button
-                    className="btn btn--gold"
-                    type="button"
-                    disabled={updatingId === reservation.id || isCancelled}
-                    onClick={() => handleAction(reservation.id, "accept")}
-                  >
-                    {updatingId === reservation.id ? "Updating..." : "Accept"}
-                  </button>
-                  <button
-                    className="btn btn--ghost"
-                    type="button"
-                    disabled={updatingId === reservation.id || isCancelled}
-                    onClick={() => setConfirmRejectReservation(reservation)}
-                  >
-                    Reject
-                  </button>
-                </div>
+                {canTakeAction && (
+                  <div className="reservationCard__actions ownerReservationActions">
+                    <button
+                      className="btn btn--gold"
+                      type="button"
+                      disabled={updatingId === reservation.id}
+                      onClick={() => handleAction(reservation.id, "accept")}
+                    >
+                      {updatingId === reservation.id ? "Updating..." : "Accept"}
+                    </button>
+                    <button
+                      className="btn btn--ghost"
+                      type="button"
+                      disabled={updatingId === reservation.id}
+                      onClick={() => setConfirmRejectReservation(reservation)}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
               </article>
             );
           })}
@@ -171,13 +174,13 @@ export default function OwnerReservations() {
 
       <ConfirmDialog
         open={!!confirmRejectReservation}
-        title="Cancel this reservation?"
+        title="Reject this reservation?"
         message={
           confirmRejectReservation
-            ? `Are you sure you want to cancel ${confirmRejectReservation.customer_name || "this guest"}'s reservation for ${formatDateTime(confirmRejectReservation)}?`
+            ? `Are you sure you want to reject ${confirmRejectReservation.customer_name || "this guest"}'s reservation for ${formatDateTime(confirmRejectReservation)}?`
             : ""
         }
-        confirmLabel="Cancel Reservation"
+        confirmLabel="Reject Reservation"
         cancelLabel="Keep Reservation"
         busy={updatingId === confirmRejectReservation?.id}
         busyLabel="Updating..."

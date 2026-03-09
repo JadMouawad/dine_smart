@@ -16,6 +16,25 @@ const initialForm = {
   end_date: "",
 };
 
+function normalizeDateInput(value) {
+  if (!value) return "";
+  const raw = String(value).trim();
+  const directMatch = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (directMatch) return directMatch[1];
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+}
+
+function formatDateLabel(value) {
+  const normalized = normalizeDateInput(value);
+  if (!normalized) return "Date unavailable";
+  const parsed = new Date(`${normalized}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return normalized;
+  return parsed.toLocaleDateString();
+}
+
 export default function OwnerEvents() {
   const [restaurant, setRestaurant] = useState(null);
   const [events, setEvents] = useState([]);
@@ -54,8 +73,8 @@ export default function OwnerEvents() {
       title: event.title || "",
       description: event.description || "",
       image_url: event.image_url || "",
-      start_date: event.start_date || "",
-      end_date: event.end_date || "",
+      start_date: normalizeDateInput(event.start_date),
+      end_date: normalizeDateInput(event.end_date),
     });
     setSuccess("");
     setError("");
@@ -219,7 +238,7 @@ export default function OwnerEvents() {
               </div>
               <p>{event.description}</p>
               <p>
-                {event.start_date} - {event.end_date}
+                {formatDateLabel(event.start_date)} - {formatDateLabel(event.end_date)}
               </p>
             </article>
           ))
