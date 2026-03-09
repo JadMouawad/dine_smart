@@ -3880,9 +3880,24 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   border-color: rgba(34, 197, 94, 0.45);
 }
 
+.statusBadge--accepted {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+.statusBadge--pending {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.45);
+}
+
 .statusBadge--cancelled {
   background: rgba(239, 68, 68, 0.18);
   border-color: rgba(239, 68, 68, 0.45);
+}
+
+.statusBadge--rejected {
+  background: rgba(248, 113, 113, 0.2);
+  border-color: rgba(248, 113, 113, 0.48);
 }
 
 .statusBadge--no-show {
@@ -4839,12 +4854,82 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 .searchResultsHeader {
   margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .searchResultsHeader__count {
   margin: 0;
   color: rgba(255, 255, 255, 0.8);
   font-weight: 600;
+}
+
+.searchSortControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.searchSortControl__select {
+  min-width: 170px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.userMenuAccordion {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  padding: 12px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    rgba(12, 19, 79, 0.18);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
+}
+
+.userMenuAccordion .userMenuSectionBlock {
+  margin-top: 0;
+}
+
+.userMenuAccordion__header {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(8, 14, 46, 0.55);
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 15px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 14px;
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.userMenuAccordion__header:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.5);
+}
+
+.userMenuAccordion__header.is-open {
+  border-color: rgba(201, 162, 39, 0.62);
+  box-shadow: 0 6px 16px rgba(201, 162, 39, 0.18);
+}
+
+.userMenuAccordion__chevron {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .filterDrawer {

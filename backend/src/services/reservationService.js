@@ -282,6 +282,7 @@ const createReservation = async ({
         partySize: parsedPartySize,
         seatingPreference: normalizedSeating,
         specialRequest: cleanedSpecialRequest,
+        status: "pending",
         confirmationId,
       });
       createdReservation = insertResult.rows[0];
@@ -366,7 +367,7 @@ const cancelReservation = async ({ reservationId, requestingUserId, requestingUs
     return { success: false, status: 403, error: "You can only cancel your own reservation" };
   }
 
-  if (existingReservation.status !== "confirmed") {
+  if (!["pending", "accepted", "confirmed"].includes(existingReservation.status)) {
     return { success: false, status: 409, error: `Reservation is already ${existingReservation.status}` };
   }
 
@@ -426,19 +427,24 @@ const updateReservationStatusForOwner = async ({ reservationId, ownerId, action 
   }
 
   if (normalizedAction === "accept") {
-    if (existing.status === "cancelled") {
-      return { success: false, status: 409, error: "Cancelled reservations cannot be accepted" };
+    if (["cancelled", "rejected"].includes(existing.status)) {
+      return { success: false, status: 409, error: `${existing.status} reservations cannot be accepted` };
     }
-    if (existing.status === "confirmed") {
+    if (["accepted", "confirmed"].includes(existing.status)) {
       return { success: true, status: 200, reservation: existing };
     }
   }
 
-  if (normalizedAction === "reject" && existing.status === "cancelled") {
-    return { success: true, status: 200, reservation: existing };
+  if (normalizedAction === "reject") {
+    if (existing.status === "cancelled") {
+      return { success: true, status: 200, reservation: existing };
+    }
+    if (existing.status === "rejected") {
+      return { success: true, status: 200, reservation: existing };
+    }
   }
 
-  const nextStatus = normalizedAction === "accept" ? "confirmed" : "cancelled";
+  const nextStatus = normalizedAction === "accept" ? "accepted" : "rejected";
   const updatedResult = await ReservationModel.updateOwnerReservationStatus(db, {
     reservationId: parsedReservationId,
     ownerId: parsedOwnerId,
@@ -447,22 +453,6 @@ const updateReservationStatusForOwner = async ({ reservationId, ownerId, action 
   const updated = updatedResult.rows[0];
   if (!updated) {
     return { success: false, status: 409, error: "Reservation status could not be updated" };
-  }
-
-  if (nextStatus === "cancelled" && updated.customer_email && updated.restaurant_name) {
-    try {
-      await sendReservationCancellationEmail({
-        to: updated.customer_email,
-        userName: updated.customer_name || "Guest",
-        restaurantName: updated.restaurant_name,
-        reservationDate: formatDateForEmail(updated.reservation_date),
-        reservationTime: formatTimeForEmail(updated.reservation_time),
-        partySize: updated.party_size,
-        confirmationId: updated.confirmation_id,
-      });
-    } catch (error) {
-      console.warn("Failed to send owner-triggered cancellation email:", error.message);
-    }
   }
 
   return { success: true, status: 200, reservation: updated };

@@ -38,6 +38,7 @@ const DIETARY_LABELS = {
 const FAVORITES_KEY = "ds_favorites";
 const FILLED_STAR = "\u2605";
 const EMPTY_STAR = "\u2606";
+const DEFAULT_BEIRUT_GEO = { latitude: 33.8938, longitude: 35.5018 };
 
 function pad2(value) {
   return String(value).padStart(2, "0");
@@ -102,6 +103,7 @@ function getInitialFilters() {
     distanceEnabled: false,
     distanceRadius: 25,
     cuisines: [],
+    sortBy: "rating",
   };
 }
 
@@ -169,10 +171,8 @@ export default function UserSearch({
   const [geo, setGeo] = useState({ latitude: null, longitude: null });
 
   const [favorites, setFavorites] = useState(() => loadFavorites());
-  const [activeSectionId, setActiveSectionId] = useState(null);
+  const [expandedSections, setExpandedSections] = useState({});
 
-  const sectionRefs = useRef({});
-  const sliderTrackRef = useRef(null);
   const drawerRef = useRef(null);
   const scrollRestoreRef = useRef(null);
   const reservationInlineRef = useRef(null);
@@ -317,7 +317,10 @@ export default function UserSearch({
     if (geo.latitude != null && geo.longitude != null) {
       return { latitude: geo.latitude, longitude: geo.longitude };
     }
-    return profileGeo;
+    if (profileGeo.latitude != null && profileGeo.longitude != null) {
+      return profileGeo;
+    }
+    return DEFAULT_BEIRUT_GEO;
   }, [geo.latitude, geo.longitude, profileGeo]);
 
   // Fetch restaurants from search API with advanced filters and a base set for option counts.
@@ -336,6 +339,7 @@ export default function UserSearch({
       latitude: effectiveGeo.latitude,
       longitude: effectiveGeo.longitude,
       distanceRadius: filters.distanceEnabled ? filters.distanceRadius : null,
+      sortBy: filters.sortBy,
     };
 
     Promise.all([
@@ -495,6 +499,7 @@ export default function UserSearch({
       || filters.availabilityTime !== initial.availabilityTime
       || filters.distanceEnabled !== initial.distanceEnabled
       || Number(filters.distanceRadius) !== Number(initial.distanceRadius)
+      || filters.sortBy !== initial.sortBy
       || filters.priceRange.length > 0
       || filters.dietarySupport.length > 0
       || filters.cuisines.length > 0;
@@ -554,55 +559,24 @@ export default function UserSearch({
     };
   }, [drawerOpen]);
 
-  // Active section tracking
-  useEffect(() => {
-    if (!selectedRestaurant) return;
-
-    const sections = selectedRestaurant.menu_sections ?? selectedRestaurant.menu ?? [];
-    if (!sections.length) return;
-
-    setActiveSectionId((prev) => prev || sections[0].sectionId);
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => (b.intersectionRatio || 0) - (a.intersectionRatio || 0))[0];
-
-        if (visible) {
-          const id = visible.target.getAttribute("data-section-id");
-          if (id) setActiveSectionId(id);
-        }
-      },
-      { threshold: 0.35 }
-    );
-
-    sections.forEach((sec) => {
-      const el = sectionRefs.current[sec.sectionId];
-      if (el) observer.observe(el);
-    });
-
-    return () => observer.disconnect();
-  }, [selectedRestaurant]);
-
-  function scrollToSection(sectionId) {
-    const el = sectionRefs.current[sectionId];
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function slideSections(dir) {
-    const el = sliderTrackRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir * el.clientWidth * 0.6, behavior: "smooth" });
-  }
-
   // Normalize menu from API (backend returns menu_sections; support legacy .menu)
   const restaurantMenu = useMemo(() => {
     if (!selectedRestaurant) return [];
     const raw = selectedRestaurant.menu_sections ?? selectedRestaurant.menu;
     return Array.isArray(raw) ? raw : [];
   }, [selectedRestaurant]);
+
+  useEffect(() => {
+    if (!restaurantMenu.length) {
+      setExpandedSections({});
+      return;
+    }
+    setExpandedSections((prev) => {
+      const hasExisting = restaurantMenu.some((section) => prev[section.sectionId] != null);
+      if (hasExisting) return prev;
+      return Object.fromEntries(restaurantMenu.map((section) => [section.sectionId, true]));
+    });
+  }, [restaurantMenu]);
 
   const availabilityBadge = useMemo(() => {
     if (!reservationAvailability) return null;
@@ -674,12 +648,40 @@ export default function UserSearch({
     if (filters.availabilityDate) chips.push({ key: "date", label: `Date: ${filters.availabilityDate}`, clear: () => updateFilters((prev) => ({ ...prev, availabilityDate: "", availabilityTime: "" })) });
     if (filters.availabilityTime) chips.push({ key: "time", label: `Time: ${filters.availabilityTime}`, clear: () => updateFilters((prev) => ({ ...prev, availabilityTime: "" })) });
     if (filters.distanceEnabled) chips.push({ key: "distance", label: `Distance: ${filters.distanceRadius}km`, clear: () => updateFilters((prev) => ({ ...prev, distanceEnabled: false })) });
+    if (filters.sortBy && filters.sortBy !== "rating") {
+      const sortLabelMap = {
+        distance: "Distance",
+        reviews: "Reviews",
+        popularity: "Popularity",
+        alphabetical: "A-Z",
+      };
+      chips.push({
+        key: "sort",
+        label: `Sort: ${sortLabelMap[filters.sortBy] || filters.sortBy}`,
+        clear: () => updateFilters((prev) => ({ ...prev, sortBy: "rating" })),
+      });
+    }
     filters.priceRange.forEach((price) => chips.push({ key: `price-${price}`, label: `Price: ${PRICE_LABELS[price] || price}`, clear: () => updateFilters((prev) => ({ ...prev, priceRange: prev.priceRange.filter((item) => item !== price) })) }));
     filters.dietarySupport.forEach((dietary) => chips.push({ key: `dietary-${dietary}`, label: DIETARY_LABELS[dietary] || dietary, clear: () => updateFilters((prev) => ({ ...prev, dietarySupport: prev.dietarySupport.filter((item) => item !== dietary) })) }));
     filters.cuisines.forEach((cuisine) => chips.push({ key: `cuisine-${cuisine}`, label: cuisine, clear: () => updateFilters((prev) => ({ ...prev, cuisines: prev.cuisines.filter((item) => item !== cuisine) })) }));
 
     return chips;
   }, [filters]);
+
+  const sortOptions = [
+    { value: "rating", label: "Top Rated" },
+    { value: "distance", label: "Nearest" },
+    { value: "reviews", label: "Most Reviewed" },
+    { value: "popularity", label: "Most Popular" },
+    { value: "alphabetical", label: "A-Z" },
+  ];
+
+  function toggleMenuSection(sectionId) {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [sectionId]: !prev[sectionId],
+    }));
+  }
 
   // =========================
   // Invalid restaurant ID
@@ -794,6 +796,7 @@ export default function UserSearch({
               onClick={() => {
                 setDetailsTab("menu");
                 setReservationInlineOpen(false);
+                setExpandedSections({});
                 menuSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
             >
@@ -847,7 +850,7 @@ export default function UserSearch({
               restaurant={selectedRestaurant}
               onClose={() => {}}
               onReserved={(reservation) => {
-                setReservationToast("Reservation confirmed! Check your email.");
+                setReservationToast("Booked successfully.");
                 const date = reservation?.reservation_date || reservationSlot?.date || getCurrentSlotParams().date;
                 const time = String(reservation?.reservation_time || reservationSlot?.time || getCurrentSlotParams().time).slice(0, 5);
                 setReservationSlot({ date, time });
@@ -879,70 +882,49 @@ export default function UserSearch({
             <h2 className="userMenuView__title">Menu</h2>
 
             {restaurantMenu.length ? (
-              <div className="menuSectionSlider">
-                <button className="menuSectionSlider__arrow" type="button" onClick={() => slideSections(-1)} aria-label="Scroll sections left">
-                  &#8249;
-                </button>
-
-                <div className="menuSectionSlider__pill" aria-label="Menu sections">
-                  <div className="menuSectionSlider__track" ref={sliderTrackRef}>
-                    {restaurantMenu.map((sec) => (
-                      <button
-                        key={sec.sectionId}
-                        type="button"
-                        className={`menuSectionSlider__btn ${activeSectionId === sec.sectionId ? "is-active" : ""}`}
-                        onClick={() => scrollToSection(sec.sectionId)}
-                      >
-                        {sec.sectionName}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <button className="menuSectionSlider__arrow" type="button" onClick={() => slideSections(1)} aria-label="Scroll sections right">
-                  &#8250;
-                </button>
-              </div>
-            ) : null}
-
-            {restaurantMenu.length ? (
-              <div className="userMenuSections">
+              <div className="userMenuSections userMenuAccordion">
                 {restaurantMenu.map((sec) => (
                   <div
                     className="menuSectionBlock userMenuSectionBlock"
                     key={sec.sectionId}
-                    data-section-id={sec.sectionId}
-                    ref={(el) => {
-                      if (el) sectionRefs.current[sec.sectionId] = el;
-                    }}
                   >
                     <div className="menuSectionHeader">
-                      <button className="btn btn--gold ownerMenuSectionBtn" type="button">
+                      <button
+                        className={`userMenuAccordion__header ${expandedSections[sec.sectionId] ? "is-open" : ""}`}
+                        type="button"
+                        onClick={() => toggleMenuSection(sec.sectionId)}
+                        aria-expanded={expandedSections[sec.sectionId] ? "true" : "false"}
+                      >
                         {sec.sectionName}
+                        <span className="userMenuAccordion__chevron" aria-hidden="true">
+                          {expandedSections[sec.sectionId] ? "−" : "+"}
+                        </span>
                       </button>
                     </div>
 
-                    <div className="ownerMenuItemsGrid">
-                      {sec.items.map((it) => (
-                        <div className="menuItemCard" key={it.id}>
-                          <div className="menuItemCard__media">
-                            {(it.imageUrl || it.image_url) ? (
-                              <img className="menuItemCard__img" src={it.imageUrl || it.image_url} alt={it.name} />
-                            ) : (
-                              <div className="menuItemCard__imgPlaceholder">PNG, JPG, or JPEG</div>
-                            )}
-                          </div>
-
-                          <div className="menuItemCard__info">
-                            <div className="menuItemCard__name">{it.name}</div>
-                            <div className="menuItemCard__price">
-                              {it.price} {it.currency}
+                    {expandedSections[sec.sectionId] && (
+                      <div className="ownerMenuItemsGrid">
+                        {sec.items.map((it) => (
+                          <div className="menuItemCard" key={it.id}>
+                            <div className="menuItemCard__media">
+                              {(it.imageUrl || it.image_url) ? (
+                                <img className="menuItemCard__img" src={it.imageUrl || it.image_url} alt={it.name} />
+                              ) : (
+                                <div className="menuItemCard__imgPlaceholder">PNG, JPG, or JPEG</div>
+                              )}
                             </div>
-                            {it.description && <div className="menuItemCard__desc">{it.description}</div>}
+
+                            <div className="menuItemCard__info">
+                              <div className="menuItemCard__name">{it.name}</div>
+                              <div className="menuItemCard__price">
+                                {it.price} {it.currency}
+                              </div>
+                              {it.description && <div className="menuItemCard__desc">{it.description}</div>}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1197,6 +1179,21 @@ export default function UserSearch({
 
       <div className="searchResultsHeader">
         <p className="searchResultsHeader__count">{filteredRestaurants.length} restaurants found</p>
+        <label className="searchSortControl">
+          <span>Sort by</span>
+          <select
+            className="select searchSortControl__select"
+            value={filters.sortBy}
+            onChange={(e) => updateFilters((prev) => ({ ...prev, sortBy: e.target.value }))}
+            aria-label="Sort restaurants"
+          >
+            {sortOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <div className="restaurantGrid">

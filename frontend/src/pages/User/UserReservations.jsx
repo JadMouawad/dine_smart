@@ -65,7 +65,7 @@ function toSortTimestamp(reservation, fallbackValue) {
 
 function toStatusClass(status) {
   const normalized = String(status || "").toLowerCase();
-  if (["confirmed", "cancelled", "no-show", "completed"].includes(normalized)) {
+  if (["pending", "accepted", "confirmed", "cancelled", "no-show", "completed", "rejected"].includes(normalized)) {
     return `statusBadge statusBadge--${normalized}`;
   }
   return "statusBadge";
@@ -74,6 +74,7 @@ function toStatusClass(status) {
 function formatStatusLabel(status) {
   const normalized = String(status || "").trim().toLowerCase();
   if (!normalized) return "Unknown";
+  if (normalized === "accepted" || normalized === "confirmed") return "Accepted";
   if (normalized === "no-show") return "No-show";
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
@@ -115,10 +116,11 @@ export default function UserReservations() {
       const hasValidDateTime = dateTime instanceof Date && !Number.isNaN(dateTime.getTime());
       const hasPassed = hasValidDateTime ? dateTime < now : false;
       const normalizedStatus = String(reservation.status || "").toLowerCase();
-      const isConfirmed = normalizedStatus === "confirmed";
-      const isTerminalStatus = ["cancelled", "completed", "no-show"].includes(normalizedStatus);
+      const isAccepted = normalizedStatus === "accepted" || normalizedStatus === "confirmed";
+      const isPending = normalizedStatus === "pending";
+      const isTerminalStatus = ["cancelled", "completed", "no-show", "rejected"].includes(normalizedStatus);
 
-      if (isConfirmed && !hasPassed) {
+      if ((isAccepted || isPending) && !hasPassed) {
         grouped.upcoming.push(reservation);
       } else if (isTerminalStatus || hasPassed || !hasValidDateTime) {
         grouped.past.push(reservation);
@@ -198,7 +200,7 @@ export default function UserReservations() {
                 <div className="reservationCard__meta">
                   Party of {reservation.party_size} - Confirmation {reservation.confirmation_id}
                 </div>
-                {String(reservation.status || "").toLowerCase() === "confirmed" && (
+                {["pending", "accepted", "confirmed"].includes(String(reservation.status || "").toLowerCase()) && (
                   <div className="reservationCard__actions">
                     <button
                       className="btn btn--ghost"

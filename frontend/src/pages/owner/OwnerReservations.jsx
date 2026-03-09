@@ -18,10 +18,18 @@ function formatDateTime(reservation) {
 
 function toStatusClass(status) {
   const normalized = String(status || "").toLowerCase();
-  if (["confirmed", "cancelled", "no-show", "completed"].includes(normalized)) {
+  if (["pending", "accepted", "confirmed", "cancelled", "no-show", "completed", "rejected"].includes(normalized)) {
     return `statusBadge statusBadge--${normalized}`;
   }
   return "statusBadge";
+}
+
+function formatOwnerReservationStatus(status) {
+  const normalized = String(status || "").trim().toLowerCase();
+  if (normalized === "confirmed") return "accepted";
+  if (normalized === "accepted") return "accepted";
+  if (normalized === "cancelled") return "cancelled";
+  return normalized || "unknown";
 }
 
 export default function OwnerReservations() {
@@ -31,6 +39,7 @@ export default function OwnerReservations() {
   const [success, setSuccess] = useState("");
   const [updatingId, setUpdatingId] = useState(null);
   const [confirmRejectReservation, setConfirmRejectReservation] = useState(null);
+  const [clockNow, setClockNow] = useState(() => Date.now());
 
   async function loadReservations() {
     setError("");
@@ -50,6 +59,11 @@ export default function OwnerReservations() {
   }, []);
 
   useEffect(() => {
+    const timer = window.setInterval(() => setClockNow(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     const intervalId = window.setInterval(() => {
       loadReservations();
     }, 20000);
@@ -65,13 +79,32 @@ export default function OwnerReservations() {
     };
   }, []);
 
-  const sortedReservations = useMemo(() => {
-    return [...reservations].sort((a, b) => {
-      const aDate = toDateTimeValue(a)?.getTime() ?? 0;
-      const bDate = toDateTimeValue(b)?.getTime() ?? 0;
-      return bDate - aDate;
+  const { upcomingReservations, pastReservations } = useMemo(() => {
+    const now = new Date(clockNow);
+    const upcoming = [];
+    const past = [];
+
+    reservations.forEach((reservation) => {
+      const normalizedStatus = String(reservation.status || "").trim().toLowerCase();
+      const reservationDateTime = toDateTimeValue(reservation);
+      const isExpired = reservationDateTime ? reservationDateTime < now : true;
+      const isCancelled = normalizedStatus === "cancelled";
+      const isAccepted = normalizedStatus === "accepted" || normalizedStatus === "confirmed";
+      const isPending = normalizedStatus === "pending";
+
+      if (isCancelled || isExpired || (!isAccepted && !isPending)) {
+        past.push(reservation);
+        return;
+      }
+
+      upcoming.push(reservation);
     });
-  }, [reservations]);
+
+    upcoming.sort((a, b) => (toDateTimeValue(a)?.getTime() ?? Number.MAX_SAFE_INTEGER) - (toDateTimeValue(b)?.getTime() ?? Number.MAX_SAFE_INTEGER));
+    past.sort((a, b) => (toDateTimeValue(b)?.getTime() ?? 0) - (toDateTimeValue(a)?.getTime() ?? 0));
+
+    return { upcomingReservations: upcoming, pastReservations: past };
+  }, [reservations, clockNow]);
 
   async function handleAction(reservationId, action) {
     setUpdatingId(reservationId);
@@ -121,18 +154,20 @@ export default function OwnerReservations() {
       {success && <div className="inlineToast">{success}</div>}
       {error && <div className="fieldError">{error}</div>}
 
-      {sortedReservations.length === 0 ? (
-        <div className="menuSectionEmpty">No reservations yet.</div>
-      ) : (
-        <div className="reservationList">
-          {sortedReservations.map((reservation) => {
+      <section className="reservationSection">
+        <h2 className="reservationSection__title">Upcoming Reservations</h2>
+        {upcomingReservations.length === 0 ? (
+          <div className="menuSectionEmpty">No upcoming reservations.</div>
+        ) : (
+          <div className="reservationList">
+            {upcomingReservations.map((reservation) => {
             const normalizedStatus = String(reservation.status || "").toLowerCase();
-            const canTakeAction = !["confirmed", "cancelled", "completed", "no-show"].includes(normalizedStatus);
+            const canTakeAction = normalizedStatus === "pending";
             return (
               <article className="reservationCard" key={reservation.id}>
                 <div className="reservationCard__top">
                   <div className="reservationCard__name">{reservation.customer_name || "Guest"}</div>
-                  <span className={toStatusClass(reservation.status)}>{reservation.status || "unknown"}</span>
+                  <span className={toStatusClass(reservation.status)}>{formatOwnerReservationStatus(reservation.status)}</span>
                 </div>
                 <div className="reservationCard__meta">
                   Restaurant: {reservation.restaurant_name || "N/A"}
@@ -168,9 +203,40 @@ export default function OwnerReservations() {
                 )}
               </article>
             );
-          })}
-        </div>
-      )}
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="reservationSection">
+        <h2 className="reservationSection__title">Past Reservations</h2>
+        {pastReservations.length === 0 ? (
+          <div className="menuSectionEmpty">No past reservations yet.</div>
+        ) : (
+          <div className="reservationList">
+            {pastReservations.map((reservation) => (
+              <article className="reservationCard" key={reservation.id}>
+                <div className="reservationCard__top">
+                  <div className="reservationCard__name">{reservation.customer_name || "Guest"}</div>
+                  <span className={toStatusClass(reservation.status)}>{formatOwnerReservationStatus(reservation.status)}</span>
+                </div>
+                <div className="reservationCard__meta">
+                  Restaurant: {reservation.restaurant_name || "N/A"}
+                </div>
+                <div className="reservationCard__meta">
+                  {formatDateTime(reservation)}
+                </div>
+                <div className="reservationCard__meta">
+                  Seats: {reservation.party_size} | Confirmation: {reservation.confirmation_id}
+                </div>
+                <div className="reservationCard__meta">
+                  Customer email: {reservation.customer_email || "N/A"}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
 
       <ConfirmDialog
         open={!!confirmRejectReservation}

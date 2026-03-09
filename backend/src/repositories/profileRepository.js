@@ -45,7 +45,7 @@ const getReservationCountByUserId = async (userId) => {
       SELECT COUNT(*)::int AS reservation_count
       FROM reservations
       WHERE user_id = $1
-        AND status IN ('confirmed', 'completed', 'no-show')
+        AND status IN ('accepted', 'confirmed', 'completed', 'no-show')
     `,
     [userId]
   );

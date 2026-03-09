@@ -136,7 +136,7 @@ const getPopularRightNow = async ({ latitude = null, longitude = null, radiusKm 
         SELECT COUNT(*)::int AS recent_reservations
         FROM reservations rs
         WHERE rs.restaurant_id = r.id
-          AND rs.status = 'confirmed'
+          AND rs.status IN ('accepted', 'confirmed')
           AND rs.created_at >= NOW() - INTERVAL '30 days'
       ) pop ON true
       LEFT JOIN LATERAL (
@@ -172,7 +172,7 @@ const getPreferredCuisinesByUser = async (userId, limit = 3) => {
         FROM reservations rs
         JOIN restaurants r ON r.id = rs.restaurant_id
         WHERE rs.user_id = $1
-          AND rs.status IN ('confirmed', 'completed')
+          AND rs.status IN ('accepted', 'confirmed', 'completed')
           AND r.cuisine IS NOT NULL
         GROUP BY r.cuisine
 
