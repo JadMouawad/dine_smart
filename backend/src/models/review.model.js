@@ -16,6 +16,8 @@ async function getReviewsByRestaurant(db, restaurantId) {
            r.owner_response, r.owner_response_date,
            r.created_at, r.updated_at,
            u.full_name as user_name,
+           u.profile_picture_url,
+           u.profile_picture_url as "profilePictureUrl",
            u.full_name as "authorName",
            r.created_at as "createdAt"
     FROM reviews r
