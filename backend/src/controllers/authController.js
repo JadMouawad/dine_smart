@@ -99,13 +99,13 @@ const logout = async (req, res) => {
 // POST /auth/google
 const googleSignIn = async (req, res) => {
   try {
-    const { idToken } = req.body;
+    const { idToken, role } = req.body;
 
     if (!idToken) {
       return res.status(400).json({ message: "Google id_token is required" });
     }
 
-    const result = await authService.googleAuthUser(idToken);
+    const result = await authService.googleAuthUser(idToken, role);
 
     res.status(200).json({
       message: "Google sign-in successful",
