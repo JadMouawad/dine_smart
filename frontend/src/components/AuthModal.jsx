@@ -9,6 +9,7 @@ export default function AuthModal({
   mode,
   onClose,
   onToggleMode,
+  forceRole = null,
 }) {
   const { login, register, googleLogin } = useAuth();
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export default function AuthModal({
   const [locatingUser, setLocatingUser] = useState(false);
 
   const [accountType, setAccountType] = useState(null);
+  const [adminSignupKey, setAdminSignupKey] = useState("");
   const [signupSuccess, setSignupSuccess] = useState(false);
 
   const copy = useMemo(() => {
@@ -62,9 +64,10 @@ export default function AuthModal({
     setSignupLocation({ latitude: null, longitude: null });
     setLocatingUser(false);
     setError(null);
-    setAccountType(null);
+    setAccountType(forceRole === "admin" ? "admin" : null);
+    setAdminSignupKey("");
     setSignupSuccess(false);
-  }, [isOpen, mode]);
+  }, [isOpen, mode, forceRole]);
 
   useEffect(() => {
     function onKeyDown(event) {
@@ -86,7 +89,7 @@ export default function AuthModal({
     setError(null);
     setLoading(true);
     try {
-      const role = accountType === "restaurant" ? "owner" : "user";
+      const role = forceRole || (accountType === "restaurant" ? "owner" : "user");
       const data = await googleLogin(credentialResponse.credential, role);
       const userRole = data?.user?.role;
       onClose();
@@ -201,7 +204,7 @@ export default function AuthModal({
               Got it
             </button>
           </div>
-        ) : mode === "signup" && !accountType ? (
+        ) : mode === "signup" && !accountType && !forceRole ? (
           <div className="account-type-select">
             <button
               type="button"
@@ -232,18 +235,22 @@ export default function AuthModal({
                   if (!name.trim()) throw new Error("Name is required");
 
                   const normalizedPhone = String(phone || "").replace(/\D/g, "");
-                  if (!normalizedPhone) throw new Error("Phone number is required");
-                  if (normalizedPhone.length < 7) throw new Error("Please enter a valid phone number");
+                  const role = forceRole || (accountType === "restaurant" ? "owner" : "user");
+                  const isAdminSignup = role === "admin";
+                  if (!isAdminSignup) {
+                    if (!normalizedPhone) throw new Error("Phone number is required");
+                    if (normalizedPhone.length < 7) throw new Error("Please enter a valid phone number");
+                  }
 
                   if (password !== confirmPassword) {
                     throw new Error("Password and confirm password do not match");
                   }
 
-                  const role = accountType === "restaurant" ? "owner" : "user";
                   const data = await register(name, email, password, role, {
                     latitude: signupLocation.latitude,
                     longitude: signupLocation.longitude,
-                    phone: normalizedPhone,
+                    phone: isAdminSignup ? "" : normalizedPhone,
+                    adminSignupKey,
                   });
 
                   if (data?.message && !data?.token) {
@@ -309,6 +316,24 @@ export default function AuthModal({
             )}
 
             {mode === "signup" && (
+              <>
+                {forceRole === "admin" && (
+                  <label className="field">
+                    <span>Admin access key</span>
+                    <input
+                      type="password"
+                      placeholder="Enter admin access key"
+                      value={adminSignupKey}
+                      onChange={(event) => setAdminSignupKey(event.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                  </label>
+                )}
+              </>
+            )}
+
+            {mode === "signup" && forceRole !== "admin" && (
               <label className="field">
                 <span>Phone number</span>
                 <input
@@ -372,7 +397,7 @@ export default function AuthModal({
               </label>
             )}
 
-            {mode === "signup" && (
+            {mode === "signup" && forceRole !== "admin" && (
               <>
                 <button
                   type="button"
@@ -402,22 +427,26 @@ export default function AuthModal({
               {loading ? "Loading..." : copy.primary}
             </button>
 
-            <div className="divider">
-              <span>or</span>
-            </div>
+            {forceRole !== "admin" && (
+              <>
+                <div className="divider">
+                  <span>or</span>
+                </div>
 
-            <div className="modal__googleWrap">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                text={mode === "signup" ? "signup_with" : "signin_with"}
-                shape="pill"
-                theme="outline"
-                size="large"
-                width="360"
-                locale="en"
-              />
-            </div>
+                <div className="modal__googleWrap">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                    text={mode === "signup" ? "signup_with" : "signin_with"}
+                    shape="pill"
+                    theme="outline"
+                    size="large"
+                    width="360"
+                    locale="en"
+                  />
+                </div>
+              </>
+            )}
 
             <p className="fineprint">
               {copy.switchPrefix}{" "}

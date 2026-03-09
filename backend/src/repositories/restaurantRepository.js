@@ -230,7 +230,8 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
   const cuisineList = Array.isArray(cuisines) ? cuisines.filter(Boolean) : [cuisines].filter(Boolean);
 
   const minRating = Number.isFinite(Number(filters.minRating)) ? Number(filters.minRating) : null;
-  const priceRanges = Array.isArray(filters.priceRanges) ? filters.priceRanges.filter(Boolean) : [];
+  const rawPriceRanges = filters.priceRanges ?? filters.priceRange ?? [];
+  const priceRanges = Array.isArray(rawPriceRanges) ? rawPriceRanges.filter(Boolean) : [];
   const verifiedOnly = filters.verifiedOnly !== false;
   const dietarySupport = Array.isArray(filters.dietarySupport) ? filters.dietarySupport.filter(Boolean) : [];
   const openNow = filters.openNow === true;

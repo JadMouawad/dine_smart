@@ -13,6 +13,7 @@ import AuthModal from "./components/AuthModal.jsx";
 import OwnerShell from "./pages/owner/OwnerShell.jsx";
 import UserShell from "./pages/User/UserShell.jsx";
 import AdminShell from "./pages/admin/AdminShell.jsx";
+import AdminAccessPage from "./pages/admin/AdminAccessPage.jsx";
 import UserSearch from "./pages/User/UserSearch.jsx";
 import VerifyEmail from "./pages/VerifyEmail.jsx";
 import AdminRoute from "./routes/AdminRoute.jsx";
@@ -140,6 +141,7 @@ export default function App() {
       <Route path="/owner/*" element={<OwnerShell />} />
 
       {/* Admin area */}
+      <Route path="/admin/auth" element={<AdminAccessPage />} />
       <Route
         path="/admin/dashboard"
         element={

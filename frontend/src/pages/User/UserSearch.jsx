@@ -486,7 +486,54 @@ export default function UserSearch({
     });
   }, [restaurants]);
 
-  const filteredRestaurants = restaurants;
+  const filteredRestaurants = useMemo(() => {
+    const list = Array.isArray(restaurants) ? [...restaurants] : [];
+    const sortBy = String(filters.sortBy || "rating").toLowerCase();
+
+    const toNumber = (value, fallback = 0) => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    };
+
+    if (sortBy === "alphabetical") {
+      return list.sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || "")));
+    }
+
+    if (sortBy === "distance") {
+      return list.sort((a, b) => {
+        const ad = toNumber(a?.distance_km, Number.MAX_SAFE_INTEGER);
+        const bd = toNumber(b?.distance_km, Number.MAX_SAFE_INTEGER);
+        if (ad !== bd) return ad - bd;
+        return toNumber(b?.rating) - toNumber(a?.rating);
+      });
+    }
+
+    if (sortBy === "reviews") {
+      return list.sort((a, b) => {
+        const ar = toNumber(a?.review_count);
+        const br = toNumber(b?.review_count);
+        if (ar !== br) return br - ar;
+        return toNumber(b?.rating) - toNumber(a?.rating);
+      });
+    }
+
+    if (sortBy === "popularity") {
+      return list.sort((a, b) => {
+        const ap = toNumber(a?.popularity_score);
+        const bp = toNumber(b?.popularity_score);
+        if (ap !== bp) return bp - ap;
+        return toNumber(b?.rating) - toNumber(a?.rating);
+      });
+    }
+
+    // default: top rated
+    return list.sort((a, b) => {
+      const ar = toNumber(a?.rating);
+      const br = toNumber(b?.rating);
+      if (ar !== br) return br - ar;
+      return String(a?.name || "").localeCompare(String(b?.name || ""));
+    });
+  }, [restaurants, filters.sortBy]);
 
   useEffect(() => {
     const initial = getInitialFilters();

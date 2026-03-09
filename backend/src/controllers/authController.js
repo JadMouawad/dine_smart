@@ -12,7 +12,7 @@ const parseCoordinate = (value) => {
 // POST /auth/register
 const register = async (req, res) => {
   try {
-    const { name, email, password, role, latitude, longitude, phone } = req.body;
+    const { name, email, password, role, latitude, longitude, phone, admin_signup_key: adminSignupKey } = req.body;
     const validationError = validateRegister(name, email, password);
     if (validationError) {
       return res.status(400).json({ message: validationError });
@@ -29,15 +29,26 @@ const register = async (req, res) => {
       return res.status(400).json({ message: "Invalid location coordinates." });
     }
     const normalizedPhone = String(phone || "").replace(/\D/g, "");
-    if (!normalizedPhone || normalizedPhone.length < 7) {
+    const isAdminSignup = role === "admin";
+    if (!isAdminSignup && (!normalizedPhone || normalizedPhone.length < 7)) {
       return res.status(400).json({ message: "Valid phone number is required for signup." });
     }
 
-    const roleId = role === "owner" ? 2 : 1;
+    let roleId = 1;
+    if (role === "owner") {
+      roleId = 2;
+    } else if (role === "admin") {
+      const expectedAdminKey = String(process.env.ADMIN_SIGNUP_KEY || "").trim();
+      const providedAdminKey = String(adminSignupKey || "").trim();
+      if (!expectedAdminKey || providedAdminKey !== expectedAdminKey) {
+        return res.status(403).json({ message: "Invalid admin access key." });
+      }
+      roleId = 3;
+    }
     await authService.registerUser(name, email, password, roleId, {
       latitude: hasLocation ? parsedLatitude : null,
       longitude: hasLocation ? parsedLongitude : null,
-      phone: normalizedPhone,
+      phone: isAdminSignup ? null : normalizedPhone,
     });
 
     res.status(201).json({
