@@ -89,8 +89,8 @@ const createRestaurant = async (data) => {
     ...(includeLogo ? [logoValue] : []),
     ...(includeCover ? [coverValue] : []),
     ownerId,
-    true,
-    "approved",
+    false,
+    "pending",
   ];
 
   const placeholders = values.map((_, index) =>

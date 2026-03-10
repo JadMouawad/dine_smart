@@ -11,6 +11,12 @@ export async function createReview(restaurantId, { rating, comment }) {
   });
 }
 
+export async function deleteReview(restaurantId, reviewId) {
+  return apiRequest(`/restaurants/${restaurantId}/reviews/${reviewId}`, {
+    method: "DELETE",
+  });
+}
+
 export async function flagReview(reviewId, reason) {
   return apiRequest(`/reviews/${reviewId}/flag`, {
     method: "POST",

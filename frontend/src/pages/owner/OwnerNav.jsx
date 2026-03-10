@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import logo from "../../assets/logo.png";
 
-export default function OwnerNav({ active, onChange, avatarSrc, onLogout }) {
+export default function OwnerNav({ active, onChange, avatarSrc, onLogout, isApproved = true }) {
   const [pillScrolled, setPillScrolled] = useState(false);
 
   useEffect(() => {
@@ -17,6 +17,11 @@ export default function OwnerNav({ active, onChange, avatarSrc, onLogout }) {
     return tab === active ? "is-active" : "";
   }
 
+  function blockedClass(tab) {
+    if (isApproved) return "";
+    return "is-disabled";
+  }
+
   return (
     <header className="nav">
       <a className="brand" href="#">
@@ -29,7 +34,7 @@ export default function OwnerNav({ active, onChange, avatarSrc, onLogout }) {
         <nav className="nav__links">
           <a
             href="#"
-            className={tabClass("profile")}
+            className={`${tabClass("profile")} ${blockedClass("profile")}`}
             onClick={(e) => {
               e.preventDefault();
               onChange("profile");
@@ -40,7 +45,7 @@ export default function OwnerNav({ active, onChange, avatarSrc, onLogout }) {
 
           <a
             href="#"
-            className={tabClass("menu")}
+            className={`${tabClass("menu")} ${blockedClass("menu")}`}
             onClick={(e) => {
               e.preventDefault();
               onChange("menu");
@@ -51,7 +56,7 @@ export default function OwnerNav({ active, onChange, avatarSrc, onLogout }) {
 
           <a
             href="#"
-            className={tabClass("table-config")}
+            className={`${tabClass("table-config")} ${blockedClass("table-config")}`}
             onClick={(e) => {
               e.preventDefault();
               onChange("table-config");
@@ -62,7 +67,7 @@ export default function OwnerNav({ active, onChange, avatarSrc, onLogout }) {
 
           <a
             href="#"
-            className={tabClass("events")}
+            className={`${tabClass("events")} ${blockedClass("events")}`}
             onClick={(e) => {
               e.preventDefault();
               onChange("events");
@@ -73,7 +78,7 @@ export default function OwnerNav({ active, onChange, avatarSrc, onLogout }) {
 
           <a
             href="#"
-            className={tabClass("reviews")}
+            className={`${tabClass("reviews")} ${blockedClass("reviews")}`}
             onClick={(e) => {
               e.preventDefault();
               onChange("reviews");
@@ -84,7 +89,7 @@ export default function OwnerNav({ active, onChange, avatarSrc, onLogout }) {
 
           <a
             href="#"
-            className={tabClass("reservations")}
+            className={`${tabClass("reservations")} ${blockedClass("reservations")}`}
             onClick={(e) => {
               e.preventDefault();
               onChange("reservations");

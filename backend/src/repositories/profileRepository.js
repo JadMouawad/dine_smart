@@ -65,6 +65,12 @@ const getReviewsByUserId = async (userId) => {
       FROM reviews rv
       JOIN restaurants r ON r.id = rv.restaurant_id
       WHERE rv.user_id = $1
+        AND NOT EXISTS (
+          SELECT 1
+          FROM flagged_reviews fr
+          WHERE fr.review_id = rv.id
+            AND fr.status = 'pending'
+        )
       ORDER BY rv.created_at DESC
     `,
     [userId]

@@ -23,6 +23,12 @@ async function getReviewsByRestaurant(db, restaurantId) {
     FROM reviews r
     JOIN users u ON r.user_id = u.id
     WHERE r.restaurant_id = $1
+      AND NOT EXISTS (
+        SELECT 1
+        FROM flagged_reviews fr
+        WHERE fr.review_id = r.id
+          AND fr.status = 'pending'
+      )
     ORDER BY r.created_at DESC;
   `;
   return db.query(query, [restaurantId]);
@@ -69,7 +75,13 @@ async function getAverageRating(db, restaurantId) {
   const query = `
     SELECT COALESCE(ROUND(AVG(rating)::numeric, 2), 0) as avg_rating, COUNT(*) as count
     FROM reviews
-    WHERE restaurant_id = $1;
+    WHERE restaurant_id = $1
+      AND NOT EXISTS (
+        SELECT 1
+        FROM flagged_reviews fr
+        WHERE fr.review_id = reviews.id
+          AND fr.status = 'pending'
+      );
   `;
   return db.query(query, [restaurantId]);
 }

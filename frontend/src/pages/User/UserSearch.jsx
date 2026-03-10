@@ -1,12 +1,13 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
-import { FiArrowLeft, FiClock, FiMapPin, FiStar } from "react-icons/fi";
+import { FiArrowLeft, FiClock, FiMapPin, FiStar, FiTrash2 } from "react-icons/fi";
 import { useAuth } from "../../auth/AuthContext.jsx";
-import { getReviewsByRestaurantId, createReview } from "../../services/reviewService";
+import { getReviewsByRestaurantId, createReview, deleteReview } from "../../services/reviewService";
 import { searchRestaurants, getRestaurantById } from "../../services/restaurantService";
 import { getReservationAvailability } from "../../services/reservationService";
 import ReservationForm from "../../components/ReservationForm.jsx";
 import LoadingSkeleton from "../../components/LoadingSkeleton.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
+import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 
 const CUISINES = [
   "American",
@@ -160,7 +161,10 @@ export default function UserSearch({
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewError, setReviewError] = useState("");
+  const [reviewSuccess, setReviewSuccess] = useState("");
   const [reviewPosting, setReviewPosting] = useState(false);
+  const [deleteReviewTarget, setDeleteReviewTarget] = useState(null);
+  const [deleteReviewBusy, setDeleteReviewBusy] = useState(false);
   const [reservationInlineOpen, setReservationInlineOpen] = useState(false);
   const [reservationToast, setReservationToast] = useState("");
   const [reservationAvailability, setReservationAvailability] = useState(null);
@@ -1006,21 +1010,27 @@ export default function UserSearch({
                     if (!requireAuth()) return;
                     if (!reviewComment.trim()) {
                       setReviewError("Please write a comment.");
+                      setReviewSuccess("");
                       return;
                     }
                     if (reviewComment.trim().length > 500) {
                       setReviewError("Review must be at most 500 characters.");
+                      setReviewSuccess("");
                       return;
                     }
                     setReviewError("");
+                    setReviewSuccess("");
                     setReviewPosting(true);
                     try {
-                      await createReview(selectedRestaurant.id, {
+                      const response = await createReview(selectedRestaurant.id, {
                         rating: reviewRating,
                         comment: reviewComment.trim(),
                       });
                       setReviewComment("");
                       setReviewRating(5);
+                      if (response?.flagged) {
+                        setReviewSuccess(response?.message || "Your review was flagged for moderation.");
+                      }
                       const [reviewsData, updatedRestaurant] = await Promise.all([
                         getReviewsByRestaurantId(selectedRestaurant.id),
                         getRestaurantById(selectedRestaurant.id),
@@ -1060,6 +1070,9 @@ export default function UserSearch({
 
               {reviewError && (
                 <div className="fieldError reviewCard__status">{reviewError}</div>
+              )}
+              {reviewSuccess && (
+                <div className="formCard__success reviewCard__status">{reviewSuccess}</div>
               )}
             </div>
 
@@ -1104,6 +1117,18 @@ export default function UserSearch({
 
                       <div className="reviewCardFull__text">{rev.comment}</div>
 
+                      {user?.id && Number(rev.user_id) === Number(user.id) && (
+                        <button
+                          className="btn btn--ghost reviewCardFull__delete"
+                          type="button"
+                          onClick={() => setDeleteReviewTarget(rev)}
+                          aria-label="Delete your review"
+                        >
+                          <FiTrash2 />
+                          Delete
+                        </button>
+                      )}
+
                       {rev.owner_response && (
                         <div className="ownerResponseBlock">
                           <div className="ownerResponseBlock__label">Restaurant response</div>
@@ -1119,6 +1144,43 @@ export default function UserSearch({
             )}
           </div>
         )}
+
+        <ConfirmDialog
+          open={Boolean(deleteReviewTarget)}
+          title="Delete review?"
+          message="Are you sure you want to delete your review?"
+          confirmLabel="Yes"
+          cancelLabel="No"
+          onConfirm={async () => {
+            if (!deleteReviewTarget || !selectedRestaurant) return;
+            setDeleteReviewBusy(true);
+            try {
+              await deleteReview(selectedRestaurant.id, deleteReviewTarget.id);
+              const [reviewsData, updatedRestaurant] = await Promise.all([
+                getReviewsByRestaurantId(selectedRestaurant.id),
+                getRestaurantById(selectedRestaurant.id),
+              ]);
+              setReviews(Array.isArray(reviewsData) ? reviewsData : []);
+              setSelectedRestaurant(updatedRestaurant);
+              window.dispatchEvent(
+                new CustomEvent("ds:review-changed", {
+                  detail: {
+                    restaurantId: selectedRestaurant.id,
+                    action: "deleted",
+                  },
+                })
+              );
+            } catch (err) {
+              setReviewError(err.message || "Failed to delete review.");
+            } finally {
+              setDeleteReviewBusy(false);
+              setDeleteReviewTarget(null);
+            }
+          }}
+          onCancel={() => {
+            if (!deleteReviewBusy) setDeleteReviewTarget(null);
+          }}
+        />
 
       </div>
     );
