@@ -26,30 +26,28 @@ export default function OwnerShell() {
     }
   }, [loading, user, navigate]);
 
-  useEffect(() => {
+  const fetchApprovalStatus = () => {
     if (!user?.id) return;
-    let mounted = true;
     getMyRestaurant()
       .then((restaurant) => {
-        if (!mounted) return;
         setApprovalStatus(String(restaurant?.approval_status || ""));
       })
       .catch(() => {
-        if (mounted) setApprovalStatus("");
+        setApprovalStatus("");
       });
+  };
 
-    return () => {
-      mounted = false;
-    };
+  useEffect(() => {
+    fetchApprovalStatus();
   }, [user?.id]);
 
   const isApproved = useMemo(() => approvalStatus === "approved", [approvalStatus]);
 
   useEffect(() => {
-    if (!isApproved) {
+    if (approvalStatus === "pending") {
       setActive("profile");
     }
-  }, [isApproved]);
+  }, [approvalStatus]);
 
   // Wait for auth to restore before rendering (so token is in localStorage for API calls)
   if (loading) return null;
@@ -61,7 +59,7 @@ export default function OwnerShell() {
     navigate("/");
   }
 
-  if (!isApproved) {
+  if (approvalStatus === "pending") {
     return (
       <div className="ownerArea ownerArea--pending">
         <main className="ownerArea__main ownerArea__main--pending">
@@ -70,6 +68,21 @@ export default function OwnerShell() {
             <p className="userProfileFormHint" style={{ marginTop: 6 }}>
               Your restaurant is awaiting admin approval. Once approved, you can edit your profile,
               upload your logo, and access menu, events, table configuration, reviews, and reservations.
+            </p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (approvalStatus === "rejected") {
+    return (
+      <div className="ownerArea ownerArea--pending">
+        <main className="ownerArea__main ownerArea__main--pending">
+          <div className="formCard formCard--userProfile ownerPendingCard">
+            <div className="formCard__title" style={{ color: "#e53e3e" }}>Restaurant Rejected</div>
+            <p className="userProfileFormHint" style={{ marginTop: 6 }}>
+              Your restaurant application has been rejected by the admin. Please contact support for more information.
             </p>
           </div>
         </main>
@@ -98,7 +111,7 @@ export default function OwnerShell() {
         )}
 
         {active === "profile" && (
-          <OwnerProfile onLogoPreviewChange={setRestaurantLogoUrl} />
+          <OwnerProfile onLogoPreviewChange={setRestaurantLogoUrl} onSaved={fetchApprovalStatus} />
         )}
 
         {active === "menu" && <OwnerMenu />}

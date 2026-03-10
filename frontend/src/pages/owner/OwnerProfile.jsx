@@ -95,7 +95,7 @@ function MapCenterController({ latitude, longitude }) {
   return null;
 }
 
-export default function OwnerProfile({ onLogoPreviewChange }) {
+export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
   const [restaurantName, setRestaurantName] = useState("");
   const [openingTime, setOpeningTime] = useState("");
   const [closingTime, setClosingTime] = useState("");
@@ -281,11 +281,13 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
         setExistingRestaurant(updated);
         setSuccess("Restaurant updated successfully!");
         setIsEditing(false);
+        if (onSaved) onSaved();
       } else {
         const created = await createRestaurant(payload);
         setExistingRestaurant(created);
         setSuccess("Restaurant created successfully!");
         setIsEditing(false);
+        if (onSaved) onSaved();
       }
     } catch (submitError) {
       setError(submitError.message || "Failed to save restaurant.");
