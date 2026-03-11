@@ -9,6 +9,9 @@ const requireAuth = require("../middleware/requireAuth");
 // Register route
 router.post("/register", authController.register);
 
+// Phone exists check (public)
+router.get("/phone-exists", authController.phoneExists);
+
 // Login route
 router.post("/login", authController.login);
 

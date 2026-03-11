@@ -8,6 +8,13 @@ export function registerUser({ name, email, password, role, latitude, longitude,
   });
 }
 
+export function phoneExists(phone) {
+  const params = new URLSearchParams({ phone });
+  return apiRequest(`/auth/phone-exists?${params.toString()}`, {
+    method: "GET",
+  });
+}
+
 export function loginUser({ email, password }) {
   return apiRequest("/auth/login", {
     method: "POST",

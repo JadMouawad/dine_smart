@@ -179,6 +179,8 @@ CREATE INDEX IF NOT EXISTS idx_restaurants_dietary_support ON restaurants USING 
 CREATE INDEX IF NOT EXISTS idx_events_restaurant_dates ON events(restaurant_id, is_active, start_date, end_date);
 CREATE INDEX IF NOT EXISTS idx_saved_searches_user_id ON saved_searches(user_id);
 CREATE INDEX IF NOT EXISTS idx_saved_searches_created_at ON saved_searches(created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_unique ON users(phone)
+  WHERE phone IS NOT NULL AND phone <> '';
 
 -- Insert default roles
 INSERT INTO roles (name) VALUES ('user'), ('owner'), ('admin')

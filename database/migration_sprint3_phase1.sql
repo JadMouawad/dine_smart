@@ -109,3 +109,6 @@ CREATE TABLE IF NOT EXISTS flagged_reviews (
   resolved_at TIMESTAMPTZ,
   CONSTRAINT flagged_reviews_status_check CHECK (status IN ('pending', 'resolved', 'dismissed'))
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_unique ON users(phone)
+  WHERE phone IS NOT NULL AND phone <> '';

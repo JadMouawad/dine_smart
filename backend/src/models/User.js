@@ -29,6 +29,18 @@ const findById = async (db, id) => {
   return result.rows[0] || null;
 };
 
+// Find user by phone
+const findByPhone = async (db, phone) => {
+  const query = `
+    SELECT u.*, r.name AS role
+    FROM users u
+    JOIN roles r ON u.role_id = r.id
+    WHERE u.phone = $1
+  `;
+  const result = await db.query(query, [phone]);
+  return result.rows[0] || null;
+};
+
 // Create new user (local registration: provider=local, is_verified=false until email verified)
 const create = async (db, {
   fullName,
@@ -103,6 +115,7 @@ const markVerified = async (db, userId) => {
 
 module.exports = {
   findByEmail,
+  findByPhone,
   findById,
   create,
   findByEmailWithPassword,

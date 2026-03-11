@@ -39,17 +39,35 @@ const registerUser = async (fullName, email, password, roleId = 1, location = {}
     throw new Error("Email already registered");
   }
 
+  const normalizedPhone = location.phone
+    ? `+${String(location.phone).replace(/\D/g, "")}`
+    : null;
+  if (normalizedPhone) {
+    const existingByPhone = await User.findByPhone(pool, normalizedPhone);
+    if (existingByPhone) {
+      throw new Error("This phone number is already registered.");
+    }
+  }
+
   const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-  const user = await User.create(pool, {
-    fullName,
-    email,
-    password: hashedPassword,
-    roleId,
-    latitude: location.latitude,
-    longitude: location.longitude,
-    phone: location.phone,
-  });
+  let user;
+  try {
+    user = await User.create(pool, {
+      fullName,
+      email,
+      password: hashedPassword,
+      roleId,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      phone: normalizedPhone,
+    });
+  } catch (error) {
+    if (error.code === "23505") {
+      throw new Error("This phone number is already registered.");
+    }
+    throw error;
+  }
 
   await emailVerificationService.createTokenAndSendEmail(user.id, email, fullName);
 
@@ -160,6 +178,11 @@ const googleAuthUser = async (idToken, role) => {
   };
 };
 
+const findUserByPhone = async (phone) => {
+  if (!phone) return null;
+  return await User.findByPhone(pool, phone);
+};
+
 /**
  * Verify JWT token
  */
@@ -187,5 +210,6 @@ module.exports = {
   loginUser,
   googleAuthUser,
   verifyToken,
-  generateTokenForUser
+  generateTokenForUser,
+  findUserByPhone
 };

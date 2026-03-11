@@ -48,14 +48,33 @@ const register = async (req, res) => {
     await authService.registerUser(name, email, password, roleId, {
       latitude: hasLocation ? parsedLatitude : null,
       longitude: hasLocation ? parsedLongitude : null,
-      phone: isAdminSignup ? null : normalizedPhone,
+      phone: isAdminSignup ? null : `+${normalizedPhone}`,
     });
 
     res.status(201).json({
       message: "Verification email sent. Please verify your email."
     });
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    const message = err.message === "This phone number is already registered."
+      ? err.message
+      : err.message;
+    res.status(400).json({ message });
+  }
+};
+
+// GET /auth/phone-exists?phone=+961...
+const phoneExists = async (req, res) => {
+  try {
+    const raw = String(req.query.phone || "");
+    const digits = raw.replace(/\D/g, "");
+    if (!digits || digits.length < 7) {
+      return res.status(200).json({ exists: false });
+    }
+    const normalized = `+${digits}`;
+    const existing = await authService.findUserByPhone(normalized);
+    return res.status(200).json({ exists: Boolean(existing) });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
   }
 };
 
@@ -133,5 +152,6 @@ module.exports = {
   register,
   login,
   logout,
-  googleSignIn
+  googleSignIn,
+  phoneExists
 };
