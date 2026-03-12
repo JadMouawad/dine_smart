@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { updateProfile } from "../services/profileService";
 
 const ThemeContext = createContext(null);
 const STORAGE_KEY = "ds_theme";
@@ -16,12 +17,24 @@ export function ThemeProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
 
-  function toggleTheme() {
-    setTheme((t) => (t === "dark" ? "light" : "dark"));
+  async function toggleTheme() {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    // Persist to DB if the user is logged in
+    if (localStorage.getItem("token")) {
+      try { await updateProfile({ themePreference: next }); } catch { /* silent */ }
+    }
+  }
+
+  // Called by AuthContext after login/session-restore to apply the DB preference
+  function applyThemeFromDB(themePreference) {
+    if (themePreference === "dark" || themePreference === "light") {
+      setTheme(themePreference);
+    }
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, applyThemeFromDB }}>
       {children}
     </ThemeContext.Provider>
   );
