@@ -70,6 +70,7 @@ export function AuthProvider({ children }) {
     persistToken(newToken);
     setToken(newToken);
     setUser(data.user ?? null);
+    if (data.user?.themePreference) applyThemeFromDB(data.user.themePreference);
     return data;
   }
 
@@ -104,6 +105,7 @@ export function AuthProvider({ children }) {
     persistToken(newToken);
     setToken(newToken);
     setUser(data.user ?? null);
+    if (data.user?.themePreference) applyThemeFromDB(data.user.themePreference);
     return data;
   }
 
