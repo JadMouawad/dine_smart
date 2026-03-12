@@ -122,7 +122,7 @@
   border-color: rgba(175, 115, 45, 0.20);
 }
 [data-theme="light"] .modal__backdrop {
-  background: rgba(50, 25, 5, 0.45);
+  background: rgba(50, 25, 5, 0.22);
 }
 [data-theme="light"] .modal__close {
   background: rgba(175, 115, 45, 0.08);
@@ -131,6 +131,12 @@
 }
 [data-theme="light"] .modal__subtitle {
   color: rgba(80, 45, 15, 0.75);
+}
+[data-theme="light"] .confirmDialog__message {
+  color: rgba(26, 14, 6, 0.70);
+}
+[data-theme="light"] .confirmDialog__title {
+  color: rgba(26, 14, 6, 0.92);
 }
 [data-theme="light"] .modal__successText {
   color: rgba(80, 45, 15, 0.78);
