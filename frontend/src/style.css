@@ -911,6 +911,11 @@ html[data-theme="light"] .quickFilterBtn.is-active {
   color: rgba(26, 14, 6, 0.92);
 }
 
+/* Google account password hint */
+[data-theme="light"] .userProfileFormHint {
+  color: rgba(26, 14, 6, 0.58);
+}
+
 /* Status badges in light mode */
 [data-theme="light"] .statusBadge {
   border-color: rgba(0, 0, 0, 0.15);
