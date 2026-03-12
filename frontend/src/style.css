@@ -974,6 +974,21 @@ html[data-theme="light"] .quickFilterBtn.is-active {
   color: rgba(26, 14, 6, 0.58);
 }
 
+/* Restaurant page header (back button row + title) */
+[data-theme="light"] .restaurantPageHeader__title {
+  color: rgba(26, 14, 6, 0.88);
+}
+
+/* Restaurant name in hero */
+[data-theme="light"] .restaurantProfileHero__name {
+  color: rgba(26, 14, 6, 0.92);
+}
+
+/* Restaurant hero logo border */
+[data-theme="light"] .restaurantProfileHero__logo {
+  border-color: rgba(175, 115, 45, 0.30);
+}
+
 /* Status badges in light mode */
 [data-theme="light"] .statusBadge {
   border-color: rgba(0, 0, 0, 0.15);
