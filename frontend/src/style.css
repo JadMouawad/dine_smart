@@ -2017,14 +2017,14 @@ body.ds-nav-not-sticky .nav {
   color: #ffffff !important;
 }
 
-/* Solid gold wave shape (SVG) — anchored to hero bottom-right */
+/* Solid gold wave shape (SVG) */
 .gold-wave {
   position: absolute;
-  right: calc(-1 * clamp(16px, 4vw, 48px));
-  bottom: 0;
+  right: -200px;
+  bottom: -120px;
 
-  width: clamp(400px, 48vw, 640px);
-  height: auto;
+  width: 520px;
+  height: 240px;
 
   pointer-events: none;
   z-index: 1;

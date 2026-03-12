@@ -23,18 +23,18 @@ export default function Hero({ onGettingStarted }) {
 
       <div className="scene">
         <img className="dish" src={dish} alt="" />
-      </div>
 
-      <svg className="gold-wave" viewBox="0 0 900 260" preserveAspectRatio="none" aria-hidden="true">
-        <path
-          d="M900,260 H0
-             C180,240 260,190 360,165
-             C480,135 585,155 690,130
-             C790,105 845,55 900,0
-             V260 Z"
-          fill="#C9A227"
-        />
-      </svg>
+        <svg className="gold-wave" viewBox="0 0 900 260" preserveAspectRatio="none" aria-hidden="true">
+          <path
+            d="M900,260 H0
+               C180,240 260,190 360,165
+               C480,135 585,155 690,130
+               C790,105 845,55 900,0
+               V260 Z"
+            fill="#C9A227"
+          />
+        </svg>
+      </div>
     </div>
   );
 }
