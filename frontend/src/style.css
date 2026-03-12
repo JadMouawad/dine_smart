@@ -500,6 +500,93 @@
   border-color: rgba(175, 115, 45, 0.18);
 }
 
+/* Restaurant detail page — info bar, tabs, menu */
+[data-theme="light"] .restaurantHeroInfoCard {
+  background: rgba(255, 251, 243, 0.88);
+  border-color: rgba(175, 115, 45, 0.20);
+  box-shadow: 0 8px 20px rgba(130, 80, 10, 0.10);
+}
+[data-theme="light"] .restaurantHeroInfoItem {
+  background: rgba(255, 248, 235, 0.90);
+  border-color: rgba(175, 115, 45, 0.20);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .restaurantProfileHero__badges {
+  background: rgba(255, 251, 243, 0.80);
+  border-color: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .restaurantActionTabs {
+  background: rgba(255, 248, 235, 0.75);
+  border-color: rgba(175, 115, 45, 0.20);
+}
+[data-theme="light"] .restaurantActionTab {
+  background: rgba(255, 248, 235, 0.80);
+  border-color: rgba(175, 115, 45, 0.18);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .restaurantActionTab.is-active {
+  color: #7a5000;
+}
+[data-theme="light"] .restaurantProfileHero__actions .favoriteHeartBtn {
+  background: rgba(255, 248, 235, 0.80);
+  border-color: rgba(175, 115, 45, 0.20);
+}
+
+/* Menu accordion sections & item cards */
+[data-theme="light"] .userMenuAccordion {
+  background: rgba(255, 251, 243, 0.80);
+  border-color: rgba(175, 115, 45, 0.18);
+  box-shadow: 0 10px 28px rgba(130, 80, 10, 0.08);
+}
+[data-theme="light"] .userMenuAccordion__header {
+  background: rgba(255, 248, 230, 0.90);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .menuSectionBlock {
+  background: rgba(255, 251, 243, 0.75);
+  border-color: rgba(175, 115, 45, 0.14);
+}
+[data-theme="light"] .menuItemCard {
+  background: rgba(255, 248, 235, 0.88);
+  border-color: rgba(175, 115, 45, 0.18);
+  box-shadow: 0 6px 18px rgba(130, 80, 10, 0.08);
+}
+[data-theme="light"] .menuItemCard__name {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .menuItemCard__desc,
+[data-theme="light"] .menuItemCard__meta {
+  color: rgba(80, 45, 15, 0.72);
+}
+[data-theme="light"] .menuItemCard__media {
+  border-color: rgba(175, 115, 45, 0.22);
+  background: rgba(255, 244, 220, 0.60);
+}
+[data-theme="light"] .menuItemCard__imgPlaceholder {
+  color: rgba(80, 45, 15, 0.70);
+}
+
+/* Reservation inline section (Reserve tab) */
+[data-theme="light"] .timeSlotBtn {
+  background: rgba(255, 248, 235, 0.90);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .timeSlotToggleBtn {
+  background: rgba(255, 248, 235, 0.90);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .suggestedTimeBtn {
+  background: rgba(255, 248, 235, 0.90);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .reservationHint {
+  color: rgba(80, 45, 15, 0.72);
+}
+
 /* Appearance setting section (profile pages) */
 .appearanceSection {
   display: flex;

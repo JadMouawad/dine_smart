@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import logo from "../../assets/logo.png";
+import { useTheme } from "../../auth/ThemeContext.jsx";
 
 const DEFAULT_AVATAR =
     "data:image/svg+xml;utf8," +
@@ -19,6 +20,7 @@ const DEFAULT_AVATAR =
 export default function UserNav({ active, onChange, avatarSrc, user, onLogout }) {
     const [pillScrolled, setPillScrolled] = useState(false);
     const resolvedAvatar = avatarSrc || user?.profilePictureUrl || DEFAULT_AVATAR;
+    const { theme, toggleTheme } = useTheme();
 
     useEffect(() => {
         function onScroll() {
@@ -90,6 +92,9 @@ export default function UserNav({ active, onChange, avatarSrc, user, onLogout })
                 </nav>
 
                 <div className="nav__actions userNav__actions">
+                    <button className="appearanceToggle" type="button" onClick={toggleTheme} aria-label="Toggle theme">
+                        <span className="appearanceToggle__icon">{theme === "dark" ? "☀️" : "🌙"}</span>
+                    </button>
                     <button className="btn btn--ghost" type="button" onClick={onLogout}>
                         Log out
                     </button>
