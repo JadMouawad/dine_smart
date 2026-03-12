@@ -5,6 +5,7 @@ import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import { createRestaurant, getMyRestaurant, updateMyRestaurant } from "../../services/restaurantService";
+import { useTheme } from "../../auth/ThemeContext.jsx";
 
 const CUISINES = [
   "American",
@@ -96,6 +97,7 @@ function MapCenterController({ latitude, longitude }) {
 }
 
 export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
+  const { theme, toggleTheme } = useTheme();
   const [restaurantName, setRestaurantName] = useState("");
   const [openingTime, setOpeningTime] = useState("");
   const [closingTime, setClosingTime] = useState("");
@@ -589,6 +591,19 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
 
               {error && <div className="ownerProfile__feedback ownerProfile__feedback--error">{error}</div>}
               {success && <div className="ownerProfile__feedback ownerProfile__feedback--success">{success}</div>}
+
+              <div className="appearanceSection">
+                <div>
+                  <div className="appearanceSection__label">Appearance</div>
+                  <div className="appearanceSection__sub">
+                    {theme === "dark" ? "Dark mode is on" : "Light mode is on"}
+                  </div>
+                </div>
+                <button type="button" className="appearanceToggle" onClick={toggleTheme}>
+                  <span className="appearanceToggle__icon">{theme === "dark" ? "☀️" : "🌙"}</span>
+                  {theme === "dark" ? "Light mode" : "Dark mode"}
+                </button>
+              </div>
 
               <div className="formCard__actions">
                 <button className="btn btn--gold btn--xl" type="submit" disabled={loading}>

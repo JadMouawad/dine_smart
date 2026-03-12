@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { getProfile, updateProfile } from "../../services/profileService.js";
 import { FiEye, FiEyeOff } from "react-icons/fi";
+import { useTheme } from "../../auth/ThemeContext.jsx";
 
 const FAVORITES_KEY = "ds_favorites";
 const FILLED_STAR = "\u2605";
@@ -31,6 +32,7 @@ function loadFavorites() {
 
 export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant }) {
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const [favorites] = useState(() => loadFavorites());
   const [myReviews, setMyReviews] = useState([]);
@@ -286,6 +288,19 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
               </label>
             </>
           )}
+
+          <div className="appearanceSection">
+            <div>
+              <div className="appearanceSection__label">Appearance</div>
+              <div className="appearanceSection__sub">
+                {theme === "dark" ? "Dark mode is on" : "Light mode is on"}
+              </div>
+            </div>
+            <button type="button" className="appearanceToggle" onClick={toggleTheme}>
+              <span className="appearanceToggle__icon">{theme === "dark" ? "☀️" : "🌙"}</span>
+              {theme === "dark" ? "Light mode" : "Dark mode"}
+            </button>
+          </div>
 
           <div className="formCard__actions">
             <button className="btn btn--gold btn--xl" type="submit">

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { getProfile, updateProfile } from "../../services/profileService.js";
 import { FiEye, FiEyeOff } from "react-icons/fi";
+import { useTheme } from "../../auth/ThemeContext.jsx";
 
 const DEFAULT_AVATAR =
   "data:image/svg+xml;utf8," +
@@ -20,6 +21,7 @@ const DEFAULT_AVATAR =
 
 export default function AdminProfile({ onAvatarPreviewChange }) {
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const [profilePictureUrl, setProfilePictureUrl] = useState("");
   const [profilePictureDataUrl, setProfilePictureDataUrl] = useState("");
@@ -257,6 +259,19 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
               </label>
             </>
           )}
+
+          <div className="appearanceSection">
+            <div>
+              <div className="appearanceSection__label">Appearance</div>
+              <div className="appearanceSection__sub">
+                {theme === "dark" ? "Dark mode is on" : "Light mode is on"}
+              </div>
+            </div>
+            <button type="button" className="appearanceToggle" onClick={toggleTheme}>
+              <span className="appearanceToggle__icon">{theme === "dark" ? "☀️" : "🌙"}</span>
+              {theme === "dark" ? "Light mode" : "Dark mode"}
+            </button>
+          </div>
 
           <div className="formCard__actions">
             <button className="btn btn--gold btn--xl" type="submit">
