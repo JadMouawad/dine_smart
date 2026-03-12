@@ -339,10 +339,12 @@
   background: rgba(255, 248, 235, 0.95);
   border-color: rgba(175, 115, 45, 0.38);
 }
-[data-theme="light"] .quickFilterBtn.is-active {
-  background: rgba(201, 162, 39, 0.18);
-  border-color: rgba(201, 162, 39, 0.55);
-  color: #1A0E06;
+/* html prefix raises specificity to reliably beat the dark-mode active rule */
+html[data-theme="light"] .quickFilterBtn.is-active {
+  background: rgba(201, 162, 39, 0.28);
+  border-color: rgba(201, 162, 39, 0.70);
+  color: #5a3d00;
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.18);
 }
 [data-theme="light"] .quickFilterBtn--advanced {
   background: rgba(201, 162, 39, 0.12);
@@ -585,6 +587,50 @@
 }
 [data-theme="light"] .reservationHint {
   color: rgba(80, 45, 15, 0.72);
+}
+
+/* Reviews section — add/view reviews */
+[data-theme="light"] .reviewCard {
+  background: rgba(255, 248, 235, 0.88);
+  border-color: rgba(175, 115, 45, 0.18);
+  box-shadow: 0 8px 24px rgba(130, 80, 10, 0.08);
+}
+[data-theme="light"] .reviewCard__input {
+  background: rgba(255, 251, 243, 0.90);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .reviewCard__input::placeholder {
+  color: rgba(80, 45, 15, 0.45);
+}
+[data-theme="light"] .reviewCard__hint {
+  color: rgba(80, 45, 15, 0.65);
+}
+[data-theme="light"] .restaurantReviewsHeader {
+  background: rgba(255, 248, 235, 0.88);
+  border-color: rgba(175, 115, 45, 0.18);
+  box-shadow: 0 8px 24px rgba(130, 80, 10, 0.08);
+}
+[data-theme="light"] .restaurantReviewsHeader__name {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .reviewCardFull {
+  background: rgba(255, 248, 235, 0.88);
+  border-color: rgba(175, 115, 45, 0.18);
+  box-shadow: 0 8px 24px rgba(130, 80, 10, 0.08);
+}
+[data-theme="light"] .reviewCardFull__avatar {
+  background: rgba(255, 244, 220, 0.80);
+  border-color: rgba(175, 115, 45, 0.22);
+}
+[data-theme="light"] .reviewCardFull__userName {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .reviewCardFull__date {
+  color: rgba(80, 45, 15, 0.65);
+}
+[data-theme="light"] .reviewCardFull__text {
+  color: rgba(26, 14, 6, 0.85);
 }
 
 /* Appearance setting section (profile pages) */
