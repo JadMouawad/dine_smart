@@ -917,6 +917,58 @@ html[data-theme="light"] .quickFilterBtn.is-active {
   color: rgba(26, 14, 6, 0.92);
 }
 
+/* Inline toast (success/info messages) */
+[data-theme="light"] .inlineToast {
+  color: rgba(26, 14, 6, 0.88);
+  background: rgba(201, 162, 39, 0.14);
+  border-color: rgba(201, 162, 39, 0.45);
+}
+
+/* Textarea (event description, rejection reason, etc.) */
+[data-theme="light"] .textarea {
+  border-color: rgba(175, 115, 45, 0.28);
+  background: rgba(255, 255, 255, 0.65);
+  color: rgba(26, 14, 6, 0.90);
+}
+[data-theme="light"] .textarea::placeholder {
+  color: rgba(26, 14, 6, 0.40);
+}
+[data-theme="light"] .textarea:focus {
+  border-color: rgba(201, 162, 39, 0.55);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* Field error messages */
+[data-theme="light"] .fieldError {
+  color: #dc2626;
+}
+
+/* Placeholder page (loading / empty states) */
+[data-theme="light"] .placeholderPage__title {
+  color: rgba(26, 14, 6, 0.92);
+}
+
+/* Admin pagination text */
+[data-theme="light"] .adminPagination {
+  color: rgba(26, 14, 6, 0.70);
+}
+
+/* Admin user search not found text */
+[data-theme="light"] .userSearchNotFoundCard__text {
+  color: rgba(26, 14, 6, 0.80);
+}
+
+/* formCard title (used in profile extra cards) */
+[data-theme="light"] .formCard__title {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .formCard__error {
+  color: #dc2626;
+}
+[data-theme="light"] .formCard__success {
+  color: #16a34a;
+}
+
 /* Google account password hint */
 [data-theme="light"] .userProfileFormHint {
   color: rgba(26, 14, 6, 0.58);
