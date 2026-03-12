@@ -2019,12 +2019,12 @@ body.ds-nav-not-sticky .nav {
 
 /* Solid gold wave shape (SVG) */
 .gold-wave {
-  position: absolute;
-  right: -200px;
-  bottom: -120px;
+  position: fixed;
+  right: 0;
+  bottom: 0;
 
-  width: 520px;
-  height: 240px;
+  width: auto;
+  height: clamp(200px, 30vh, 320px);
 
   pointer-events: none;
   z-index: 1;
