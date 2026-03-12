@@ -345,12 +345,12 @@
   background: rgba(255, 248, 235, 0.95);
   border-color: rgba(175, 115, 45, 0.38);
 }
-/* html prefix raises specificity to reliably beat the dark-mode active rule */
+/* !important needed: dark-mode active rule sits later in the file with equal specificity */
 html[data-theme="light"] .quickFilterBtn.is-active {
-  background: rgba(201, 162, 39, 0.28);
-  border-color: rgba(201, 162, 39, 0.70);
-  color: #5a3d00;
-  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.18);
+  background: rgba(201, 162, 39, 0.28) !important;
+  border-color: rgba(201, 162, 39, 0.70) !important;
+  color: #5a3d00 !important;
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.18) !important;
 }
 [data-theme="light"] .quickFilterBtn--advanced {
   background: rgba(201, 162, 39, 0.12);
