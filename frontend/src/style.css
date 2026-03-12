@@ -401,6 +401,105 @@
   color: rgba(80, 45, 15, 0.75);
 }
 
+/* Discover page */
+[data-theme="light"] .discoverEventSection {
+  background:
+    radial-gradient(420px 220px at 8% 0%, rgba(201, 162, 39, 0.10), transparent 62%),
+    linear-gradient(180deg, rgba(255, 251, 243, 0.85), rgba(255, 248, 235, 0.70));
+  border-color: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .discoverEventCard {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .discoverEventCard__title {
+  color: #1A0E06;
+}
+[data-theme="light"] .discoverEventCard__restaurant,
+[data-theme="light"] .discoverEventCard__desc {
+  color: rgba(80, 45, 15, 0.82);
+}
+[data-theme="light"] .discoverFeedSection__header h2,
+[data-theme="light"] .discoverFeedSection__header {
+  color: #1A0E06;
+}
+[data-theme="light"] .discoverSectionBadge {
+  background: rgba(201, 162, 39, 0.14);
+  border-color: rgba(201, 162, 39, 0.40);
+  color: #1A0E06;
+}
+[data-theme="light"] .discoverEventSection__title {
+  color: #1A0E06;
+}
+
+/* Explore map page */
+[data-theme="light"] .exploreFiltersPanel {
+  background:
+    radial-gradient(520px 260px at 12% 0%, rgba(201, 162, 39, 0.08), transparent 64%),
+    linear-gradient(180deg, rgba(255, 251, 243, 0.88), rgba(255, 248, 235, 0.75));
+  border-color: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .exploreFiltersPanel__label,
+[data-theme="light"] .exploreFiltersPanel__section label,
+[data-theme="light"] .exploreFiltersPanel__distanceLabel {
+  color: #1A0E06;
+}
+[data-theme="light"] .emptyState {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(255, 251, 243, 0.70));
+  border-color: rgba(175, 115, 45, 0.25);
+}
+[data-theme="light"] .emptyState__title,
+[data-theme="light"] .emptyState__text {
+  color: #1A0E06;
+}
+
+/* Reservations page */
+[data-theme="light"] .reservationCard {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(255, 251, 243, 0.70));
+  border-color: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .reservationCard__name {
+  color: #1A0E06;
+}
+[data-theme="light"] .reservationCard__meta {
+  color: rgba(80, 45, 15, 0.78);
+}
+
+/* User profile hero card */
+[data-theme="light"] .userProfileHero {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.90), rgba(255, 251, 243, 0.75));
+  border-color: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .userProfileHero__name {
+  color: #1A0E06;
+}
+[data-theme="light"] .userProfileHero__email {
+  color: rgba(80, 45, 15, 0.75);
+}
+[data-theme="light"] .metaPill {
+  background: rgba(201, 162, 39, 0.10);
+  border-color: rgba(175, 115, 45, 0.25);
+  color: #1A0E06;
+}
+
+/* User avatar icon */
+[data-theme="light"] .userAvatar {
+  border-color: rgba(175, 115, 45, 0.35);
+}
+
+/* Explore map canvas */
+[data-theme="light"] .exploreMapCanvas {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(201, 162, 39, 0.14), transparent 34%),
+    linear-gradient(135deg, #FDF8F0, #F3E8D4);
+  border-color: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .exploreMapPanel,
+[data-theme="light"] .exploreListPanel {
+  background: rgba(255, 251, 243, 0.90);
+  border-color: rgba(175, 115, 45, 0.18);
+}
+
 /* Appearance setting section (profile pages) */
 .appearanceSection {
   display: flex;
