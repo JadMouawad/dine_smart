@@ -633,6 +633,344 @@ html[data-theme="light"] .quickFilterBtn.is-active {
   color: rgba(26, 14, 6, 0.85);
 }
 
+/* ── Restaurant hero: image container & logo bubble ── */
+[data-theme="light"] .restaurantProfileHero__media {
+  background: linear-gradient(135deg, #F3E8D4, #EFE0C4);
+  border-color: rgba(175, 115, 45, 0.18);
+  box-shadow: 0 8px 20px rgba(130, 80, 10, 0.10);
+}
+[data-theme="light"] .restaurantProfileHero__img {
+  background: rgba(255, 244, 220, 0.60);
+}
+[data-theme="light"] .restaurantProfileHero__logo {
+  background: rgba(255, 244, 220, 0.80);
+  border-color: rgba(175, 115, 45, 0.28);
+}
+[data-theme="light"] .restaurantProfileHero__logoFallback {
+  color: rgba(26, 14, 6, 0.80);
+}
+
+/* ── Owner filter chips & nav buttons ── */
+[data-theme="light"] .ownerFilterChip {
+  background: rgba(255, 248, 235, 0.88);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .ownerFilterChip.is-active {
+  background: rgba(201, 162, 39, 0.20);
+  border-color: rgba(201, 162, 39, 0.55);
+  color: #5a3d00;
+}
+[data-theme="light"] .ownerNavBtn {
+  color: rgba(26, 14, 6, 0.75);
+}
+[data-theme="light"] .ownerNavBtn.is-active {
+  color: rgba(26, 14, 6, 0.95);
+}
+[data-theme="light"] .ownerAvatar {
+  background: rgba(255, 244, 220, 0.80);
+  border-color: rgba(175, 115, 45, 0.28);
+}
+[data-theme="light"] .ownerAvatar__fallback {
+  color: rgba(26, 14, 6, 0.80);
+}
+[data-theme="light"] .ownerProfileHeaderCard__avatar {
+  background: rgba(255, 244, 220, 0.80);
+  border-color: rgba(175, 115, 45, 0.22);
+}
+
+/* ── imageCard labels & formats ── */
+[data-theme="light"] .imageCard__title {
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .imageCard__formats {
+  color: rgba(80, 45, 15, 0.65);
+}
+[data-theme="light"] .ownerProfileFilterGroup > span {
+  color: rgba(26, 14, 6, 0.88);
+}
+
+/* ── Owner table config ── */
+[data-theme="light"] .ownerTableConfigSectionTitle {
+  color: rgba(26, 14, 6, 0.88);
+}
+
+/* ── Owner menu page ── */
+[data-theme="light"] .ownerMenuPage__subtitle {
+  color: rgba(80, 45, 15, 0.70);
+}
+[data-theme="light"] .ownerMenuSectionCount {
+  color: rgba(80, 45, 15, 0.60);
+}
+[data-theme="light"] .menuModalHelper {
+  background: rgba(255, 248, 235, 0.80);
+  border-color: rgba(175, 115, 45, 0.16);
+}
+[data-theme="light"] .menuModalHelper__text {
+  color: rgba(80, 45, 15, 0.72);
+}
+[data-theme="light"] .menuSectionEmpty {
+  color: rgba(80, 45, 15, 0.65);
+}
+
+/* ── Kebab menu ── */
+[data-theme="light"] .kebabBtn {
+  background: rgba(255, 248, 235, 0.88);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .kebabMenu {
+  background: rgba(255, 251, 243, 0.98);
+  border-color: rgba(175, 115, 45, 0.22);
+  box-shadow: 0 8px 24px rgba(130, 80, 10, 0.14);
+}
+[data-theme="light"] .kebabItem {
+  color: rgba(26, 14, 6, 0.88);
+}
+
+/* ── Active filter chips row ── */
+[data-theme="light"] .activeFilterChip {
+  background: rgba(255, 248, 235, 0.90);
+  border-color: rgba(175, 115, 45, 0.28);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .searchResultsHeader__count {
+  color: rgba(26, 14, 6, 0.70);
+}
+
+/* ── Filter drawer panel ── */
+[data-theme="light"] .filterDrawer__panel {
+  background: linear-gradient(180deg, #FDF8F0, #F3E8D4);
+  border-left-color: rgba(175, 115, 45, 0.20);
+  color: rgba(26, 14, 6, 0.92);
+  color-scheme: light;
+  box-shadow: -20px 0 44px rgba(130, 80, 10, 0.14);
+}
+[data-theme="light"] .filterDrawer__header {
+  border-bottom-color: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .filterDrawer__section {
+  background: rgba(255, 248, 235, 0.70);
+  border-color: rgba(175, 115, 45, 0.16);
+}
+[data-theme="light"] .filterDrawer__label {
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .filterOption {
+  background: rgba(255, 248, 235, 0.88);
+  border-color: rgba(175, 115, 45, 0.20);
+  color: rgba(26, 14, 6, 0.88);
+}
+
+/* ── Loading skeleton ── */
+[data-theme="light"] .loadingSkeleton__item {
+  background: linear-gradient(
+    90deg,
+    rgba(230, 215, 190, 0.60) 25%,
+    rgba(255, 245, 225, 0.90) 50%,
+    rgba(230, 215, 190, 0.60) 75%
+  );
+  background-size: 200% 100%;
+}
+
+/* ── Admin area ── */
+[data-theme="light"] .adminAvatar {
+  background: rgba(255, 244, 220, 0.80);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .adminNavBadge {
+  color: #ffffff;
+}
+[data-theme="light"] .adminStatCard__label {
+  color: rgba(80, 45, 15, 0.72);
+}
+[data-theme="light"] .adminStatCard__value {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .adminActivityItem {
+  background: rgba(255, 248, 235, 0.70);
+  border-color: rgba(175, 115, 45, 0.14);
+}
+[data-theme="light"] .adminActivityItem__title {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .adminActivityItem__subtitle {
+  color: rgba(80, 45, 15, 0.80);
+}
+[data-theme="light"] .adminActivityItem__meta {
+  color: rgba(80, 45, 15, 0.60);
+}
+[data-theme="light"] .adminEntityCard__meta {
+  color: rgba(80, 45, 15, 0.72);
+}
+[data-theme="light"] .adminDetailLine {
+  color: rgba(26, 14, 6, 0.80);
+}
+[data-theme="light"] .adminReviewItem {
+  background: rgba(255, 248, 235, 0.70);
+  border-color: rgba(175, 115, 45, 0.14);
+}
+[data-theme="light"] .adminReviewItem__meta {
+  color: rgba(80, 45, 15, 0.65);
+}
+[data-theme="light"] .adminReviewItem__text {
+  color: rgba(26, 14, 6, 0.85);
+}
+
+/* OwnerProfile view mode rows */
+[data-theme="light"] .ownerProfileViewCard {
+  background: rgba(255, 255, 255, 0.82);
+}
+[data-theme="light"] .ownerProfileViewRow {
+  border-color: rgba(0, 0, 0, 0.09);
+  background: rgba(255, 255, 255, 0.55);
+}
+[data-theme="light"] .ownerProfileViewLabel {
+  color: rgba(26, 14, 6, 0.55);
+}
+[data-theme="light"] .ownerProfileViewValue {
+  color: rgba(26, 14, 6, 0.90);
+}
+[data-theme="light"] .ownerProfileViewImage {
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+/* Admin cards and tables */
+[data-theme="light"] .adminStatCard {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(0, 0, 0, 0.09);
+}
+[data-theme="light"] .adminActivityCard,
+[data-theme="light"] .adminUsersTableCard,
+[data-theme="light"] .adminUserDetailsCard {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(0, 0, 0, 0.09);
+}
+[data-theme="light"] .adminActivityItem {
+  border-color: rgba(0, 0, 0, 0.09);
+  background: rgba(255, 255, 255, 0.50);
+}
+[data-theme="light"] .adminEntityCard {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(0, 0, 0, 0.09);
+}
+[data-theme="light"] .adminEntityCard__title {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .adminTable th,
+[data-theme="light"] .adminTable td {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .adminTable tbody tr:hover {
+  background: rgba(201, 162, 39, 0.07);
+}
+[data-theme="light"] .adminTable tbody tr.is-active {
+  background: rgba(201, 162, 39, 0.18);
+}
+
+/* Owner menu page */
+[data-theme="light"] .ownerMenuPage__title {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .ownerMenuSectionInfo {
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .ownerMenuSectionBtn {
+  color: rgba(26, 14, 6, 0.92);
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.55);
+}
+[data-theme="light"] .ownerMenuSectionsStack .menuSectionBlock {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(0, 0, 0, 0.09);
+}
+[data-theme="light"] .menuSectionEmpty--page {
+  color: rgba(26, 14, 6, 0.62);
+  border-color: rgba(0, 0, 0, 0.18);
+}
+
+/* Owner table config */
+[data-theme="light"] .ownerTableConfigCard {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(0, 0, 0, 0.09);
+}
+[data-theme="light"] .capacityPreview {
+  color: rgba(26, 14, 6, 0.88);
+  background: rgba(201, 162, 39, 0.12);
+  border-color: rgba(201, 162, 39, 0.45);
+}
+[data-theme="light"] .capacityPreview--warn {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.40);
+}
+
+/* Reservation section titles */
+[data-theme="light"] .reservationSection__title {
+  color: rgba(26, 14, 6, 0.92);
+}
+
+/* Status badges in light mode */
+[data-theme="light"] .statusBadge {
+  border-color: rgba(0, 0, 0, 0.15);
+  color: rgba(26, 14, 6, 0.80);
+}
+[data-theme="light"] .statusBadge--confirmed,
+[data-theme="light"] .statusBadge--accepted,
+[data-theme="light"] .statusBadge--valid {
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(34, 197, 94, 0.50);
+  color: #15803d;
+}
+[data-theme="light"] .statusBadge--pending,
+[data-theme="light"] .statusBadge--no-show {
+  background: rgba(251, 191, 36, 0.18);
+  border-color: rgba(202, 138, 4, 0.50);
+  color: #92400e;
+}
+[data-theme="light"] .statusBadge--cancelled,
+[data-theme="light"] .statusBadge--rejected,
+[data-theme="light"] .statusBadge--invalid {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.50);
+  color: #b91c1c;
+}
+[data-theme="light"] .statusBadge--completed {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.45);
+  color: #1d4ed8;
+}
+
+/* Owner profile feedback messages */
+[data-theme="light"] .ownerProfile__feedback--error {
+  color: #dc2626;
+}
+[data-theme="light"] .ownerProfile__feedback--success {
+  color: #16a34a;
+}
+
+/* Owner profile map hints */
+[data-theme="light"] .ownerProfileMapField__hint {
+  color: rgba(26, 14, 6, 0.58);
+}
+[data-theme="light"] .ownerProfileMapPicker {
+  border-color: rgba(0, 0, 0, 0.15);
+}
+[data-theme="light"] .ownerProfileMapCoords {
+  color: rgba(26, 14, 6, 0.65);
+}
+[data-theme="light"] .ownerProfileMapField {
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* Owner location input placeholder */
+[data-theme="light"] .ownerProfile__locationInput::placeholder {
+  color: rgba(26, 14, 6, 0.42);
+  opacity: 1;
+}
+
 /* Appearance setting section (profile pages) */
 .appearanceSection {
   display: flex;

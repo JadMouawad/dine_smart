@@ -363,6 +363,15 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                   : "Not set"}
               </span>
             </div>
+            <div className="ownerProfileViewRow">
+              <span className="ownerProfileViewLabel">Appearance</span>
+              <span className="ownerProfileViewValue">
+                <button type="button" className="appearanceToggle" onClick={toggleTheme}>
+                  <span className="appearanceToggle__icon">{theme === "dark" ? "☀️" : "🌙"}</span>
+                  {theme === "dark" ? "Switch to Light" : "Switch to Dark"}
+                </button>
+              </span>
+            </div>
           </div>
 
           <div className="formCard__actions">
@@ -522,6 +531,19 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                 </div>
               </div>
 
+              <div className="appearanceSection">
+                <div>
+                  <div className="appearanceSection__label">Appearance</div>
+                  <div className="appearanceSection__sub">
+                    {theme === "dark" ? "Dark mode is on" : "Light mode is on"}
+                  </div>
+                </div>
+                <button type="button" className="appearanceToggle" onClick={toggleTheme}>
+                  <span className="appearanceToggle__icon">{theme === "dark" ? "☀️" : "🌙"}</span>
+                  {theme === "dark" ? "Light mode" : "Dark mode"}
+                </button>
+              </div>
+
               <div className="twoCols">
                 <label className="field">
                   <span>Address</span>
@@ -591,19 +613,6 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
 
               {error && <div className="ownerProfile__feedback ownerProfile__feedback--error">{error}</div>}
               {success && <div className="ownerProfile__feedback ownerProfile__feedback--success">{success}</div>}
-
-              <div className="appearanceSection">
-                <div>
-                  <div className="appearanceSection__label">Appearance</div>
-                  <div className="appearanceSection__sub">
-                    {theme === "dark" ? "Dark mode is on" : "Light mode is on"}
-                  </div>
-                </div>
-                <button type="button" className="appearanceToggle" onClick={toggleTheme}>
-                  <span className="appearanceToggle__icon">{theme === "dark" ? "☀️" : "🌙"}</span>
-                  {theme === "dark" ? "Light mode" : "Dark mode"}
-                </button>
-              </div>
 
               <div className="formCard__actions">
                 <button className="btn btn--gold btn--xl" type="submit" disabled={loading}>
