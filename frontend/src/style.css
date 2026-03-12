@@ -6874,3 +6874,17 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   }
 }
 
+/* ===== LIGHT MODE CRITICAL OVERRIDES (end of file = highest source-order priority) ===== */
+html[data-theme="light"] .quickFilterBtn.is-active {
+  background: rgba(201, 162, 39, 0.28) !important;
+  border-color: rgba(201, 162, 39, 0.70) !important;
+  color: #5a3d00 !important;
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.18) !important;
+}
+
+html[data-theme="light"] .quickFilterBtn {
+  background: rgba(255, 251, 243, 0.85) !important;
+  border-color: rgba(175, 115, 45, 0.22) !important;
+  color: #1A0E06 !important;
+}
+
