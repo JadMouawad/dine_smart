@@ -332,7 +332,7 @@ export default function OwnerMenu() {
   if (menuLoading) {
     return (
       <div className="ownerMenuPage">
-        <p style={{ padding: "20px", color: "rgba(255,255,255,0.8)" }}>Loading menu...</p>
+        <p className="menuSectionEmpty" style={{ padding: "20px" }}>Loading menu...</p>
       </div>
     );
   }

@@ -439,6 +439,19 @@ html[data-theme="light"] .quickFilterBtn.is-active {
 [data-theme="light"] .discoverEventSection__title {
   color: #1A0E06;
 }
+[data-theme="light"] .discoverFeedCard__meta {
+  color: rgba(80, 45, 15, 0.72);
+}
+[data-theme="light"] .discoverFeedCard__badge {
+  color: #5a3d00;
+  background: rgba(201, 162, 39, 0.28);
+}
+[data-theme="light"] .discoverEventCard__date {
+  color: rgba(130, 90, 0, 0.90);
+}
+[data-theme="light"] .restaurantCard__cuisine {
+  color: rgba(140, 90, 5, 0.90);
+}
 
 /* Explore map page */
 [data-theme="light"] .exploreFiltersPanel {
@@ -451,6 +464,9 @@ html[data-theme="light"] .quickFilterBtn.is-active {
 [data-theme="light"] .exploreFiltersPanel__section label,
 [data-theme="light"] .exploreFiltersPanel__distanceLabel {
   color: #1A0E06;
+}
+[data-theme="light"] .exploreFilterGroup__label {
+  color: rgba(26, 14, 6, 0.80);
 }
 [data-theme="light"] .emptyState {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(255, 251, 243, 0.70));
@@ -594,6 +610,15 @@ html[data-theme="light"] .quickFilterBtn.is-active {
 [data-theme="light"] .reservationHint {
   color: rgba(80, 45, 15, 0.72);
 }
+[data-theme="light"] .reservationAvailability {
+  color: rgba(26, 14, 6, 0.88);
+  background: rgba(201, 162, 39, 0.14);
+  border-color: rgba(175, 115, 45, 0.35);
+}
+[data-theme="light"] .reservationAvailability--suggested {
+  background: rgba(201, 162, 39, 0.20);
+  border-color: rgba(175, 115, 45, 0.45);
+}
 
 /* Reviews section — add/view reviews */
 [data-theme="light"] .reviewCard {
@@ -637,6 +662,19 @@ html[data-theme="light"] .quickFilterBtn.is-active {
 }
 [data-theme="light"] .reviewCardFull__text {
   color: rgba(26, 14, 6, 0.85);
+}
+[data-theme="light"] .reviewCard__title {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .reviewCard__charCount {
+  color: rgba(80, 45, 15, 0.55);
+}
+[data-theme="light"] .reviewsDivider__text {
+  color: rgba(26, 14, 6, 0.75);
+}
+[data-theme="light"] .reviewsDivider::before,
+[data-theme="light"] .reviewsDivider::after {
+  background: rgba(130, 80, 10, 0.18);
 }
 
 /* ── Restaurant hero: image container & logo bubble ── */
@@ -766,6 +804,20 @@ html[data-theme="light"] .quickFilterBtn.is-active {
   background: rgba(255, 248, 235, 0.88);
   border-color: rgba(175, 115, 45, 0.20);
   color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .filterDrawer__field span {
+  color: rgba(26, 14, 6, 0.72);
+}
+[data-theme="light"] .filterDrawer__field input {
+  color: rgba(26, 14, 6, 0.88);
+  background: rgba(255, 251, 243, 0.90);
+  border-color: rgba(175, 115, 45, 0.22);
+}
+[data-theme="light"] .filterDrawer__hint {
+  color: rgba(80, 45, 15, 0.70);
+}
+[data-theme="light"] .filterDrawer__footer {
+  border-top-color: rgba(175, 115, 45, 0.18);
 }
 
 /* ── Loading skeleton ── */
@@ -967,6 +1019,34 @@ html[data-theme="light"] .quickFilterBtn.is-active {
 }
 [data-theme="light"] .formCard__success {
   color: #16a34a;
+}
+
+/* Profile extra cards — Favorites & My Reviews item frames */
+[data-theme="light"] .profileFavoriteItem {
+  background: rgba(255, 248, 235, 0.80);
+  border: 1px solid rgba(175, 115, 45, 0.20);
+}
+[data-theme="light"] .profileFavoriteItem:hover {
+  background: rgba(255, 244, 220, 0.90);
+}
+[data-theme="light"] .profileFavoriteItem__name {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .profileFavoriteItem__meta {
+  color: rgba(80, 45, 15, 0.72);
+}
+[data-theme="light"] .profileReviewItem {
+  background: rgba(255, 248, 235, 0.80);
+  border: 1px solid rgba(175, 115, 45, 0.20);
+}
+[data-theme="light"] .profileReviewItem__restaurant {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .profileReviewItem__text {
+  color: rgba(26, 14, 6, 0.80);
+}
+[data-theme="light"] .profileEmpty {
+  color: rgba(80, 45, 15, 0.60);
 }
 
 /* Google account password hint */
@@ -1967,23 +2047,7 @@ body.ds-nav-not-sticky .nav {
 }
 
 .nav__pill::after {
-  content: "";
-  position: absolute;
-  left: 22px;
-  right: 22px;
-  bottom: 6px;
-  height: 2px;
-
-  background: linear-gradient(90deg,
-      transparent,
-      rgba(201, 162, 39, 0.55),
-      rgba(201, 162, 39, 0.20),
-      transparent);
-
-  border-radius: 999px;
-  filter: blur(0.2px);
-  opacity: 0.9;
-  pointer-events: none;
+  display: none;
 }
 
 /* NAV LINK HOVER (rounded + glow) */
