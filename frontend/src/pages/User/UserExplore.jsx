@@ -1,21 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
-import L from "leaflet";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Map, { Marker, NavigationControl } from "react-map-gl/mapbox";
+import "mapbox-gl/dist/mapbox-gl.css";
 import { FiSliders } from "react-icons/fi";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { searchRestaurants } from "../../services/restaurantService";
 
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const DEFAULT_CENTER = { lat: 33.893791, lng: 35.501777 };
+
 const CUISINES = [
-  "American",
-  "Middle Eastern",
-  "French",
-  "Mexican",
-  "Chinese",
-  "Japanese",
-  "Italian",
-  "Indian",
-  "International",
+  "American","Middle Eastern","French","Mexican","Chinese",
+  "Japanese","Italian","Indian","International",
 ];
 const PRICE_OPTIONS = ["$", "$$", "$$$", "$$$$"];
 const DIETARY_OPTIONS = ["Vegetarian", "Vegan", "Halal", "GF"];
@@ -41,59 +36,28 @@ function parseCoord(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function createRestaurantIcon(restaurant, isSelected) {
-  const label =
-    restaurant.name.length > 16
-      ? restaurant.name.slice(0, 16) + "…"
-      : restaurant.name;
-  return L.divIcon({
-    className: "",
-    html: `<div class="exploreMarker__pill${isSelected ? " is-selected" : ""}">${label}</div>`,
-    iconAnchor: [0, 10],
-    popupAnchor: [0, -10],
-  });
-}
-
-const userLocationIcon = L.divIcon({
-  className: "",
-  html: '<div class="exploreUserDot"></div>',
-  iconAnchor: [10, 10],
-});
-
-function MapController({ center }) {
-  const map = useMap();
-  const prevKey = useRef(null);
-
-  useEffect(() => {
-    if (!center) return;
-    const key = `${center.lat.toFixed(5)},${center.lng.toFixed(5)}`;
-    if (prevKey.current === key) return;
-    prevKey.current = key;
-    map.setView([center.lat, center.lng], Math.max(map.getZoom(), 13), {
-      animate: true,
-      duration: 0.25,
-    });
-  }, [center, map]);
-
-  return null;
-}
-
 export default function UserExplore({ onOpenRestaurant }) {
   const { user } = useAuth();
 
   // Two-stage query so typing is instant but search is debounced
-  const [queryInput, setQueryInput] = useState("");
-  const [query, setQuery] = useState("");
-
-  const [filters, setFilters] = useState(defaultFilters);
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [coords, setCoords] = useState({ latitude: null, longitude: null, status: "idle" });
-  const [restaurants, setRestaurants] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [queryInput, setQueryInput]           = useState("");
+  const [query, setQuery]                     = useState("");
+  const [filters, setFilters]                 = useState(defaultFilters);
+  const [filtersOpen, setFiltersOpen]         = useState(false);
+  const [coords, setCoords]                   = useState({ latitude: null, longitude: null, status: "idle" });
+  const [restaurants, setRestaurants]         = useState([]);
+  const [loading, setLoading]                 = useState(true);
+  const [error, setError]                     = useState("");
   const [selectedRestaurantId, setSelectedRestaurantId] = useState(null);
 
   const cardRefs = useRef({});
+
+  // ── Mapbox view state ──────────────────────────────────────
+  const [viewState, setViewState] = useState({
+    longitude: parseCoord(user?.longitude) ?? DEFAULT_CENTER.lng,
+    latitude:  parseCoord(user?.latitude)  ?? DEFAULT_CENTER.lat,
+    zoom: 13,
+  });
 
   // Debounce search input → 400 ms
   useEffect(() => {
@@ -102,7 +66,7 @@ export default function UserExplore({ onOpenRestaurant }) {
   }, [queryInput]);
 
   const profileCoords = useMemo(() => {
-    const latitude = parseCoord(user?.latitude);
+    const latitude  = parseCoord(user?.latitude);
     const longitude = parseCoord(user?.longitude);
     if (latitude == null || longitude == null) return { latitude: null, longitude: null };
     return { latitude, longitude };
@@ -122,11 +86,10 @@ export default function UserExplore({ onOpenRestaurant }) {
     setCoords((prev) => ({ ...prev, status: "requesting" }));
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setCoords({
-          latitude: Number(position.coords.latitude.toFixed(6)),
-          longitude: Number(position.coords.longitude.toFixed(6)),
-          status: "granted",
-        });
+        const lat = Number(position.coords.latitude.toFixed(6));
+        const lng = Number(position.coords.longitude.toFixed(6));
+        setCoords({ latitude: lat, longitude: lng, status: "granted" });
+        setViewState((vs) => ({ ...vs, latitude: lat, longitude: lng }));
       },
       () => setCoords({ latitude: null, longitude: null, status: "denied" }),
       { timeout: 7000 }
@@ -141,10 +104,10 @@ export default function UserExplore({ onOpenRestaurant }) {
 
     searchRestaurants(query, filters.cuisines, {
       ...filters,
-      latitude: effectiveCoords.latitude,
-      longitude: effectiveCoords.longitude,
+      latitude:       effectiveCoords.latitude,
+      longitude:      effectiveCoords.longitude,
       distanceRadius: filters.distanceRadius,
-      onlyLebanon: true,
+      onlyLebanon:    true,
     })
       .then((data) => {
         if (cancelled) return;
@@ -156,26 +119,14 @@ export default function UserExplore({ onOpenRestaurant }) {
         setRestaurants([]);
         setError(fetchError.message || "Failed to load results.");
       })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+      .finally(() => { if (!cancelled) setLoading(false); });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [query, filters, effectiveCoords.latitude, effectiveCoords.longitude]);
 
   const restaurantsWithCoords = useMemo(
-    () =>
-      restaurants.filter(
-        (r) => parseCoord(r.latitude) != null && parseCoord(r.longitude) != null
-      ),
+    () => restaurants.filter((r) => parseCoord(r.latitude) != null && parseCoord(r.longitude) != null),
     [restaurants]
-  );
-
-  const selectedRestaurant = useMemo(
-    () => restaurants.find((r) => r.id === selectedRestaurantId) || null,
-    [restaurants, selectedRestaurantId]
   );
 
   // Scroll selected card into view in the left panel
@@ -184,22 +135,6 @@ export default function UserExplore({ onOpenRestaurant }) {
     const el = cardRefs.current[selectedRestaurantId];
     if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [selectedRestaurantId]);
-
-  const mapCenter = useMemo(() => {
-    if (selectedRestaurant) {
-      const lat = parseCoord(selectedRestaurant.latitude);
-      const lng = parseCoord(selectedRestaurant.longitude);
-      if (lat != null && lng != null) return { lat, lng };
-    }
-    if (effectiveCoords.latitude != null && effectiveCoords.longitude != null)
-      return { lat: effectiveCoords.latitude, lng: effectiveCoords.longitude };
-    if (restaurantsWithCoords.length > 0)
-      return {
-        lat: parseCoord(restaurantsWithCoords[0].latitude),
-        lng: parseCoord(restaurantsWithCoords[0].longitude),
-      };
-    return DEFAULT_CENTER;
-  }, [selectedRestaurant, effectiveCoords.latitude, effectiveCoords.longitude, restaurantsWithCoords]);
 
   const activeFilterCount = [
     filters.priceRange.length,
@@ -222,8 +157,19 @@ export default function UserExplore({ onOpenRestaurant }) {
   const resetFilters = () => setFilters(defaultFilters);
 
   const handleSelectRestaurant = useCallback((id) => {
-    setSelectedRestaurantId((prev) => (prev === id ? null : id));
-  }, []);
+    setSelectedRestaurantId((prev) => {
+      if (prev === id) return null;
+      return id;
+    });
+    const r = restaurants.find((x) => x.id === id);
+    if (r) {
+      const lat = parseCoord(r.latitude);
+      const lng = parseCoord(r.longitude);
+      if (lat != null && lng != null) {
+        setViewState((vs) => ({ ...vs, longitude: lng, latitude: lat, zoom: Math.max(vs.zoom, 15) }));
+      }
+    }
+  }, [restaurants]);
 
   return (
     <div className="explorePage">
@@ -266,15 +212,11 @@ export default function UserExplore({ onOpenRestaurant }) {
             <div className="exploreFilterGroup__label">Category</div>
             <div className="exploreChipRow">
               {CUISINES.map((cuisine) => (
-                <button
-                  key={cuisine}
-                  type="button"
+                <button key={cuisine} type="button"
                   className={`quickFilterBtn ${filters.cuisines.includes(cuisine) ? "is-active" : ""}`}
                   onClick={() => toggleArrayFilter("cuisines", cuisine)}
                   aria-pressed={filters.cuisines.includes(cuisine)}
-                >
-                  {cuisine}
-                </button>
+                >{cuisine}</button>
               ))}
             </div>
           </div>
@@ -283,15 +225,11 @@ export default function UserExplore({ onOpenRestaurant }) {
             <div className="exploreFilterGroup__label">Price</div>
             <div className="exploreChipRow">
               {PRICE_OPTIONS.map((price) => (
-                <button
-                  key={price}
-                  type="button"
+                <button key={price} type="button"
                   className={`quickFilterBtn ${filters.priceRange.includes(price) ? "is-active" : ""}`}
                   onClick={() => toggleArrayFilter("priceRange", price)}
                   aria-pressed={filters.priceRange.includes(price)}
-                >
-                  {price}
-                </button>
+                >{price}</button>
               ))}
             </div>
           </div>
@@ -300,15 +238,11 @@ export default function UserExplore({ onOpenRestaurant }) {
             <div className="exploreFilterGroup__label">Dietary</div>
             <div className="exploreChipRow">
               {DIETARY_OPTIONS.map((dietary) => (
-                <button
-                  key={dietary}
-                  type="button"
+                <button key={dietary} type="button"
                   className={`quickFilterBtn ${filters.dietarySupport.includes(dietary) ? "is-active" : ""}`}
                   onClick={() => toggleArrayFilter("dietarySupport", dietary)}
                   aria-pressed={filters.dietarySupport.includes(dietary)}
-                >
-                  {dietary}
-                </button>
+                >{dietary}</button>
               ))}
             </div>
           </div>
@@ -317,38 +251,25 @@ export default function UserExplore({ onOpenRestaurant }) {
             <div className="exploreFilterGroup__label">Rating</div>
             <div className="exploreChipRow">
               {RATING_OPTIONS.map((option) => (
-                <button
-                  key={option.label}
-                  type="button"
+                <button key={option.label} type="button"
                   className={`quickFilterBtn ${Number(filters.minRating) === option.value ? "is-active" : ""}`}
                   onClick={() => setFilters((prev) => ({ ...prev, minRating: option.value }))}
                   aria-pressed={Number(filters.minRating) === option.value}
-                >
-                  {option.label}
-                </button>
+                >{option.label}</button>
               ))}
-              <button
-                type="button"
+              <button type="button"
                 className={`quickFilterBtn ${filters.openNow ? "is-active" : ""}`}
                 onClick={() => setFilters((prev) => ({ ...prev, openNow: !prev.openNow }))}
                 aria-pressed={filters.openNow}
-              >
-                Open Now
-              </button>
+              >Open Now</button>
             </div>
           </div>
 
           <label className="field">
             <span>Distance: {filters.distanceRadius} km</span>
-            <input
-              type="range"
-              min="1"
-              max="50"
-              step="1"
+            <input type="range" min="1" max="50" step="1"
               value={filters.distanceRadius}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, distanceRadius: Number(e.target.value) }))
-              }
+              onChange={(e) => setFilters((prev) => ({ ...prev, distanceRadius: Number(e.target.value) }))}
               aria-label="Distance radius"
             />
           </label>
@@ -419,27 +340,26 @@ export default function UserExplore({ onOpenRestaurant }) {
           </div>
         </div>
 
-        {/* Right: map with rounded corners + CartoDB light tiles */}
+        {/* Right: Mapbox map */}
         <div className="exploreMapWrapper">
-          <MapContainer
-            center={[mapCenter.lat, mapCenter.lng]}
-            zoom={13}
-            scrollWheelZoom
-            style={{ height: "100%", width: "100%" }}
+          <Map
+            {...viewState}
+            onMove={(evt) => setViewState(evt.viewState)}
+            mapboxAccessToken={MAPBOX_TOKEN}
+            style={{ width: "100%", height: "100%" }}
+            mapStyle="mapbox://styles/mapbox/streets-v12"
           >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            />
-            <MapController center={mapCenter} />
+            <NavigationControl position="top-right" />
 
             {/* Blue dot for user's current location */}
             {effectiveCoords.latitude != null && effectiveCoords.longitude != null && (
               <Marker
-                position={[effectiveCoords.latitude, effectiveCoords.longitude]}
-                icon={userLocationIcon}
-                zIndexOffset={500}
-              />
+                longitude={effectiveCoords.longitude}
+                latitude={effectiveCoords.latitude}
+                anchor="center"
+              >
+                <div className="exploreUserDot" />
+              </Marker>
             )}
 
             {/* Restaurant name-pill markers */}
@@ -447,16 +367,26 @@ export default function UserExplore({ onOpenRestaurant }) {
               const lat = parseCoord(restaurant.latitude);
               const lng = parseCoord(restaurant.longitude);
               if (lat == null || lng == null) return null;
+              const label = restaurant.name.length > 16
+                ? restaurant.name.slice(0, 16) + "…"
+                : restaurant.name;
               return (
                 <Marker
                   key={`marker-${restaurant.id}`}
-                  position={[lat, lng]}
-                  icon={createRestaurantIcon(restaurant, restaurant.id === selectedRestaurantId)}
-                  eventHandlers={{ click: () => handleSelectRestaurant(restaurant.id) }}
-                />
+                  longitude={lng}
+                  latitude={lat}
+                  anchor="bottom"
+                >
+                  <div
+                    className={`exploreMarker__pill${selectedRestaurantId === restaurant.id ? " is-selected" : ""}`}
+                    onClick={() => handleSelectRestaurant(restaurant.id)}
+                  >
+                    {label}
+                  </div>
+                </Marker>
               );
             })}
-          </MapContainer>
+          </Map>
         </div>
       </div>
     </div>
