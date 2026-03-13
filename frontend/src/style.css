@@ -838,7 +838,9 @@ html[data-theme="light"] .quickFilterBtn.is-active {
   color: rgba(26, 14, 6, 0.88);
 }
 [data-theme="light"] .adminNavBadge {
-  color: #ffffff;
+  color: #5a3d00;
+  background: rgba(201, 162, 39, 0.35);
+  border-color: rgba(175, 115, 45, 0.55);
 }
 [data-theme="light"] .adminStatCard__label {
   color: rgba(80, 45, 15, 0.72);
@@ -1668,7 +1670,7 @@ body.ds-nav-not-sticky .nav {
   position: fixed;
   inset: 0;
   display: none;
-  z-index: 60;
+  z-index: 10000;
   overflow-y: auto;
   padding: 20px 0;
 }
