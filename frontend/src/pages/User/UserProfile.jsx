@@ -31,7 +31,7 @@ function loadFavorites() {
 }
 
 export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant }) {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   const [favorites] = useState(() => loadFavorites());
@@ -50,6 +50,8 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
   const [reservationCount, setReservationCount] = useState(0);
   const [loyaltyBadge, setLoyaltyBadge] = useState("Newcomer");
+  const [savedLocation, setSavedLocation] = useState({ latitude: null, longitude: null });
+  const [locationStatus, setLocationStatus] = useState("idle"); // idle | detecting | granted | denied
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState("");
@@ -64,6 +66,11 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
         setPhone(profile.phone ?? "");
         setAccountProvider(String(profile.provider ?? user.provider ?? "local").toLowerCase());
         setProfilePictureUrl(profile.profilePictureUrl ?? profile.profile_picture_url ?? "");
+        const lat = parseFloat(profile.latitude ?? user?.latitude);
+        const lng = parseFloat(profile.longitude ?? user?.longitude);
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          setSavedLocation({ latitude: lat, longitude: lng });
+        }
         setReservationCount(Number(profile.reservationCount ?? 0));
         setLoyaltyBadge(profile.loyaltyBadge ?? "Newcomer");
         setMyReviews(
@@ -99,6 +106,25 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
     if (!onAvatarPreviewChange) return;
     onAvatarPreviewChange(avatarSrc);
   }, [avatarSrc, onAvatarPreviewChange]);
+
+  function handleDetectLocation() {
+    if (!navigator.geolocation) {
+      setLocationStatus("denied");
+      return;
+    }
+    setLocationStatus("detecting");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setSavedLocation({
+          latitude: Number(pos.coords.latitude.toFixed(6)),
+          longitude: Number(pos.coords.longitude.toFixed(6)),
+        });
+        setLocationStatus("granted");
+      },
+      () => setLocationStatus("denied"),
+      { timeout: 8000 }
+    );
+  }
 
   function onPickProfile(e) {
     const file = e.target.files && e.target.files[0];
@@ -142,6 +168,10 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       profilePictureUrl: profilePictureDataUrl || profilePictureUrl || "",
     };
     if (!isGoogleAccount && newPassword.trim()) payload.password = newPassword.trim();
+    if (savedLocation.latitude != null && savedLocation.longitude != null) {
+      payload.latitude = savedLocation.latitude;
+      payload.longitude = savedLocation.longitude;
+    }
     try {
       const updated = await updateProfile(payload);
       const savedAvatar = updated?.profilePictureUrl ?? payload.profilePictureUrl;
@@ -152,6 +182,8 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       setConfirmNewPassword("");
       setShowNewPassword(false);
       setShowConfirmNewPassword(false);
+      // Refresh user in context so Explore page picks up new coords
+      refreshUser?.();
     } catch (err) {
       setProfileError(err.message || "Failed to save profile.");
     }
@@ -235,6 +267,35 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
               />
             </div>
           </label>
+
+          {/* Location */}
+          <div className="field">
+            <span>Location</span>
+            <p className="userProfileFormHint">
+              Saved location helps find nearby restaurants on the Explore page.
+            </p>
+            {savedLocation.latitude != null && savedLocation.longitude != null ? (
+              <p className="userProfileFormHint" style={{ color: "rgba(201,162,39,0.9)", marginTop: 2 }}>
+                ✓ Location set ({savedLocation.latitude.toFixed(4)}, {savedLocation.longitude.toFixed(4)})
+              </p>
+            ) : (
+              <p className="userProfileFormHint" style={{ marginTop: 2 }}>No location saved yet.</p>
+            )}
+            <button
+              type="button"
+              className="btn btn--ghost"
+              style={{ marginTop: 8 }}
+              onClick={handleDetectLocation}
+              disabled={locationStatus === "detecting"}
+            >
+              {locationStatus === "detecting" ? "Detecting…" : "📍 Use my current location"}
+            </button>
+            {locationStatus === "denied" && (
+              <p className="fieldError" style={{ marginTop: 4, fontSize: 12 }}>
+                Location access denied. Please allow location in your browser settings.
+              </p>
+            )}
+          </div>
 
           {isGoogleAccount ? (
             <div className="field">

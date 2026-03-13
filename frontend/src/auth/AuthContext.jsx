@@ -115,8 +115,18 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  async function refreshUser() {
+    try {
+      const me = await getCurrentUser();
+      const userData = me.user ?? me;
+      setUser(userData);
+    } catch {
+      // silently ignore — user stays as-is
+    }
+  }
+
   const value = useMemo(
-    () => ({ user, loading, login, register, googleLogin, logout }),
+    () => ({ user, loading, login, register, googleLogin, logout, refreshUser }),
     [user, loading]
   );
 
