@@ -6967,9 +6967,19 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   border: 1px solid rgba(255, 255, 255, 0.16);
 }
 
-.ownerProfileMapPicker .leaflet-container {
-  width: 100%;
-  height: 100%;
+.ownerProfileMapPicker .mapboxgl-map,
+.ownerProfileMapPicker canvas {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 12px;
+}
+
+/* Restaurant location pin on owner map */
+.ownerMapPin {
+  font-size: 28px;
+  line-height: 1;
+  cursor: default;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
 }
 
 .ownerProfileMapCoords {
