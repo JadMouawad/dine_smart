@@ -7433,6 +7433,8 @@ html[data-theme="light"] .quickFilterBtn {
   margin-bottom: 12px;
 }
 
+/* ── Explore restaurant cards — modern full-bleed design ── */
+
 .exploreListGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -7440,21 +7442,20 @@ html[data-theme="light"] .quickFilterBtn {
 }
 
 .exploreListCard {
-  border-radius: 12px;
-  padding: 12px;
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 16px;
+  overflow: hidden;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  transition: background 0.15s ease, border-color 0.15s ease;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
   outline: none;
+  flex-shrink: 0;
+  transition: transform 0.22s ease, border-color 0.22s ease;
 }
 
 .exploreListCard:hover {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.17);
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 .exploreListCard:focus-visible {
@@ -7462,80 +7463,159 @@ html[data-theme="light"] .quickFilterBtn {
 }
 
 .exploreListCard.is-selected {
-  background: rgba(201, 162, 39, 0.13);
-  border-color: rgba(201, 162, 39, 0.55);
+  border-color: #C9A227;
+}
+
+/* Full-bleed background image */
+.exploreListCard__bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(201, 162, 39, 0.28) 0%, rgba(10, 14, 50, 0.90) 100%);
+}
+
+.exploreListCard__bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.45s ease;
+}
+
+.exploreListCard:hover .exploreListCard__bg img {
+  transform: scale(1.06);
+}
+
+/* Gradient overlay + content */
+.exploreListCard__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 55%,
+    rgba(0, 0, 0, 0.30) 78%,
+    rgba(0, 0, 0, 0.62) 100%
+  );
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px 12px 12px;
+}
+
+/* Top row — distance badge (top-right) */
+.exploreListCard__top {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.exploreListCard__dist {
+  background: rgba(0, 0, 0, 0.50);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  letter-spacing: 0.03em;
+}
+
+/* Bottom content */
+.exploreListCard__bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .exploreListCard__name {
   font-weight: 800;
-  font-size: 13px;
+  font-size: 14px;
   color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.70);
+  line-height: 1.25;
+}
+
+.exploreListCard__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.exploreListCard__tags {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  flex: 1;
+}
+
+.exploreListCard__cuisine {
+  font-size: 11px;
+  color: #C9A227;
+  font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.exploreListCard__cuisine {
-  font-size: 11px;
-  color: rgba(201, 162, 39, 0.90);
-  font-weight: 700;
+.exploreListCard__cuisine::after {
+  content: '·';
+  margin-left: 5px;
+  color: rgba(255, 255, 255, 0.38);
 }
 
-.exploreListCard__meta {
+.exploreListCard__rating {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.58);
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.exploreListCard__viewBtn {
-  margin-top: 8px;
-  padding: 5px 10px;
-  font-size: 11px;
-  height: 30px;
-  width: 100%;
-  line-height: 1;
-}
-
-/* Cover image inside card — bleeds to card edges */
-.exploreListCard__img {
-  width: calc(100% + 24px);
-  margin: -12px -12px 8px;
-  height: 88px;
-  overflow: hidden;
-  border-radius: 10px 10px 0 0;
-  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 600;
+  white-space: nowrap;
   flex-shrink: 0;
 }
 
-.exploreListCard__img img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+/* View pill button */
+.exploreListCard__viewBtn {
+  background: rgba(201, 162, 39, 0.88);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 5px 13px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: background 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.30);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.exploreListCard__img--placeholder,
-.exploreListCard__img.exploreListCard__img--placeholder {
-  background: linear-gradient(
-    135deg,
-    rgba(201, 162, 39, 0.15) 0%,
-    rgba(12, 19, 79, 0.25) 100%
-  );
+.exploreListCard__viewBtn:hover {
+  background: #C9A227;
+  transform: scale(1.06);
 }
 
-[data-theme="light"] .exploreListCard__img {
-  background: rgba(0, 0, 0, 0.05);
+/* Light mode */
+[data-theme="light"] .exploreListCard {
+  border-color: rgba(0, 0, 0, 0.10);
 }
 
-[data-theme="light"] .exploreListCard__img--placeholder,
-[data-theme="light"] .exploreListCard__img.exploreListCard__img--placeholder {
-  background: linear-gradient(
-    135deg,
-    rgba(201, 162, 39, 0.12) 0%,
-    rgba(175, 115, 45, 0.08) 100%
-  );
+[data-theme="light"] .exploreListCard:hover {
+  border-color: rgba(0, 0, 0, 0.20);
+}
+
+[data-theme="light"] .exploreListCard.is-selected {
+  border-color: rgba(175, 115, 45, 0.85);
+}
+
+[data-theme="light"] .exploreListCard__bg {
+  background: linear-gradient(135deg, rgba(201, 162, 39, 0.22) 0%, rgba(200, 180, 140, 0.50) 100%);
 }
 
 /* Right: map with rounded corners */
@@ -7669,13 +7749,7 @@ html[data-theme="light"] .quickFilterBtn {
   border-color: rgba(201, 162, 39, 0.45);
 }
 
-[data-theme="light"] .exploreListCard__name {
-  color: #1A0E06;
-}
-
-[data-theme="light"] .exploreListCard__meta {
-  color: rgba(80, 45, 15, 0.62);
-}
+/* card text always renders on dark overlay — no light-mode text overrides needed */
 
 [data-theme="light"] .exploreMapWrapper {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);

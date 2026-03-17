@@ -320,31 +320,39 @@ export default function UserExplore({ onOpenRestaurant }) {
                 tabIndex={0}
                 onKeyDown={(e) => e.key === "Enter" && handleSelectRestaurant(restaurant.id)}
               >
-                <div className="exploreListCard__img">
-                  {(restaurant.coverUrl || restaurant.cover_url) ? (
+                {/* Full-bleed background image */}
+                <div className="exploreListCard__bg">
+                  {(restaurant.coverUrl || restaurant.cover_url) && (
                     <img
                       src={restaurant.coverUrl || restaurant.cover_url}
                       alt={restaurant.name}
-                      onError={(e) => {
-                        e.currentTarget.parentElement.classList.add("exploreListCard__img--placeholder");
-                        e.currentTarget.style.display = "none";
-                      }}
+                      onError={(e) => { e.currentTarget.style.display = "none"; }}
                     />
-                  ) : (
-                    <div className="exploreListCard__img--placeholder" />
                   )}
                 </div>
-                <div className="exploreListCard__name">{restaurant.name}</div>
-                <div className="exploreListCard__cuisine">{restaurant.cuisine || "Cuisine not set"}</div>
-                <div className="exploreListCard__meta">
-                  <span>⭐ {restaurant.rating ?? "N/A"}</span>
-                  {restaurant.distance_km != null && <span>{restaurant.distance_km} km</span>}
+
+                {/* Gradient overlay + all text */}
+                <div className="exploreListCard__overlay">
+                  <div className="exploreListCard__top">
+                    {restaurant.distance_km != null && (
+                      <span className="exploreListCard__dist">{restaurant.distance_km} km</span>
+                    )}
+                  </div>
+                  <div className="exploreListCard__bottom">
+                    <div className="exploreListCard__name">{restaurant.name}</div>
+                    <div className="exploreListCard__foot">
+                      <div className="exploreListCard__tags">
+                        <span className="exploreListCard__cuisine">{restaurant.cuisine || "Cuisine not set"}</span>
+                        <span className="exploreListCard__rating">⭐ {restaurant.rating ?? "N/A"}</span>
+                      </div>
+                      <button
+                        className="exploreListCard__viewBtn"
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onOpenRestaurant?.(restaurant); }}
+                      >View →</button>
+                    </div>
+                  </div>
                 </div>
-                <button
-                  className="btn btn--gold exploreListCard__viewBtn"
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); onOpenRestaurant?.(restaurant); }}
-                >View</button>
               </article>
             ))}
           </div>
