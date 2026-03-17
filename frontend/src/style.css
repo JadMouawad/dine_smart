@@ -2651,6 +2651,33 @@ body {
   line-height: 1.45;
 }
 
+/* Map preview row in view card */
+.ownerProfileViewRow--map {
+  padding: 12px 14px;
+}
+
+.ownerProfileViewMapWrap {
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.ownerProfileViewMapWrap .mapboxgl-map,
+.ownerProfileViewMapWrap canvas {
+  width: 100% !important;
+  border-radius: 10px;
+}
+
+.ownerProfileViewEmpty {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  font-style: italic;
+}
+
+[data-theme="light"] .ownerProfileViewEmpty {
+  color: rgba(26, 14, 6, 0.45);
+}
+
 .ownerProfileViewImage {
   display: block;
   width: 100%;

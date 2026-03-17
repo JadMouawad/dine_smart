@@ -299,11 +299,27 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
               <span className="ownerProfileViewLabel">City</span>
               <span className="ownerProfileViewValue">{city || "Not set"}</span>
             </div>
-            <div className="ownerProfileViewRow">
-              <span className="ownerProfileViewLabel">Coordinates</span>
-              <span className="ownerProfileViewValue">
-                {latitude != null && longitude != null ? `${latitude}, ${longitude}` : "Not set"}
-              </span>
+            <div className="ownerProfileViewRow ownerProfileViewRow--map">
+              <span className="ownerProfileViewLabel">Location</span>
+              <div className="ownerProfileViewValue ownerProfileViewMapWrap">
+                {latitude != null && longitude != null ? (
+                  <Map
+                    longitude={longitude}
+                    latitude={latitude}
+                    zoom={14}
+                    interactive={false}
+                    mapboxAccessToken={MAPBOX_TOKEN}
+                    style={{ width: "100%", height: "180px" }}
+                    mapStyle="mapbox://styles/mapbox/streets-v12"
+                  >
+                    <Marker longitude={longitude} latitude={latitude} anchor="bottom">
+                      <div className="ownerMapPin">📍</div>
+                    </Marker>
+                  </Map>
+                ) : (
+                  <span className="ownerProfileViewEmpty">Not set — click Edit to pin location</span>
+                )}
+              </div>
             </div>
             <div className="ownerProfileViewRow">
               <span className="ownerProfileViewLabel">Price category</span>
