@@ -106,7 +106,8 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
 
         const lat = Number(restaurant.latitude);
         const lng = Number(restaurant.longitude);
-        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        // Exclude (0, 0) — means "not set", not actual null island
+        if (Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0)) {
           setLatitude(lat);
           setLongitude(lng);
           setViewState({ longitude: lng, latitude: lat, zoom: 14 });

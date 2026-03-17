@@ -6,7 +6,7 @@ import { useAuth } from "../../auth/AuthContext.jsx";
 import { searchRestaurants } from "../../services/restaurantService";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-const DEFAULT_CENTER = { lat: 33.893791, lng: 35.501777 };
+const DEFAULT_CENTER = { lat: 33.893791, lng: 35.501777 }; // Beirut fallback
 
 const CUISINES = [
   "American","Middle Eastern","French","Mexican","Chinese",
@@ -33,31 +33,78 @@ const defaultFilters = {
 
 function parseCoord(value) {
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
+  // 0 means "not set" (null island) — treat as invalid
+  return Number.isFinite(parsed) && parsed !== 0 ? parsed : null;
 }
 
 export default function UserExplore({ onOpenRestaurant }) {
   const { user } = useAuth();
 
   // Two-stage query so typing is instant but search is debounced
-  const [queryInput, setQueryInput]           = useState("");
-  const [query, setQuery]                     = useState("");
-  const [filters, setFilters]                 = useState(defaultFilters);
-  const [filtersOpen, setFiltersOpen]         = useState(false);
-  const [coords, setCoords]                   = useState({ latitude: null, longitude: null, status: "idle" });
-  const [restaurants, setRestaurants]         = useState([]);
-  const [loading, setLoading]                 = useState(true);
-  const [error, setError]                     = useState("");
+  const [queryInput, setQueryInput]   = useState("");
+  const [query, setQuery]             = useState("");
+  const [filters, setFilters]         = useState(defaultFilters);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [restaurants, setRestaurants] = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState("");
   const [selectedRestaurantId, setSelectedRestaurantId] = useState(null);
 
-  const cardRefs = useRef({});
+  // GPS coords from browser (null until granted)
+  const [gpsCoords, setGpsCoords] = useState({ lat: null, lng: null });
 
-  // ── Mapbox view state ──────────────────────────────────────
+  const cardRefs = useRef({});
+  const watchIdRef = useRef(null);
+
+  // ── Profile-stored coordinates (from signup address picker) ────────────────
+  const profileCoords = useMemo(() => {
+    const lat = parseCoord(user?.latitude);
+    const lng = parseCoord(user?.longitude);
+    if (!lat || !lng) return null;
+    return { lat, lng };
+  }, [user?.latitude, user?.longitude]);
+
+  // ── Best available center: GPS > profile > Beirut default ──────────────────
+  const mapCenter = useMemo(() => {
+    if (gpsCoords.lat != null && gpsCoords.lng != null) return gpsCoords;
+    if (profileCoords) return profileCoords;
+    return { lat: DEFAULT_CENTER.lat, lng: DEFAULT_CENTER.lng };
+  }, [gpsCoords, profileCoords]);
+
+  // ── Mapbox view state — starts at best known center ────────────────────────
   const [viewState, setViewState] = useState({
-    longitude: parseCoord(user?.longitude) ?? DEFAULT_CENTER.lng,
-    latitude:  parseCoord(user?.latitude)  ?? DEFAULT_CENTER.lat,
+    longitude: (profileCoords?.lng) || DEFAULT_CENTER.lng,
+    latitude:  (profileCoords?.lat) || DEFAULT_CENTER.lat,
     zoom: 13,
   });
+
+  // ── Silent background GPS via watchPosition ────────────────────────────────
+  // watchPosition retries automatically; enableHighAccuracy:false works on
+  // non-GPS devices (Mac/PC) using WiFi/network location — much more reliable.
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(6));
+        const lng = Number(pos.coords.longitude.toFixed(6));
+        setGpsCoords({ lat, lng });
+        // Center map on real location when first GPS fix arrives
+        setViewState((vs) => ({ ...vs, latitude: lat, longitude: lng, zoom: Math.max(vs.zoom, 14) }));
+      },
+      (_err) => {
+        // Silently ignore — map stays at profile coords or Beirut default
+        // No error shown to user; the app still works without location
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
+    );
+
+    return () => {
+      if (watchIdRef.current != null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounce search input → 400 ms
   useEffect(() => {
@@ -65,47 +112,20 @@ export default function UserExplore({ onOpenRestaurant }) {
     return () => clearTimeout(timer);
   }, [queryInput]);
 
-  const profileCoords = useMemo(() => {
-    const latitude  = parseCoord(user?.latitude);
-    const longitude = parseCoord(user?.longitude);
-    if (latitude == null || longitude == null) return { latitude: null, longitude: null };
-    return { latitude, longitude };
-  }, [user?.latitude, user?.longitude]);
-
-  const effectiveCoords = useMemo(() => {
-    if (coords.latitude != null && coords.longitude != null) return coords;
-    return { latitude: profileCoords.latitude, longitude: profileCoords.longitude, status: coords.status };
-  }, [coords, profileCoords.latitude, profileCoords.longitude]);
-
-  // Request browser geolocation once
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      setCoords({ latitude: null, longitude: null, status: "unsupported" });
-      return;
-    }
-    setCoords((prev) => ({ ...prev, status: "requesting" }));
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = Number(position.coords.latitude.toFixed(6));
-        const lng = Number(position.coords.longitude.toFixed(6));
-        setCoords({ latitude: lat, longitude: lng, status: "granted" });
-        setViewState((vs) => ({ ...vs, latitude: lat, longitude: lng }));
-      },
-      () => setCoords({ latitude: null, longitude: null, status: "denied" }),
-      { timeout: 7000 }
-    );
-  }, []);
-
   // Fetch restaurants whenever search params change
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError("");
 
+    // Use best available location for distance-based search
+    const searchLat = mapCenter.lat;
+    const searchLng = mapCenter.lng;
+
     searchRestaurants(query, filters.cuisines, {
       ...filters,
-      latitude:       effectiveCoords.latitude,
-      longitude:      effectiveCoords.longitude,
+      latitude:       searchLat,
+      longitude:      searchLng,
       distanceRadius: filters.distanceRadius,
       onlyLebanon:    true,
     })
@@ -122,7 +142,7 @@ export default function UserExplore({ onOpenRestaurant }) {
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [query, filters, effectiveCoords.latitude, effectiveCoords.longitude]);
+  }, [query, filters, mapCenter.lat, mapCenter.lng]);
 
   const restaurantsWithCoords = useMemo(
     () => restaurants.filter((r) => parseCoord(r.latitude) != null && parseCoord(r.longitude) != null),
@@ -299,7 +319,6 @@ export default function UserExplore({ onOpenRestaurant }) {
                 tabIndex={0}
                 onKeyDown={(e) => e.key === "Enter" && handleSelectRestaurant(restaurant.id)}
               >
-                {/* Cover image */}
                 <div className="exploreListCard__img">
                   {(restaurant.coverUrl || restaurant.cover_url) ? (
                     <img
@@ -351,11 +370,11 @@ export default function UserExplore({ onOpenRestaurant }) {
           >
             <NavigationControl position="top-right" />
 
-            {/* Blue dot for user's current location */}
-            {effectiveCoords.latitude != null && effectiveCoords.longitude != null && (
+            {/* Blue dot — only shows when browser GPS has granted a fix */}
+            {gpsCoords.lat != null && gpsCoords.lng != null && (
               <Marker
-                longitude={effectiveCoords.longitude}
-                latitude={effectiveCoords.latitude}
+                longitude={gpsCoords.lng}
+                latitude={gpsCoords.lat}
                 anchor="center"
               >
                 <div className="exploreUserDot" />
