@@ -18,6 +18,7 @@ const getProfile = async (req, res) => {
       latitude: profile.latitude != null ? Number(profile.latitude) : null,
       longitude: profile.longitude != null ? Number(profile.longitude) : null,
       profilePictureUrl: profile.profile_picture_url || null,
+      themePreference: profile.theme_preference || "dark",
       reservationCount: profile.reservation_count ?? 0,
       loyaltyBadge: profile.loyalty_badge || "Newcomer",
       myReviews: Array.isArray(profile.my_reviews)
@@ -56,6 +57,7 @@ const updateProfile = async (req, res) => {
       latitude: profile.latitude != null ? Number(profile.latitude) : null,
       longitude: profile.longitude != null ? Number(profile.longitude) : null,
       profilePictureUrl: profile.profile_picture_url || null,
+      themePreference: profile.theme_preference || "dark",
       createdAt: profile.created_at,
       updatedAt: profile.updated_at
     });

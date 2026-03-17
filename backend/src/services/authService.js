@@ -113,6 +113,7 @@ const loginUser = async (email, password) => {
       role: user.role,
       latitude: user.latitude,
       longitude: user.longitude,
+      themePreference: user.theme_preference || "dark",
     },
     token
   };
@@ -173,6 +174,7 @@ const googleAuthUser = async (idToken, role) => {
       role: user.role,
       latitude: user.latitude,
       longitude: user.longitude,
+      themePreference: user.theme_preference || "dark",
     },
     token
   };

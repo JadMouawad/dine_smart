@@ -21,6 +21,7 @@ const updateById = async (userId, data) => {
   if (data.latitude !== undefined) updates.latitude = data.latitude;
   if (data.longitude !== undefined) updates.longitude = data.longitude;
   if (data.profilePictureUrl !== undefined) updates.profile_picture_url = data.profilePictureUrl;
+  if (data.themePreference !== undefined) updates.theme_preference = data.themePreference;
   if (data.password !== undefined) updates.password = data.password;
 
   if (Object.keys(updates).length === 0) {

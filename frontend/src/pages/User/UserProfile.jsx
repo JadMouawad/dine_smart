@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { getProfile, updateProfile } from "../../services/profileService.js";
 import { FiEye, FiEyeOff } from "react-icons/fi";
+import { useTheme } from "../../auth/ThemeContext.jsx";
 
 const FAVORITES_KEY = "ds_favorites";
 const FILLED_STAR = "\u2605";
@@ -12,13 +13,13 @@ const DEFAULT_AVATAR =
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
   <defs>
     <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0%" stop-color="#2b3d8a" />
-      <stop offset="100%" stop-color="#1a245b" />
+      <stop offset="0%" stop-color="#C9A227" />
+      <stop offset="100%" stop-color="#a07a1e" />
     </linearGradient>
   </defs>
   <rect width="128" height="128" rx="64" fill="url(#g)" />
-  <circle cx="64" cy="48" r="23" fill="#d8deff"/>
-  <path d="M24 112c5-20 20-31 40-31s35 11 40 31" fill="#d8deff"/>
+  <circle cx="64" cy="48" r="23" fill="#fff8e1"/>
+  <path d="M24 112c5-20 20-31 40-31s35 11 40 31" fill="#fff8e1"/>
 </svg>`);
 
 function loadFavorites() {
@@ -30,7 +31,8 @@ function loadFavorites() {
 }
 
 export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant }) {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const [favorites] = useState(() => loadFavorites());
   const [myReviews, setMyReviews] = useState([]);
@@ -48,6 +50,8 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
   const [reservationCount, setReservationCount] = useState(0);
   const [loyaltyBadge, setLoyaltyBadge] = useState("Newcomer");
+  const [savedLocation, setSavedLocation] = useState({ latitude: null, longitude: null });
+  const [locationStatus, setLocationStatus] = useState("idle"); // idle | detecting | granted | denied
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState("");
@@ -62,6 +66,11 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
         setPhone(profile.phone ?? "");
         setAccountProvider(String(profile.provider ?? user.provider ?? "local").toLowerCase());
         setProfilePictureUrl(profile.profilePictureUrl ?? profile.profile_picture_url ?? "");
+        const lat = parseFloat(profile.latitude ?? user?.latitude);
+        const lng = parseFloat(profile.longitude ?? user?.longitude);
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          setSavedLocation({ latitude: lat, longitude: lng });
+        }
         setReservationCount(Number(profile.reservationCount ?? 0));
         setLoyaltyBadge(profile.loyaltyBadge ?? "Newcomer");
         setMyReviews(
@@ -97,6 +106,25 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
     if (!onAvatarPreviewChange) return;
     onAvatarPreviewChange(avatarSrc);
   }, [avatarSrc, onAvatarPreviewChange]);
+
+  function handleDetectLocation() {
+    if (!navigator.geolocation) {
+      setLocationStatus("denied");
+      return;
+    }
+    setLocationStatus("detecting");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setSavedLocation({
+          latitude: Number(pos.coords.latitude.toFixed(6)),
+          longitude: Number(pos.coords.longitude.toFixed(6)),
+        });
+        setLocationStatus("granted");
+      },
+      () => setLocationStatus("denied"),
+      { timeout: 8000 }
+    );
+  }
 
   function onPickProfile(e) {
     const file = e.target.files && e.target.files[0];
@@ -140,6 +168,10 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       profilePictureUrl: profilePictureDataUrl || profilePictureUrl || "",
     };
     if (!isGoogleAccount && newPassword.trim()) payload.password = newPassword.trim();
+    if (savedLocation.latitude != null && savedLocation.longitude != null) {
+      payload.latitude = savedLocation.latitude;
+      payload.longitude = savedLocation.longitude;
+    }
     try {
       const updated = await updateProfile(payload);
       const savedAvatar = updated?.profilePictureUrl ?? payload.profilePictureUrl;
@@ -150,6 +182,8 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       setConfirmNewPassword("");
       setShowNewPassword(false);
       setShowConfirmNewPassword(false);
+      // Refresh user in context so Explore page picks up new coords
+      refreshUser?.();
     } catch (err) {
       setProfileError(err.message || "Failed to save profile.");
     }
@@ -234,6 +268,35 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
             </div>
           </label>
 
+          {/* Location */}
+          <div className="field">
+            <span>Location</span>
+            <p className="userProfileFormHint">
+              Saved location helps find nearby restaurants on the Explore page.
+            </p>
+            {savedLocation.latitude != null && savedLocation.longitude != null ? (
+              <p className="userProfileFormHint" style={{ color: "rgba(201,162,39,0.9)", marginTop: 2 }}>
+                ✓ Location set ({savedLocation.latitude.toFixed(4)}, {savedLocation.longitude.toFixed(4)})
+              </p>
+            ) : (
+              <p className="userProfileFormHint" style={{ marginTop: 2 }}>No location saved yet.</p>
+            )}
+            <button
+              type="button"
+              className="btn btn--ghost"
+              style={{ marginTop: 8 }}
+              onClick={handleDetectLocation}
+              disabled={locationStatus === "detecting"}
+            >
+              {locationStatus === "detecting" ? "Detecting…" : "📍 Use my current location"}
+            </button>
+            {locationStatus === "denied" && (
+              <p className="fieldError" style={{ marginTop: 4, fontSize: 12 }}>
+                Location access denied. Please allow location in your browser settings.
+              </p>
+            )}
+          </div>
+
           {isGoogleAccount ? (
             <div className="field">
               <span>Password</span>
@@ -286,6 +349,19 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
               </label>
             </>
           )}
+
+          <div className="appearanceSection">
+            <div>
+              <div className="appearanceSection__label">Appearance</div>
+              <div className="appearanceSection__sub">
+                {theme === "dark" ? "Dark mode is on" : "Light mode is on"}
+              </div>
+            </div>
+            <button type="button" className="appearanceToggle" onClick={toggleTheme}>
+              <span className="appearanceToggle__icon">{theme === "dark" ? "☀️" : "🌙"}</span>
+              {theme === "dark" ? "Light mode" : "Dark mode"}
+            </button>
+          </div>
 
           <div className="formCard__actions">
             <button className="btn btn--gold btn--xl" type="submit">

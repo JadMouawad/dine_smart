@@ -13,6 +13,1164 @@
   --muted: rgba(255, 255, 255, 0.70);
   --shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
   --navH: 96px;
+
+  --body-bg:
+    radial-gradient(1000px 700px at 75% 80%, rgba(130, 90, 255, 0.12), transparent 55%),
+    linear-gradient(180deg, #070b2f 0%, #050826 100%);
+}
+
+/* =========================
+   LIGHT MODE THEME
+   ========================= */
+
+[data-theme="light"] {
+  --card: rgba(255, 251, 243, 0.82);
+  --card2: rgba(255, 255, 255, 0.92);
+  --stroke: rgba(175, 115, 45, 0.18);
+  --text: #1A0E06;
+  --muted: #7A5540;
+  --shadow: 0 18px 60px rgba(150, 90, 30, 0.14);
+
+  --body-bg:
+    radial-gradient(900px 600px at 70% 85%, rgba(201, 162, 39, 0.10), transparent 55%),
+    linear-gradient(180deg, #FDF8F0 0%, #F3E8D4 100%);
+}
+
+/* Background glows */
+[data-theme="light"] .bg__glow--tl {
+  background: radial-gradient(circle, rgba(201, 162, 39, 0.20), transparent 60%);
+}
+[data-theme="light"] .bg__glow--br {
+  background: radial-gradient(circle, rgba(220, 140, 60, 0.18), transparent 60%);
+}
+[data-theme="light"] .bg__grain {
+  opacity: 0.08;
+}
+
+/* Nav pill */
+[data-theme="light"] .nav__pill {
+  background: rgba(255, 252, 246, 0.92);
+  border-color: rgba(175, 115, 45, 0.22);
+  backdrop-filter: blur(16px) saturate(100%);
+  -webkit-backdrop-filter: blur(16px) saturate(100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.80),
+    0 14px 40px rgba(150, 90, 30, 0.12),
+    0 0 22px rgba(201, 162, 39, 0.08);
+}
+[data-theme="light"] .nav__pill--scrolled {
+  background: rgba(255, 252, 246, 0.96);
+  border-color: rgba(175, 115, 45, 0.20);
+  backdrop-filter: blur(16px) saturate(100%);
+  -webkit-backdrop-filter: blur(16px) saturate(100%);
+  box-shadow:
+    0 22px 60px rgba(150, 90, 30, 0.12),
+    0 0 30px rgba(201, 162, 39, 0.08);
+}
+
+/* Nav links */
+[data-theme="light"] .nav__links {
+  color: rgba(80, 45, 15, 0.85);
+}
+[data-theme="light"] .nav__links a {
+  color: rgba(80, 45, 15, 0.85);
+}
+[data-theme="light"] .nav__links a:hover,
+[data-theme="light"] .nav__links a.is-active {
+  color: #1A0E06;
+  background: rgba(201, 162, 39, 0.12);
+  box-shadow:
+    0 0 14px rgba(201, 162, 39, 0.22),
+    inset 0 0 6px rgba(201, 162, 39, 0.15);
+}
+
+/* Nav burger */
+[data-theme="light"] .nav__burger {
+  border-color: rgba(175, 115, 45, 0.22);
+  background: rgba(255, 251, 243, 0.80);
+}
+[data-theme="light"] .nav__burger span {
+  background: rgba(80, 45, 15, 0.85);
+}
+
+/* Mobile menu */
+[data-theme="light"] .mobileMenu__panel {
+  background: rgba(253, 248, 238, 0.96);
+  border-color: rgba(175, 115, 45, 0.20);
+}
+[data-theme="light"] .mobileMenu__link {
+  color: rgba(80, 45, 15, 0.88);
+}
+[data-theme="light"] .mobileMenu__link:hover {
+  background: rgba(201, 162, 39, 0.08);
+}
+
+/* Ghost button */
+[data-theme="light"] .btn--ghost {
+  background: rgba(175, 115, 45, 0.08);
+  color: #1A0E06;
+  border-color: rgba(175, 115, 45, 0.22);
+}
+[data-theme="light"] .btn--ghost:hover {
+  background: rgba(175, 115, 45, 0.14);
+  border-color: rgba(175, 115, 45, 0.35);
+}
+
+/* Modal */
+[data-theme="light"] .modal__panel {
+  background: rgba(253, 248, 238, 0.97);
+  border-color: rgba(175, 115, 45, 0.20);
+}
+[data-theme="light"] .modal__backdrop {
+  background: rgba(50, 25, 5, 0.22);
+}
+[data-theme="light"] .modal__close {
+  background: rgba(175, 115, 45, 0.08);
+  border-color: rgba(175, 115, 45, 0.20);
+  color: #1A0E06;
+}
+[data-theme="light"] .modal__subtitle {
+  color: rgba(80, 45, 15, 0.75);
+}
+[data-theme="light"] .confirmDialog__message {
+  color: rgba(26, 14, 6, 0.70);
+}
+[data-theme="light"] .confirmDialog__title {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .modal__successText {
+  color: rgba(80, 45, 15, 0.78);
+}
+[data-theme="light"] .modal__error {
+  background: rgba(239, 68, 68, 0.08);
+  color: #b91c1c;
+}
+[data-theme="light"] .fineprint {
+  color: rgba(80, 45, 15, 0.72);
+}
+[data-theme="light"] .divider {
+  color: rgba(80, 45, 15, 0.50);
+}
+[data-theme="light"] .divider::before,
+[data-theme="light"] .divider::after {
+  background: rgba(175, 115, 45, 0.18);
+}
+
+/* Form fields (landing modal) */
+[data-theme="light"] .field span {
+  color: #1A0E06;
+}
+[data-theme="light"] .field input {
+  background: rgba(255, 251, 243, 0.90);
+  border-color: rgba(175, 115, 45, 0.25);
+  color: #1A0E06;
+}
+[data-theme="light"] .field input::placeholder {
+  color: rgba(80, 45, 15, 0.45);
+}
+[data-theme="light"] .field input:focus {
+  border-color: rgba(201, 162, 39, 0.60);
+  box-shadow: 0 0 0 4px rgba(201, 162, 39, 0.10);
+}
+
+/* Hero text */
+[data-theme="light"] .hero__desc {
+  color: rgba(80, 45, 15, 0.88);
+}
+
+[data-theme="light"] .badge__big {
+  color: rgba(26, 14, 6, 0.90);
+}
+[data-theme="light"] .badge__small {
+  color: rgba(80, 45, 15, 0.72);
+}
+
+[data-theme="light"] .btn {
+  color: #1A0E06;
+  border-color: rgba(175, 115, 45, 0.20);
+  background: rgba(175, 115, 45, 0.06);
+}
+[data-theme="light"] .btn:hover {
+  border-color: rgba(175, 115, 45, 0.35);
+}
+[data-theme="light"] .btn--gold {
+  color: #ffffff;
+  background: linear-gradient(135deg, #C9A227, #C9A227);
+  border-color: transparent;
+}
+
+/* Discover section */
+[data-theme="light"] .cuisinePage__title,
+[data-theme="light"] .discover__title {
+  color: #1A0E06;
+}
+[data-theme="light"] .cuisinePage__subtitle,
+[data-theme="light"] .discover__subtitle {
+  color: rgba(80, 45, 15, 0.82);
+}
+[data-theme="light"] .cuisineCard img {
+  background: rgba(201, 162, 39, 0.06);
+  box-shadow: 0 18px 40px rgba(150, 90, 30, 0.14);
+}
+[data-theme="light"] .carouselBtn {
+  background: rgba(255, 251, 243, 0.85);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: #1A0E06;
+}
+
+/* Owner / User / Admin shells — sidebar */
+[data-theme="light"] .ownerSidebar,
+[data-theme="light"] .userSidebar,
+[data-theme="light"] .adminSidebar {
+  background: rgba(255, 251, 243, 0.70);
+  border-right-color: rgba(175, 115, 45, 0.18);
+}
+
+[data-theme="light"] .ownerSidebar__item,
+[data-theme="light"] .userSidebar__item,
+[data-theme="light"] .adminSidebar__item {
+  background: rgba(255, 251, 243, 0.60);
+  border-color: rgba(175, 115, 45, 0.14);
+  color: #1A0E06;
+}
+
+/* formCard (dashboard cards) */
+[data-theme="light"] .formCard {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 251, 243, 0.80));
+  border-color: rgba(175, 115, 45, 0.18);
+  box-shadow: 0 18px 45px rgba(150, 90, 30, 0.10);
+}
+
+/* Dashboard form inputs & selects */
+[data-theme="light"] .formCard--matchHeight .field input,
+[data-theme="light"] .formCard--matchHeight .select,
+[data-theme="light"] .formCard--userProfile .field input,
+[data-theme="light"] .formCard--userProfile .select {
+  background: rgba(255, 251, 243, 0.90);
+  border-color: rgba(175, 115, 45, 0.25);
+  color: #1A0E06;
+}
+[data-theme="light"] .formCard--matchHeight .field input::placeholder,
+[data-theme="light"] .formCard--userProfile .field input::placeholder {
+  color: rgba(80, 45, 15, 0.40);
+}
+[data-theme="light"] .formCard--matchHeight input:focus,
+[data-theme="light"] .formCard--matchHeight .select:focus,
+[data-theme="light"] .formCard--userProfile .field input:focus {
+  border-color: rgba(201, 162, 39, 0.55);
+  box-shadow: 0 0 0 4px rgba(201, 162, 39, 0.10);
+}
+[data-theme="light"] .formCard--matchHeight .field span,
+[data-theme="light"] .formCard--userProfile .field span {
+  color: #1A0E06;
+}
+
+/* Generic select */
+[data-theme="light"] .select {
+  background-color: rgba(255, 251, 243, 0.90);
+  border-color: rgba(175, 115, 45, 0.25);
+  color: #1A0E06;
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(80, 45, 15, 0.70) 50%),
+    linear-gradient(135deg, rgba(80, 45, 15, 0.70) 50%, transparent 50%);
+}
+[data-theme="light"] .select option {
+  background: #fdf8f0;
+  color: #1A0E06;
+}
+[data-theme="light"] .select option:checked {
+  background: #c9a227;
+  color: #1A0E06;
+}
+
+/* Owner profile header card */
+[data-theme="light"] .ownerProfileHeaderCard {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.90), rgba(255, 251, 243, 0.70));
+  border-color: rgba(175, 115, 45, 0.18);
+}
+
+/* Owner pending card */
+[data-theme="light"] .ownerPendingCard {
+  background:
+    radial-gradient(420px 220px at 10% 0%, rgba(201, 162, 39, 0.10), transparent 62%),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.90), rgba(255, 251, 243, 0.70));
+  box-shadow: 0 20px 60px rgba(150, 90, 30, 0.12);
+}
+
+/* Placeholders & muted text */
+[data-theme="light"] .placeholderPage__text {
+  color: rgba(80, 45, 15, 0.75);
+}
+
+/* Theme toggle button styles */
+.themeToggleBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.16);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  flex-shrink: 0;
+}
+.themeToggleBtn:hover {
+  background: rgba(201, 162, 39, 0.15);
+  border-color: rgba(201, 162, 39, 0.40);
+  box-shadow: 0 0 12px rgba(201, 162, 39, 0.22);
+}
+[data-theme="light"] .themeToggleBtn {
+  border-color: rgba(175, 115, 45, 0.25);
+  background: rgba(255, 251, 243, 0.80);
+  color: #1A0E06;
+}
+[data-theme="light"] .themeToggleBtn:hover {
+  background: rgba(201, 162, 39, 0.12);
+  border-color: rgba(201, 162, 39, 0.45);
+}
+
+/* Search page — filter pills */
+[data-theme="light"] .quickFilterBtn {
+  background: rgba(255, 251, 243, 0.85);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: #1A0E06;
+}
+[data-theme="light"] .quickFilterBtn:hover {
+  background: rgba(255, 248, 235, 0.95);
+  border-color: rgba(175, 115, 45, 0.38);
+}
+/* !important needed: dark-mode active rule sits later in the file with equal specificity */
+html[data-theme="light"] .quickFilterBtn.is-active {
+  background: rgba(201, 162, 39, 0.28) !important;
+  border-color: rgba(201, 162, 39, 0.70) !important;
+  color: #5a3d00 !important;
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.18) !important;
+}
+[data-theme="light"] .quickFilterBtn--advanced {
+  background: rgba(201, 162, 39, 0.12);
+  border-color: rgba(201, 162, 39, 0.40);
+}
+
+/* Search page — search bar */
+[data-theme="light"] .searchBarCard {
+  background: rgba(255, 251, 243, 0.80);
+  border-color: rgba(175, 115, 45, 0.18);
+  backdrop-filter: blur(20px) saturate(100%);
+  -webkit-backdrop-filter: blur(20px) saturate(100%);
+  box-shadow: 0 18px 45px rgba(150, 90, 30, 0.10);
+}
+[data-theme="light"] .searchInput {
+  background: rgba(255, 251, 243, 0.90);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: #1A0E06;
+}
+[data-theme="light"] .searchInput::placeholder {
+  color: rgba(80, 45, 15, 0.40);
+}
+[data-theme="light"] .searchInput:focus {
+  border-color: rgba(201, 162, 39, 0.55);
+  box-shadow: 0 0 0 4px rgba(201, 162, 39, 0.10);
+}
+
+/* Search page — sort control label */
+[data-theme="light"] .searchSortControl {
+  color: #1A0E06;
+}
+
+/* Search page — restaurant cards */
+[data-theme="light"] .restaurantCard {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(255, 251, 243, 0.70));
+  border-color: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .restaurantCard:hover {
+  border-color: rgba(175, 115, 45, 0.32);
+  box-shadow: 0 12px 32px rgba(150, 90, 30, 0.14);
+}
+[data-theme="light"] .restaurantCard__cover {
+  background: rgba(175, 115, 45, 0.08);
+  border-color: rgba(175, 115, 45, 0.14);
+}
+[data-theme="light"] .restaurantCard__coverPlaceholder {
+  color: rgba(80, 45, 15, 0.55);
+}
+[data-theme="light"] .restaurantCard__name {
+  color: #1A0E06;
+}
+[data-theme="light"] .restaurantCard__rating {
+  color: rgba(80, 45, 15, 0.85);
+}
+[data-theme="light"] .restaurantCard__metaLine {
+  color: rgba(80, 45, 15, 0.75);
+}
+
+/* Discover page */
+[data-theme="light"] .discoverEventSection {
+  background:
+    radial-gradient(420px 220px at 8% 0%, rgba(201, 162, 39, 0.10), transparent 62%),
+    linear-gradient(180deg, rgba(255, 251, 243, 0.85), rgba(255, 248, 235, 0.70));
+  border-color: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .discoverEventCard {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .discoverEventCard__title {
+  color: #1A0E06;
+}
+[data-theme="light"] .discoverEventCard__restaurant,
+[data-theme="light"] .discoverEventCard__desc {
+  color: rgba(80, 45, 15, 0.82);
+}
+[data-theme="light"] .discoverFeedSection__header h2,
+[data-theme="light"] .discoverFeedSection__header {
+  color: #1A0E06;
+}
+[data-theme="light"] .discoverSectionBadge {
+  background: rgba(201, 162, 39, 0.14);
+  border-color: rgba(201, 162, 39, 0.40);
+  color: #1A0E06;
+}
+[data-theme="light"] .discoverEventSection__title {
+  color: #1A0E06;
+}
+[data-theme="light"] .discoverFeedCard__meta {
+  color: rgba(80, 45, 15, 0.72);
+}
+[data-theme="light"] .discoverFeedCard__badge {
+  color: #5a3d00;
+  background: rgba(201, 162, 39, 0.28);
+}
+[data-theme="light"] .discoverEventCard__date {
+  color: rgba(130, 90, 0, 0.90);
+}
+[data-theme="light"] .restaurantCard__cuisine {
+  color: rgba(140, 90, 5, 0.90);
+}
+
+/* Explore map page */
+[data-theme="light"] .exploreFiltersPanel {
+  background:
+    radial-gradient(520px 260px at 12% 0%, rgba(201, 162, 39, 0.08), transparent 64%),
+    linear-gradient(180deg, rgba(255, 251, 243, 0.88), rgba(255, 248, 235, 0.75));
+  border-color: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .exploreFiltersPanel__label,
+[data-theme="light"] .exploreFiltersPanel__section label,
+[data-theme="light"] .exploreFiltersPanel__distanceLabel {
+  color: #1A0E06;
+}
+[data-theme="light"] .exploreFilterGroup__label {
+  color: rgba(26, 14, 6, 0.80);
+}
+[data-theme="light"] .emptyState {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(255, 251, 243, 0.70));
+  border-color: rgba(175, 115, 45, 0.25);
+}
+[data-theme="light"] .emptyState__title,
+[data-theme="light"] .emptyState__text {
+  color: #1A0E06;
+}
+
+/* Reservations page */
+[data-theme="light"] .reservationCard {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(255, 251, 243, 0.70));
+  border-color: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .reservationCard__name {
+  color: #1A0E06;
+}
+[data-theme="light"] .reservationCard__meta {
+  color: rgba(80, 45, 15, 0.78);
+}
+
+/* User profile hero card */
+[data-theme="light"] .userProfileHero {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.90), rgba(255, 251, 243, 0.75));
+  border-color: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .userProfileHero__name {
+  color: #1A0E06;
+}
+[data-theme="light"] .userProfileHero__email {
+  color: rgba(80, 45, 15, 0.75);
+}
+[data-theme="light"] .metaPill {
+  background: rgba(201, 162, 39, 0.10);
+  border-color: rgba(175, 115, 45, 0.25);
+  color: #1A0E06;
+}
+
+/* User avatar icon */
+[data-theme="light"] .userAvatar {
+  border-color: rgba(175, 115, 45, 0.35);
+}
+
+/* Explore map canvas */
+[data-theme="light"] .exploreMapCanvas {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(201, 162, 39, 0.14), transparent 34%),
+    linear-gradient(135deg, #FDF8F0, #F3E8D4);
+  border-color: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .exploreMapPanel,
+[data-theme="light"] .exploreListPanel {
+  background: rgba(255, 251, 243, 0.90);
+  border-color: rgba(175, 115, 45, 0.18);
+}
+
+/* Restaurant detail page — info bar, tabs, menu */
+[data-theme="light"] .restaurantHeroInfoCard {
+  background: rgba(255, 251, 243, 0.88);
+  border-color: rgba(175, 115, 45, 0.20);
+  box-shadow: 0 8px 20px rgba(130, 80, 10, 0.10);
+}
+[data-theme="light"] .restaurantHeroInfoItem {
+  background: rgba(255, 248, 235, 0.90);
+  border-color: rgba(175, 115, 45, 0.20);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .restaurantProfileHero__badges {
+  background: rgba(255, 251, 243, 0.80);
+  border-color: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .restaurantActionTabs {
+  background: rgba(255, 248, 235, 0.75);
+  border-color: rgba(175, 115, 45, 0.20);
+}
+[data-theme="light"] .restaurantActionTab {
+  background: rgba(255, 248, 235, 0.80);
+  border-color: rgba(175, 115, 45, 0.18);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .restaurantActionTab.is-active {
+  color: #7a5000;
+}
+[data-theme="light"] .restaurantProfileHero__actions .favoriteHeartBtn {
+  background: rgba(255, 248, 235, 0.80);
+  border-color: rgba(175, 115, 45, 0.20);
+}
+
+/* Menu accordion sections & item cards */
+[data-theme="light"] .userMenuAccordion {
+  background: rgba(255, 251, 243, 0.80);
+  border-color: rgba(175, 115, 45, 0.18);
+  box-shadow: 0 10px 28px rgba(130, 80, 10, 0.08);
+}
+[data-theme="light"] .userMenuAccordion__header {
+  background: rgba(255, 248, 230, 0.90);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .menuSectionBlock {
+  background: rgba(255, 251, 243, 0.75);
+  border-color: rgba(175, 115, 45, 0.14);
+}
+[data-theme="light"] .menuItemCard {
+  background: rgba(255, 248, 235, 0.88);
+  border-color: rgba(175, 115, 45, 0.18);
+  box-shadow: 0 6px 18px rgba(130, 80, 10, 0.08);
+}
+[data-theme="light"] .menuItemCard__name {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .menuItemCard__desc,
+[data-theme="light"] .menuItemCard__meta {
+  color: rgba(80, 45, 15, 0.72);
+}
+[data-theme="light"] .menuItemCard__media {
+  border-color: rgba(175, 115, 45, 0.22);
+  background: rgba(255, 244, 220, 0.60);
+}
+[data-theme="light"] .menuItemCard__imgPlaceholder {
+  color: rgba(80, 45, 15, 0.70);
+}
+
+/* Reservation inline section (Reserve tab) */
+[data-theme="light"] .timeSlotBtn {
+  background: rgba(255, 248, 235, 0.90);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .timeSlotToggleBtn {
+  background: rgba(255, 248, 235, 0.90);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .suggestedTimeBtn {
+  background: rgba(255, 248, 235, 0.90);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .reservationHint {
+  color: rgba(80, 45, 15, 0.72);
+}
+[data-theme="light"] .reservationAvailability {
+  color: rgba(26, 14, 6, 0.88);
+  background: rgba(201, 162, 39, 0.14);
+  border-color: rgba(175, 115, 45, 0.35);
+}
+[data-theme="light"] .reservationAvailability--suggested {
+  background: rgba(201, 162, 39, 0.20);
+  border-color: rgba(175, 115, 45, 0.45);
+}
+
+/* Reviews section — add/view reviews */
+[data-theme="light"] .reviewCard {
+  background: rgba(255, 248, 235, 0.88);
+  border-color: rgba(175, 115, 45, 0.18);
+  box-shadow: 0 8px 24px rgba(130, 80, 10, 0.08);
+}
+[data-theme="light"] .reviewCard__input {
+  background: rgba(255, 251, 243, 0.90);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .reviewCard__input::placeholder {
+  color: rgba(80, 45, 15, 0.45);
+}
+[data-theme="light"] .reviewCard__hint {
+  color: rgba(80, 45, 15, 0.65);
+}
+[data-theme="light"] .restaurantReviewsHeader {
+  background: rgba(255, 248, 235, 0.88);
+  border-color: rgba(175, 115, 45, 0.18);
+  box-shadow: 0 8px 24px rgba(130, 80, 10, 0.08);
+}
+[data-theme="light"] .restaurantReviewsHeader__name {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .reviewCardFull {
+  background: rgba(255, 248, 235, 0.88);
+  border-color: rgba(175, 115, 45, 0.18);
+  box-shadow: 0 8px 24px rgba(130, 80, 10, 0.08);
+}
+[data-theme="light"] .reviewCardFull__avatar {
+  background: rgba(255, 244, 220, 0.80);
+  border-color: rgba(175, 115, 45, 0.22);
+}
+[data-theme="light"] .reviewCardFull__userName {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .reviewCardFull__date {
+  color: rgba(80, 45, 15, 0.65);
+}
+[data-theme="light"] .reviewCardFull__text {
+  color: rgba(26, 14, 6, 0.85);
+}
+[data-theme="light"] .reviewCard__title {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .reviewCard__charCount {
+  color: rgba(80, 45, 15, 0.55);
+}
+[data-theme="light"] .reviewsDivider__text {
+  color: rgba(26, 14, 6, 0.75);
+}
+[data-theme="light"] .reviewsDivider::before,
+[data-theme="light"] .reviewsDivider::after {
+  background: rgba(130, 80, 10, 0.18);
+}
+
+/* ── Restaurant hero: image container & logo bubble ── */
+[data-theme="light"] .restaurantProfileHero__media {
+  background: linear-gradient(135deg, #F3E8D4, #EFE0C4);
+  border-color: rgba(175, 115, 45, 0.18);
+  box-shadow: 0 8px 20px rgba(130, 80, 10, 0.10);
+}
+[data-theme="light"] .restaurantProfileHero__img {
+  background: rgba(255, 244, 220, 0.60);
+}
+[data-theme="light"] .restaurantProfileHero__logo {
+  background: rgba(255, 244, 220, 0.80);
+  border-color: rgba(175, 115, 45, 0.28);
+}
+[data-theme="light"] .restaurantProfileHero__logoFallback {
+  color: rgba(26, 14, 6, 0.80);
+}
+
+/* ── Owner filter chips & nav buttons ── */
+[data-theme="light"] .ownerFilterChip {
+  background: rgba(255, 248, 235, 0.88);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .ownerFilterChip.is-active {
+  background: rgba(201, 162, 39, 0.20);
+  border-color: rgba(201, 162, 39, 0.55);
+  color: #5a3d00;
+}
+[data-theme="light"] .ownerNavBtn {
+  color: rgba(26, 14, 6, 0.75);
+}
+[data-theme="light"] .ownerNavBtn.is-active {
+  color: rgba(26, 14, 6, 0.95);
+}
+[data-theme="light"] .ownerAvatar {
+  background: rgba(255, 244, 220, 0.80);
+  border-color: rgba(175, 115, 45, 0.28);
+}
+[data-theme="light"] .ownerAvatar__fallback {
+  color: rgba(26, 14, 6, 0.80);
+}
+[data-theme="light"] .ownerProfileHeaderCard__avatar {
+  background: rgba(255, 244, 220, 0.80);
+  border-color: rgba(175, 115, 45, 0.22);
+}
+
+/* ── imageCard labels & formats ── */
+[data-theme="light"] .imageCard__title {
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .imageCard__formats {
+  color: rgba(80, 45, 15, 0.65);
+}
+[data-theme="light"] .ownerProfileFilterGroup > span {
+  color: rgba(26, 14, 6, 0.88);
+}
+
+/* ── Owner table config ── */
+[data-theme="light"] .ownerTableConfigSectionTitle {
+  color: rgba(26, 14, 6, 0.88);
+}
+
+/* ── Owner menu page ── */
+[data-theme="light"] .ownerMenuPage__subtitle {
+  color: rgba(80, 45, 15, 0.70);
+}
+[data-theme="light"] .ownerMenuSectionCount {
+  color: rgba(80, 45, 15, 0.60);
+}
+[data-theme="light"] .menuModalHelper {
+  background: rgba(255, 248, 235, 0.80);
+  border-color: rgba(175, 115, 45, 0.16);
+}
+[data-theme="light"] .menuModalHelper__text {
+  color: rgba(80, 45, 15, 0.72);
+}
+[data-theme="light"] .menuSectionEmpty {
+  color: rgba(80, 45, 15, 0.65);
+}
+
+/* ── Kebab menu ── */
+[data-theme="light"] .kebabBtn {
+  background: rgba(255, 248, 235, 0.88);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .kebabMenu {
+  background: rgba(255, 251, 243, 0.98);
+  border-color: rgba(175, 115, 45, 0.22);
+  box-shadow: 0 8px 24px rgba(130, 80, 10, 0.14);
+}
+[data-theme="light"] .kebabItem {
+  color: rgba(26, 14, 6, 0.88);
+}
+
+/* ── Active filter chips row ── */
+[data-theme="light"] .activeFilterChip {
+  background: rgba(255, 248, 235, 0.90);
+  border-color: rgba(175, 115, 45, 0.28);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .searchResultsHeader__count {
+  color: rgba(26, 14, 6, 0.70);
+}
+
+/* ── Filter drawer panel ── */
+[data-theme="light"] .filterDrawer__panel {
+  background: linear-gradient(180deg, #FDF8F0, #F3E8D4);
+  border-left-color: rgba(175, 115, 45, 0.20);
+  color: rgba(26, 14, 6, 0.92);
+  color-scheme: light;
+  box-shadow: -20px 0 44px rgba(130, 80, 10, 0.14);
+}
+[data-theme="light"] .filterDrawer__header {
+  border-bottom-color: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .filterDrawer__section {
+  background: rgba(255, 248, 235, 0.70);
+  border-color: rgba(175, 115, 45, 0.16);
+}
+[data-theme="light"] .filterDrawer__label {
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .filterOption {
+  background: rgba(255, 248, 235, 0.88);
+  border-color: rgba(175, 115, 45, 0.20);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .filterDrawer__field span {
+  color: rgba(26, 14, 6, 0.72);
+}
+[data-theme="light"] .filterDrawer__field input {
+  color: rgba(26, 14, 6, 0.88);
+  background: rgba(255, 251, 243, 0.90);
+  border-color: rgba(175, 115, 45, 0.22);
+}
+[data-theme="light"] .filterDrawer__hint {
+  color: rgba(80, 45, 15, 0.70);
+}
+[data-theme="light"] .filterDrawer__footer {
+  border-top-color: rgba(175, 115, 45, 0.18);
+}
+
+/* ── Loading skeleton ── */
+[data-theme="light"] .loadingSkeleton__item {
+  background: linear-gradient(
+    90deg,
+    rgba(230, 215, 190, 0.60) 25%,
+    rgba(255, 245, 225, 0.90) 50%,
+    rgba(230, 215, 190, 0.60) 75%
+  );
+  background-size: 200% 100%;
+}
+
+/* ── Admin area ── */
+[data-theme="light"] .adminAvatar {
+  background: rgba(255, 244, 220, 0.80);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .adminNavBadge {
+  color: #5a3d00;
+  background: rgba(201, 162, 39, 0.35);
+  border-color: rgba(175, 115, 45, 0.55);
+}
+[data-theme="light"] .adminStatCard__label {
+  color: rgba(80, 45, 15, 0.72);
+}
+[data-theme="light"] .adminStatCard__value {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .adminActivityItem {
+  background: rgba(255, 248, 235, 0.70);
+  border-color: rgba(175, 115, 45, 0.14);
+}
+[data-theme="light"] .adminActivityItem__title {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .adminActivityItem__subtitle {
+  color: rgba(80, 45, 15, 0.80);
+}
+[data-theme="light"] .adminActivityItem__meta {
+  color: rgba(80, 45, 15, 0.60);
+}
+[data-theme="light"] .adminEntityCard__meta {
+  color: rgba(80, 45, 15, 0.72);
+}
+[data-theme="light"] .adminDetailLine {
+  color: rgba(26, 14, 6, 0.80);
+}
+[data-theme="light"] .adminReviewItem {
+  background: rgba(255, 248, 235, 0.70);
+  border-color: rgba(175, 115, 45, 0.14);
+}
+[data-theme="light"] .adminReviewItem__meta {
+  color: rgba(80, 45, 15, 0.65);
+}
+[data-theme="light"] .adminReviewItem__text {
+  color: rgba(26, 14, 6, 0.85);
+}
+
+/* OwnerProfile view mode rows */
+[data-theme="light"] .ownerProfileViewCard {
+  background: rgba(255, 255, 255, 0.82);
+}
+[data-theme="light"] .ownerProfileViewRow {
+  border-color: rgba(0, 0, 0, 0.09);
+  background: rgba(255, 255, 255, 0.55);
+}
+[data-theme="light"] .ownerProfileViewLabel {
+  color: rgba(26, 14, 6, 0.55);
+}
+[data-theme="light"] .ownerProfileViewValue {
+  color: rgba(26, 14, 6, 0.90);
+}
+[data-theme="light"] .ownerProfileViewImage {
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+/* Admin cards and tables */
+[data-theme="light"] .adminStatCard {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(0, 0, 0, 0.09);
+}
+[data-theme="light"] .adminActivityCard,
+[data-theme="light"] .adminUsersTableCard,
+[data-theme="light"] .adminUserDetailsCard {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(0, 0, 0, 0.09);
+}
+[data-theme="light"] .adminActivityItem {
+  border-color: rgba(0, 0, 0, 0.09);
+  background: rgba(255, 255, 255, 0.50);
+}
+[data-theme="light"] .adminEntityCard {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(0, 0, 0, 0.09);
+}
+[data-theme="light"] .adminEntityCard__title {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .adminTable th,
+[data-theme="light"] .adminTable td {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .adminTable tbody tr:hover {
+  background: rgba(201, 162, 39, 0.07);
+}
+[data-theme="light"] .adminTable tbody tr.is-active {
+  background: rgba(201, 162, 39, 0.18);
+}
+
+/* Owner menu page */
+[data-theme="light"] .ownerMenuPage__title {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .ownerMenuSectionInfo {
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .ownerMenuSectionBtn {
+  color: rgba(26, 14, 6, 0.92);
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.55);
+}
+[data-theme="light"] .ownerMenuSectionsStack .menuSectionBlock {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(0, 0, 0, 0.09);
+}
+[data-theme="light"] .menuSectionEmpty--page {
+  color: rgba(26, 14, 6, 0.62);
+  border-color: rgba(0, 0, 0, 0.18);
+}
+
+/* Owner table config */
+[data-theme="light"] .ownerTableConfigCard {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(0, 0, 0, 0.09);
+}
+[data-theme="light"] .capacityPreview {
+  color: rgba(26, 14, 6, 0.88);
+  background: rgba(201, 162, 39, 0.12);
+  border-color: rgba(201, 162, 39, 0.45);
+}
+[data-theme="light"] .capacityPreview--warn {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.40);
+}
+
+/* Reservation section titles */
+[data-theme="light"] .reservationSection__title {
+  color: rgba(26, 14, 6, 0.92);
+}
+
+/* Inline toast (success/info messages) */
+[data-theme="light"] .inlineToast {
+  color: rgba(26, 14, 6, 0.88);
+  background: rgba(201, 162, 39, 0.14);
+  border-color: rgba(201, 162, 39, 0.45);
+}
+
+/* Textarea (event description, rejection reason, etc.) */
+[data-theme="light"] .textarea {
+  border-color: rgba(175, 115, 45, 0.28);
+  background: rgba(255, 255, 255, 0.65);
+  color: rgba(26, 14, 6, 0.90);
+}
+[data-theme="light"] .textarea::placeholder {
+  color: rgba(26, 14, 6, 0.40);
+}
+[data-theme="light"] .textarea:focus {
+  border-color: rgba(201, 162, 39, 0.55);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* Field error messages */
+[data-theme="light"] .fieldError {
+  color: #dc2626;
+}
+
+/* Placeholder page (loading / empty states) */
+[data-theme="light"] .placeholderPage__title {
+  color: rgba(26, 14, 6, 0.92);
+}
+
+/* Admin pagination text */
+[data-theme="light"] .adminPagination {
+  color: rgba(26, 14, 6, 0.70);
+}
+
+/* Admin user search not found text */
+[data-theme="light"] .userSearchNotFoundCard__text {
+  color: rgba(26, 14, 6, 0.80);
+}
+
+/* formCard title (used in profile extra cards) */
+[data-theme="light"] .formCard__title {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .formCard__error {
+  color: #dc2626;
+}
+[data-theme="light"] .formCard__success {
+  color: #16a34a;
+}
+
+/* Profile extra cards — Favorites & My Reviews item frames */
+[data-theme="light"] .profileFavoriteItem {
+  background: rgba(255, 248, 235, 0.80);
+  border: 1px solid rgba(175, 115, 45, 0.20);
+}
+[data-theme="light"] .profileFavoriteItem:hover {
+  background: rgba(255, 244, 220, 0.90);
+}
+[data-theme="light"] .profileFavoriteItem__name {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .profileFavoriteItem__meta {
+  color: rgba(80, 45, 15, 0.72);
+}
+[data-theme="light"] .profileReviewItem {
+  background: rgba(255, 248, 235, 0.80);
+  border: 1px solid rgba(175, 115, 45, 0.20);
+}
+[data-theme="light"] .profileReviewItem__restaurant {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .profileReviewItem__text {
+  color: rgba(26, 14, 6, 0.80);
+}
+[data-theme="light"] .profileEmpty {
+  color: rgba(80, 45, 15, 0.60);
+}
+
+/* Google account password hint */
+[data-theme="light"] .userProfileFormHint {
+  color: rgba(26, 14, 6, 0.58);
+}
+
+/* Restaurant page header (back button row + title) */
+[data-theme="light"] .restaurantPageHeader__title {
+  color: rgba(26, 14, 6, 0.88);
+}
+
+/* Restaurant name in hero */
+[data-theme="light"] .restaurantProfileHero__name {
+  color: rgba(26, 14, 6, 0.92);
+}
+
+/* Restaurant hero logo border */
+[data-theme="light"] .restaurantProfileHero__logo {
+  border-color: rgba(175, 115, 45, 0.30);
+}
+
+/* Status badges in light mode */
+[data-theme="light"] .statusBadge {
+  border-color: rgba(0, 0, 0, 0.15);
+  color: rgba(26, 14, 6, 0.80);
+}
+[data-theme="light"] .statusBadge--confirmed,
+[data-theme="light"] .statusBadge--accepted,
+[data-theme="light"] .statusBadge--valid {
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(34, 197, 94, 0.50);
+  color: #15803d;
+}
+[data-theme="light"] .statusBadge--pending,
+[data-theme="light"] .statusBadge--no-show {
+  background: rgba(251, 191, 36, 0.18);
+  border-color: rgba(202, 138, 4, 0.50);
+  color: #92400e;
+}
+[data-theme="light"] .statusBadge--cancelled,
+[data-theme="light"] .statusBadge--rejected,
+[data-theme="light"] .statusBadge--invalid {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.50);
+  color: #b91c1c;
+}
+[data-theme="light"] .statusBadge--completed {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.45);
+  color: #1d4ed8;
+}
+
+/* Owner profile feedback messages */
+[data-theme="light"] .ownerProfile__feedback--error {
+  color: #dc2626;
+}
+[data-theme="light"] .ownerProfile__feedback--success {
+  color: #16a34a;
+}
+
+/* Owner profile map hints */
+[data-theme="light"] .ownerProfileMapField__hint {
+  color: rgba(26, 14, 6, 0.58);
+}
+[data-theme="light"] .ownerProfileMapPicker {
+  border-color: rgba(0, 0, 0, 0.15);
+}
+[data-theme="light"] .ownerProfileMapCoords {
+  color: rgba(26, 14, 6, 0.65);
+}
+[data-theme="light"] .ownerProfileMapField {
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* Owner location input placeholder */
+[data-theme="light"] .ownerProfile__locationInput::placeholder {
+  color: rgba(26, 14, 6, 0.42);
+  opacity: 1;
+}
+
+/* Appearance setting section (profile pages) */
+.appearanceSection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-top: 1px solid var(--stroke);
+  margin-top: 4px;
+}
+.appearanceSection__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.appearanceSection__sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.appearanceToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--stroke);
+  background: var(--card);
+  border-radius: 999px;
+  padding: 4px 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.appearanceToggle:hover {
+  border-color: rgba(201, 162, 39, 0.45);
+  box-shadow: 0 0 10px rgba(201, 162, 39, 0.18);
+}
+.appearanceToggle__icon {
+  font-size: 17px;
+  line-height: 1;
 }
 
 * {
@@ -24,14 +1182,25 @@ body {
   height: 100%;
 }
 
+/* Background lives on html so Safari repaints it immediately when
+   data-theme attribute changes (body canvas caching bug in WebKit). */
+html {
+  background:
+    radial-gradient(1000px 700px at 75% 80%, rgba(130, 90, 255, 0.12), transparent 55%),
+    linear-gradient(180deg, #070b2f 0%, #050826 100%);
+}
+
+html[data-theme="light"] {
+  background:
+    radial-gradient(900px 600px at 70% 85%, rgba(201, 162, 39, 0.10), transparent 55%),
+    linear-gradient(180deg, #FDF8F0 0%, #F3E8D4 100%);
+}
+
 body {
   margin: 0;
   color: var(--text);
   font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-
-  background:
-    radial-gradient(1000px 700px at 75% 80%, rgba(130, 90, 255, 0.12), transparent 55%),
-    linear-gradient(180deg, #070b2f 0%, #050826 100%);
+  background: transparent;
   overflow-x: hidden;
 }
 
@@ -501,7 +1670,7 @@ body.ds-nav-not-sticky .nav {
   position: fixed;
   inset: 0;
   display: none;
-  z-index: 60;
+  z-index: 10000;
   overflow-y: auto;
   padding: 20px 0;
 }
@@ -880,23 +2049,7 @@ body.ds-nav-not-sticky .nav {
 }
 
 .nav__pill::after {
-  content: "";
-  position: absolute;
-  left: 22px;
-  right: 22px;
-  bottom: 6px;
-  height: 2px;
-
-  background: linear-gradient(90deg,
-      transparent,
-      rgba(201, 162, 39, 0.55),
-      rgba(201, 162, 39, 0.20),
-      transparent);
-
-  border-radius: 999px;
-  filter: blur(0.2px);
-  opacity: 0.9;
-  pointer-events: none;
+  display: none;
 }
 
 /* NAV LINK HOVER (rounded + glow) */
@@ -932,12 +2085,12 @@ body.ds-nav-not-sticky .nav {
 
 /* Solid gold wave shape (SVG) */
 .gold-wave {
-  position: absolute;
-  right: -200px;
-  bottom: -120px;
+  position: fixed;
+  right: 0;
+  bottom: 0;
 
-  width: 520px;
-  height: 240px;
+  width: auto;
+  height: clamp(200px, 30vh, 320px);
 
   pointer-events: none;
   z-index: 1;
@@ -1496,6 +2649,33 @@ body {
   font-weight: 600;
   color: rgba(255, 255, 255, 0.94);
   line-height: 1.45;
+}
+
+/* Map preview row in view card */
+.ownerProfileViewRow--map {
+  padding: 12px 14px;
+}
+
+.ownerProfileViewMapWrap {
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.ownerProfileViewMapWrap .mapboxgl-map,
+.ownerProfileViewMapWrap canvas {
+  width: 100% !important;
+  border-radius: 10px;
+}
+
+.ownerProfileViewEmpty {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  font-style: italic;
+}
+
+[data-theme="light"] .ownerProfileViewEmpty {
+  color: rgba(26, 14, 6, 0.45);
 }
 
 .ownerProfileViewImage {
@@ -5814,9 +6994,19 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   border: 1px solid rgba(255, 255, 255, 0.16);
 }
 
-.ownerProfileMapPicker .leaflet-container {
-  width: 100%;
-  height: 100%;
+.ownerProfileMapPicker .mapboxgl-map,
+.ownerProfileMapPicker canvas {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 12px;
+}
+
+/* Restaurant location pin on owner map */
+.ownerMapPin {
+  font-size: 28px;
+  line-height: 1;
+  cursor: default;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
 }
 
 .ownerProfileMapCoords {
@@ -5851,6 +7041,405 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
   .exploreFiltersPanel__top {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ===== LIGHT MODE CRITICAL OVERRIDES (end of file = highest source-order priority) ===== */
+html[data-theme="light"] .quickFilterBtn.is-active {
+  background: rgba(201, 162, 39, 0.28) !important;
+  border-color: rgba(201, 162, 39, 0.70) !important;
+  color: #5a3d00 !important;
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.18) !important;
+}
+
+html[data-theme="light"] .quickFilterBtn {
+  background: rgba(255, 251, 243, 0.85) !important;
+  border-color: rgba(175, 115, 45, 0.22) !important;
+  color: #1A0E06 !important;
+}
+
+/* ===== SPLIT EXPLORE PAGE (Airbnb-style) ===== */
+
+/* Page wrapper — escapes the 28px/28px/40px padding of userArea__main */
+.explorePage {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--navH));
+  overflow: hidden;
+  /* Pull back out of userArea__main padding so map fills full height */
+  margin: -28px -28px -40px;
+}
+
+/* Top bar: search input + Filters button */
+.exploreTopBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.exploreTopBar__search {
+  flex: 1;
+}
+
+/* Filters pill button */
+.exploreFiltersBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 18px;
+  height: 42px;
+  border-radius: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.88);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.exploreFiltersBtn:hover,
+.exploreFiltersBtn.has-active {
+  border-color: #C9A227;
+  background: rgba(201, 162, 39, 0.13);
+  color: #C9A227;
+}
+
+.exploreFiltersBtn__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #C9A227;
+  color: #fff;
+  border-radius: 999px;
+  min-width: 18px;
+  height: 18px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 0 4px;
+}
+
+/* Inline filter panel — sits between top bar and body */
+.exploreFiltersPanel--inline {
+  flex-shrink: 0;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(10, 15, 55, 0.22);
+  padding: 10px 16px;
+  max-height: 240px;
+  overflow-y: auto;
+  margin-bottom: 0;
+}
+
+/* Split body */
+.exploreBody {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Left: scrollable restaurant list */
+.exploreListPanel {
+  width: 46%;
+  min-width: 260px;
+  max-width: 460px;
+  overflow-y: auto;
+  padding: 14px 12px;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.exploreListCount {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.50);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.exploreListGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.exploreListCard {
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  transition: background 0.15s ease, border-color 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  outline: none;
+}
+
+.exploreListCard:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.17);
+}
+
+.exploreListCard:focus-visible {
+  box-shadow: 0 0 0 2px #C9A227;
+}
+
+.exploreListCard.is-selected {
+  background: rgba(201, 162, 39, 0.13);
+  border-color: rgba(201, 162, 39, 0.55);
+}
+
+.exploreListCard__name {
+  font-weight: 800;
+  font-size: 13px;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.exploreListCard__cuisine {
+  font-size: 11px;
+  color: rgba(201, 162, 39, 0.90);
+  font-weight: 700;
+}
+
+.exploreListCard__meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.58);
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.exploreListCard__viewBtn {
+  margin-top: 8px;
+  padding: 5px 10px;
+  font-size: 11px;
+  height: 30px;
+  width: 100%;
+  line-height: 1;
+}
+
+/* Cover image inside card — bleeds to card edges */
+.exploreListCard__img {
+  width: calc(100% + 24px);
+  margin: -12px -12px 8px;
+  height: 88px;
+  overflow: hidden;
+  border-radius: 10px 10px 0 0;
+  background: rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.exploreListCard__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.exploreListCard__img--placeholder,
+.exploreListCard__img.exploreListCard__img--placeholder {
+  background: linear-gradient(
+    135deg,
+    rgba(201, 162, 39, 0.15) 0%,
+    rgba(12, 19, 79, 0.25) 100%
+  );
+}
+
+[data-theme="light"] .exploreListCard__img {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .exploreListCard__img--placeholder,
+[data-theme="light"] .exploreListCard__img.exploreListCard__img--placeholder {
+  background: linear-gradient(
+    135deg,
+    rgba(201, 162, 39, 0.12) 0%,
+    rgba(175, 115, 45, 0.08) 100%
+  );
+}
+
+/* Right: map with rounded corners */
+.exploreMapWrapper {
+  flex: 1;
+  position: relative;
+  margin: 10px 12px 10px 8px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22);
+}
+
+.exploreMapWrapper .mapboxgl-map,
+.exploreMapWrapper canvas {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 16px;
+}
+
+/* Subtle inner border for soft edge */
+.exploreMapWrapper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* User location blue dot */
+.exploreUserDot {
+  width: 18px;
+  height: 18px;
+  background: #4285F4;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(66, 133, 244, 0.50);
+  position: relative;
+}
+
+.exploreUserDot::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  border-radius: 50%;
+  background: rgba(66, 133, 244, 0.18);
+  animation: exploreUserPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes exploreUserPulse {
+  0%, 100% { transform: scale(0.8); opacity: 0.75; }
+  50%       { transform: scale(1.3); opacity: 0.15; }
+}
+
+/* Restaurant name-pill markers */
+.exploreMarker__pill {
+  background: #fff;
+  color: #1a1a2e;
+  border: 2px solid rgba(0, 0, 0, 0.12);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-weight: 700;
+  font-size: 12px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.20);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  user-select: none;
+}
+
+.exploreMarker__pill:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.exploreMarker__pill.is-selected {
+  background: #C9A227;
+  border-color: #C9A227;
+  color: #fff;
+  transform: scale(1.1);
+  box-shadow: 0 4px 14px rgba(201, 162, 39, 0.45);
+  z-index: 999 !important;
+}
+
+/* ── Light mode ── */
+[data-theme="light"] .exploreTopBar {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .exploreFiltersBtn {
+  border-color: rgba(0, 0, 0, 0.18);
+  color: #1A0E06;
+}
+
+[data-theme="light"] .exploreFiltersBtn:hover,
+[data-theme="light"] .exploreFiltersBtn.has-active {
+  border-color: #C9A227;
+  background: rgba(201, 162, 39, 0.10);
+  color: #5a3d00;
+}
+
+[data-theme="light"] .exploreFiltersPanel--inline {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+  background: rgba(255, 252, 246, 0.80);
+}
+
+[data-theme="light"] .exploreListPanel {
+  border-right-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .exploreListCount {
+  color: rgba(26, 14, 6, 0.48);
+}
+
+[data-theme="light"] .exploreListCard {
+  background: rgba(0, 0, 0, 0.025);
+  border-color: rgba(0, 0, 0, 0.09);
+}
+
+[data-theme="light"] .exploreListCard:hover {
+  background: rgba(0, 0, 0, 0.055);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .exploreListCard.is-selected {
+  background: rgba(201, 162, 39, 0.10);
+  border-color: rgba(201, 162, 39, 0.45);
+}
+
+[data-theme="light"] .exploreListCard__name {
+  color: #1A0E06;
+}
+
+[data-theme="light"] .exploreListCard__meta {
+  color: rgba(80, 45, 15, 0.62);
+}
+
+[data-theme="light"] .exploreMapWrapper {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .exploreMarker__pill {
+  background: #fff;
+  color: #1A0E06;
+  border-color: rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Mobile: stack vertically */
+@media (max-width: 720px) {
+  .exploreBody {
+    flex-direction: column;
+  }
+
+  .exploreListPanel {
+    width: 100%;
+    max-width: none;
+    max-height: 40%;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    padding: 10px;
+  }
+
+  .exploreMapWrapper {
+    margin: 8px;
+  }
+
+  [data-theme="light"] .exploreListPanel {
+    border-bottom-color: rgba(0, 0, 0, 0.08);
   }
 }
 
