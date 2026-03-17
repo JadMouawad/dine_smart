@@ -6,7 +6,7 @@ import { useAuth } from "../../auth/AuthContext.jsx";
 import { searchRestaurants } from "../../services/restaurantService";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-const DEFAULT_CENTER = { lat: 33.893791, lng: 35.501777 }; // Beirut fallback
+const DEFAULT_CENTER = { lat: 33.893791, lng: 35.501777 };
 
 const CUISINES = [
   "American","Middle Eastern","French","Mexican","Chinese",
@@ -33,14 +33,12 @@ const defaultFilters = {
 
 function parseCoord(value) {
   const parsed = Number(value);
-  // 0 means "not set" (null island) — treat as invalid
   return Number.isFinite(parsed) && parsed !== 0 ? parsed : null;
 }
 
 export default function UserExplore({ onOpenRestaurant }) {
   const { user } = useAuth();
 
-  // Two-stage query so typing is instant but search is debounced
   const [queryInput, setQueryInput]   = useState("");
   const [query, setQuery]             = useState("");
   const [filters, setFilters]         = useState(defaultFilters);
@@ -49,14 +47,11 @@ export default function UserExplore({ onOpenRestaurant }) {
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState("");
   const [selectedRestaurantId, setSelectedRestaurantId] = useState(null);
+  const [gpsCoords, setGpsCoords]     = useState({ lat: null, lng: null });
 
-  // GPS coords from browser (null until granted)
-  const [gpsCoords, setGpsCoords] = useState({ lat: null, lng: null });
-
-  const cardRefs = useRef({});
+  const cardRefs  = useRef({});
   const watchIdRef = useRef(null);
 
-  // ── Profile-stored coordinates (from signup address picker) ────────────────
   const profileCoords = useMemo(() => {
     const lat = parseCoord(user?.latitude);
     const lng = parseCoord(user?.longitude);
@@ -64,83 +59,57 @@ export default function UserExplore({ onOpenRestaurant }) {
     return { lat, lng };
   }, [user?.latitude, user?.longitude]);
 
-  // ── Best available center: GPS > profile > Beirut default ──────────────────
   const mapCenter = useMemo(() => {
     if (gpsCoords.lat != null && gpsCoords.lng != null) return gpsCoords;
     if (profileCoords) return profileCoords;
     return { lat: DEFAULT_CENTER.lat, lng: DEFAULT_CENTER.lng };
   }, [gpsCoords, profileCoords]);
 
-  // ── Mapbox view state — starts at best known center ────────────────────────
   const [viewState, setViewState] = useState({
-    longitude: (profileCoords?.lng) || DEFAULT_CENTER.lng,
-    latitude:  (profileCoords?.lat) || DEFAULT_CENTER.lat,
+    longitude: profileCoords?.lng || DEFAULT_CENTER.lng,
+    latitude:  profileCoords?.lat || DEFAULT_CENTER.lat,
     zoom: 13,
   });
 
-  // ── Silent background GPS via watchPosition ────────────────────────────────
-  // watchPosition retries automatically; enableHighAccuracy:false works on
-  // non-GPS devices (Mac/PC) using WiFi/network location — much more reliable.
+  // Silent background GPS — retries automatically, works on non-GPS devices
   useEffect(() => {
     if (!navigator.geolocation) return;
-
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         const lat = Number(pos.coords.latitude.toFixed(6));
         const lng = Number(pos.coords.longitude.toFixed(6));
         setGpsCoords({ lat, lng });
-        // Center map on real location when first GPS fix arrives
         setViewState((vs) => ({ ...vs, latitude: lat, longitude: lng, zoom: Math.max(vs.zoom, 14) }));
       },
-      (_err) => {
-        // Silently ignore — map stays at profile coords or Beirut default
-        // No error shown to user; the app still works without location
-      },
+      () => { /* silently ignore — map stays at profile/default */ },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
     );
-
     return () => {
-      if (watchIdRef.current != null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-      }
+      if (watchIdRef.current != null) navigator.geolocation.clearWatch(watchIdRef.current);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Debounce search input → 400 ms
+  // Debounce search
   useEffect(() => {
-    const timer = setTimeout(() => setQuery(queryInput), 400);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => setQuery(queryInput), 400);
+    return () => clearTimeout(t);
   }, [queryInput]);
 
-  // Fetch restaurants whenever search params change
+  // Fetch restaurants
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError("");
-
-    // Use best available location for distance-based search
-    const searchLat = mapCenter.lat;
-    const searchLng = mapCenter.lng;
-
     searchRestaurants(query, filters.cuisines, {
       ...filters,
-      latitude:       searchLat,
-      longitude:      searchLng,
+      latitude:       mapCenter.lat,
+      longitude:      mapCenter.lng,
       distanceRadius: filters.distanceRadius,
       onlyLebanon:    true,
     })
-      .then((data) => {
-        if (cancelled) return;
-        setRestaurants(Array.isArray(data) ? data : []);
-        setSelectedRestaurantId(null);
-      })
-      .catch((fetchError) => {
-        if (cancelled) return;
-        setRestaurants([]);
-        setError(fetchError.message || "Failed to load results.");
-      })
-      .finally(() => { if (!cancelled) setLoading(false); });
-
+      .then((data) => { if (!cancelled) { setRestaurants(Array.isArray(data) ? data : []); setSelectedRestaurantId(null); } })
+      .catch((err)  => { if (!cancelled) { setRestaurants([]); setError(err.message || "Failed to load results."); } })
+      .finally(()   => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [query, filters, mapCenter.lat, mapCenter.lng]);
 
@@ -149,11 +118,9 @@ export default function UserExplore({ onOpenRestaurant }) {
     [restaurants]
   );
 
-  // Scroll selected card into view in the left panel
   useEffect(() => {
     if (!selectedRestaurantId) return;
-    const el = cardRefs.current[selectedRestaurantId];
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    cardRefs.current[selectedRestaurantId]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [selectedRestaurantId]);
 
   const activeFilterCount = [
@@ -164,37 +131,32 @@ export default function UserExplore({ onOpenRestaurant }) {
     filters.openNow ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
 
-  const toggleArrayFilter = (key, value) => {
+  const toggleArrayFilter = (key, value) =>
     setFilters((prev) => {
-      const current = prev[key] || [];
-      const next = current.includes(value)
-        ? current.filter((item) => item !== value)
-        : [...current, value];
+      const arr  = prev[key] || [];
+      const next = arr.includes(value) ? arr.filter((x) => x !== value) : [...arr, value];
       return { ...prev, [key]: next };
     });
-  };
 
   const resetFilters = () => setFilters(defaultFilters);
 
   const handleSelectRestaurant = useCallback((id) => {
-    setSelectedRestaurantId((prev) => {
-      if (prev === id) return null;
-      return id;
-    });
+    setSelectedRestaurantId((prev) => (prev === id ? null : id));
     const r = restaurants.find((x) => x.id === id);
     if (r) {
       const lat = parseCoord(r.latitude);
       const lng = parseCoord(r.longitude);
-      if (lat != null && lng != null) {
+      if (lat != null && lng != null)
         setViewState((vs) => ({ ...vs, longitude: lng, latitude: lat, zoom: Math.max(vs.zoom, 15) }));
-      }
     }
   }, [restaurants]);
+
+  const sliderPct = ((filters.distanceRadius - 1) / 49 * 100).toFixed(1);
 
   return (
     <div className="explorePage">
 
-      {/* ── Top bar: search + Filters button ── */}
+      {/* ── Top bar ── */}
       <div className="exploreTopBar">
         <input
           className="searchInput exploreTopBar__search"
@@ -204,6 +166,18 @@ export default function UserExplore({ onOpenRestaurant }) {
           onChange={(e) => setQueryInput(e.target.value)}
           aria-label="Search restaurants"
         />
+
+        {/* 📍 Re-center — appears only when GPS has a fix */}
+        {gpsCoords.lat != null && (
+          <button
+            className="exploreLocateBtn is-granted"
+            type="button"
+            title="Center map on my location"
+            onClick={() => setViewState((vs) => ({ ...vs, latitude: gpsCoords.lat, longitude: gpsCoords.lng, zoom: 15 }))}
+          >📍</button>
+        )}
+
+        {/* Filters toggle */}
         <button
           className={`exploreFiltersBtn${activeFilterCount > 0 ? " has-active" : ""}`}
           type="button"
@@ -212,99 +186,126 @@ export default function UserExplore({ onOpenRestaurant }) {
         >
           <FiSliders />
           <span>Filters</span>
-          {activeFilterCount > 0 && (
-            <span className="exploreFiltersBtn__badge">{activeFilterCount}</span>
-          )}
+          {activeFilterCount > 0 && <span className="exploreFiltersBtn__badge">{activeFilterCount}</span>}
         </button>
       </div>
 
-      {/* ── Inline filter panel ── */}
+      {/* ── Floating filter dropdown (fixed — escapes overflow:hidden) ── */}
       {filtersOpen && (
-        <section className="exploreFiltersPanel exploreFiltersPanel--inline">
-          <div className="exploreFiltersPanel__top">
-            <div />
-            <button className="btn btn--ghost" type="button" onClick={resetFilters}>
-              Reset
-            </button>
-          </div>
+        <>
+          <div className="exploreFilterBackdrop" onClick={() => setFiltersOpen(false)} />
 
-          <div className="exploreFilterGroup">
-            <div className="exploreFilterGroup__label">Category</div>
-            <div className="exploreChipRow">
-              {CUISINES.map((cuisine) => (
-                <button key={cuisine} type="button"
-                  className={`quickFilterBtn ${filters.cuisines.includes(cuisine) ? "is-active" : ""}`}
-                  onClick={() => toggleArrayFilter("cuisines", cuisine)}
-                  aria-pressed={filters.cuisines.includes(cuisine)}
-                >{cuisine}</button>
-              ))}
+          <div className="exploreFilterDropdown">
+
+            {/* Header */}
+            <div className="exploreFilterDropdown__head">
+              <span className="exploreFilterDropdown__title">
+                Filters
+                {activeFilterCount > 0 && <em>{activeFilterCount} active</em>}
+              </span>
+              <button className="exploreFilterDropdown__reset" type="button" onClick={resetFilters}>
+                Reset all
+              </button>
             </div>
-          </div>
 
-          <div className="exploreFilterGroup">
-            <div className="exploreFilterGroup__label">Price</div>
-            <div className="exploreChipRow">
-              {PRICE_OPTIONS.map((price) => (
-                <button key={price} type="button"
-                  className={`quickFilterBtn ${filters.priceRange.includes(price) ? "is-active" : ""}`}
-                  onClick={() => toggleArrayFilter("priceRange", price)}
-                  aria-pressed={filters.priceRange.includes(price)}
-                >{price}</button>
-              ))}
+            {/* Cuisine */}
+            <div className="exploreFilterSection">
+              <p className="exploreFilterSection__label">Cuisine</p>
+              <div className="exploreFilterChips">
+                {CUISINES.map((c) => (
+                  <button key={c} type="button"
+                    className={`filterChip${filters.cuisines.includes(c) ? " filterChip--on" : ""}`}
+                    onClick={() => toggleArrayFilter("cuisines", c)}
+                  >{c}</button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="exploreFilterGroup">
-            <div className="exploreFilterGroup__label">Dietary</div>
-            <div className="exploreChipRow">
-              {DIETARY_OPTIONS.map((dietary) => (
-                <button key={dietary} type="button"
-                  className={`quickFilterBtn ${filters.dietarySupport.includes(dietary) ? "is-active" : ""}`}
-                  onClick={() => toggleArrayFilter("dietarySupport", dietary)}
-                  aria-pressed={filters.dietarySupport.includes(dietary)}
-                >{dietary}</button>
-              ))}
+            <div className="exploreFilterDivider" />
+
+            {/* Price + Dietary side by side */}
+            <div className="exploreFilterRow2">
+              <div className="exploreFilterSection">
+                <p className="exploreFilterSection__label">Price</p>
+                <div className="exploreFilterChips">
+                  {PRICE_OPTIONS.map((p) => (
+                    <button key={p} type="button"
+                      className={`filterChip${filters.priceRange.includes(p) ? " filterChip--on" : ""}`}
+                      onClick={() => toggleArrayFilter("priceRange", p)}
+                    >{p}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="exploreFilterSection">
+                <p className="exploreFilterSection__label">Dietary</p>
+                <div className="exploreFilterChips">
+                  {DIETARY_OPTIONS.map((d) => (
+                    <button key={d} type="button"
+                      className={`filterChip${filters.dietarySupport.includes(d) ? " filterChip--on" : ""}`}
+                      onClick={() => toggleArrayFilter("dietarySupport", d)}
+                    >{d}</button>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className="exploreFilterGroup">
-            <div className="exploreFilterGroup__label">Rating</div>
-            <div className="exploreChipRow">
-              {RATING_OPTIONS.map((option) => (
-                <button key={option.label} type="button"
-                  className={`quickFilterBtn ${Number(filters.minRating) === option.value ? "is-active" : ""}`}
-                  onClick={() => setFilters((prev) => ({ ...prev, minRating: option.value }))}
-                  aria-pressed={Number(filters.minRating) === option.value}
-                >{option.label}</button>
-              ))}
-              <button type="button"
-                className={`quickFilterBtn ${filters.openNow ? "is-active" : ""}`}
-                onClick={() => setFilters((prev) => ({ ...prev, openNow: !prev.openNow }))}
-                aria-pressed={filters.openNow}
-              >Open Now</button>
+            <div className="exploreFilterDivider" />
+
+            {/* Rating + Open Now */}
+            <div className="exploreFilterSection">
+              <div className="exploreFilterSection__labelRow">
+                <p className="exploreFilterSection__label">Min Rating</p>
+                <button
+                  type="button"
+                  className={`filterChip filterChip--openNow${filters.openNow ? " filterChip--on" : ""}`}
+                  onClick={() => setFilters((prev) => ({ ...prev, openNow: !prev.openNow }))}
+                >
+                  <span className="filterChip__dot" />
+                  Open Now
+                </button>
+              </div>
+              <div className="exploreFilterChips">
+                {RATING_OPTIONS.map((opt) => (
+                  <button key={opt.label} type="button"
+                    className={`filterChip${Number(filters.minRating) === opt.value ? " filterChip--on" : ""}`}
+                    onClick={() => setFilters((prev) => ({ ...prev, minRating: opt.value }))}
+                  >{opt.label}</button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <label className="field">
-            <span>Distance: {filters.distanceRadius} km</span>
-            <input type="range" min="1" max="50" step="1"
-              value={filters.distanceRadius}
-              onChange={(e) => setFilters((prev) => ({ ...prev, distanceRadius: Number(e.target.value) }))}
-              aria-label="Distance radius"
-            />
-          </label>
-        </section>
+            <div className="exploreFilterDivider" />
+
+            {/* Distance */}
+            <div className="exploreFilterSection">
+              <div className="exploreFilterSection__labelRow">
+                <p className="exploreFilterSection__label">Distance</p>
+                <span className="exploreFilterSection__value">{filters.distanceRadius} km</span>
+              </div>
+              <input
+                className="exploreFilterRange"
+                type="range" min="1" max="50" step="1"
+                value={filters.distanceRadius}
+                style={{ "--pct": sliderPct }}
+                onChange={(e) => setFilters((prev) => ({ ...prev, distanceRadius: Number(e.target.value) }))}
+                aria-label="Distance radius"
+              />
+              <div className="exploreFilterRange__ticks">
+                <span>1 km</span><span>25 km</span><span>50 km</span>
+              </div>
+            </div>
+
+          </div>
+        </>
       )}
 
-      {/* ── Split body: list (left) + map (right) ── */}
+      {/* ── Split body ── */}
       <div className="exploreBody">
 
-        {/* Left: scrollable restaurant list */}
+        {/* Left: restaurant list */}
         <div className="exploreListPanel">
           <p className="exploreListCount">
-            {loading
-              ? "Searching…"
-              : `${restaurants.length} restaurant${restaurants.length !== 1 ? "s" : ""} found`}
+            {loading ? "Searching…" : `${restaurants.length} restaurant${restaurants.length !== 1 ? "s" : ""} found`}
           </p>
           {error && <p className="fieldError">{error}</p>}
 
@@ -333,33 +334,23 @@ export default function UserExplore({ onOpenRestaurant }) {
                     <div className="exploreListCard__img--placeholder" />
                   )}
                 </div>
-
                 <div className="exploreListCard__name">{restaurant.name}</div>
-                <div className="exploreListCard__cuisine">
-                  {restaurant.cuisine || "Cuisine not set"}
-                </div>
+                <div className="exploreListCard__cuisine">{restaurant.cuisine || "Cuisine not set"}</div>
                 <div className="exploreListCard__meta">
                   <span>⭐ {restaurant.rating ?? "N/A"}</span>
-                  {restaurant.distance_km != null && (
-                    <span>{restaurant.distance_km} km</span>
-                  )}
+                  {restaurant.distance_km != null && <span>{restaurant.distance_km} km</span>}
                 </div>
                 <button
                   className="btn btn--gold exploreListCard__viewBtn"
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenRestaurant?.(restaurant);
-                  }}
-                >
-                  View
-                </button>
+                  onClick={(e) => { e.stopPropagation(); onOpenRestaurant?.(restaurant); }}
+                >View</button>
               </article>
             ))}
           </div>
         </div>
 
-        {/* Right: Mapbox map */}
+        {/* Right: map */}
         <div className="exploreMapWrapper">
           <Map
             {...viewState}
@@ -370,13 +361,9 @@ export default function UserExplore({ onOpenRestaurant }) {
           >
             <NavigationControl position="top-right" />
 
-            {/* Blue dot — only shows when browser GPS has granted a fix */}
+            {/* Blue dot — only when GPS has a fix */}
             {gpsCoords.lat != null && gpsCoords.lng != null && (
-              <Marker
-                longitude={gpsCoords.lng}
-                latitude={gpsCoords.lat}
-                anchor="center"
-              >
+              <Marker longitude={gpsCoords.lng} latitude={gpsCoords.lat} anchor="center">
                 <div className="exploreUserDot" />
               </Marker>
             )}
@@ -386,27 +373,19 @@ export default function UserExplore({ onOpenRestaurant }) {
               const lat = parseCoord(restaurant.latitude);
               const lng = parseCoord(restaurant.longitude);
               if (lat == null || lng == null) return null;
-              const label = restaurant.name.length > 16
-                ? restaurant.name.slice(0, 16) + "…"
-                : restaurant.name;
+              const label = restaurant.name.length > 16 ? restaurant.name.slice(0, 16) + "…" : restaurant.name;
               return (
-                <Marker
-                  key={`marker-${restaurant.id}`}
-                  longitude={lng}
-                  latitude={lat}
-                  anchor="bottom"
-                >
+                <Marker key={`marker-${restaurant.id}`} longitude={lng} latitude={lat} anchor="bottom">
                   <div
                     className={`exploreMarker__pill${selectedRestaurantId === restaurant.id ? " is-selected" : ""}`}
                     onClick={() => handleSelectRestaurant(restaurant.id)}
-                  >
-                    {label}
-                  </div>
+                  >{label}</div>
                 </Marker>
               );
             })}
           </Map>
         </div>
+
       </div>
     </div>
   );
