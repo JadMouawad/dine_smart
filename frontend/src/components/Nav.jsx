@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import logo from "../assets/logo.png";
+import { useTheme } from "../auth/ThemeContext.jsx";
 
 export default function Nav({
   user,
@@ -13,6 +14,7 @@ export default function Nav({
   onGoDiscover,
 }) {
   const [pillScrolled, setPillScrolled] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     function onScroll() {
@@ -47,6 +49,16 @@ export default function Nav({
         </nav>
 
         <div className="nav__actions">
+          <button
+            className="themeToggleBtn"
+            type="button"
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            title={theme === "dark" ? "Light mode" : "Dark mode"}
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
+
           {loading ? (
             <>
               <button className="btn btn--ghost" type="button" disabled>

@@ -46,10 +46,14 @@ const updateMyRestaurant = async (req, res) => {
   try {
     const restaurant = await restaurantService.getRestaurantByOwnerId(req.user.id);
     if (!restaurant) return res.status(404).json({ message: "No restaurant found" });
+    if (restaurant.approval_status !== "approved") {
+      return res.status(403).json({
+        message: "Restaurant pending approval. Profile updates are locked until approval.",
+      });
+    }
+
     const updated = await restaurantService.updateRestaurant(restaurant.id, {
       ...req.body,
-      is_verified: true,
-      approval_status: "approved",
     });
     res.json(updated);
   } catch (err) {

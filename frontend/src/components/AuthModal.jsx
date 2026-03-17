@@ -3,12 +3,24 @@ import { GoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useAuth } from "../auth/AuthContext";
+import { phoneExists } from "../services/authService";
+
+const COUNTRY_OPTIONS = [
+  { label: "Lebanon", code: "+961", flag: "🇱🇧" },
+  { label: "United States", code: "+1", flag: "🇺🇸" },
+  { label: "France", code: "+33", flag: "🇫🇷" },
+  { label: "United Kingdom", code: "+44", flag: "🇬🇧" },
+  { label: "United Arab Emirates", code: "+971", flag: "🇦🇪" },
+  { label: "Saudi Arabia", code: "+966", flag: "🇸🇦" },
+  { label: "Germany", code: "+49", flag: "🇩🇪" },
+];
 
 export default function AuthModal({
   isOpen,
   mode,
   onClose,
   onToggleMode,
+  forceRole = null,
 }) {
   const { login, register, googleLogin } = useAuth();
   const navigate = useNavigate();
@@ -18,6 +30,7 @@ export default function AuthModal({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [countryCode, setCountryCode] = useState(COUNTRY_OPTIONS[0].code);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -26,6 +39,7 @@ export default function AuthModal({
   const [locatingUser, setLocatingUser] = useState(false);
 
   const [accountType, setAccountType] = useState(null);
+  const [adminSignupKey, setAdminSignupKey] = useState("");
   const [signupSuccess, setSignupSuccess] = useState(false);
 
   const copy = useMemo(() => {
@@ -62,9 +76,10 @@ export default function AuthModal({
     setSignupLocation({ latitude: null, longitude: null });
     setLocatingUser(false);
     setError(null);
-    setAccountType(null);
+    setAccountType(forceRole === "admin" ? "admin" : null);
+    setAdminSignupKey("");
     setSignupSuccess(false);
-  }, [isOpen, mode]);
+  }, [isOpen, mode, forceRole]);
 
   useEffect(() => {
     function onKeyDown(event) {
@@ -86,7 +101,7 @@ export default function AuthModal({
     setError(null);
     setLoading(true);
     try {
-      const role = accountType === "restaurant" ? "owner" : "user";
+      const role = forceRole || (accountType === "restaurant" ? "owner" : "user");
       const data = await googleLogin(credentialResponse.credential, role);
       const userRole = data?.user?.role;
       onClose();
@@ -201,7 +216,7 @@ export default function AuthModal({
               Got it
             </button>
           </div>
-        ) : mode === "signup" && !accountType ? (
+        ) : mode === "signup" && !accountType && !forceRole ? (
           <div className="account-type-select">
             <button
               type="button"
@@ -232,18 +247,30 @@ export default function AuthModal({
                   if (!name.trim()) throw new Error("Name is required");
 
                   const normalizedPhone = String(phone || "").replace(/\D/g, "");
-                  if (!normalizedPhone) throw new Error("Phone number is required");
-                  if (normalizedPhone.length < 7) throw new Error("Please enter a valid phone number");
+                  const role = forceRole || (accountType === "restaurant" ? "owner" : "user");
+                  const isAdminSignup = role === "admin";
+                  if (!isAdminSignup) {
+                    if (!normalizedPhone) throw new Error("Phone number is required");
+                    if (normalizedPhone.length < 7) throw new Error("Please enter a valid phone number");
+                  }
 
                   if (password !== confirmPassword) {
                     throw new Error("Password and confirm password do not match");
                   }
 
-                  const role = accountType === "restaurant" ? "owner" : "user";
+                  const fullPhone = isAdminSignup ? "" : `${countryCode}${normalizedPhone}`;
+                  if (!isAdminSignup) {
+                    const exists = await phoneExists(fullPhone);
+                    if (exists?.exists) {
+                      throw new Error("This phone number is already registered.");
+                    }
+                  }
+
                   const data = await register(name, email, password, role, {
                     latitude: signupLocation.latitude,
                     longitude: signupLocation.longitude,
-                    phone: normalizedPhone,
+                    phone: fullPhone,
+                    adminSignupKey,
                   });
 
                   if (data?.message && !data?.token) {
@@ -309,16 +336,51 @@ export default function AuthModal({
             )}
 
             {mode === "signup" && (
+              <>
+                {forceRole === "admin" && (
+                  <label className="field">
+                    <span>Admin access key</span>
+                    <input
+                      type="password"
+                      placeholder="Enter admin access key"
+                      value={adminSignupKey}
+                      onChange={(event) => setAdminSignupKey(event.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                  </label>
+                )}
+              </>
+            )}
+
+            {mode === "signup" && forceRole !== "admin" && (
               <label className="field">
                 <span>Phone number</span>
-                <input
-                  type="tel"
-                  placeholder="e.g. 03123456"
-                  value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
-                  required
-                  disabled={loading}
-                />
+                <div className="phoneRow">
+                  <select
+                    className="select phoneRow__code"
+                    value={countryCode}
+                    onChange={(event) => setCountryCode(event.target.value)}
+                    disabled={loading}
+                  >
+                    {COUNTRY_OPTIONS.map((country) => (
+                      <option key={country.code} value={country.code}>
+                        {country.flag} {country.label} {country.code}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    className="phoneRow__number"
+                    type="tel"
+                    placeholder="Phone number"
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value.replace(/\D/g, ""))}
+                    required
+                    disabled={loading}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                  />
+                </div>
               </label>
             )}
 
@@ -372,7 +434,7 @@ export default function AuthModal({
               </label>
             )}
 
-            {mode === "signup" && (
+            {mode === "signup" && forceRole !== "admin" && (
               <>
                 <button
                   type="button"
@@ -402,22 +464,26 @@ export default function AuthModal({
               {loading ? "Loading..." : copy.primary}
             </button>
 
-            <div className="divider">
-              <span>or</span>
-            </div>
+            {forceRole !== "admin" && (
+              <>
+                <div className="divider">
+                  <span>or</span>
+                </div>
 
-            <div className="modal__googleWrap">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                text={mode === "signup" ? "signup_with" : "signin_with"}
-                shape="pill"
-                theme="outline"
-                size="large"
-                width="360"
-                locale="en"
-              />
-            </div>
+                <div className="modal__googleWrap">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                    text={mode === "signup" ? "signup_with" : "signin_with"}
+                    shape="pill"
+                    theme="outline"
+                    size="large"
+                    width="360"
+                    locale="en"
+                  />
+                </div>
+              </>
+            )}
 
             <p className="fineprint">
               {copy.switchPrefix}{" "}

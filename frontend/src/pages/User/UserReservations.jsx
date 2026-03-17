@@ -57,6 +57,28 @@ function formatReservationTime(reservation) {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+function toSortTimestamp(reservation, fallbackValue) {
+  const date = toDateTimeValue(reservation);
+  if (!date || Number.isNaN(date.getTime())) return fallbackValue;
+  return date.getTime();
+}
+
+function toStatusClass(status) {
+  const normalized = String(status || "").toLowerCase();
+  if (["pending", "accepted", "confirmed", "cancelled", "no-show", "completed", "rejected"].includes(normalized)) {
+    return `statusBadge statusBadge--${normalized}`;
+  }
+  return "statusBadge";
+}
+
+function formatStatusLabel(status) {
+  const normalized = String(status || "").trim().toLowerCase();
+  if (!normalized) return "Unknown";
+  if (normalized === "accepted" || normalized === "confirmed") return "Accepted";
+  if (normalized === "no-show") return "No-show";
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
 export default function UserReservations() {
   const { user } = useAuth();
   const [reservations, setReservations] = useState([]);
@@ -93,17 +115,22 @@ export default function UserReservations() {
       const dateTime = toDateTimeValue(reservation);
       const hasValidDateTime = dateTime instanceof Date && !Number.isNaN(dateTime.getTime());
       const hasPassed = hasValidDateTime ? dateTime < now : false;
-      const isActive = reservation.status === "confirmed";
+      const normalizedStatus = String(reservation.status || "").toLowerCase();
+      const isAccepted = normalizedStatus === "accepted" || normalizedStatus === "confirmed";
+      const isPending = normalizedStatus === "pending";
+      const isTerminalStatus = ["cancelled", "completed", "no-show", "rejected"].includes(normalizedStatus);
 
-      if (isActive && !hasPassed) {
+      if ((isAccepted || isPending) && !hasPassed) {
         grouped.upcoming.push(reservation);
-      } else if (hasPassed) {
+      } else if (isTerminalStatus || hasPassed || !hasValidDateTime) {
         grouped.past.push(reservation);
+      } else {
+        grouped.upcoming.push(reservation);
       }
     });
 
-    grouped.upcoming.sort((a, b) => toDateTimeValue(a) - toDateTimeValue(b));
-    grouped.past.sort((a, b) => toDateTimeValue(b) - toDateTimeValue(a));
+    grouped.upcoming.sort((a, b) => toSortTimestamp(a, Number.MAX_SAFE_INTEGER) - toSortTimestamp(b, Number.MAX_SAFE_INTEGER));
+    grouped.past.sort((a, b) => toSortTimestamp(b, 0) - toSortTimestamp(a, 0));
     return grouped;
   }, [reservations, clockNow]);
 
@@ -112,8 +139,14 @@ export default function UserReservations() {
     setError("");
     setCancellingId(reservationId);
     try {
-      await cancelReservation(reservationId);
-      setReservations((prev) => prev.filter((reservation) => reservation.id !== reservationId));
+      const cancelled = await cancelReservation(reservationId);
+      setReservations((prev) =>
+        prev.map((reservation) =>
+          reservation.id === reservationId
+            ? { ...reservation, ...cancelled, status: "cancelled" }
+            : reservation
+        )
+      );
       window.dispatchEvent(
         new CustomEvent("ds:reservation-changed", {
           detail: {
@@ -159,7 +192,7 @@ export default function UserReservations() {
               <article className="reservationCard" key={reservation.id}>
                 <div className="reservationCard__top">
                   <div className="reservationCard__name">{reservation.restaurant_name}</div>
-                  <span className="statusBadge statusBadge--valid">Valid Date</span>
+                  <span className={toStatusClass(reservation.status)}>{formatStatusLabel(reservation.status)}</span>
                 </div>
                 <div className="reservationCard__meta">
                   {formatReservationDate(reservation)} at {formatReservationTime(reservation)}
@@ -167,16 +200,18 @@ export default function UserReservations() {
                 <div className="reservationCard__meta">
                   Party of {reservation.party_size} - Confirmation {reservation.confirmation_id}
                 </div>
-                <div className="reservationCard__actions">
-                  <button
-                    className="btn btn--ghost"
-                    type="button"
-                    disabled={cancellingId === reservation.id}
-                    onClick={() => setConfirmReservation(reservation)}
-                  >
-                    {cancellingId === reservation.id ? "Cancelling..." : "Cancel Reservation"}
-                  </button>
-                </div>
+                {["pending", "accepted", "confirmed"].includes(String(reservation.status || "").toLowerCase()) && (
+                  <div className="reservationCard__actions">
+                    <button
+                      className="btn btn--ghost"
+                      type="button"
+                      disabled={cancellingId === reservation.id}
+                      onClick={() => setConfirmReservation(reservation)}
+                    >
+                      {cancellingId === reservation.id ? "Cancelling..." : "Cancel Reservation"}
+                    </button>
+                  </div>
+                )}
               </article>
             ))}
           </div>
@@ -193,7 +228,7 @@ export default function UserReservations() {
               <article className="reservationCard" key={reservation.id}>
                 <div className="reservationCard__top">
                   <div className="reservationCard__name">{reservation.restaurant_name}</div>
-                  <span className="statusBadge statusBadge--invalid">Invalid Date</span>
+                  <span className={toStatusClass(reservation.status)}>{formatStatusLabel(reservation.status)}</span>
                 </div>
                 <div className="reservationCard__meta">
                   {formatReservationDate(reservation)} at {formatReservationTime(reservation)}
@@ -212,7 +247,7 @@ export default function UserReservations() {
         title="Cancel this reservation?"
         message={
           confirmReservation
-            ? `${confirmReservation.restaurant_name} on ${new Date(`${confirmReservation.reservation_date}T00:00:00`).toLocaleDateString()} at ${String(confirmReservation.reservation_time).slice(0, 5)}.`
+            ? `${confirmReservation.restaurant_name} on ${formatReservationDate(confirmReservation)} at ${formatReservationTime(confirmReservation)}.`
             : ""
         }
         confirmLabel="Cancel Reservation"

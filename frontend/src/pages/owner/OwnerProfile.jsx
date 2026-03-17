@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
-import L from "leaflet";
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
+import Map, { Marker, NavigationControl } from "react-map-gl/mapbox";
+import "mapbox-gl/dist/mapbox-gl.css";
 import { createRestaurant, getMyRestaurant, updateMyRestaurant } from "../../services/restaurantService";
+import { useTheme } from "../../auth/ThemeContext.jsx";
+
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 const CUISINES = [
   "American",
@@ -34,16 +34,6 @@ const DIETARY_OPTIONS = [
 
 const DEFAULT_MAP_CENTER = { lat: 33.893791, lng: 35.501777 };
 
-const restaurantMarkerIcon = new L.Icon({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
 function splitAddressAndCity(rawAddress) {
   const value = String(rawAddress || "").trim();
   if (!value) return { address: "", city: "" };
@@ -67,35 +57,8 @@ function buildAddress(address, city) {
   return `${cleanAddress}, ${cleanCity}`;
 }
 
-function MapLocationPicker({ latitude, longitude, onPick }) {
-  useMapEvents({
-    click(event) {
-      const nextLat = Number(event.latlng.lat.toFixed(6));
-      const nextLng = Number(event.latlng.lng.toFixed(6));
-      onPick(nextLat, nextLng);
-    },
-  });
-
-  return latitude != null && longitude != null ? (
-    <Marker position={[latitude, longitude]} icon={restaurantMarkerIcon} />
-  ) : null;
-}
-
-function MapCenterController({ latitude, longitude }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (latitude == null || longitude == null) return;
-    map.flyTo([latitude, longitude], Math.max(map.getZoom(), 13), {
-      animate: true,
-      duration: 0.5,
-    });
-  }, [latitude, longitude, map]);
-
-  return null;
-}
-
-export default function OwnerProfile({ onLogoPreviewChange }) {
+export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
+  const { theme, toggleTheme } = useTheme();
   const [restaurantName, setRestaurantName] = useState("");
   const [openingTime, setOpeningTime] = useState("");
   const [closingTime, setClosingTime] = useState("");
@@ -114,6 +77,13 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
   const [success, setSuccess] = useState("");
   const [existingRestaurant, setExistingRestaurant] = useState(null);
   const [isEditing, setIsEditing] = useState(true);
+
+  // Mapbox controlled view state
+  const [viewState, setViewState] = useState({
+    longitude: DEFAULT_MAP_CENTER.lng,
+    latitude:  DEFAULT_MAP_CENTER.lat,
+    zoom: 13,
+  });
 
   useEffect(() => {
     getMyRestaurant()
@@ -136,8 +106,12 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
 
         const lat = Number(restaurant.latitude);
         const lng = Number(restaurant.longitude);
-        setLatitude(Number.isFinite(lat) ? lat : null);
-        setLongitude(Number.isFinite(lng) ? lng : null);
+        // Exclude (0, 0) — means "not set", not actual null island
+        if (Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0)) {
+          setLatitude(lat);
+          setLongitude(lng);
+          setViewState({ longitude: lng, latitude: lat, zoom: 14 });
+        }
       })
       .catch((err) => {
         console.error("getMyRestaurant error:", err.message);
@@ -156,13 +130,6 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
 
   const profileName = restaurantName.trim() || existingRestaurant?.name || "Your Restaurant";
 
-  const mapCenter = useMemo(() => {
-    if (latitude != null && longitude != null) {
-      return { lat: latitude, lng: longitude };
-    }
-    return DEFAULT_MAP_CENTER;
-  }, [latitude, longitude]);
-
   useEffect(() => {
     if (!onLogoPreviewChange) return;
     onLogoPreviewChange(logoPreviewUrl || "");
@@ -180,17 +147,13 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
   async function onPickLogo(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
-
-    const isImage = file.type && file.type.startsWith("image/");
-    if (!isImage) {
+    if (!file.type?.startsWith("image/")) {
       alert("Please select an image file (PNG, JPG, JPEG).");
       event.target.value = "";
       return;
     }
-
     try {
-      const dataUrl = await readFileAsDataUrl(file);
-      setLogoDataUrl(dataUrl);
+      setLogoDataUrl(await readFileAsDataUrl(file));
     } catch (fileError) {
       alert(fileError.message || "Failed to process image.");
     }
@@ -199,25 +162,23 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
   async function onPickCover(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
-
-    const isImage = file.type && file.type.startsWith("image/");
-    if (!isImage) {
+    if (!file.type?.startsWith("image/")) {
       alert("Please select an image file (PNG, JPG, JPEG).");
       event.target.value = "";
       return;
     }
-
     try {
-      const dataUrl = await readFileAsDataUrl(file);
-      setCoverDataUrl(dataUrl);
+      setCoverDataUrl(await readFileAsDataUrl(file));
     } catch (fileError) {
       alert(fileError.message || "Failed to process image.");
     }
   }
 
-  function pickFromMap(nextLat, nextLng) {
-    setLatitude(nextLat);
-    setLongitude(nextLng);
+  // Handle map click → pin restaurant location
+  function handleMapClick(evt) {
+    const { lngLat } = evt;
+    setLatitude(Number(lngLat.lat.toFixed(6)));
+    setLongitude(Number(lngLat.lng.toFixed(6)));
   }
 
   function useCurrentLocation() {
@@ -225,12 +186,14 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
       setError("Geolocation is not supported on this browser.");
       return;
     }
-
     setLocationLoading(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLatitude(Number(position.coords.latitude.toFixed(6)));
-        setLongitude(Number(position.coords.longitude.toFixed(6)));
+        const lat = Number(position.coords.latitude.toFixed(6));
+        const lng = Number(position.coords.longitude.toFixed(6));
+        setLatitude(lat);
+        setLongitude(lng);
+        setViewState((vs) => ({ ...vs, latitude: lat, longitude: lng, zoom: 15 }));
         setLocationLoading(false);
       },
       () => {
@@ -246,14 +209,8 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
     setError("");
     setSuccess("");
 
-    if (!address.trim()) {
-      setError("Address is required.");
-      return;
-    }
-    if (!city.trim()) {
-      setError("City is required.");
-      return;
-    }
+    if (!address.trim()) { setError("Address is required."); return; }
+    if (!city.trim()) { setError("City is required."); return; }
     if (latitude == null || longitude == null) {
       setError("Select your restaurant location on the map.");
       return;
@@ -281,11 +238,13 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
         setExistingRestaurant(updated);
         setSuccess("Restaurant updated successfully!");
         setIsEditing(false);
+        if (onSaved) onSaved();
       } else {
         const created = await createRestaurant(payload);
         setExistingRestaurant(created);
         setSuccess("Restaurant created successfully!");
         setIsEditing(false);
+        if (onSaved) onSaved();
       }
     } catch (submitError) {
       setError(submitError.message || "Failed to save restaurant.");
@@ -341,11 +300,27 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
               <span className="ownerProfileViewLabel">City</span>
               <span className="ownerProfileViewValue">{city || "Not set"}</span>
             </div>
-            <div className="ownerProfileViewRow">
-              <span className="ownerProfileViewLabel">Coordinates</span>
-              <span className="ownerProfileViewValue">
-                {latitude != null && longitude != null ? `${latitude}, ${longitude}` : "Not set"}
-              </span>
+            <div className="ownerProfileViewRow ownerProfileViewRow--map">
+              <span className="ownerProfileViewLabel">Location</span>
+              <div className="ownerProfileViewValue ownerProfileViewMapWrap">
+                {latitude != null && longitude != null ? (
+                  <Map
+                    longitude={longitude}
+                    latitude={latitude}
+                    zoom={14}
+                    interactive={false}
+                    mapboxAccessToken={MAPBOX_TOKEN}
+                    style={{ width: "100%", height: "180px" }}
+                    mapStyle="mapbox://styles/mapbox/streets-v12"
+                  >
+                    <Marker longitude={longitude} latitude={latitude} anchor="bottom">
+                      <div className="ownerMapPin">📍</div>
+                    </Marker>
+                  </Map>
+                ) : (
+                  <span className="ownerProfileViewEmpty">Not set — click Edit to pin location</span>
+                )}
+              </div>
             </div>
             <div className="ownerProfileViewRow">
               <span className="ownerProfileViewLabel">Price category</span>
@@ -357,6 +332,15 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
                 {Array.isArray(existingRestaurant.dietary_support) && existingRestaurant.dietary_support.length
                   ? existingRestaurant.dietary_support.join(", ")
                   : "Not set"}
+              </span>
+            </div>
+            <div className="ownerProfileViewRow">
+              <span className="ownerProfileViewLabel">Appearance</span>
+              <span className="ownerProfileViewValue">
+                <button type="button" className="appearanceToggle" onClick={toggleTheme}>
+                  <span className="appearanceToggle__icon">{theme === "dark" ? "☀️" : "🌙"}</span>
+                  {theme === "dark" ? "Switch to Light" : "Switch to Dark"}
+                </button>
               </span>
             </div>
           </div>
@@ -373,7 +357,6 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
             <div className="ownerProfileGrid__media">
               <div className="imageCard imageCard--equal">
                 <div className="imageCard__title">Logo image</div>
-
                 <div className="imageCard__preview imageCard__preview--equal imageCard__preview--logo">
                   {logoPreviewUrl ? (
                     <img className="imageCard__img imageCard__img--logo" src={logoPreviewUrl} alt="Logo" />
@@ -383,21 +366,14 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
                     </div>
                   )}
                 </div>
-
                 <label className="btn btn--gold imageCard__btn imageCard__btn--logo">
                   Upload logo
-                  <input
-                    className="imageCard__input"
-                    type="file"
-                    accept="image/png, image/jpeg"
-                    onChange={onPickLogo}
-                  />
+                  <input className="imageCard__input" type="file" accept="image/png, image/jpeg" onChange={onPickLogo} />
                 </label>
               </div>
 
               <div className="imageCard imageCard--equal">
                 <div className="imageCard__title">Background image</div>
-
                 <div className="imageCard__preview imageCard__preview--equal">
                   {coverPreviewUrl ? (
                     <img className="imageCard__img" src={coverPreviewUrl} alt="Background" />
@@ -407,15 +383,9 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
                     </div>
                   )}
                 </div>
-
                 <label className="btn btn--gold imageCard__btn">
                   Upload background
-                  <input
-                    className="imageCard__input"
-                    type="file"
-                    accept="image/png, image/jpeg"
-                    onChange={onPickCover}
-                  />
+                  <input className="imageCard__input" type="file" accept="image/png, image/jpeg" onChange={onPickCover} />
                 </label>
               </div>
             </div>
@@ -435,40 +405,20 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
               <div className="twoCols">
                 <label className="field">
                   <span>Opening time</span>
-                  <input
-                    type="time"
-                    value={openingTime}
-                    onChange={(event) => setOpeningTime(event.target.value)}
-                    required
-                  />
+                  <input type="time" value={openingTime} onChange={(event) => setOpeningTime(event.target.value)} required />
                 </label>
-
                 <label className="field">
                   <span>Closing time</span>
-                  <input
-                    type="time"
-                    value={closingTime}
-                    onChange={(event) => setClosingTime(event.target.value)}
-                    required
-                  />
+                  <input type="time" value={closingTime} onChange={(event) => setClosingTime(event.target.value)} required />
                 </label>
               </div>
 
               <label className="field">
                 <span>Cuisine type</span>
-                <select
-                  className="select"
-                  value={cuisineType}
-                  onChange={(event) => setCuisineType(event.target.value)}
-                  required
-                >
-                  <option value="" disabled>
-                    Select cuisine type
-                  </option>
+                <select className="select" value={cuisineType} onChange={(event) => setCuisineType(event.target.value)} required>
+                  <option value="" disabled>Select cuisine type</option>
                   {CUISINES.map((cuisine) => (
-                    <option key={cuisine} value={cuisine}>
-                      {cuisine}
-                    </option>
+                    <option key={cuisine} value={cuisine}>{cuisine}</option>
                   ))}
                 </select>
               </label>
@@ -478,13 +428,10 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
                 <div className="ownerFilterChipRow">
                   {PRICE_RANGE_OPTIONS.map((option) => (
                     <button
-                      key={option.value}
-                      type="button"
+                      key={option.value} type="button"
                       className={`ownerFilterChip ownerFilterChip--button ${priceRange === option.value ? "is-active" : ""}`}
                       onClick={() => setPriceRange((prev) => (prev === option.value ? "" : option.value))}
-                    >
-                      {option.label}
-                    </button>
+                    >{option.label}</button>
                   ))}
                 </div>
               </div>
@@ -495,14 +442,9 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
                   {DIETARY_OPTIONS.map((option) => {
                     const isActive = dietarySupport.includes(option.value);
                     return (
-                      <label
-                        key={option.value}
-                        className={`ownerFilterChip ${isActive ? "is-active" : ""}`}
-                      >
+                      <label key={option.value} className={`ownerFilterChip ${isActive ? "is-active" : ""}`}>
                         <input
-                          className="ownerFilterChip__input"
-                          type="checkbox"
-                          checked={isActive}
+                          className="ownerFilterChip__input" type="checkbox" checked={isActive}
                           onChange={() => {
                             setDietarySupport((prev) => (
                               prev.includes(option.value)
@@ -518,66 +460,67 @@ export default function OwnerProfile({ onLogoPreviewChange }) {
                 </div>
               </div>
 
+              <div className="appearanceSection">
+                <div>
+                  <div className="appearanceSection__label">Appearance</div>
+                  <div className="appearanceSection__sub">
+                    {theme === "dark" ? "Dark mode is on" : "Light mode is on"}
+                  </div>
+                </div>
+                <button type="button" className="appearanceToggle" onClick={toggleTheme}>
+                  <span className="appearanceToggle__icon">{theme === "dark" ? "☀️" : "🌙"}</span>
+                  {theme === "dark" ? "Light mode" : "Dark mode"}
+                </button>
+              </div>
+
               <div className="twoCols">
                 <label className="field">
                   <span>Address</span>
                   <input
-                    className="ownerProfile__locationInput"
-                    type="text"
-                    placeholder="Street address"
-                    value={address}
-                    onChange={(event) => setAddress(event.target.value)}
-                    required
+                    className="ownerProfile__locationInput" type="text" placeholder="Street address"
+                    value={address} onChange={(event) => setAddress(event.target.value)} required
                   />
                 </label>
-
                 <label className="field">
                   <span>City</span>
                   <input
-                    className="ownerProfile__locationInput"
-                    type="text"
-                    placeholder="City"
-                    value={city}
-                    onChange={(event) => setCity(event.target.value)}
-                    required
+                    className="ownerProfile__locationInput" type="text" placeholder="City"
+                    value={city} onChange={(event) => setCity(event.target.value)} required
                   />
                 </label>
               </div>
 
+              {/* ── Map location picker (Mapbox) ── */}
               <div className="ownerProfileMapField">
                 <div className="ownerProfileMapField__header">
                   <span>Map location picker</span>
-                  <button
-                    type="button"
-                    className="btn btn--ghost"
-                    onClick={useCurrentLocation}
-                    disabled={locationLoading}
-                  >
+                  <button type="button" className="btn btn--ghost" onClick={useCurrentLocation} disabled={locationLoading}>
                     {locationLoading ? "Locating..." : "Use My Current Location"}
                   </button>
                 </div>
                 <div className="ownerProfileMapField__hint">
-                  Click on the map to set your restaurant location.
+                  Click on the map to pin your restaurant location.
                 </div>
 
                 <div className="ownerProfileMapPicker">
-                  <MapContainer
-                    center={[mapCenter.lat, mapCenter.lng]}
-                    zoom={13}
-                    scrollWheelZoom={false}
-                    style={{ height: "100%", width: "100%" }}
+                  <Map
+                    {...viewState}
+                    onMove={(evt) => setViewState(evt.viewState)}
+                    onClick={handleMapClick}
+                    mapboxAccessToken={MAPBOX_TOKEN}
+                    style={{ width: "100%", height: "100%" }}
+                    mapStyle="mapbox://styles/mapbox/streets-v12"
+                    cursor="crosshair"
                   >
-                    <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    <MapCenterController latitude={latitude} longitude={longitude} />
-                    <MapLocationPicker
-                      latitude={latitude}
-                      longitude={longitude}
-                      onPick={pickFromMap}
-                    />
-                  </MapContainer>
+                    <NavigationControl position="top-right" />
+
+                    {/* Restaurant pin */}
+                    {latitude != null && longitude != null && (
+                      <Marker longitude={longitude} latitude={latitude} anchor="bottom">
+                        <div className="ownerMapPin" title={`${latitude}, ${longitude}`}>📍</div>
+                      </Marker>
+                    )}
+                  </Map>
                 </div>
 
                 <div className="ownerProfileMapCoords">

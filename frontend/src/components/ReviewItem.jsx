@@ -5,7 +5,15 @@
 export default function ReviewItem({ review }) {
   if (!review) return null;
 
-  const { authorName, user_name: userName, rating, comment, createdAt, created_at: createdAtRaw } = review;
+  const {
+    authorName,
+    user_name: userName,
+    rating,
+    comment,
+    createdAt,
+    created_at: createdAtRaw,
+    owner_response: ownerResponse,
+  } = review;
   const created = createdAt || createdAtRaw;
 
   return (
@@ -23,6 +31,12 @@ export default function ReviewItem({ review }) {
       )}
 
       <p style={{ marginTop: 8, marginBottom: 0 }}>{comment || ""}</p>
+
+      {ownerResponse && (
+        <div style={{ marginTop: 8, padding: "8px 10px", borderLeft: "3px solid #c9a227", background: "rgba(201, 162, 39, 0.12)", borderRadius: 8 }}>
+          <strong>Restaurant response:</strong> {ownerResponse}
+        </div>
+      )}
     </div>
   );
 }

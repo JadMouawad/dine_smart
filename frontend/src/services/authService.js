@@ -1,10 +1,17 @@
 import { apiRequest } from "./apiClient";
 
 // API endpoints
-export function registerUser({ name, email, password, role, latitude, longitude, phone }) {
+export function registerUser({ name, email, password, role, latitude, longitude, phone, adminSignupKey }) {
   return apiRequest("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ name, email, password, role, latitude, longitude, phone }),
+    body: JSON.stringify({ name, email, password, role, latitude, longitude, phone, admin_signup_key: adminSignupKey }),
+  });
+}
+
+export function phoneExists(phone) {
+  const params = new URLSearchParams({ phone });
+  return apiRequest(`/auth/phone-exists?${params.toString()}`, {
+    method: "GET",
   });
 }
 

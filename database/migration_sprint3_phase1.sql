@@ -39,11 +39,11 @@ CREATE TABLE IF NOT EXISTS reservations (
   party_size INTEGER NOT NULL CHECK (party_size > 0),
   seating_preference VARCHAR(50),
   special_request TEXT,
-  status VARCHAR(20) NOT NULL DEFAULT 'confirmed',
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
   confirmation_id VARCHAR(20) UNIQUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  CONSTRAINT reservations_status_check CHECK (status IN ('confirmed', 'cancelled', 'no-show', 'completed'))
+  CONSTRAINT reservations_status_check CHECK (status IN ('pending', 'accepted', 'rejected', 'cancelled', 'no-show', 'completed', 'confirmed'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_reservations_user_id ON reservations(user_id);
@@ -109,3 +109,6 @@ CREATE TABLE IF NOT EXISTS flagged_reviews (
   resolved_at TIMESTAMPTZ,
   CONSTRAINT flagged_reviews_status_check CHECK (status IN ('pending', 'resolved', 'dismissed'))
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_unique ON users(phone)
+  WHERE phone IS NOT NULL AND phone <> '';

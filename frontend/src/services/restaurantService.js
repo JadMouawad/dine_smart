@@ -111,6 +111,9 @@ export async function searchRestaurants(query, cuisines, filters = {}) {
   if (filters.onlyLebanon === true) {
     params.set("only_lebanon", "true");
   }
+  if (filters.sortBy) {
+    params.set("sort_by", String(filters.sortBy));
+  }
 
   return apiRequest(`/search?${params.toString()}`, { method: "GET" });
 }

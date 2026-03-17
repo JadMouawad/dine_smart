@@ -100,11 +100,11 @@ CREATE TABLE IF NOT EXISTS reservations (
   party_size INTEGER NOT NULL CHECK (party_size > 0),
   seating_preference VARCHAR(50),
   special_request TEXT,
-  status VARCHAR(20) NOT NULL DEFAULT 'confirmed',
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
   confirmation_id VARCHAR(20) UNIQUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  CONSTRAINT reservations_status_check CHECK (status IN ('confirmed', 'cancelled', 'no-show', 'completed'))
+  CONSTRAINT reservations_status_check CHECK (status IN ('pending', 'accepted', 'rejected', 'cancelled', 'no-show', 'completed', 'confirmed'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_reservations_user_id ON reservations(user_id);
@@ -179,6 +179,8 @@ CREATE INDEX IF NOT EXISTS idx_restaurants_dietary_support ON restaurants USING 
 CREATE INDEX IF NOT EXISTS idx_events_restaurant_dates ON events(restaurant_id, is_active, start_date, end_date);
 CREATE INDEX IF NOT EXISTS idx_saved_searches_user_id ON saved_searches(user_id);
 CREATE INDEX IF NOT EXISTS idx_saved_searches_created_at ON saved_searches(created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_unique ON users(phone)
+  WHERE phone IS NOT NULL AND phone <> '';
 
 -- Insert default roles
 INSERT INTO roles (name) VALUES ('user'), ('owner'), ('admin')

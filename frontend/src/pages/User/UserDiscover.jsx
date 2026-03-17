@@ -4,10 +4,21 @@ import { getDiscoverFeed } from "../../services/restaurantService";
 import LoadingSkeleton from "../../components/LoadingSkeleton.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
 
+function normalizeDateInput(value) {
+  if (!value) return "";
+  const raw = String(value).trim();
+  const directMatch = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (directMatch) return directMatch[1];
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+}
+
 function formatDateRange(startDate, endDate) {
   if (!startDate && !endDate) return "Dates TBD";
-  const start = startDate ? new Date(`${startDate}T00:00:00`) : null;
-  const end = endDate ? new Date(`${endDate}T00:00:00`) : null;
+  const start = toDateValue(startDate);
+  const end = toDateValue(endDate);
   const startLabel = start ? start.toLocaleDateString() : "";
   const endLabel = end ? end.toLocaleDateString() : "";
   if (startLabel && endLabel && startLabel !== endLabel) return `${startLabel} - ${endLabel}`;
@@ -15,8 +26,9 @@ function formatDateRange(startDate, endDate) {
 }
 
 function toDateValue(dateValue) {
-  if (!dateValue) return null;
-  const parsed = new Date(`${dateValue}T00:00:00`);
+  const normalized = normalizeDateInput(dateValue);
+  if (!normalized) return null;
+  const parsed = new Date(`${normalized}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed;
 }
@@ -90,6 +102,30 @@ function SectionRestaurants({ title, badge, restaurants, onOpenRestaurant }) {
         ))}
       </div>
     </section>
+  );
+}
+
+function EventCard({ event, onOpenRestaurant }) {
+  return (
+    <article className="discoverEventCard" key={event.id}>
+      <div className="discoverEventCard__title">{event.title}</div>
+      <div className="discoverEventCard__restaurant">{event.restaurant_name}</div>
+      <div className="discoverEventCard__date">
+        {formatDateRange(event.start_date, event.end_date)}
+      </div>
+      {event.description && <p className="discoverEventCard__desc">{event.description}</p>}
+      {event.restaurant_id && (
+        <div className="discoverEventCard__actions">
+          <button
+            className="btn btn--ghost discoverEventCard__actionBtn"
+            type="button"
+            onClick={() => onOpenRestaurant?.(event.restaurant_id)}
+          >
+            View Restaurant
+          </button>
+        </div>
+      )}
+    </article>
   );
 }
 
@@ -216,14 +252,7 @@ export default function UserDiscover({ onOpenRestaurant }) {
                   <div className="discoverEventSection__title">Today & Ongoing</div>
                   <div className="discoverEventsCarousel">
                     {eventBuckets.today.map((event) => (
-                      <article className="discoverEventCard" key={`today-${event.id}`}>
-                        <div className="discoverEventCard__title">{event.title}</div>
-                        <div className="discoverEventCard__restaurant">{event.restaurant_name}</div>
-                        <div className="discoverEventCard__date">
-                          {formatDateRange(event.start_date, event.end_date)}
-                        </div>
-                        {event.description && <p className="discoverEventCard__desc">{event.description}</p>}
-                      </article>
+                      <EventCard key={`today-${event.id}`} event={event} onOpenRestaurant={onOpenRestaurant} />
                     ))}
                   </div>
                 </section>
@@ -234,14 +263,7 @@ export default function UserDiscover({ onOpenRestaurant }) {
                   <div className="discoverEventSection__title">This Week</div>
                   <div className="discoverEventsCarousel">
                     {eventBuckets.thisWeek.map((event) => (
-                      <article className="discoverEventCard" key={`week-${event.id}`}>
-                        <div className="discoverEventCard__title">{event.title}</div>
-                        <div className="discoverEventCard__restaurant">{event.restaurant_name}</div>
-                        <div className="discoverEventCard__date">
-                          {formatDateRange(event.start_date, event.end_date)}
-                        </div>
-                        {event.description && <p className="discoverEventCard__desc">{event.description}</p>}
-                      </article>
+                      <EventCard key={`week-${event.id}`} event={event} onOpenRestaurant={onOpenRestaurant} />
                     ))}
                   </div>
                 </section>
@@ -252,14 +274,7 @@ export default function UserDiscover({ onOpenRestaurant }) {
                   <div className="discoverEventSection__title">Later</div>
                   <div className="discoverEventsCarousel">
                     {eventBuckets.later.map((event) => (
-                      <article className="discoverEventCard" key={`later-${event.id}`}>
-                        <div className="discoverEventCard__title">{event.title}</div>
-                        <div className="discoverEventCard__restaurant">{event.restaurant_name}</div>
-                        <div className="discoverEventCard__date">
-                          {formatDateRange(event.start_date, event.end_date)}
-                        </div>
-                        {event.description && <p className="discoverEventCard__desc">{event.description}</p>}
-                      </article>
+                      <EventCard key={`later-${event.id}`} event={event} onOpenRestaurant={onOpenRestaurant} />
                     ))}
                   </div>
                 </section>

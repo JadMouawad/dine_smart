@@ -5,7 +5,7 @@ export default function AdminRoute({ children }) {
   const { user, loading } = useAuth();
 
   if (loading) return null;
-  if (!user) return <Navigate to="/" replace />;
+  if (!user) return <Navigate to="/admin/auth" replace />;
 
   if (user.role !== "admin") {
     if (user.role === "owner") return <Navigate to="/owner/profile" replace />;

@@ -89,8 +89,8 @@ const createRestaurant = async (data) => {
     ...(includeLogo ? [logoValue] : []),
     ...(includeCover ? [coverValue] : []),
     ownerId,
-    true,
-    "approved",
+    false,
+    "pending",
   ];
 
   const placeholders = values.map((_, index) =>
@@ -230,7 +230,8 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
   const cuisineList = Array.isArray(cuisines) ? cuisines.filter(Boolean) : [cuisines].filter(Boolean);
 
   const minRating = Number.isFinite(Number(filters.minRating)) ? Number(filters.minRating) : null;
-  const priceRanges = Array.isArray(filters.priceRanges) ? filters.priceRanges.filter(Boolean) : [];
+  const rawPriceRanges = filters.priceRanges ?? filters.priceRange ?? [];
+  const priceRanges = Array.isArray(rawPriceRanges) ? rawPriceRanges.filter(Boolean) : [];
   const verifiedOnly = filters.verifiedOnly !== false;
   const dietarySupport = Array.isArray(filters.dietarySupport) ? filters.dietarySupport.filter(Boolean) : [];
   const openNow = filters.openNow === true;
@@ -240,6 +241,7 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
   const longitude = Number.isFinite(Number(filters.longitude)) ? Number(filters.longitude) : null;
   const distanceRadius = Number.isFinite(Number(filters.distanceRadius)) ? Number(filters.distanceRadius) : null;
   const onlyLebanon = filters.onlyLebanon === true;
+  const sortBy = String(filters.sortBy || "rating").trim().toLowerCase();
 
   const values = [];
   let idx = 1;
@@ -269,6 +271,24 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
     ) ev ON true
   `);
   selectExtras.push("COALESCE(ev.active_event_count, 0) AS active_event_count");
+
+  joins.push(`
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*)::int AS review_count
+      FROM reviews rv
+      WHERE rv.restaurant_id = r.id
+    ) rv ON true
+  `);
+  selectExtras.push("COALESCE(rv.review_count, 0) AS review_count");
+
+  joins.push(`
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*)::int AS popularity_score
+      FROM reservations rp
+      WHERE rp.restaurant_id = r.id
+    ) pop ON true
+  `);
+  selectExtras.push("COALESCE(pop.popularity_score, 0) AS popularity_score");
 
   const hasCoords = latitude != null && longitude != null;
   let distanceExpression = "NULL::numeric";
@@ -357,7 +377,7 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
         WHERE rs.restaurant_id = r.id
           AND rs.reservation_date = $${idx}
           AND rs.reservation_time = $${idx + 1}::time
-          AND rs.status = 'confirmed'
+          AND rs.status IN ('pending', 'accepted', 'confirmed')
       ) slot ON true
     `);
     values.push(availabilityDate, availabilityTime);
@@ -387,9 +407,18 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
   }
 
   const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
-  const orderBy = hasCoords
-    ? "ORDER BY distance_km ASC NULLS LAST, r.rating DESC, r.name ASC"
-    : "ORDER BY r.rating DESC, r.name ASC";
+  let orderBy = "ORDER BY r.rating DESC NULLS LAST, review_count DESC, r.name ASC";
+  if (sortBy === "distance") {
+    orderBy = hasCoords
+      ? "ORDER BY distance_km ASC NULLS LAST, r.rating DESC NULLS LAST, review_count DESC, r.name ASC"
+      : "ORDER BY r.rating DESC NULLS LAST, review_count DESC, r.name ASC";
+  } else if (sortBy === "reviews") {
+    orderBy = "ORDER BY review_count DESC, r.rating DESC NULLS LAST, r.name ASC";
+  } else if (sortBy === "popularity") {
+    orderBy = "ORDER BY popularity_score DESC, review_count DESC, r.rating DESC NULLS LAST, r.name ASC";
+  } else if (sortBy === "alphabetical") {
+    orderBy = "ORDER BY r.name ASC, r.rating DESC NULLS LAST";
+  }
 
   const sql = `
     SELECT r.*, ${selectExtras.join(", ")}

@@ -1,35 +1,36 @@
 # DineSmart - Restaurant Discovery Platform
 
-A full-stack web application for discovering and managing restaurants. Built with React and Vite(frontend), Express (backend), and PostgreSQL (database).
+A full-stack web application for discovering, reviewing, and managing restaurants. Built with React 19 + Vite (frontend), Express 4 (backend), and PostgreSQL (database).
+
+---
 
 ## Table of Contents
 
-- [Project Overview](#project-overview)
+- [Overview](#overview)
 - [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Running the Application](#running-the-application)
-- [API Documentation](#api-documentation)
-- [Database Guide](#database-guide)
+- [Roles & Features](#roles--features)
+- [Frontend Routes](#frontend-routes)
+- [API Endpoints](#api-endpoints)
+- [Database Schema](#database-schema)
 - [Project Structure](#project-structure)
 - [Troubleshooting](#troubleshooting)
 
 ---
 
-## Project Overview
+## Overview
 
-DineSmart allows users to:
-- Register and log in securely
-- Browse available restaurants
-- View detailed restaurant information
-- Discover restaurants by cuisine type
+DineSmart is a multi-role restaurant platform with three distinct dashboards:
 
-**Features**:
-- JWT-based authentication
-- Secure password hashing with bcrypt
-- Real-time restaurant discovery
-- Responsive frontend with React
+- **Users** — discover restaurants, search with filters, make reservations, write reviews, flag inappropriate content
+- **Owners** — manage their restaurant profile, menu, events, table configuration, reservations, and respond to reviews
+- **Admins** — approve/reject restaurant registrations, manage users, moderate flagged reviews, and view audit logs
+
+Authentication supports both local email/password (with email verification) and Google OAuth.
 
 ---
 
@@ -45,103 +46,84 @@ DineSmart allows users to:
 ┌──────────▼──────────┐
 │ Backend (Express)   │
 │ Port: 3000          │
-│ /api/auth           │
-│ /api/restaurants    │
-│ /api/me             │
+│ /api/*              │
 └──────────┬──────────┘
            │ TCP
            │
 ┌──────────▼──────────────┐
 │ PostgreSQL Database     │
 │ Port: 5432              │
-│ users, restaurants,     │
-│ roles tables            │
 └─────────────────────────┘
 ```
 
 ---
 
+## Tech Stack
+
+### Frontend
+| Package | Version | Purpose |
+|---------|---------|---------|
+| React | 19 | UI framework |
+| Vite | 7 | Build tool / dev server |
+| React Router | 7 | Client-side routing |
+| Framer Motion | 12 | Animations |
+| Leaflet + react-leaflet | 1.9 / 5.0 | Interactive maps |
+| @react-oauth/google | 0.13 | Google OAuth |
+| react-datepicker | 9 | Date selection |
+| react-icons | 5 | Icon library |
+
+### Backend
+| Package | Version | Purpose |
+|---------|---------|---------|
+| Express | 4 | HTTP server |
+| pg | 8 | PostgreSQL client |
+| jsonwebtoken | 9 | JWT auth |
+| bcrypt | 5 | Password hashing |
+| nodemailer | 8 | Email verification |
+| google-auth-library | 10 | Google OAuth verification |
+| dotenv | 16 | Environment config |
+
+---
+
 ## Prerequisites
 
-### Required
-- **Node.js** (v18+)
-- **PostgreSQL** (v12+)
-- **npm** or **yarn**
-
-### Optional
-- **Git** (for cloning)
-- **curl** or **Postman** (for API testing)
+- **Node.js** v18+
+- **PostgreSQL** v12+
+- **npm**
+- A Google OAuth client (for Google login) — optional but recommended
+- An SMTP server or email service (for email verification) — optional
 
 ---
 
 ## Installation
 
-### 1. Clone the Repository
 ```bash
-git clone <repository-url>
-cd dine_smart
-```
+# Install backend dependencies
+cd backend && npm install
 
-### 2. Install Backend Dependencies
-```bash
-cd backend
-npm install
-```
-
-### 3. Install Frontend Dependencies
-```bash
-cd frontend
-npm install
+# Install frontend dependencies
+cd ../frontend && npm install
 ```
 
 ---
 
 ## Configuration
 
-### 1. Create PostgreSQL Database
+### 1. Create the PostgreSQL Database
 
 ```bash
-# Connect to PostgreSQL
-psql -U postgres
-
-# Create database
-CREATE DATABASE dine_smart;
-
-# Exit psql
-\q
+psql -U postgres -c "CREATE DATABASE dine_smart;"
+psql -U postgres -d dine_smart -f database/schema.sql
 ```
 
-### 2. Initialize Database Schema
-
-```bash
-# Connect to the database
-psql -U postgres -d dine_smart
-
-# Run schema.sql
-\i ../database/schema.sql
-
-# Insert default roles
-INSERT INTO roles (name) VALUES ('user'), ('owner'), ('admin');
-
-# Verify tables were created
-\dt
-
-# Exit
-\q
-```
-
-### 3. Create Backend Environment File
-
-Create `backend/.env`:
+### 2. Backend Environment — `backend/.env`
 
 ```env
-# Server Configuration
+# Server
 NODE_ENV=development
 PORT=3000
 
-# Database Configuration (choose one approach)
-
-# Option A: Using individual credentials
+# Database
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
@@ -149,481 +131,210 @@ DB_PASSWORD=yourpassword
 DB_NAME=dine_smart
 DB_SSL=false
 
-# OR Option B: Using connection string
-# DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/dine_smart
+# JWT
+JWT_SECRET=your-super-secret-key
 
-# JWT Configuration
-JWT_SECRET=your-super-secret-key-change-in-production-12345
-
-# Email Verification (for local registration)
+# Email verification (nodemailer)
 EMAIL_HOST=smtp.example.com
 EMAIL_PORT=587
 EMAIL_USER=your-email@example.com
 EMAIL_PASS=your-email-password
 EMAIL_FROM=noreply@dinesmart.com
 FRONTEND_URL=http://localhost:5173
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
 ```
 
-### 4. Create Frontend Environment File (if needed)
-
-Create `frontend/.env`:
+### 3. Frontend Environment — `frontend/.env`
 
 ```env
 VITE_API_URL=http://localhost:3000/api
+VITE_GOOGLE_CLIENT_ID=your-google-client-id
 ```
 
 ---
 
 ## Running the Application
 
-### Terminal 1: Start Backend Server
-
+**Terminal 1 — Backend:**
 ```bash
 cd backend
-npm start
-# OR with development watch mode
-npm run dev
+npm start        # production
+npm run dev      # development
 ```
 
-**Expected output**:
-```
-🚀 Server running on http://localhost:3000
-📡 API available at http://localhost:3000/api
-```
-
-### Terminal 2: Start Frontend Development Server
-
+**Terminal 2 — Frontend:**
 ```bash
 cd frontend
 npm run dev
 ```
 
-**Expected output**:
-```
-VITE v7.2.4  ready in 123 ms
-
-➜  Local:   http://localhost:5173/
-```
-
-### Access the Application
-
-- **Frontend**: Open browser to `http://localhost:5173`
-- **Backend API**: `http://localhost:3000/api`
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:3000/api`
 
 ---
 
-## API Documentation
+## Roles & Features
 
-### Authentication Endpoints
+### User
+- Browse the landing page with a discover carousel (by cuisine)
+- Search restaurants with filters: cuisine, price range, dietary support, location radius, rating
+- Save searches for quick re-use
+- View restaurant detail pages (info, reviews, map, events)
+- Make and manage reservations
+- Write, edit, and delete reviews
+- Flag inappropriate reviews
+- Manage profile (name, phone, location, profile picture)
 
-#### Register User
-```
-POST /api/auth/register
-Content-Type: application/json
+### Owner
+- Register a restaurant (submitted for admin approval)
+- Manage restaurant info, logo, cover image, opening hours, price range, dietary tags
+- Configure table setup (2/4/6-person tables, indoor/outdoor capacity)
+- Manage events (title, description, image, date range)
+- View and manage incoming reservations (accept / reject / mark no-show / complete)
+- View reviews and post owner responses
+- Manage profile
 
-{
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "securePassword123"
-}
-```
-
-**Response** (201 Created):
-```json
-{
-  "message": "User registered successfully",
-  "user": {
-    "id": 1,
-    "fullName": "John Doe",
-    "email": "john@example.com"
-  },
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
-#### Login User
-```
-POST /api/auth/login
-Content-Type: application/json
-
-{
-  "email": "john@example.com",
-  "password": "securePassword123"
-}
-```
-
-**Response** (200 OK):
-```json
-{
-  "message": "Login successful",
-  "user": {
-    "id": 1,
-    "fullName": "John Doe",
-    "email": "john@example.com"
-  },
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
-#### Get Current User
-```
-GET /api/me
-Authorization: Bearer <token>
-```
-
-**Response** (200 OK):
-```json
-{
-  "message": "User profile retrieved",
-  "user": {
-    "id": 1,
-    "email": "john@example.com"
-  }
-}
-```
-
-### Restaurant Endpoints
-
-#### Get All Restaurants
-```
-GET /api/restaurants
-```
-
-**Response** (200 OK):
-```json
-[
-  {
-    "id": 1,
-    "name": "The Italian Place",
-    "cuisine": "Italian",
-    "address": "123 Main St",
-    "rating": 4.5
-  },
-  {
-    "id": 2,
-    "name": "Dragon Palace",
-    "cuisine": "Chinese",
-    "address": "456 Oak Ave",
-    "rating": 4.2
-  }
-]
-```
-
-#### Get Restaurant by ID
-```
-GET /api/restaurants/:id
-```
-
-**Response** (200 OK):
-```json
-{
-  "id": 1,
-  "name": "The Italian Place",
-  "cuisine": "Italian",
-  "description": "Authentic Italian cuisine since 1995",
-  "address": "123 Main St, City, State",
-  "phone": "555-0001",
-  "rating": 4.5
-}
-```
+### Admin
+- Secure admin login (`/admin/auth`)
+- Dashboard with platform-wide stats
+- Approve or reject pending restaurant registrations (with rejection reason)
+- Manage users: view all, suspend / unsuspend accounts
+- Moderate flagged reviews: resolve or dismiss flags, optionally delete reviews
+- View admin audit logs
 
 ---
 
-## Database Guide
+## Frontend Routes
 
-### Connecting to Database
+| Path | Component | Access |
+|------|-----------|--------|
+| `/` | Landing (Hero + Discover + Search) | Public |
+| `/verify-email` | Email verification | Public |
+| `/explore` | Restaurant exploration | Public |
+| `/owner/*` | Owner dashboard shell | Owner |
+| `/admin/auth` | Admin login | Public |
+| `/admin/dashboard` | Admin dashboard | Admin only |
+| `/admin/*` | Admin shell | Admin only |
+| `/user/*` | User dashboard shell | User |
 
-#### Using psql
-```bash
-# Connect to database
-psql -U postgres -d dine_smart
+---
 
-# List all tables
-\dt
+## API Endpoints
 
-# Exit
-\q
-```
+| Prefix | Description |
+|--------|-------------|
+| `POST /api/auth/register` | Register (local) |
+| `POST /api/auth/login` | Login (local) |
+| `POST /api/auth/google` | Login / register with Google |
+| `GET  /api/me` | Get current user profile |
+| `GET/PUT /api/profile` | Profile management |
+| `GET /api/search` | Search restaurants with filters |
+| `GET /api/discover` | Discover carousel data |
+| `GET /api/restaurants/:id` | Restaurant detail |
+| `GET/POST /api/reservations` | Reservation management |
+| `POST /api/reviews` | Submit a review |
+| `POST /api/reviews/:id/flag` | Flag a review |
+| `GET /api/events` | Restaurant events |
+| `GET/PUT /api/owner/*` | Owner management routes |
+| `GET/PUT/POST /api/admin/*` | Admin management routes |
 
-#### Using GUI Tool
-- **DBeaver**: Download from https://dbeaver.io
-- **pgAdmin**: Download from https://www.pgadmin.org
-- **VS Code Extension**: Install "PostgreSQL" extension
+---
 
-### Viewing Data
+## Database Schema
 
-#### See All Users
-```sql
-SELECT id, full_name, email, role_id, created_at FROM users;
-```
-
-#### See All Restaurants
-```sql
-SELECT id, name, cuisine, address, rating, created_at FROM restaurants;
-```
-
-#### See All Roles
-```sql
-SELECT * FROM roles;
-```
-
-#### See User with Restaurants (as Owner)
-```sql
-SELECT u.id, u.full_name, u.email, r.name as restaurant_name
-FROM users u
-LEFT JOIN restaurants r ON u.id = r.owner_id;
-```
-
-#### Count Records by Table
-```sql
-SELECT
-  'users' as table_name, COUNT(*) as total FROM users
-UNION ALL
-SELECT 'restaurants', COUNT(*) FROM restaurants
-UNION ALL
-SELECT 'roles', COUNT(*) FROM roles;
-```
-
-### Inserting Test Data
-
-#### Insert Test Restaurants
-```sql
-INSERT INTO restaurants (name, cuisine, description, address, phone, rating)
-VALUES
-  ('The Italian Place', 'Italian', 'Authentic Italian cuisine', '123 Main St', '555-0001', 4.5),
-  ('Dragon Palace', 'Chinese', 'Traditional Chinese dishes', '456 Oak Ave', '555-0002', 4.2),
-  ('Burger Heaven', 'American', 'Classic American burgers', '789 Pine Rd', '555-0003', 4.7),
-  ('Sushi Dreams', 'Japanese', 'Fresh sushi and sashimi', '321 Elm St', '555-0004', 4.6);
-```
-
-#### Clear All Data (Warning: Destructive)
-```sql
--- Delete all restaurants
-DELETE FROM restaurants;
-
--- Delete all users
-DELETE FROM users;
-
--- Reset ID sequences
-ALTER SEQUENCE restaurants_id_seq RESTART WITH 1;
-ALTER SEQUENCE users_id_seq RESTART WITH 1;
-```
+| Table | Description |
+|-------|-------------|
+| `roles` | `user`, `owner`, `admin` |
+| `users` | Accounts with local/Google auth, suspension, geo-location |
+| `email_verification_tokens` | Tokens for local email verification |
+| `restaurants` | Listings with approval workflow (`pending/approved/rejected`), geo, price range, dietary support |
+| `reviews` | User reviews with owner response support |
+| `flagged_reviews` | Review flags with admin moderation status |
+| `reservations` | Bookings with status lifecycle (`pending → accepted/rejected → completed/no-show/cancelled`) |
+| `restaurant_table_configs` | Per-restaurant table capacity breakdown |
+| `events` | Restaurant events with date range |
+| `saved_searches` | User-saved search filter sets |
+| `admin_audit_logs` | Immutable log of admin actions |
 
 ---
 
 ## Project Structure
 
 ```
-dine_smart/
+CMPS-271/
 ├── backend/
-│   ├── package.json
 │   ├── server.js
-│   ├── src/
-│   │   ├── app.js                          # Express app setup
-│   │   ├── config/
-│   │   │   ├── db.js                       # PostgreSQL pool
-│   │   │   └── env.js                      # Environment config
-│   │   ├── controllers/
-│   │   │   ├── authController.js           # Auth request handlers
-│   │   │   └── restaurant.controller.js    # Restaurant handlers
-│   │   ├── middleware/
-│   │   │   └── requireAuth.js              # JWT verification
-│   │   ├── models/
-│   │   │   ├── User.js                     # User database queries
-│   │   │   ├── Restaurant.js               # Restaurant schema
-│   │   │   └── restaurant.model.js         # Restaurant queries
-│   │   ├── routes/
-│   │   │   ├── index.js                    # Main router
-│   │   │   ├── authRoutes.js               # Auth routes
-│   │   │   ├── user.routes.js              # User routes
-│   │   │   └── restaurant.routes.js        # Restaurant routes
-│   │   ├── services/
-│   │   │   ├── authServices.js             # Auth business logic
-│   │   │   └── restaurantService.js        # Restaurant logic
-│   │   └── validation/
-│   │       └── authValidation.js           # Input validation
-│   └── .env                                 # Environment variables
+│   └── src/
+│       ├── app.js
+│       ├── config/          db.js, env.js
+│       ├── controllers/     auth, admin, discover, emailVerification,
+│       │                    event, profile, reservation, restaurant,
+│       │                    review, search
+│       ├── middleware/      requireAuth.js, role guards
+│       ├── models/          User, Role, Restaurant, Review, Reservation,
+│       │                    EmailVerificationToken
+│       ├── repositories/    data access layer
+│       ├── routes/          per-resource route files + index.js
+│       ├── services/        business logic layer
+│       ├── utils/
+│       └── validation/
 │
 ├── frontend/
-│   ├── package.json
-│   ├── vite.config.js
-│   ├── index.html
-│   ├── src/
-│   │   ├── main.jsx
-│   │   ├── App.jsx
-│   │   ├── style.css
-│   │   ├── auth/
-│   │   │   └── AuthContext.jsx             # Auth state management
-│   │   ├── components/
-│   │   │   ├── Navbar.jsx
-│   │   │   ├── AuthModal.jsx
-│   │   │   ├── RestaurantCard.jsx
-│   │   │   └── ...
-│   │   ├── pages/
-│   │   │   └── RestaurantDetail.jsx
-│   │   ├── routes/
-│   │   │   ├── AppRoutes.jsx
-│   │   │   └── ProtectedRoute.jsx
-│   │   └── services/
-│   │       ├── apiClient.js                # HTTP client
-│   │       ├── authService.js              # Auth API calls
-│   │       └── restaurantService.js        # Restaurant API calls
-│   └── .env                                 # Environment variables
+│   └── src/
+│       ├── App.jsx          root router
+│       ├── auth/            AuthContext.jsx
+│       ├── components/      Nav, Navbar, AuthModal, RestaurantCard,
+│       │                    ReservationForm, ReviewSection, Hero,
+│       │                    DiscoverCarousel, Footer, …
+│       ├── pages/
+│       │   ├── admin/       AdminShell, Dashboard, UserManagement,
+│       │   │                PendingRestaurants, FlaggedReviews, Profile
+│       │   ├── owner/       OwnerShell, Menu, Reservations, Reviews,
+│       │   │                Events, TableConfig, Profile
+│       │   └── user/        UserShell, Discover, Explore, Search,
+│       │                    Reservations, Profile
+│       ├── routes/          AppRoutes, ProtectedRoute, AdminRoute
+│       └── services/        apiClient, authService, restaurantService, …
 │
 ├── database/
-│   └── schema.sql                           # PostgreSQL schema
+│   └── schema.sql
 │
 └── docs/
-    ├── api-spec.md                         # API specification
-    └── sprint-1-notes.md                   # Implementation notes
 ```
 
 ---
 
 ## Troubleshooting
 
-### Backend Won't Start
-
-**Error**: `Error: connect ECONNREFUSED 127.0.0.1:5432`
-
-**Solution**: PostgreSQL is not running
+**PostgreSQL not running**
 ```bash
-# macOS
-brew services start postgresql
-
-# Ubuntu/Linux
-sudo systemctl start postgresql
-
-# Windows
-# Start PostgreSQL from Services or use pgAdmin
+brew services start postgresql   # macOS
+sudo systemctl start postgresql  # Linux
 ```
 
-### Database Connection Error
-
-**Error**: `error: FATAL: role "postgres" does not exist`
-
-**Solution**: Check PostgreSQL user exists
+**Port 3000 in use**
 ```bash
-# Login as default user
-psql -U postgres
+lsof -ti:3000 | xargs kill -9    # macOS/Linux
 ```
 
-### Frontend Can't Connect to Backend
-
-**Error**: `CORS error` or `Failed to fetch`
-
-**Solution**: Make sure backend is running on port 3000
-```bash
-# Check if port 3000 is in use
-netstat -tlnp | grep 3000  # Linux/macOS
-netstat -ano | findstr :3000  # Windows
-```
-
-### JWT Token Expired
-
-**Error**: `Invalid or expired token`
-
-**Solution**: Login again to get a new token
-```javascript
-// Frontend will automatically handle this
-logout();
-```
-
-### Database Schema Issues
-
-**Error**: `relation "users" does not exist`
-
-**Solution**: Re-run the schema initialization
+**`relation "users" does not exist`** — re-run the schema:
 ```bash
 psql -U postgres -d dine_smart -f database/schema.sql
 ```
 
-### Port Already in Use
+**Frontend can't reach backend** — confirm `VITE_API_URL` in `frontend/.env` and that the backend is running on port 3000.
 
-**Error**: `Error: listen EADDRINUSE :::3000`
-
-**Solution**: Kill the process using the port or change the PORT in .env
-```bash
-# macOS/Linux - Kill process on port 3000
-lsof -ti:3000 | xargs kill -9
-
-# Windows
-netstat -ano | findstr :3000
-taskkill /PID <PID> /F
-```
+**JWT expired** — log out and log back in; the frontend handles this automatically.
 
 ---
 
-## Security Considerations
+## Security Notes
 
-⚠️ **Important**: The following are for development only:
-
-1. **JWT_SECRET**: Change to a strong random string in production
-2. **Database Password**: Use a secure password, don't share in code
-3. **HTTPS**: Use HTTPS in production (not just HTTP)
-4. **CORS**: Configure CORS properly for production domain
-5. **Environment Variables**: Never commit `.env` files to Git
-6. **Rate Limiting**: Implement rate limiting on auth endpoints
-7. **Input Validation**: Additional validation should be added
-8. **SQL Injection**: Always use parameterized queries (already done)
-
----
-
-## Development Tips
-
-### Hot Reload
-- Frontend automatically reloads on file changes (Vite)
-- Backend requires manual restart or use `nodemon`
-
-### Add nodemon for Backend Development
-```bash
-npm install --save-dev nodemon
-```
-
-Update `package.json` scripts:
-```json
-"dev": "nodemon server.js"
-```
-
-### Testing API with cURL
-
-```bash
-# Register
-curl -X POST http://localhost:3000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Test User","email":"test@test.com","password":"test123"}'
-
-# Login
-curl -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@test.com","password":"test123"}'
-
-# Get current user (replace TOKEN with actual token)
-curl http://localhost:3000/api/me \
-  -H "Authorization: Bearer TOKEN"
-```
-
----
-
-## Next Steps
-
-1. ✅ Install dependencies (`npm install`)
-2. ✅ Set up PostgreSQL database
-3. ✅ Create `.env` file with database credentials
-4. ✅ Run database schema (`schema.sql`)
-5. ✅ Start backend server (`npm start`)
-6. ✅ Start frontend server (`npm run dev`)
-7. ✅ Open `http://localhost:5173` in browser
-8. ✅ Test registration and login flows
-
----
-
-## Support & Contributing
-
-For issues, bugs, or feature requests, please contact the development team.
-
----
-
-## License
-
-MIT License - See LICENSE file for details
+- Change `JWT_SECRET` to a strong random string before deploying
+- Never commit `.env` files
+- Use HTTPS in production
+- Configure CORS to your production domain
+- All database queries use parameterized statements (SQL injection safe)

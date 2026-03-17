@@ -60,6 +60,7 @@ const searchRestaurants = async (req, res) => {
         longitude: parseNumber(req.query.longitude, null),
         distanceRadius: parseNumber(req.query.distance_radius, null),
         onlyLebanon: parseBoolean(req.query.only_lebanon, false) === true,
+        sortBy: req.query.sort_by ? String(req.query.sort_by).trim() : "rating",
       },
     });
 

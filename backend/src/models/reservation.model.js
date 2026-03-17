@@ -27,7 +27,7 @@ async function getBookedSeatsForSlot(db, restaurantId, reservationDate, reservat
     WHERE restaurant_id = $1
       AND reservation_date = $2
       AND reservation_time = $3
-      AND status = 'confirmed';
+      AND status IN ('pending', 'accepted', 'confirmed');
   `;
   return db.query(query, [restaurantId, reservationDate, reservationTime]);
 }
@@ -42,6 +42,7 @@ async function createReservation(db, data) {
     seatingPreference,
     specialRequest,
     confirmationId,
+    status,
   } = data;
 
   const query = `
@@ -53,17 +54,18 @@ async function createReservation(db, data) {
       party_size,
       seating_preference,
       special_request,
+      status,
       confirmation_id
     )
     SELECT
-      $1, $2, $3, $4, $5, $6, $7, $8
+      $1, $2, $3, $4, $5, $6, $7, $8, $9
     WHERE NOT EXISTS (
       SELECT 1
       FROM reservations existing
       WHERE existing.restaurant_id = $2
         AND existing.reservation_date = $3
         AND existing.reservation_time = $4
-        AND existing.status = 'confirmed'
+        AND existing.status IN ('pending', 'accepted', 'confirmed')
     )
     RETURNING id, user_id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time, party_size,
               seating_preference, special_request, status, confirmation_id, created_at, updated_at;
@@ -77,6 +79,7 @@ async function createReservation(db, data) {
     partySize,
     seatingPreference || null,
     specialRequest || null,
+    status || "pending",
     confirmationId,
   ]);
 }
@@ -109,7 +112,7 @@ async function cancelReservation(db, reservationId) {
     UPDATE reservations
     SET status = 'cancelled', updated_at = NOW()
     WHERE id = $1
-      AND status = 'confirmed'
+      AND status IN ('pending', 'accepted', 'confirmed')
     RETURNING id, user_id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time, party_size,
               seating_preference, special_request, status, confirmation_id, created_at, updated_at;
   `;

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { loginUser, registerUser, getCurrentUser, googleAuth } from "../services/authService";
+import { useTheme } from "./ThemeContext";
 
 const AuthContext = createContext(null);
 const TOKEN_KEY = "token";
@@ -32,6 +33,7 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => readStoredToken());
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { applyThemeFromDB } = useTheme();
 
   async function restoreSession() {
     if (!token) {
@@ -42,7 +44,9 @@ export function AuthProvider({ children }) {
 
     try {
       const me = await getCurrentUser();
-      setUser(me.user ?? me);
+      const userData = me.user ?? me;
+      setUser(userData);
+      if (userData.themePreference) applyThemeFromDB(userData.themePreference);
     } catch {
       clearToken();
       setToken(null);
@@ -66,6 +70,7 @@ export function AuthProvider({ children }) {
     persistToken(newToken);
     setToken(newToken);
     setUser(data.user ?? null);
+    if (data.user?.themePreference) applyThemeFromDB(data.user.themePreference);
     return data;
   }
 
@@ -78,6 +83,7 @@ export function AuthProvider({ children }) {
       latitude: location.latitude,
       longitude: location.longitude,
       phone: location.phone,
+      adminSignupKey: location.adminSignupKey,
     });
     const newToken = data.token ?? data.accessToken;
 
@@ -99,6 +105,7 @@ export function AuthProvider({ children }) {
     persistToken(newToken);
     setToken(newToken);
     setUser(data.user ?? null);
+    if (data.user?.themePreference) applyThemeFromDB(data.user.themePreference);
     return data;
   }
 
@@ -108,8 +115,18 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  async function refreshUser() {
+    try {
+      const me = await getCurrentUser();
+      const userData = me.user ?? me;
+      setUser(userData);
+    } catch {
+      // silently ignore — user stays as-is
+    }
+  }
+
   const value = useMemo(
-    () => ({ user, loading, login, register, googleLogin, logout }),
+    () => ({ user, loading, login, register, googleLogin, logout, refreshUser }),
     [user, loading]
   );
 

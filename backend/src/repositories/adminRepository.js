@@ -22,7 +22,7 @@ const getDashboardStats = async () => {
       (SELECT COUNT(*)::int FROM restaurants) AS total_restaurants,
       (SELECT COUNT(*)::int FROM restaurants WHERE approval_status = 'pending') AS pending_approvals,
       (SELECT COUNT(*)::int FROM flagged_reviews WHERE status = 'pending') AS flagged_reviews,
-      (SELECT COUNT(*)::int FROM reservations WHERE reservation_date = CURRENT_DATE AND status = 'confirmed') AS todays_reservations
+      (SELECT COUNT(*)::int FROM reservations WHERE reservation_date = CURRENT_DATE AND status IN ('accepted', 'confirmed')) AS todays_reservations
   `);
   return result.rows[0];
 };

@@ -21,6 +21,7 @@ const updateById = async (userId, data) => {
   if (data.latitude !== undefined) updates.latitude = data.latitude;
   if (data.longitude !== undefined) updates.longitude = data.longitude;
   if (data.profilePictureUrl !== undefined) updates.profile_picture_url = data.profilePictureUrl;
+  if (data.themePreference !== undefined) updates.theme_preference = data.themePreference;
   if (data.password !== undefined) updates.password = data.password;
 
   if (Object.keys(updates).length === 0) {
@@ -45,7 +46,7 @@ const getReservationCountByUserId = async (userId) => {
       SELECT COUNT(*)::int AS reservation_count
       FROM reservations
       WHERE user_id = $1
-        AND status IN ('confirmed', 'completed', 'no-show')
+        AND status IN ('accepted', 'confirmed', 'completed', 'no-show')
     `,
     [userId]
   );
@@ -65,6 +66,12 @@ const getReviewsByUserId = async (userId) => {
       FROM reviews rv
       JOIN restaurants r ON r.id = rv.restaurant_id
       WHERE rv.user_id = $1
+        AND NOT EXISTS (
+          SELECT 1
+          FROM flagged_reviews fr
+          WHERE fr.review_id = rv.id
+            AND fr.status = 'pending'
+        )
       ORDER BY rv.created_at DESC
     `,
     [userId]
