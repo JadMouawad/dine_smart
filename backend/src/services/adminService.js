@@ -1,4 +1,5 @@
 const adminRepository = require("../repositories/adminRepository");
+const chatRepository = require("../repositories/chatRepository");
 
 const parsePositiveInt = (value, fallback) => {
   const parsed = parseInt(value, 10);
@@ -15,6 +16,11 @@ const getStats = async () => {
     flagged_reviews: stats.flagged_reviews || 0,
     todays_reservations: stats.todays_reservations || 0,
   };
+};
+
+const getRecentAiLogs = async (limit = 20) => {
+  const safeLimit = Math.min(parsePositiveInt(limit, 20), 100);
+  return chatRepository.getRecentConversationLogs(safeLimit);
 };
 
 const getRecentActivity = async (limit = 10) => {
@@ -193,6 +199,7 @@ const deleteFlaggedReview = async ({ flagId, adminId }) => {
 
 module.exports = {
   getStats,
+  getRecentAiLogs,
   getRecentActivity,
   getPendingRestaurants,
   approveRestaurant,

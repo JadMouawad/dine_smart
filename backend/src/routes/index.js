@@ -13,6 +13,7 @@ const adminRoutes = require("./adminRoutes");
 const eventsRoutes = require("./eventsRoutes");
 const discoverRoutes = require("./discoverRoutes");
 const reviewModerationRoutes = require("./reviewModerationRoutes");
+const chatRoutes = require("./chatRoutes");
 const requireAuth = require("../middleware/requireAuth");
 const profileController = require("../controllers/profileController");
 
@@ -29,5 +30,6 @@ router.get("/users/profile", requireAuth, profileController.getProfile);
 router.use("/reservations", reservationRoutes);
 router.use("/owner", ownerRoutes);
 router.use("/admin", adminRoutes);
+router.use("/chat", chatRoutes);
 
 module.exports = router;
