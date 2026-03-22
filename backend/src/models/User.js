@@ -20,7 +20,8 @@ const findByEmail = async (db, email) => {
 const findById = async (db, id) => {
   const query = `
     SELECT u.id, u.full_name, u.email, u.role_id, u.is_verified, u.provider, u.is_suspended, u.suspended_at,
-           u.phone, u.latitude, u.longitude, u.profile_picture_url, u.theme_preference, u.created_at, u.updated_at, r.name AS role
+           u.no_show_count, u.banned_until, u.phone, u.latitude, u.longitude, u.profile_picture_url, u.theme_preference,
+           u.created_at, u.updated_at, r.name AS role
     FROM users u
     LEFT JOIN roles r ON u.role_id = r.id
     WHERE u.id = $1
@@ -54,7 +55,8 @@ const create = async (db, {
   const query = `
     INSERT INTO users (full_name, email, password, role_id, provider, is_verified, latitude, longitude, phone)
     VALUES ($1, $2, $3, $4, 'local', false, $5, $6, $7)
-    RETURNING id, full_name, email, role_id, is_verified, provider, is_suspended, suspended_at, latitude, longitude, phone, created_at, updated_at
+    RETURNING id, full_name, email, role_id, is_verified, provider, is_suspended, suspended_at, no_show_count, banned_until,
+              latitude, longitude, phone, created_at, updated_at
   `;
   const result = await db.query(query, [fullName, email, password, roleId, latitude, longitude, phone]);
   return result.rows[0];
@@ -107,7 +109,43 @@ const markVerified = async (db, userId) => {
   const query = `
     UPDATE users SET is_verified = true, updated_at = NOW()
     WHERE id = $1
-    RETURNING id, full_name, email, role_id, is_verified, provider, is_suspended, suspended_at, latitude, longitude, created_at, updated_at
+    RETURNING id, full_name, email, role_id, is_verified, provider, is_suspended, suspended_at, no_show_count, banned_until,
+              latitude, longitude, created_at, updated_at
+  `;
+  const result = await db.query(query, [userId]);
+  return result.rows[0] || null;
+};
+
+const incrementNoShowCount = async (db, userId, bannedUntil = null) => {
+  const query = `
+    UPDATE users
+    SET no_show_count = COALESCE(no_show_count, 0) + 1,
+        banned_until = COALESCE($2, banned_until),
+        updated_at = NOW()
+    WHERE id = $1
+    RETURNING id, full_name, email, no_show_count, banned_until;
+  `;
+  const result = await db.query(query, [userId, bannedUntil]);
+  return result.rows[0] || null;
+};
+
+const setBannedUntil = async (db, userId, bannedUntil) => {
+  const query = `
+    UPDATE users
+    SET banned_until = $2, updated_at = NOW()
+    WHERE id = $1
+    RETURNING id, full_name, email, no_show_count, banned_until;
+  `;
+  const result = await db.query(query, [userId, bannedUntil]);
+  return result.rows[0] || null;
+};
+
+const clearBan = async (db, userId) => {
+  const query = `
+    UPDATE users
+    SET banned_until = NULL, updated_at = NOW()
+    WHERE id = $1
+    RETURNING id, full_name, email, no_show_count, banned_until;
   `;
   const result = await db.query(query, [userId]);
   return result.rows[0] || null;
@@ -122,5 +160,8 @@ module.exports = {
   findByGoogleId,
   createOAuthUser,
   linkGoogleId,
-  markVerified
+  markVerified,
+  incrementNoShowCount,
+  setBannedUntil,
+  clearBan,
 };

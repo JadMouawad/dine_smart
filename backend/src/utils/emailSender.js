@@ -146,8 +146,107 @@ const sendReservationCancellationEmail = async ({
   await transporter.sendMail(mailOptions);
 };
 
+const sendNoShowWarningEmail = async ({ to, userName = "Guest" }) => {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>No-show warning - DineSmart</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2>Reservation No-show Warning</h2>
+      <p>Hi ${userName},</p>
+      <p>We noticed that you missed two reservations on DineSmart.</p>
+      <p>Please note that you have <strong>one remaining chance</strong> before a temporary booking ban is applied.</p>
+      <p>If you can’t make a reservation, please cancel ahead of time so we can keep schedules accurate for everyone.</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+      <p style="font-size: 12px; color: #888;">DineSmart - Reservation reminders</p>
+    </body>
+    </html>
+  `;
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    to,
+    subject: "Important: Reservation no-show warning",
+    html,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+const sendNoShowBanEmail = async ({ to, userName = "Guest", bannedUntilLabel }) => {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Booking ban notice - DineSmart</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2>Temporary Booking Ban</h2>
+      <p>Hi ${userName},</p>
+      <p>Because of multiple reservation no-shows, your account has been temporarily restricted from booking.</p>
+      <p><strong>Ban duration:</strong> until ${bannedUntilLabel}</p>
+      <p>You can book again after this date. If you believe this was a mistake, please contact support.</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+      <p style="font-size: 12px; color: #888;">DineSmart - Reservation updates</p>
+    </body>
+    </html>
+  `;
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    to,
+    subject: "Your DineSmart booking access is temporarily restricted",
+    html,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+const sendRestaurantRejectionEmail = async ({
+  to,
+  ownerName = "Restaurant owner",
+  restaurantName,
+  rejectionReason,
+}) => {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Restaurant submission update - DineSmart</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2>Restaurant Submission Update</h2>
+      <p>Hi ${ownerName},</p>
+      <p>Thank you for submitting <strong>${restaurantName}</strong> to DineSmart. After review, we’re unable to approve it at this time.</p>
+      <p><strong>Reason provided:</strong></p>
+      <p style="background: #f5f5f5; padding: 12px 16px; border-radius: 8px;">${rejectionReason}</p>
+      <p>You’re welcome to update your listing and submit again once these items are addressed.</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+      <p style="font-size: 12px; color: #888;">DineSmart - Restaurant onboarding</p>
+    </body>
+    </html>
+  `;
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    to,
+    subject: "Your restaurant submission update",
+    html,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
 module.exports = {
   sendVerificationEmail,
   sendReservationConfirmationEmail,
   sendReservationCancellationEmail,
+  sendNoShowWarningEmail,
+  sendNoShowBanEmail,
+  sendRestaurantRejectionEmail,
 };

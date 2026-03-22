@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import DatePicker from "react-datepicker";
 import { createReservation, getReservationAvailability } from "../services/reservationService";
+import { useAuth } from "../auth/AuthContext";
 
 const PARTY_SIZE_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
 const SEATING_OPTIONS = [
@@ -58,17 +59,16 @@ function toTimeLabel(value) {
 function buildTimeOptions(openingTime, closingTime) {
   const openingMinutes = parseTimeToMinutes(openingTime);
   const closingMinutes = parseTimeToMinutes(closingTime);
-  const noonMinutes = 12 * 60;
 
   if (openingMinutes == null || closingMinutes == null) {
     const fallback = [];
-    for (let minute = noonMinutes; minute <= 22 * 60; minute += SLOT_STEP_MINUTES) {
+    for (let minute = 0; minute <= 23 * 60 + 30; minute += SLOT_STEP_MINUTES) {
       fallback.push({ value: toTimeValue(minute), label: toLabel(minute) });
     }
     return fallback;
   }
 
-  const start = Math.max(openingMinutes, noonMinutes);
+  const start = openingMinutes;
   const end = closingMinutes >= openingMinutes ? closingMinutes : closingMinutes + (24 * 60);
   if (end < start) return [];
 
@@ -80,6 +80,7 @@ function buildTimeOptions(openingTime, closingTime) {
 }
 
 export default function ReservationForm({ isOpen, onClose, restaurant, onReserved, inline = false }) {
+  const { user } = useAuth();
   const [date, setDate] = useState(null);
   const [time, setTime] = useState("");
   const [partySize, setPartySize] = useState("2");
@@ -89,6 +90,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
   const [submitting, setSubmitting] = useState(false);
   const [availabilityInfo, setAvailabilityInfo] = useState(null);
   const [availabilityError, setAvailabilityError] = useState("");
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [suggestedTimes, setSuggestedTimes] = useState([]);
   const [showAllTimes, setShowAllTimes] = useState(false);
 
@@ -98,6 +100,23 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
     () => (date ? date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : ""),
     [date]
   );
+  const bannedUntil = user?.bannedUntil || user?.banned_until || null;
+  const noShowCount = user?.noShowCount ?? user?.no_show_count ?? 0;
+  const isBanned = useMemo(() => {
+    if (!bannedUntil) return false;
+    const parsed = new Date(bannedUntil);
+    if (Number.isNaN(parsed.getTime())) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    parsed.setHours(0, 0, 0, 0);
+    return parsed >= today;
+  }, [bannedUntil]);
+  const bannedLabel = useMemo(() => {
+    if (!bannedUntil) return "";
+    const parsed = new Date(bannedUntil);
+    if (Number.isNaN(parsed.getTime())) return String(bannedUntil);
+    return parsed.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+  }, [bannedUntil]);
 
   const timeOptions = useMemo(
     () => buildTimeOptions(restaurant?.opening_time ?? restaurant?.openingTime, restaurant?.closing_time ?? restaurant?.closingTime),
@@ -128,15 +147,18 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
     if (!isOpen || !restaurant?.id || !selectedDateValue || !time) {
       setAvailabilityInfo(null);
       setAvailabilityError("");
+      setAvailabilityLoading(false);
       return;
     }
 
     let cancelled = false;
+    setAvailabilityLoading(true);
     getReservationAvailability({
       restaurantId: restaurant.id,
       date: selectedDateValue,
       time,
       partySize: Number(partySize) || 2,
+      seatingPreference: seatingPreference || null,
     })
       .then((info) => {
         if (cancelled) return;
@@ -148,13 +170,16 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
         if (cancelled) return;
         setAvailabilityInfo(null);
         setSuggestedTimes([]);
-        setAvailabilityError(error.message || "Could not load availability.");
+        setAvailabilityError(error.message || "We couldn't check availability. Please try again.");
+      })
+      .finally(() => {
+        if (!cancelled) setAvailabilityLoading(false);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [isOpen, partySize, restaurant?.id, selectedDateValue, time]);
+  }, [isOpen, partySize, seatingPreference, restaurant?.id, selectedDateValue, time]);
 
   if ((!isOpen && !inline) || !restaurant) return null;
 
@@ -173,7 +198,9 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
         ? "Available"
         : "Limited availability";
   const availabilityTimeLabel = time ? toTimeLabel(time) : "";
-
+  const preferenceLabel = seatingPreference ? seatingPreference.charAt(0).toUpperCase() + seatingPreference.slice(1) : "";
+  const preferenceAvailableSeats = availabilityInfo?.available_seats_preference;
+  const preferenceCapacity = availabilityInfo?.preference_capacity;
   async function handleSubmit(event) {
     event.preventDefault();
 
@@ -236,7 +263,17 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
       <h2 className="modal__title">Book Reservation</h2>
       <p className="modal__subtitle">{restaurant.name}</p>
 
-      <form className="form" onSubmit={handleSubmit}>
+        <form className="form" onSubmit={handleSubmit}>
+        {isBanned && (
+          <div className="fieldError">
+            You are temporarily banned from booking until {bannedLabel} due to multiple no-shows.
+          </div>
+        )}
+        {!isBanned && noShowCount === 2 && (
+          <div className="reservationHint">
+            Warning: You have missed 2 reservations. One more may result in a temporary ban.
+          </div>
+        )}
         <label className="field">
           <span>Select Date</span>
           <DatePicker
@@ -251,6 +288,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
             dateFormat="yyyy-MM-dd"
             placeholderText="Choose reservation date"
             className="input datePickerInput"
+            disabled={isBanned}
             required
           />
         </label>
@@ -266,7 +304,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
                   key={option.value}
                   className={`timeSlotBtn ${selected ? "is-selected" : ""}`}
                   type="button"
-                  disabled={!selectedDateValue}
+                  disabled={!selectedDateValue || isBanned}
                   onClick={() => {
                     setTime(option.value);
                     setErrors((prev) => ({ ...prev, time: "" }));
@@ -300,7 +338,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
 
         <label className="field">
           <span>Party Size</span>
-          <select className="select" value={partySize} onChange={(e) => setPartySize(e.target.value)} required>
+          <select className="select" value={partySize} onChange={(e) => setPartySize(e.target.value)} disabled={isBanned} required>
             {PARTY_SIZE_OPTIONS.map((size) => (
               <option key={size} value={size}>
                 {size} {size === 1 ? "guest" : "guests"}
@@ -312,7 +350,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
 
         <label className="field">
           <span>Seating Preference (Optional)</span>
-          <select className="select" value={seatingPreference} onChange={(e) => setSeatingPreference(e.target.value)}>
+          <select className="select" value={seatingPreference} onChange={(e) => setSeatingPreference(e.target.value)} disabled={isBanned}>
             {SEATING_OPTIONS.map((option) => (
               <option key={option.value || "any"} value={option.value}>
                 {option.label}
@@ -330,16 +368,29 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
             maxLength={500}
             rows={3}
             placeholder="Allergies, celebration details, or accessibility requests"
+            disabled={isBanned}
           />
         </label>
 
-        {availabilityInfo && (
+        {availabilityLoading && (
+          <div className="reservationAvailability reservationAvailability--loading">
+            Checking availability...
+          </div>
+        )}
+
+        {availabilityInfo && !availabilityLoading && (
           <div className="reservationAvailability">
             Availability for your selected time
             {selectedDateLabel && availabilityTimeLabel ? ` (${selectedDateLabel} at ${availabilityTimeLabel})` : ""}
             : <strong> {availabilityInfo.available_seats} seats</strong>
             <br />
             Status: <strong>{slotStatusLabel}</strong> | {availabilityInfo.booked_seats} booked / {availabilityInfo.total_capacity} total
+            {preferenceLabel && preferenceCapacity != null && preferenceAvailableSeats != null && (
+              <>
+                <br />
+                {preferenceLabel} seating: <strong>{preferenceAvailableSeats}</strong> of {preferenceCapacity} seats remaining
+              </>
+            )}
           </div>
         )}
 
@@ -365,11 +416,17 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
           </div>
         )}
 
+        {availabilityInfo && isFullyBooked && suggestedTimes.length === 0 && (
+          <div className="reservationHint">
+            No available slots for this time. Try another date or time.
+          </div>
+        )}
+
         {availabilityError && <div className="fieldError">{availabilityError}</div>}
         {errors.submit && <div className="fieldError">{errors.submit}</div>}
 
-        <button className="btn btn--gold btn--xl" type="submit" disabled={submitting || isFullyBooked === true}>
-          {submitting ? "Booking..." : (isFullyBooked ? "SLOT BOOKED" : "BOOK RESERVATION")}
+        <button className="btn btn--gold btn--xl" type="submit" disabled={submitting || isFullyBooked === true || isBanned}>
+          {submitting ? "Booking..." : (isBanned ? "BOOKING DISABLED" : (isFullyBooked ? "SLOT BOOKED" : "BOOK RESERVATION"))}
         </button>
       </form>
     </>

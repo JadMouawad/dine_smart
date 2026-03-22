@@ -151,6 +151,7 @@ export default function UserSearch({
   const [restaurants, setRestaurants] = useState([]);
   const [baseRestaurants, setBaseRestaurants] = useState([]);
   const [restaurantsLoading, setRestaurantsLoading] = useState(true);
+  const [restaurantsError, setRestaurantsError] = useState("");
 
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [restaurantNotFound, setRestaurantNotFound] = useState(false);
@@ -168,11 +169,14 @@ export default function UserSearch({
   const [reservationInlineOpen, setReservationInlineOpen] = useState(false);
   const [reservationToast, setReservationToast] = useState("");
   const [reservationAvailability, setReservationAvailability] = useState(null);
+  const [reservationAvailabilityError, setReservationAvailabilityError] = useState("");
+  const [reservationAvailabilityLoading, setReservationAvailabilityLoading] = useState(false);
   const [reservationSlot, setReservationSlot] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerFilters, setDrawerFilters] = useState(getInitialFilters());
   const [filters, setFilters] = useState(getInitialFilters());
   const [geo, setGeo] = useState({ latitude: null, longitude: null });
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const [favorites, setFavorites] = useState(() => loadFavorites());
   const [expandedSections, setExpandedSections] = useState({});
@@ -233,6 +237,10 @@ export default function UserSearch({
 
   function resetFilters() {
     updateFilters(getInitialFilters());
+  }
+
+  function retryRestaurants() {
+    setRefreshKey((prev) => prev + 1);
   }
 
   function toggleDrawerArrayFilter(key, value) {
@@ -331,6 +339,7 @@ export default function UserSearch({
   useEffect(() => {
     let cancelled = false;
     setRestaurantsLoading(true);
+    setRestaurantsError("");
 
     const payload = {
       minRating: filters.minRating,
@@ -363,6 +372,7 @@ export default function UserSearch({
         if (cancelled) return;
         setRestaurants([]);
         setBaseRestaurants([]);
+        setRestaurantsError("We couldn't load restaurants. Check your connection and try again.");
       })
       .finally(() => {
         if (!cancelled) setRestaurantsLoading(false);
@@ -371,7 +381,7 @@ export default function UserSearch({
     return () => {
       cancelled = true;
     };
-  }, [query, filters, effectiveGeo.latitude, effectiveGeo.longitude]);
+  }, [query, filters, effectiveGeo.latitude, effectiveGeo.longitude, refreshKey]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -441,17 +451,27 @@ export default function UserSearch({
     if (!selectedRestaurant?.id) {
       setReservationAvailability(null);
       setReservationSlot(null);
+      setReservationAvailabilityError("");
+      setReservationAvailabilityLoading(false);
       return;
     }
 
     const { date, time } = reservationSlot || getCurrentSlotParams();
+    setReservationAvailabilityLoading(true);
     getReservationAvailability({
       restaurantId: selectedRestaurant.id,
       date,
       time,
     })
-      .then((availability) => setReservationAvailability(availability))
-      .catch(() => setReservationAvailability(null));
+      .then((availability) => {
+        setReservationAvailability(availability);
+        setReservationAvailabilityError("");
+      })
+      .catch(() => {
+        setReservationAvailability(null);
+        setReservationAvailabilityError("Availability is temporarily unavailable.");
+      })
+      .finally(() => setReservationAvailabilityLoading(false));
   }, [selectedRestaurant?.id, reservationSlot]);
 
   useEffect(() => {
@@ -464,13 +484,21 @@ export default function UserSearch({
       const time = detail.time ? String(detail.time).slice(0, 5) : (reservationSlot?.time || getCurrentSlotParams().time);
       setReservationSlot({ date, time });
 
+      setReservationAvailabilityLoading(true);
       getReservationAvailability({
         restaurantId: selectedRestaurant.id,
         date,
         time,
       })
-        .then((availability) => setReservationAvailability(availability))
-        .catch(() => setReservationAvailability(null));
+        .then((availability) => {
+          setReservationAvailability(availability);
+          setReservationAvailabilityError("");
+        })
+        .catch(() => {
+          setReservationAvailability(null);
+          setReservationAvailabilityError("Availability is temporarily unavailable.");
+        })
+        .finally(() => setReservationAvailabilityLoading(false));
 
       getRestaurantById(selectedRestaurant.id)
         .then((updatedRestaurant) => setSelectedRestaurant(updatedRestaurant))
@@ -630,6 +658,12 @@ export default function UserSearch({
   }, [restaurantMenu]);
 
   const availabilityBadge = useMemo(() => {
+    if (reservationAvailabilityLoading) {
+      return { label: "Checking availability...", tone: "warn" };
+    }
+    if (reservationAvailabilityError) {
+      return { label: reservationAvailabilityError, tone: "warn" };
+    }
     if (!reservationAvailability) return null;
 
     const availableSeats = Number(reservationAvailability.available_seats || 0);
@@ -648,7 +682,7 @@ export default function UserSearch({
     if (ratio >= 0.6) return { label: `${availableSeats} seats available at ${slotLabel}`, tone: "good" };
     if (ratio >= 0.25) return { label: `${availableSeats} seats available at ${slotLabel}`, tone: "warn" };
     return { label: `${availableSeats} seats available at ${slotLabel}`, tone: "danger" };
-  }, [reservationAvailability, reservationSlot?.time]);
+  }, [reservationAvailability, reservationSlot?.time, reservationAvailabilityLoading, reservationAvailabilityError]);
 
   const restaurantHoursLabel = useMemo(() => {
     if (!selectedRestaurant) return "Hours unavailable";
@@ -905,13 +939,21 @@ export default function UserSearch({
                 const date = reservation?.reservation_date || reservationSlot?.date || getCurrentSlotParams().date;
                 const time = String(reservation?.reservation_time || reservationSlot?.time || getCurrentSlotParams().time).slice(0, 5);
                 setReservationSlot({ date, time });
+                setReservationAvailabilityLoading(true);
                 getReservationAvailability({
                   restaurantId: selectedRestaurant.id,
                   date,
                   time,
                 })
-                  .then((availability) => setReservationAvailability(availability))
-                  .catch(() => setReservationAvailability(null));
+                  .then((availability) => {
+                    setReservationAvailability(availability);
+                    setReservationAvailabilityError("");
+                  })
+                  .catch(() => {
+                    setReservationAvailability(null);
+                    setReservationAvailabilityError("Availability is temporarily unavailable.");
+                  })
+                  .finally(() => setReservationAvailabilityLoading(false));
                 window.dispatchEvent(
                   new CustomEvent("ds:reservation-changed", {
                     detail: {
@@ -1308,6 +1350,13 @@ export default function UserSearch({
       <div className="restaurantGrid">
         {restaurantsLoading ? (
           <LoadingSkeleton variant="card" count={8} className="restaurantGridSkeleton" />
+        ) : restaurantsError ? (
+          <EmptyState
+            title="We couldn't load restaurants"
+            message={restaurantsError}
+            actionLabel="Try Again"
+            onAction={retryRestaurants}
+          />
         ) : filteredRestaurants.length === 0 ? (
           <EmptyState
             title="No restaurants match your filters"
