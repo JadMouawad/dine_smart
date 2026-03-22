@@ -5123,6 +5123,10 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   font-weight: 600;
 }
 
+.reservationAvailability--loading {
+  opacity: 0.85;
+}
+
 .inlineToast {
   margin-bottom: 12px;
   border: 1px solid rgba(201, 162, 39, 0.35);
@@ -5178,6 +5182,42 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .reservationList {
   display: grid;
   gap: 12px;
+}
+
+.slotAdjustCard {
+  margin-bottom: 22px;
+}
+
+.slotAdjustHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.slotAdjustHint {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 14px;
+}
+
+.slotAdjustGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.slotAdjustActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.slotAdjustStatus {
+  margin-top: 10px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .reservationCard {
@@ -6225,6 +6265,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   font-weight: 600;
 }
 
+<<<<<<< HEAD
 .sortDropdown {
   position: relative;
 }
@@ -6232,6 +6273,14 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .sortDropdown__btn {
   height: 40px;
   padding: 0 14px;
+=======
+.searchSortControl__select {
+  min-width: 170px;
+  height: 44px;
+  padding: 10px 36px 10px 12px;
+  line-height: 1.2;
+  box-sizing: border-box;
+>>>>>>> carla-sprint4
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   background: rgba(0, 0, 0, 0.14);

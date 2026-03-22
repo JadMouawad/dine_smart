@@ -110,6 +110,7 @@ const getAvailability = async (req, res) => {
       reservationDate: req.query.date,
       reservationTime: req.query.time,
       partySize: req.query.party_size,
+      seatingPreference: req.query.seating_preference,
     });
 
     if (!result.success) {
@@ -122,6 +123,48 @@ const getAvailability = async (req, res) => {
   }
 };
 
+
+const getSlotAdjustmentForOwner = async (req, res) => {
+  try {
+    const result = await reservationService.getSlotAdjustmentForOwner({
+      restaurantId: req.params.id,
+      ownerId: req.user.id,
+      reservationDate: req.query.date,
+      reservationTime: req.query.time,
+      seatingPreference: req.query.seating_preference,
+    });
+
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+
+    return res.status(200).json(result.adjustment);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const upsertSlotAdjustmentForOwner = async (req, res) => {
+  try {
+    const result = await reservationService.upsertSlotAdjustmentForOwner({
+      restaurantId: req.params.id,
+      ownerId: req.user.id,
+      reservationDate: req.body.date,
+      reservationTime: req.body.time,
+      seatingPreference: req.body.seating_preference,
+      adjustment: req.body.adjustment,
+    });
+
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+
+    return res.status(200).json(result.adjustment);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createReservation,
   getReservationsByUser,
@@ -129,4 +172,6 @@ module.exports = {
   cancelReservation,
   updateReservationStatusForOwner,
   getAvailability,
+  getSlotAdjustmentForOwner,
+  upsertSlotAdjustmentForOwner,
 };

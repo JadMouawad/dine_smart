@@ -110,14 +110,21 @@ const approveRestaurant = async (restaurantId) => {
 const rejectRestaurant = async (restaurantId, rejectionReason) => {
   const result = await pool.query(
     `
-      UPDATE restaurants
-      SET approval_status = 'rejected',
-          is_verified = false,
-          rejection_reason = $2,
-          updated_at = NOW()
-      WHERE id = $1
-        AND approval_status = 'pending'
-      RETURNING id, name, approval_status, is_verified, rejection_reason, updated_at
+      WITH updated AS (
+        UPDATE restaurants
+        SET approval_status = 'rejected',
+            is_verified = false,
+            rejection_reason = $2,
+            updated_at = NOW()
+        WHERE id = $1
+          AND approval_status = 'pending'
+        RETURNING id, name, approval_status, is_verified, rejection_reason, updated_at, owner_id
+      )
+      SELECT updated.*,
+             u.email AS owner_email,
+             u.full_name AS owner_name
+      FROM updated
+      LEFT JOIN users u ON u.id = updated.owner_id
     `,
     [restaurantId, rejectionReason]
   );

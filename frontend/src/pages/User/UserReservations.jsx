@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { cancelReservation, getReservationsByUserId } from "../../services/reservationService.js";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
+import EmptyState from "../../components/EmptyState.jsx";
 
 function toDateTimeValue(reservation) {
   const datePart = String(reservation.reservation_date || "").trim();
@@ -96,7 +97,7 @@ export default function UserReservations() {
     setError("");
     getReservationsByUserId(user.id)
       .then((data) => setReservations(Array.isArray(data) ? data : []))
-      .catch((err) => setError(err.message || "Failed to load reservations"))
+      .catch((err) => setError(err.message || "We couldn't load your reservations. Please refresh and try again."))
       .finally(() => setLoading(false));
   }, [user?.id]);
 
@@ -159,9 +160,9 @@ export default function UserReservations() {
         })
       );
       setConfirmReservation(null);
-      setMessage("Reservation cancelled.");
+      setMessage("Reservation cancelled. The restaurant has been updated.");
     } catch (err) {
-      setError(err.message || "Failed to cancel reservation.");
+      setError(err.message || "We couldn't cancel that reservation. Please try again.");
     } finally {
       setCancellingId(null);
     }
@@ -185,7 +186,10 @@ export default function UserReservations() {
       <section className="reservationSection">
         <h2 className="reservationSection__title">Upcoming Reservations</h2>
         {upcoming.length === 0 ? (
-          <p className="placeholderPage__text">No upcoming reservations.</p>
+          <EmptyState
+            title="No upcoming reservations"
+            message="When you book a table, your upcoming reservations will appear here."
+          />
         ) : (
           <div className="reservationList">
             {upcoming.map((reservation) => (
@@ -221,7 +225,10 @@ export default function UserReservations() {
       <section className="reservationSection">
         <h2 className="reservationSection__title">Past Reservations</h2>
         {past.length === 0 ? (
-          <p className="placeholderPage__text">No past reservations yet.</p>
+          <EmptyState
+            title="No past reservations yet"
+            message="Once you complete a reservation, it will appear here for easy reference."
+          />
         ) : (
           <div className="reservationList">
             {past.map((reservation) => (
@@ -244,7 +251,7 @@ export default function UserReservations() {
 
       <ConfirmDialog
         open={!!confirmReservation}
-        title="Cancel this reservation?"
+        title="Are you sure you want to cancel the reservation?"
         message={
           confirmReservation
             ? `${confirmReservation.restaurant_name} on ${formatReservationDate(confirmReservation)} at ${formatReservationTime(confirmReservation)}.`

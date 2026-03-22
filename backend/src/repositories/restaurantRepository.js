@@ -380,6 +380,13 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
           AND rs.status IN ('pending', 'accepted', 'confirmed')
       ) slot ON true
     `);
+    joins.push(`
+      LEFT JOIN reservation_slot_adjustments rsa
+        ON rsa.restaurant_id = r.id
+        AND rsa.reservation_date = $${idx}
+        AND rsa.reservation_time = $${idx + 1}::time
+        AND rsa.seating_preference = 'any'
+    `);
     values.push(availabilityDate, availabilityTime);
     idx += 2;
 
@@ -396,10 +403,10 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
       )
     `;
     const availableExpression = `
-      CASE
-        WHEN COALESCE(slot.booked_seats, 0) > 0 THEN 0
-        ELSE ${capacityExpression}
-      END
+      GREATEST(
+        ${capacityExpression} + COALESCE(rsa.adjustment, 0) - COALESCE(slot.booked_seats, 0),
+        0
+      )
     `;
 
     selectExtras.push(`${availableExpression}::int AS available_seats`);
