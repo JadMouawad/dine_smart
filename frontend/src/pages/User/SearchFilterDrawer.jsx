@@ -1,35 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-
-const CUISINES = [
-  "American", "Middle Eastern", "French", "Mexican", "Chinese",
-  "Japanese", "Italian", "Indian", "International",
-];
-const DIETARY_OPTIONS = ["Vegetarian", "Vegan", "Halal", "GF"];
-const PRICE_OPTIONS = ["$", "$$", "$$$", "$$$$"];
-const PRICE_LABELS = { $: "Budget", $$: "Moderate", $$$: "Premium", $$$$: "Luxury" };
-const DIETARY_LABELS = { Vegetarian: "Vegetarian", Vegan: "Vegan", Halal: "Halal", GF: "Gluten-Free" };
-
-function pad2(v) { return String(v).padStart(2, "0"); }
-
-function getTodayDateValue() {
-  const now = new Date();
-  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
-}
-
-function getCurrentSlotParams() {
-  const now = new Date();
-  const roundedMinutes = Math.ceil(now.getMinutes() / 15) * 15;
-  if (roundedMinutes >= 60) {
-    now.setHours(now.getHours() + 1);
-    now.setMinutes(0);
-  } else {
-    now.setMinutes(roundedMinutes);
-  }
-  now.setSeconds(0, 0);
-  const date = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
-  const time = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
-  return { date, time };
-}
+import { getTodayDateValue, getCurrentSlotParams } from "../../utils/timeUtils";
+import { CUISINES, DIETARY_OPTIONS, PRICE_OPTIONS, PRICE_LABELS, DIETARY_LABELS } from "../../constants/filters";
 
 /**
  * SearchFilterDrawer

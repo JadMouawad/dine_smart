@@ -8247,3 +8247,27 @@ html[data-theme="light"] .quickFilterBtn {
 [data-theme="light"] .userMobileMenu__actions {
   border-top-color: rgba(0, 0, 0, 0.08);
 }
+
+/* ── ErrorBoundary ──────────────────────────────────────────────────────── */
+.errorBoundary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  min-height: 200px;
+}
+.errorBoundary__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text, #fff);
+  margin: 0;
+}
+.errorBoundary__message {
+  font-size: 0.9rem;
+  color: var(--text-muted, rgba(255,255,255,0.55));
+  margin: 0;
+  max-width: 400px;
+}

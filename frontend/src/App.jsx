@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 
 import { useAuth } from "./auth/AuthContext.jsx";
@@ -9,14 +9,23 @@ import Hero from "./components/Hero.jsx";
 import DiscoverCarousel from "./components/DiscoverCarousel.jsx";
 import MobileMenu from "./components/MobileMenu.jsx";
 import AuthModal from "./components/AuthModal.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 
-import OwnerShell from "./pages/owner/OwnerShell.jsx";
-import UserShell from "./pages/User/UserShell.jsx";
-import AdminShell from "./pages/admin/AdminShell.jsx";
-import AdminAccessPage from "./pages/admin/AdminAccessPage.jsx";
-import UserSearch from "./pages/User/UserSearch.jsx";
-import VerifyEmail from "./pages/VerifyEmail.jsx";
+// Code-split heavy areas — only loaded when the user navigates there
+const OwnerShell = lazy(() => import("./pages/owner/OwnerShell.jsx"));
+const UserShell = lazy(() => import("./pages/User/UserShell.jsx"));
+const AdminShell = lazy(() => import("./pages/admin/AdminShell.jsx"));
+const AdminAccessPage = lazy(() => import("./pages/admin/AdminAccessPage.jsx"));
+const UserSearch = lazy(() => import("./pages/User/UserSearch.jsx"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail.jsx"));
+
 import AdminRoute from "./routes/AdminRoute.jsx";
+
+const PageLoader = () => (
+  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
+    <div className="loadingSkeleton" style={{ width: 120, height: 8, borderRadius: 4 }} />
+  </div>
+);
 
 function AppContent() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -130,39 +139,43 @@ function AppContent() {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<AppContent />} />
+    <ErrorBoundary>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<AppContent />} />
 
-      {/* Email verification */}
-      <Route path="/verify-email" element={<VerifyEmail />} />
+          {/* Email verification */}
+          <Route path="/verify-email" element={<VerifyEmail />} />
 
-      {/* Owner area */}
-      <Route path="/owner/profile" element={<OwnerShell />} />
-      <Route path="/owner/*" element={<OwnerShell />} />
+          {/* Owner area */}
+          <Route path="/owner/profile" element={<OwnerShell />} />
+          <Route path="/owner/*" element={<OwnerShell />} />
 
-      {/* Admin area */}
-      <Route path="/admin/auth" element={<AdminAccessPage />} />
-      <Route
-        path="/admin/dashboard"
-        element={
-          <AdminRoute>
-            <AdminShell />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/admin/*"
-        element={
-          <AdminRoute>
-            <AdminShell />
-          </AdminRoute>
-        }
-      />
+          {/* Admin area */}
+          <Route path="/admin/auth" element={<AdminAccessPage />} />
+          <Route
+            path="/admin/dashboard"
+            element={
+              <AdminRoute>
+                <AdminShell />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/*"
+            element={
+              <AdminRoute>
+                <AdminShell />
+              </AdminRoute>
+            }
+          />
 
-      {/* User area */}
-      <Route path="/explore" element={<UserShell initialActive="explore" />} />
-      <Route path="/user/profile" element={<UserShell />} />
-      <Route path="/user/*" element={<UserShell />} />
-    </Routes>
+          {/* User area */}
+          <Route path="/explore" element={<UserShell initialActive="explore" />} />
+          <Route path="/user/profile" element={<UserShell />} />
+          <Route path="/user/*" element={<UserShell />} />
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
   );
 }

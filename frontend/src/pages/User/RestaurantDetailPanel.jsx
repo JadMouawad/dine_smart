@@ -7,45 +7,9 @@ import { getReservationAvailability } from "../../services/reservationService";
 import ReservationForm from "../../components/ReservationForm.jsx";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 
-const FILLED_STAR = "\u2605";
-const EMPTY_STAR = "\u2606";
+import { getCurrentSlotParams, formatTimeLabel } from "../../utils/timeUtils";
+import { FILLED_STAR, EMPTY_STAR } from "../../constants/filters";
 
-function pad2(v) { return String(v).padStart(2, "0"); }
-
-function getCurrentSlotParams() {
-  const now = new Date();
-  const roundedMinutes = Math.ceil(now.getMinutes() / 15) * 15;
-  if (roundedMinutes >= 60) {
-    now.setHours(now.getHours() + 1);
-    now.setMinutes(0);
-  } else {
-    now.setMinutes(roundedMinutes);
-  }
-  now.setSeconds(0, 0);
-  const date = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
-  const time = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
-  return { date, time };
-}
-
-function formatTimeLabel(timeValue) {
-  const [rawHour = "0", rawMinute = "00"] = String(timeValue || "").split(":");
-  const hour = Number(rawHour);
-  const minute = Number(rawMinute);
-  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return String(timeValue || "");
-  const hour12 = ((hour + 11) % 12) + 1;
-  const suffix = hour >= 12 ? "PM" : "AM";
-  return `${hour12}:${String(minute).padStart(2, "0")} ${suffix}`;
-}
-
-function toMinutesOfDay(value) {
-  if (!value || typeof value !== "string") return null;
-  const match = value.match(/^(\d{1,2}):(\d{2})/);
-  if (!match) return null;
-  const hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
-  return hours * 60 + minutes;
-}
 
 /**
  * RestaurantDetailPanel
@@ -270,7 +234,7 @@ export default function RestaurantDetailPanel({
           <div className="restaurantProfileHero__logo">
             {(currentRestaurant.logoUrl || currentRestaurant.logo_url || currentRestaurant.coverUrl || currentRestaurant.cover_url) ? (
               <img
-                className="restaurantProfileHero__logoImg"
+                loading="lazy" className="restaurantProfileHero__logoImg"
                 src={currentRestaurant.logoUrl || currentRestaurant.logo_url || currentRestaurant.coverUrl || currentRestaurant.cover_url}
                 alt={`${currentRestaurant.name} logo`}
               />
@@ -311,7 +275,7 @@ export default function RestaurantDetailPanel({
         <div className="restaurantProfileHero__media">
           {(currentRestaurant.coverUrl || currentRestaurant.cover_url || currentRestaurant.logoUrl || currentRestaurant.logo_url) ? (
             <img
-              className="restaurantProfileHero__img"
+              loading="lazy" className="restaurantProfileHero__img"
               src={currentRestaurant.coverUrl || currentRestaurant.cover_url || currentRestaurant.logoUrl || currentRestaurant.logo_url}
               alt={`${currentRestaurant.name} cover`}
             />
@@ -414,7 +378,7 @@ export default function RestaurantDetailPanel({
                         <div className="menuItemCard" key={it.id}>
                           <div className="menuItemCard__media">
                             {(it.imageUrl || it.image_url) ? (
-                              <img className="menuItemCard__img" src={it.imageUrl || it.image_url} alt={it.name} />
+                              <img loading="lazy" className="menuItemCard__img" src={it.imageUrl || it.image_url} alt={it.name} />
                             ) : (
                               <div className="menuItemCard__imgPlaceholder">PNG, JPG, or JPEG</div>
                             )}

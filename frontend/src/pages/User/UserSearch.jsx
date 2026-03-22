@@ -6,54 +6,11 @@ import LoadingSkeleton from "../../components/LoadingSkeleton.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
 import SearchFilterDrawer from "./SearchFilterDrawer.jsx";
 import RestaurantDetailPanel from "./RestaurantDetailPanel.jsx";
+import { getTodayDateValue, isOpenNow } from "../../utils/timeUtils";
+import { CUISINES, DIETARY_OPTIONS, PRICE_OPTIONS, PRICE_LABELS, DIETARY_LABELS, FILLED_STAR } from "../../constants/filters";
 
 // ── Constants ──────────────────────────────────────────────────────────────
-const PRICE_LABELS = { $: "Budget", $$: "Moderate", $$$: "Premium", $$$$: "Luxury" };
-const DIETARY_LABELS = { Vegetarian: "Vegetarian", Vegan: "Vegan", Halal: "Halal", GF: "Gluten-Free" };
 const DEFAULT_BEIRUT_GEO = { latitude: 33.8938, longitude: 35.5018 };
-const FILLED_STAR = "\u2605";
-
-function pad2(v) { return String(v).padStart(2, "0"); }
-
-function getTodayDateValue() {
-  const now = new Date();
-  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
-}
-
-function getCurrentSlotParams() {
-  const now = new Date();
-  const roundedMinutes = Math.ceil(now.getMinutes() / 15) * 15;
-  if (roundedMinutes >= 60) {
-    now.setHours(now.getHours() + 1);
-    now.setMinutes(0);
-  } else {
-    now.setMinutes(roundedMinutes);
-  }
-  now.setSeconds(0, 0);
-  const date = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
-  const time = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
-  return { date, time };
-}
-
-function toMinutesOfDay(value) {
-  if (!value || typeof value !== "string") return null;
-  const match = value.match(/^(\d{1,2}):(\d{2})/);
-  if (!match) return null;
-  const hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
-  return hours * 60 + minutes;
-}
-
-function isOpenNow(openingTime, closingTime) {
-  const open = toMinutesOfDay(openingTime);
-  const close = toMinutesOfDay(closingTime);
-  if (open == null || close == null) return false;
-  const now = new Date();
-  const current = now.getHours() * 60 + now.getMinutes();
-  if (close >= open) return current >= open && current <= close;
-  return current >= open || current <= close;
-}
 
 function parseDietarySupport(value) {
   if (Array.isArray(value)) return value;
@@ -65,13 +22,6 @@ function parseDietarySupport(value) {
   }
   return normalized.split(",").map((i) => i.trim()).filter(Boolean);
 }
-
-const CUISINES = [
-  "American", "Middle Eastern", "French", "Mexican", "Chinese",
-  "Japanese", "Italian", "Indian", "International",
-];
-const DIETARY_OPTIONS = ["Vegetarian", "Vegan", "Halal", "GF"];
-const PRICE_OPTIONS = ["$", "$$", "$$$", "$$$$"];
 
 function getInitialFilters() {
   return {
@@ -88,6 +38,46 @@ function getInitialFilters() {
     sortBy: "rating",
   };
 }
+
+// ── Memoized restaurant card ───────────────────────────────────────────────
+const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, onSelect, onFavorite, onReserve }) {
+  return (
+    <article className="restaurantCard restaurantCard--search" onClick={() => onSelect(r)}>
+      <div className="restaurantCard__cover">
+        {(r.coverUrl || r.cover_url)
+          ? <img className="restaurantCard__coverImg" src={r.coverUrl || r.cover_url} alt={`${r.name} cover`} loading="lazy" />
+          : <div className="restaurantCard__coverPlaceholder">No image</div>}
+      </div>
+      <div className="restaurantCard__body">
+        <div className="restaurantCard__header">
+          <div className="restaurantCard__name">{r.name}</div>
+          <button
+            className={`favoriteHeartBtn ${isFavorited ? "is-active" : ""}`}
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onFavorite(r); }}
+            aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+          >
+            <svg viewBox="0 0 24 24" className="favoriteHeartIcon" aria-hidden="true">
+              <path d="M12 21s-7.2-4.6-9.6-9C.7 8.7 2.1 5.5 5.4 4.6c1.8-.5 3.6.1 4.8 1.4L12 7.8l1.8-1.8c1.2-1.3 3-1.9 4.8-1.4 3.3.9 4.7 4.1 3 7.4C19.2 16.4 12 21 12 21z" />
+            </svg>
+          </button>
+        </div>
+        <div className="restaurantCard__cuisine">{r.cuisine || "Cuisine not set"}</div>
+        <div className="restaurantCard__metaLine">{FILLED_STAR} {r.rating ?? "N/A"}</div>
+        <div className="restaurantCard__metaLine">
+          {r.distance_km != null ? `${r.distance_km} km away` : (r.address || "Location unavailable")}
+        </div>
+        <div className="restaurantCard__actions">
+          <button
+            className="btn btn--gold reserveMiniBtn"
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onReserve(r); }}
+          >Reserve</button>
+        </div>
+      </div>
+    </article>
+  );
+});
 
 // ── Component ──────────────────────────────────────────────────────────────
 export default function UserSearch({
@@ -485,48 +475,14 @@ export default function UserSearch({
           />
         ) : null}
         {!restaurantsLoading && filteredRestaurants.map((r) => (
-          <article
+          <RestaurantCard
             key={r.id}
-            className="restaurantCard restaurantCard--search"
-            onClick={() => { setSelectedRestaurant(r); }}
-          >
-            <div className="restaurantCard__cover">
-              {(r.coverUrl || r.cover_url)
-                ? <img className="restaurantCard__coverImg" src={r.coverUrl || r.cover_url} alt={`${r.name} cover`} loading="lazy" />
-                : <div className="restaurantCard__coverPlaceholder">No image</div>}
-            </div>
-            <div className="restaurantCard__body">
-              <div className="restaurantCard__header">
-                <div className="restaurantCard__name">{r.name}</div>
-                <button
-                  className={`favoriteHeartBtn ${isFavorited(r.id) ? "is-active" : ""}`}
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); if (!requireAuth()) return; toggleFavorite(r); }}
-                  aria-label={isFavorited(r.id) ? "Remove from favorites" : "Add to favorites"}
-                >
-                  <svg viewBox="0 0 24 24" className="favoriteHeartIcon" aria-hidden="true">
-                    <path d="M12 21s-7.2-4.6-9.6-9C.7 8.7 2.1 5.5 5.4 4.6c1.8-.5 3.6.1 4.8 1.4L12 7.8l1.8-1.8c1.2-1.3 3-1.9 4.8-1.4 3.3.9 4.7 4.1 3 7.4C19.2 16.4 12 21 12 21z" />
-                  </svg>
-                </button>
-              </div>
-              <div className="restaurantCard__cuisine">{r.cuisine || "Cuisine not set"}</div>
-              <div className="restaurantCard__metaLine">{FILLED_STAR} {r.rating ?? "N/A"}</div>
-              <div className="restaurantCard__metaLine">
-                {r.distance_km != null ? `${r.distance_km} km away` : (r.address || "Location unavailable")}
-              </div>
-              <div className="restaurantCard__actions">
-                <button
-                  className="btn btn--gold reserveMiniBtn"
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!requireAuth()) return;
-                    setSelectedRestaurant(r);
-                  }}
-                >Reserve</button>
-              </div>
-            </div>
-          </article>
+            r={r}
+            isFavorited={isFavorited(r.id)}
+            onSelect={(restaurant) => setSelectedRestaurant(restaurant)}
+            onFavorite={(restaurant) => { if (!requireAuth()) return; toggleFavorite(restaurant); }}
+            onReserve={(restaurant) => { if (!requireAuth()) return; setSelectedRestaurant(restaurant); }}
+          />
         ))}
       </div>
 

@@ -8,18 +8,8 @@ import { searchRestaurants } from "../../services/restaurantService";
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const DEFAULT_CENTER = { lat: 33.893791, lng: 35.501777 };
 
-const CUISINES = [
-  "American","Middle Eastern","French","Mexican","Chinese",
-  "Japanese","Italian","Indian","International",
-];
-const PRICE_OPTIONS = ["$", "$$", "$$$", "$$$$"];
-const DIETARY_OPTIONS = ["Vegetarian", "Vegan", "Halal", "GF"];
-const RATING_OPTIONS = [
-  { value: 0, label: "Any" },
-  { value: 3.5, label: "3.5+" },
-  { value: 4, label: "4.0+" },
-  { value: 4.5, label: "4.5+" },
-];
+import { CUISINES, PRICE_OPTIONS, DIETARY_OPTIONS, RATING_OPTIONS } from "../../constants/filters";
+
 
 const defaultFilters = {
   minRating: 0,
@@ -153,6 +143,22 @@ export default function UserExplore({ onOpenRestaurant }) {
     () => restaurants.filter((r) => parseCoord(r.latitude) != null && parseCoord(r.longitude) != null),
     [restaurants]
   );
+
+  // Memoize marker JSX — only re-renders when restaurants list or selection changes
+  const restaurantMarkers = useMemo(() => restaurantsWithCoords.map((restaurant) => {
+    const lat = parseCoord(restaurant.latitude);
+    const lng = parseCoord(restaurant.longitude);
+    if (lat == null || lng == null) return null;
+    const label = restaurant.name.length > 16 ? restaurant.name.slice(0, 16) + "…" : restaurant.name;
+    return (
+      <Marker key={`marker-${restaurant.id}`} longitude={lng} latitude={lat} anchor="bottom">
+        <div
+          className={`exploreMarker__pill${selectedRestaurantId === restaurant.id ? " is-selected" : ""}`}
+          onClick={() => handleSelectRestaurant(restaurant.id)}
+        >{label}</div>
+      </Marker>
+    );
+  }), [restaurantsWithCoords, selectedRestaurantId]);
 
   useEffect(() => {
     if (!selectedRestaurantId) return;
@@ -432,21 +438,8 @@ export default function UserExplore({ onOpenRestaurant }) {
               );
             })()}
 
-            {/* Restaurant name-pill markers */}
-            {restaurantsWithCoords.map((restaurant) => {
-              const lat = parseCoord(restaurant.latitude);
-              const lng = parseCoord(restaurant.longitude);
-              if (lat == null || lng == null) return null;
-              const label = restaurant.name.length > 16 ? restaurant.name.slice(0, 16) + "…" : restaurant.name;
-              return (
-                <Marker key={`marker-${restaurant.id}`} longitude={lng} latitude={lat} anchor="bottom">
-                  <div
-                    className={`exploreMarker__pill${selectedRestaurantId === restaurant.id ? " is-selected" : ""}`}
-                    onClick={() => handleSelectRestaurant(restaurant.id)}
-                  >{label}</div>
-                </Marker>
-              );
-            })}
+            {/* Restaurant name-pill markers (memoized) */}
+            {restaurantMarkers}
           </Map>
         </div>
 

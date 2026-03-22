@@ -279,7 +279,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
             <div className="ownerProfileViewRow">
               <span className="ownerProfileViewLabel">Background image</span>
               <span className="ownerProfileViewValue">
-                {coverPreviewUrl ? <img className="ownerProfileViewImage" src={coverPreviewUrl} alt={`${profileName} background`} /> : "Not set"}
+                {coverPreviewUrl ? <img loading="lazy" className="ownerProfileViewImage" src={coverPreviewUrl} alt={`${profileName} background`} /> : "Not set"}
               </span>
             </div>
             <div className="ownerProfileViewRow">
@@ -376,7 +376,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                 <div className="imageCard__title">Background image</div>
                 <div className="imageCard__preview imageCard__preview--equal">
                   {coverPreviewUrl ? (
-                    <img className="imageCard__img" src={coverPreviewUrl} alt="Background" />
+                    <img loading="lazy" className="imageCard__img" src={coverPreviewUrl} alt="Background" />
                   ) : (
                     <div className="imageCard__placeholder">
                       <div className="imageCard__formats">PNG, JPG, or JPEG</div>
