@@ -169,6 +169,7 @@ export default function UserSearch({
   const [reservationToast, setReservationToast] = useState("");
   const [reservationAvailability, setReservationAvailability] = useState(null);
   const [reservationSlot, setReservationSlot] = useState(null);
+  const [sortOpen, setSortOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerFilters, setDrawerFilters] = useState(getInitialFilters());
   const [filters, setFilters] = useState(getInitialFilters());
@@ -1205,70 +1206,17 @@ export default function UserSearch({
           }}
           aria-label="Search restaurants"
         />
-      </div>
-
-      <div className="quickFiltersBar" role="toolbar" aria-label="Quick filters">
         <button
           type="button"
-          className={`quickFilterBtn ${filters.minRating >= 4 ? "is-active" : ""}`}
-          onClick={toggleQuickTopRated}
-          disabled={optionCounts.topRated === 0}
-          aria-pressed={filters.minRating >= 4}
-          aria-label="Toggle top rated"
+          className={`searchFilterBtn${activeFilterChips.length > 0 ? " is-active" : ""}`}
+          onClick={openDrawer}
+          aria-haspopup="dialog"
+          aria-expanded={drawerOpen}
         >
-          Top Rated ({optionCounts.topRated})
-        </button>
-        <button
-          type="button"
-          className={`quickFilterBtn ${filters.openNow ? "is-active" : ""}`}
-          onClick={toggleQuickOpenNow}
-          disabled={optionCounts.openNow === 0}
-          aria-pressed={filters.openNow}
-          aria-label="Toggle open now"
-        >
-          Open Now ({optionCounts.openNow})
-        </button>
-        <button
-          type="button"
-          className={`quickFilterBtn ${filters.availabilityDate === getTodayDateValue() ? "is-active" : ""}`}
-          onClick={toggleQuickAvailableToday}
-          aria-pressed={filters.availabilityDate === getTodayDateValue()}
-          aria-label="Toggle available today"
-        >
-          Available Today ({optionCounts.availableToday})
-        </button>
-        <button
-          type="button"
-          className={`quickFilterBtn ${(filters.priceRange.length === 1 && filters.priceRange[0] === "$$") ? "is-active" : ""}`}
-          onClick={toggleQuickPrice}
-          disabled={optionCounts.price["$$"] === 0}
-          aria-pressed={filters.priceRange.length === 1 && filters.priceRange[0] === "$$"}
-          aria-label="Toggle price filter"
-        >
-          Price ({optionCounts.price["$$"] || 0})
-        </button>
-        <button
-          type="button"
-          className={`quickFilterBtn ${filters.dietarySupport.includes("Vegetarian") ? "is-active" : ""}`}
-          onClick={toggleQuickDietary}
-          disabled={optionCounts.dietary.Vegetarian === 0}
-          aria-pressed={filters.dietarySupport.includes("Vegetarian")}
-          aria-label="Toggle dietary filter"
-        >
-          Dietary ({optionCounts.dietary.Vegetarian || 0})
-        </button>
-        <button
-          type="button"
-          className={`quickFilterBtn ${filters.distanceEnabled ? "is-active" : ""}`}
-          onClick={toggleQuickDistance}
-          disabled={effectiveGeo.latitude == null || effectiveGeo.longitude == null}
-          aria-pressed={filters.distanceEnabled}
-          aria-label="Toggle distance filter"
-        >
-          Distance
-        </button>
-        <button type="button" className="quickFilterBtn quickFilterBtn--advanced" onClick={openDrawer} aria-haspopup="dialog" aria-expanded={drawerOpen}>
-          Advanced Filters
+          ⚙ Filters
+          {activeFilterChips.length > 0 && (
+            <span className="searchFilterBtn__badge">{activeFilterChips.length}</span>
+          )}
         </button>
       </div>
 
@@ -1288,21 +1236,43 @@ export default function UserSearch({
 
       <div className="searchResultsHeader">
         <p className="searchResultsHeader__count">{filteredRestaurants.length} restaurants found</p>
-        <label className="searchSortControl">
+        <div className="searchSortControl">
           <span>Sort by</span>
-          <select
-            className="select searchSortControl__select"
-            value={filters.sortBy}
-            onChange={(e) => updateFilters((prev) => ({ ...prev, sortBy: e.target.value }))}
-            aria-label="Sort restaurants"
-          >
-            {sortOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+          <div className="sortDropdown">
+            <button
+              type="button"
+              className="sortDropdown__btn"
+              onClick={() => setSortOpen((v) => !v)}
+              aria-haspopup="listbox"
+              aria-expanded={sortOpen}
+            >
+              {sortOptions.find((o) => o.value === filters.sortBy)?.label || "Top Rated"}
+              <span className="sortDropdown__arrow">▾</span>
+            </button>
+            {sortOpen && (
+              <>
+                <div className="sortDropdown__backdrop" onClick={() => setSortOpen(false)} />
+                <div className="sortDropdown__menu" role="listbox">
+                  {sortOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="option"
+                      aria-selected={filters.sortBy === option.value}
+                      className={`sortDropdown__item${filters.sortBy === option.value ? " is-active" : ""}`}
+                      onClick={() => {
+                        updateFilters((prev) => ({ ...prev, sortBy: option.value }));
+                        setSortOpen(false);
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="restaurantGrid">
@@ -1386,13 +1356,42 @@ export default function UserSearch({
           <div className="filterDrawer__backdrop" onClick={closeDrawer} />
           <aside className="filterDrawer__panel" ref={drawerRef}>
             <header className="filterDrawer__header">
-              <h2>Advanced Filters</h2>
-              <button type="button" className="btn btn--ghost" onClick={closeDrawer} aria-label="Close advanced filters">
-                Close
-              </button>
+              <h2>Filters</h2>
+              <button type="button" className="filterDrawer__closeBtn" onClick={closeDrawer} aria-label="Close filters">✕</button>
             </header>
 
             <div className="filterDrawer__body">
+              {/* Quick toggles */}
+              <section className="filterDrawer__section">
+                <div className="filterDrawer__label">Quick</div>
+                <div className="filterDrawer__quickToggles">
+                  <button
+                    type="button"
+                    className={`filterQuickChip${drawerFilters.minRating >= 4 ? " is-on" : ""}`}
+                    onClick={() => setDrawerFilters((prev) => ({ ...prev, minRating: prev.minRating >= 4 ? 0 : 4 }))}
+                  >⭐ Top Rated</button>
+                  <button
+                    type="button"
+                    className={`filterQuickChip${drawerFilters.openNow ? " is-on" : ""}`}
+                    onClick={() => setDrawerFilters((prev) => ({ ...prev, openNow: !prev.openNow }))}
+                  >🟢 Open Now</button>
+                  <button
+                    type="button"
+                    className={`filterQuickChip${drawerFilters.availabilityDate === getTodayDateValue() ? " is-on" : ""}`}
+                    onClick={() => setDrawerFilters((prev) => {
+                      const on = prev.availabilityDate === getTodayDateValue();
+                      return { ...prev, availabilityDate: on ? "" : getTodayDateValue(), availabilityTime: on ? "" : getCurrentSlotParams().time };
+                    })}
+                  >📅 Available Today</button>
+                  <button
+                    type="button"
+                    className={`filterQuickChip${drawerFilters.distanceEnabled ? " is-on" : ""}`}
+                    disabled={effectiveGeo.latitude == null}
+                    onClick={() => setDrawerFilters((prev) => ({ ...prev, distanceEnabled: !prev.distanceEnabled }))}
+                  >📍 Near Me</button>
+                </div>
+              </section>
+
               <section className="filterDrawer__section">
                 <label className="filterDrawer__label" htmlFor="drawer-rating">Rating ({drawerFilters.minRating})</label>
                 <input

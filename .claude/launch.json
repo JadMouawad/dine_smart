@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "/Users/ward/Desktop/aub/271/CMPS-271/backend",
+      "port": 3000
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "/Users/ward/Desktop/aub/271/CMPS-271/frontend",
+      "port": 5173
+    }
+  ]
+}
