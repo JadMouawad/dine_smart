@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from "react";
 import logo from "../../assets/logo.png";
 
+const NAV_TABS = [
+  { id: "search", label: "🔍 Search" },
+  { id: "discover", label: "✨ Discover" },
+  { id: "explore", label: "🗺 Explore" },
+  { id: "reservations", label: "📅 Reservations" },
+  { id: "profile", label: "👤 Profile" },
+];
+
 const DEFAULT_AVATAR =
     "data:image/svg+xml;utf8," +
     encodeURIComponent(`
@@ -18,6 +26,7 @@ const DEFAULT_AVATAR =
 
 export default function UserNav({ active, onChange, avatarSrc, user, onLogout }) {
     const [pillScrolled, setPillScrolled] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
     const resolvedAvatar = avatarSrc || user?.profilePictureUrl || DEFAULT_AVATAR;
     useEffect(() => {
         function onScroll() {
@@ -33,6 +42,51 @@ export default function UserNav({ active, onChange, avatarSrc, user, onLogout })
     }
 
     return (
+        <>
+        {mobileOpen && (
+            <div
+                className="userMobileMenu"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Navigation menu"
+                onClick={(e) => { if (e.target === e.currentTarget) setMobileOpen(false); }}
+            >
+                <div className="userMobileMenu__panel">
+                    <div className="userMobileMenu__top">
+                        <span className="userMobileMenu__title">Menu</span>
+                        <button
+                            className="userMobileMenu__close"
+                            type="button"
+                            aria-label="Close menu"
+                            onClick={() => setMobileOpen(false)}
+                        >✕</button>
+                    </div>
+
+                    <nav className="userMobileMenu__nav">
+                        {NAV_TABS.map(({ id, label }) => (
+                            <button
+                                key={id}
+                                type="button"
+                                className={`userMobileMenu__link${active === id ? " is-active" : ""}`}
+                                onClick={() => { onChange(id); setMobileOpen(false); }}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </nav>
+
+                    <div className="userMobileMenu__actions">
+                        <button
+                            className="btn btn--ghost"
+                            type="button"
+                            onClick={() => { setMobileOpen(false); onLogout(); }}
+                        >
+                            Log Out
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
         <header className="nav">
             <a className="brand" href="#">
                 <span className="brand__mark">
@@ -94,7 +148,7 @@ export default function UserNav({ active, onChange, avatarSrc, user, onLogout })
                     </button>
                 </div>
 
-                <button className="nav__burger" type="button" aria-label="Open menu">
+                <button className="nav__burger" type="button" aria-label="Open menu" onClick={() => setMobileOpen(true)}>
                     <span></span>
                     <span></span>
                     <span></span>
@@ -113,5 +167,6 @@ export default function UserNav({ active, onChange, avatarSrc, user, onLogout })
                 <img className="userAvatar__img" src={resolvedAvatar} alt="User avatar" />
             </button>
         </header>
+        </>
     );
 }

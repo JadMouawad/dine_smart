@@ -94,9 +94,6 @@ function SectionRestaurants({ title, badge, restaurants, onOpenRestaurant }) {
                 {restaurant.distance_km != null ? `${restaurant.distance_km} km away` : "Distance unavailable"}
               </div>
               {(restaurant.active_event_count || 0) > 0 && <div className="discoverFeedCard__badge">{restaurant.active_event_count} event(s)</div>}
-              <div className="discoverFeedCard__meta">
-                {(restaurant.rating || 0) >= 4.5 ? "New Restaurant" : "Recommended For You"}
-              </div>
             </div>
           </article>
         ))}
@@ -119,7 +116,7 @@ function EventCard({ event, onOpenRestaurant }) {
           <button
             className="btn btn--ghost discoverEventCard__actionBtn"
             type="button"
-            onClick={() => onOpenRestaurant?.(event.restaurant_id)}
+            onClick={() => onOpenRestaurant?.({ id: event.restaurant_id, name: event.restaurant_name })}
           >
             View Restaurant
           </button>

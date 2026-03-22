@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { getProfile, updateProfile } from "../../services/profileService.js";
+import { getFavorites } from "../../services/favoriteService.js";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useTheme } from "../../auth/ThemeContext.jsx";
 
-const FAVORITES_KEY = "ds_favorites";
 const FILLED_STAR = "\u2605";
 const EMPTY_STAR = "\u2606";
 const DEFAULT_AVATAR =
@@ -22,19 +22,11 @@ const DEFAULT_AVATAR =
   <path d="M24 112c5-20 20-31 40-31s35 11 40 31" fill="#fff8e1"/>
 </svg>`);
 
-function loadFavorites() {
-  try {
-    return JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
-
 export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant }) {
   const { user, refreshUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
-  const [favorites] = useState(() => loadFavorites());
+  const [favorites, setFavorites] = useState([]);
   const [myReviews, setMyReviews] = useState([]);
 
   const [profilePictureUrl, setProfilePictureUrl] = useState("");
@@ -55,6 +47,14 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState("");
+
+  // Load favorites from server
+  useEffect(() => {
+    if (!user?.id) return;
+    getFavorites()
+      .then((data) => setFavorites(Array.isArray(data) ? data : []))
+      .catch(() => setFavorites([]));
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user) return;

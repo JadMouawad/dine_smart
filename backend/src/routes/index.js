@@ -13,6 +13,7 @@ const adminRoutes = require("./adminRoutes");
 const eventsRoutes = require("./eventsRoutes");
 const discoverRoutes = require("./discoverRoutes");
 const reviewModerationRoutes = require("./reviewModerationRoutes");
+const favoriteRoutes = require("./favoriteRoutes");
 const requireAuth = require("../middleware/requireAuth");
 const profileController = require("../controllers/profileController");
 
@@ -25,6 +26,7 @@ router.use("/reviews", reviewModerationRoutes);
 router.use("/auth", authRoutes);
 router.use("/profile", profileRoutes);
 router.use("/me", profileRoutes); // alias so frontend /api/me works
+router.use("/me/favorites", favoriteRoutes);
 router.get("/users/profile", requireAuth, profileController.getProfile);
 router.use("/reservations", reservationRoutes);
 router.use("/owner", ownerRoutes);
