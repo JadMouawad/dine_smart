@@ -14,8 +14,7 @@ const getFavoritesByUserId = async (userId) => {
         r.rating,
         r.cover_url,
         r.logo_url,
-        r.address,
-        r.distance_km
+        r.address
       FROM user_favorites uf
       JOIN restaurants r ON r.id = uf.restaurant_id
       WHERE uf.user_id = $1

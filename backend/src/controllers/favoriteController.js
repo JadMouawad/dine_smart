@@ -15,7 +15,6 @@ const getFavorites = async (req, res) => {
       logoUrl: r.logo_url || null,
       logo_url: r.logo_url || null,
       address: r.address || null,
-      distance_km: r.distance_km != null ? Number(r.distance_km) : null,
     }));
     res.json(normalised);
   } catch (err) {
