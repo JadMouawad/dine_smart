@@ -88,6 +88,8 @@ export default function RestaurantDetailPanel({
   const [reservationInlineOpen, setReservationInlineOpen] = useState(false);
   const [reservationSlot, setReservationSlot] = useState(null);
   const [reservationAvailability, setReservationAvailability] = useState(null);
+  const [reservationAvailabilityLoading, setReservationAvailabilityLoading] = useState(false);
+  const [reservationAvailabilityError, setReservationAvailabilityError] = useState("");
   const [currentRestaurant, setCurrentRestaurant] = useState(restaurant);
 
   // ── Menu accordion ────────────────────────────────────────
@@ -113,11 +115,13 @@ export default function RestaurantDetailPanel({
 
   // Load reservation availability
   useEffect(() => {
-    if (!currentRestaurant?.id) { setReservationAvailability(null); return; }
+    if (!currentRestaurant?.id) { setReservationAvailability(null); setReservationAvailabilityError(""); return; }
     const { date, time } = reservationSlot || getCurrentSlotParams();
+    setReservationAvailabilityLoading(true);
     getReservationAvailability({ restaurantId: currentRestaurant.id, date, time })
-      .then(setReservationAvailability)
-      .catch(() => setReservationAvailability(null));
+      .then((a) => { setReservationAvailability(a); setReservationAvailabilityError(""); })
+      .catch(() => { setReservationAvailability(null); setReservationAvailabilityError("Availability is temporarily unavailable."); })
+      .finally(() => setReservationAvailabilityLoading(false));
   }, [currentRestaurant?.id, reservationSlot]);
 
   // Listen for reservation-changed events
@@ -128,9 +132,11 @@ export default function RestaurantDetailPanel({
       const date = detail.date ? String(detail.date).slice(0, 10) : (reservationSlot?.date || getCurrentSlotParams().date);
       const time = detail.time ? String(detail.time).slice(0, 5) : (reservationSlot?.time || getCurrentSlotParams().time);
       setReservationSlot({ date, time });
+      setReservationAvailabilityLoading(true);
       getReservationAvailability({ restaurantId: currentRestaurant.id, date, time })
-        .then(setReservationAvailability)
-        .catch(() => setReservationAvailability(null));
+        .then((a) => { setReservationAvailability(a); setReservationAvailabilityError(""); })
+        .catch(() => { setReservationAvailability(null); setReservationAvailabilityError("Availability is temporarily unavailable."); })
+        .finally(() => setReservationAvailabilityLoading(false));
       getRestaurantById(currentRestaurant.id)
         .then(setCurrentRestaurant)
         .catch(() => {});
@@ -169,6 +175,8 @@ export default function RestaurantDetailPanel({
   }, [currentRestaurant]);
 
   const availabilityBadge = useMemo(() => {
+    if (reservationAvailabilityLoading) return { label: "Checking availability...", tone: "warn" };
+    if (reservationAvailabilityError) return { label: reservationAvailabilityError, tone: "warn" };
     if (!reservationAvailability) return null;
     const availableSeats = Number(reservationAvailability.available_seats || 0);
     const totalCapacity = Number(reservationAvailability.total_capacity || 0);
@@ -179,7 +187,7 @@ export default function RestaurantDetailPanel({
     if (ratio >= 0.6) return { label: `${availableSeats} seats available at ${slotLabel}`, tone: "good" };
     if (ratio >= 0.25) return { label: `${availableSeats} seats available at ${slotLabel}`, tone: "warn" };
     return { label: `${availableSeats} seats available at ${slotLabel}`, tone: "danger" };
-  }, [reservationAvailability, reservationSlot?.time]);
+  }, [reservationAvailability, reservationSlot?.time, reservationAvailabilityLoading, reservationAvailabilityError]);
 
   // ── Helpers ───────────────────────────────────────────────
   function toggleMenuSection(sectionId) {

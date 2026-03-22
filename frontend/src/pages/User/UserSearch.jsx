@@ -106,6 +106,8 @@ export default function UserSearch({
   const [restaurants, setRestaurants] = useState([]);
   const [baseRestaurants, setBaseRestaurants] = useState([]);
   const [restaurantsLoading, setRestaurantsLoading] = useState(true);
+  const [restaurantsError, setRestaurantsError] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Detail view
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
@@ -143,6 +145,7 @@ export default function UserSearch({
   }
 
   function resetFilters() { updateFilters(getInitialFilters()); }
+  function retryRestaurants() { setRefreshKey((prev) => prev + 1); }
 
   // ── Favorites (API-backed, optimistic) ───────────────────
   function isFavorited(restaurantId) { return favorites.some((r) => r.id === restaurantId); }
@@ -237,6 +240,7 @@ export default function UserSearch({
   useEffect(() => {
     let cancelled = false;
     setRestaurantsLoading(true);
+    setRestaurantsError("");
     const payload = {
       minRating: filters.minRating,
       priceRange: filters.priceRange,
@@ -259,10 +263,10 @@ export default function UserSearch({
         setRestaurants(Array.isArray(filtered) ? filtered : []);
         setBaseRestaurants(Array.isArray(base) ? base : []);
       })
-      .catch(() => { if (cancelled) return; setRestaurants([]); setBaseRestaurants([]); })
+      .catch(() => { if (cancelled) return; setRestaurants([]); setBaseRestaurants([]); setRestaurantsError("We couldn't load restaurants. Check your connection and try again."); })
       .finally(() => { if (!cancelled) setRestaurantsLoading(false); });
     return () => { cancelled = true; };
-  }, [query, filters, effectiveGeo.latitude, effectiveGeo.longitude]);
+  }, [query, filters, effectiveGeo.latitude, effectiveGeo.longitude, refreshKey]);
 
   // GPS
   useEffect(() => {
@@ -465,6 +469,13 @@ export default function UserSearch({
       <div className="restaurantGrid">
         {restaurantsLoading ? (
           <LoadingSkeleton variant="card" count={8} className="restaurantGridSkeleton" />
+        ) : restaurantsError ? (
+          <EmptyState
+            title="We couldn't load restaurants"
+            message={restaurantsError}
+            actionLabel="Try Again"
+            onAction={retryRestaurants}
+          />
         ) : filteredRestaurants.length === 0 ? (
           <EmptyState
             title="No restaurants match your filters"

@@ -281,6 +281,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
             ) : (
               <p className="userProfileFormHint" style={{ marginTop: 2 }}>No location saved yet.</p>
             )}
+
             <button
               type="button"
               className="btn btn--ghost"
