@@ -41,6 +41,29 @@ const upsertTableConfigByRestaurantId = async (restaurantId, config) => {
   return await restaurantRepository.upsertTableConfigByRestaurantId(restaurantId, config);
 };
 
+const restaurantNameCache = new Map();
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+const findRestaurantByName = async (name) => {
+  const key = String(name || "").trim().toLowerCase();
+  if (!key) return null;
+
+  const cached = restaurantNameCache.get(key);
+
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.value;
+  }
+
+  const restaurant = await restaurantRepository.findRestaurantByName(name);
+
+  restaurantNameCache.set(key, {
+    value: restaurant,
+    timestamp: Date.now()
+  });
+
+  return restaurant;
+};
+
 module.exports = {
   createRestaurant,
   getAllRestaurants,
@@ -52,4 +75,5 @@ module.exports = {
   searchRestaurants,
   getTableConfigByRestaurantId,
   upsertTableConfigByRestaurantId,
+  findRestaurantByName,
 };

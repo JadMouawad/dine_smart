@@ -488,6 +488,99 @@ const upsertTableConfigByRestaurantId = async (restaurantId, config) => {
   return result.rows[0];
 };
 
+const cleanRestaurantName = (name = "") => {
+  return String(name || "")
+    .trim()
+    .replace(/\b(restaurant|resto|cafe|café|bistro|grill|place)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const findRestaurantByName = async (name) => {
+  const original = String(name || "").trim();
+  const cleaned = cleanRestaurantName(original);
+
+  if (!original && !cleaned) return null;
+
+  const exactResult = await pool.query(
+    `
+      SELECT
+        id,
+        name,
+        cuisine,
+        rating,
+        price_range,
+        dietary_support,
+        opening_time,
+        closing_time,
+        address,
+        is_verified,
+        updated_at
+      FROM restaurants
+      WHERE LOWER(name) = LOWER($1)
+         OR LOWER(name) = LOWER($2)
+      LIMIT 1
+    `,
+    [original, cleaned]
+  );
+
+  if (exactResult.rows.length) {
+    return exactResult.rows[0];
+  }
+
+  const startsWithResult = await pool.query(
+    `
+      SELECT
+        id,
+        name,
+        cuisine,
+        rating,
+        price_range,
+        dietary_support,
+        opening_time,
+        closing_time,
+        address,
+        is_verified,
+        updated_at
+      FROM restaurants
+      WHERE LOWER(name) LIKE LOWER($1)
+         OR LOWER(name) LIKE LOWER($2)
+      ORDER BY is_verified DESC, updated_at DESC
+      LIMIT 1
+    `,
+    [`${original}%`, `${cleaned}%`]
+  );
+
+  if (startsWithResult.rows.length) {
+    return startsWithResult.rows[0];
+  }
+
+  const containsResult = await pool.query(
+    `
+      SELECT
+        id,
+        name,
+        cuisine,
+        rating,
+        price_range,
+        dietary_support,
+        opening_time,
+        closing_time,
+        address,
+        is_verified,
+        updated_at
+      FROM restaurants
+      WHERE LOWER(name) LIKE LOWER($1)
+         OR LOWER(name) LIKE LOWER($2)
+      ORDER BY is_verified DESC, updated_at DESC
+      LIMIT 1
+    `,
+    [`%${original}%`, `%${cleaned}%`]
+  );
+
+  return containsResult.rows[0] || null;
+};
+
 module.exports = {
   createRestaurant,
   getAllRestaurants,
@@ -500,6 +593,7 @@ module.exports = {
   updateRestaurantRating,
   getTableConfigByRestaurantId,
   upsertTableConfigByRestaurantId,
+  findRestaurantByName,
 };
 
 

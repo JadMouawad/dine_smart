@@ -15,6 +15,7 @@ const discoverRoutes = require("./discoverRoutes");
 const reviewModerationRoutes = require("./reviewModerationRoutes");
 const requireAuth = require("../middleware/requireAuth");
 const profileController = require("../controllers/profileController");
+const chatRoutes = require("./chatRoutes");
 
 // Mount routes
 router.use("/search", searchRoutes);
@@ -29,5 +30,6 @@ router.get("/users/profile", requireAuth, profileController.getProfile);
 router.use("/reservations", reservationRoutes);
 router.use("/owner", ownerRoutes);
 router.use("/admin", adminRoutes);
+router.use("/", chatRoutes);
 
 module.exports = router;
