@@ -1,5 +1,5 @@
 const adminRepository = require("../repositories/adminRepository");
-const chatRepository = require("../repositories/chatRepository");
+const { sendRestaurantRejectionEmail } = require("../utils/emailSender");
 
 const parsePositiveInt = (value, fallback) => {
   const parsed = parseInt(value, 10);
@@ -69,6 +69,19 @@ const rejectRestaurant = async ({ restaurantId, rejectionReason, adminId }) => {
     entityId: updated.id,
     details: { reason },
   });
+
+  if (updated.owner_email) {
+    try {
+      await sendRestaurantRejectionEmail({
+        to: updated.owner_email,
+        ownerName: updated.owner_name || "Restaurant owner",
+        restaurantName: updated.name,
+        rejectionReason: reason,
+      });
+    } catch (error) {
+      console.warn("Failed to send restaurant rejection email:", error.message);
+    }
+  }
 
   return { success: true, data: updated };
 };

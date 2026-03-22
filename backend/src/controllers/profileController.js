@@ -21,6 +21,8 @@ const getProfile = async (req, res) => {
       themePreference: profile.theme_preference || "dark",
       reservationCount: profile.reservation_count ?? 0,
       loyaltyBadge: profile.loyalty_badge || "Newcomer",
+      noShowCount: profile.no_show_count ?? 0,
+      bannedUntil: profile.banned_until || null,
       myReviews: Array.isArray(profile.my_reviews)
         ? profile.my_reviews.map((review) => ({
           id: review.id,
@@ -58,6 +60,8 @@ const updateProfile = async (req, res) => {
       longitude: profile.longitude != null ? Number(profile.longitude) : null,
       profilePictureUrl: profile.profile_picture_url || null,
       themePreference: profile.theme_preference || "dark",
+      noShowCount: profile.no_show_count ?? 0,
+      bannedUntil: profile.banned_until || null,
       createdAt: profile.created_at,
       updatedAt: profile.updated_at
     });

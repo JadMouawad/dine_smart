@@ -26,6 +26,30 @@ if (!GOOGLE_CLIENT_ID) {
 
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
+const toDateOnly = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+
+const isBanActive = (bannedUntil) => {
+  const bannedDate = toDateOnly(bannedUntil);
+  if (!bannedDate) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return bannedDate >= today;
+};
+
+const clearExpiredBanIfNeeded = async (user) => {
+  if (!user?.id) return user;
+  if (!user.banned_until) return user;
+  if (isBanActive(user.banned_until)) return user;
+  const cleared = await User.clearBan(pool, user.id);
+  return cleared ? { ...user, banned_until: null } : user;
+};
+
 /**
  * Register a new user (local only). Sends verification email. No JWT until email verified.
  * @param {string} fullName - User's full name
@@ -98,6 +122,7 @@ const loginUser = async (email, password) => {
   if (user.is_suspended === true) {
     throw new Error("Your account has been suspended. Please contact support.");
   }
+  const normalizedUser = await clearExpiredBanIfNeeded(user);
 
   const token = jwt.sign(
     { id: user.id, email: user.email, role: user.role },
@@ -107,13 +132,15 @@ const loginUser = async (email, password) => {
 
   return {
     user: {
-      id: user.id,
-      fullName: user.full_name,
-      email: user.email,
-      role: user.role,
-      latitude: user.latitude,
-      longitude: user.longitude,
-      themePreference: user.theme_preference || "dark",
+      id: normalizedUser.id,
+      fullName: normalizedUser.full_name,
+      email: normalizedUser.email,
+      role: normalizedUser.role,
+      latitude: normalizedUser.latitude,
+      longitude: normalizedUser.longitude,
+      noShowCount: normalizedUser.no_show_count ?? 0,
+      bannedUntil: normalizedUser.banned_until || null,
+      themePreference: normalizedUser.theme_preference || "dark",
     },
     token
   };
@@ -159,6 +186,7 @@ const googleAuthUser = async (idToken, role) => {
   if (user.is_suspended === true) {
     throw new Error("Your account has been suspended. Please contact support.");
   }
+  const normalizedUser = await clearExpiredBanIfNeeded(user);
 
   const token = jwt.sign(
     { id: user.id, email: user.email, role: user.role },
@@ -168,13 +196,15 @@ const googleAuthUser = async (idToken, role) => {
 
   return {
     user: {
-      id: user.id,
-      fullName: user.full_name,
-      email: user.email,
-      role: user.role,
-      latitude: user.latitude,
-      longitude: user.longitude,
-      themePreference: user.theme_preference || "dark",
+      id: normalizedUser.id,
+      fullName: normalizedUser.full_name,
+      email: normalizedUser.email,
+      role: normalizedUser.role,
+      latitude: normalizedUser.latitude,
+      longitude: normalizedUser.longitude,
+      noShowCount: normalizedUser.no_show_count ?? 0,
+      bannedUntil: normalizedUser.banned_until || null,
+      themePreference: normalizedUser.theme_preference || "dark",
     },
     token
   };

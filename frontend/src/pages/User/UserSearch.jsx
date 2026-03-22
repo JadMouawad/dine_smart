@@ -151,6 +151,7 @@ export default function UserSearch({
   const [restaurants, setRestaurants] = useState([]);
   const [baseRestaurants, setBaseRestaurants] = useState([]);
   const [restaurantsLoading, setRestaurantsLoading] = useState(true);
+  const [restaurantsError, setRestaurantsError] = useState("");
 
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [restaurantNotFound, setRestaurantNotFound] = useState(false);
@@ -168,11 +169,15 @@ export default function UserSearch({
   const [reservationInlineOpen, setReservationInlineOpen] = useState(false);
   const [reservationToast, setReservationToast] = useState("");
   const [reservationAvailability, setReservationAvailability] = useState(null);
+  const [reservationAvailabilityError, setReservationAvailabilityError] = useState("");
+  const [reservationAvailabilityLoading, setReservationAvailabilityLoading] = useState(false);
   const [reservationSlot, setReservationSlot] = useState(null);
+  const [sortOpen, setSortOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerFilters, setDrawerFilters] = useState(getInitialFilters());
   const [filters, setFilters] = useState(getInitialFilters());
   const [geo, setGeo] = useState({ latitude: null, longitude: null });
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const [favorites, setFavorites] = useState(() => loadFavorites());
   const [expandedSections, setExpandedSections] = useState({});
@@ -233,6 +238,10 @@ export default function UserSearch({
 
   function resetFilters() {
     updateFilters(getInitialFilters());
+  }
+
+  function retryRestaurants() {
+    setRefreshKey((prev) => prev + 1);
   }
 
   function toggleDrawerArrayFilter(key, value) {
@@ -331,6 +340,7 @@ export default function UserSearch({
   useEffect(() => {
     let cancelled = false;
     setRestaurantsLoading(true);
+    setRestaurantsError("");
 
     const payload = {
       minRating: filters.minRating,
@@ -363,6 +373,7 @@ export default function UserSearch({
         if (cancelled) return;
         setRestaurants([]);
         setBaseRestaurants([]);
+        setRestaurantsError("We couldn't load restaurants. Check your connection and try again.");
       })
       .finally(() => {
         if (!cancelled) setRestaurantsLoading(false);
@@ -371,7 +382,7 @@ export default function UserSearch({
     return () => {
       cancelled = true;
     };
-  }, [query, filters, effectiveGeo.latitude, effectiveGeo.longitude]);
+  }, [query, filters, effectiveGeo.latitude, effectiveGeo.longitude, refreshKey]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -441,17 +452,27 @@ export default function UserSearch({
     if (!selectedRestaurant?.id) {
       setReservationAvailability(null);
       setReservationSlot(null);
+      setReservationAvailabilityError("");
+      setReservationAvailabilityLoading(false);
       return;
     }
 
     const { date, time } = reservationSlot || getCurrentSlotParams();
+    setReservationAvailabilityLoading(true);
     getReservationAvailability({
       restaurantId: selectedRestaurant.id,
       date,
       time,
     })
-      .then((availability) => setReservationAvailability(availability))
-      .catch(() => setReservationAvailability(null));
+      .then((availability) => {
+        setReservationAvailability(availability);
+        setReservationAvailabilityError("");
+      })
+      .catch(() => {
+        setReservationAvailability(null);
+        setReservationAvailabilityError("Availability is temporarily unavailable.");
+      })
+      .finally(() => setReservationAvailabilityLoading(false));
   }, [selectedRestaurant?.id, reservationSlot]);
 
   useEffect(() => {
@@ -464,13 +485,21 @@ export default function UserSearch({
       const time = detail.time ? String(detail.time).slice(0, 5) : (reservationSlot?.time || getCurrentSlotParams().time);
       setReservationSlot({ date, time });
 
+      setReservationAvailabilityLoading(true);
       getReservationAvailability({
         restaurantId: selectedRestaurant.id,
         date,
         time,
       })
-        .then((availability) => setReservationAvailability(availability))
-        .catch(() => setReservationAvailability(null));
+        .then((availability) => {
+          setReservationAvailability(availability);
+          setReservationAvailabilityError("");
+        })
+        .catch(() => {
+          setReservationAvailability(null);
+          setReservationAvailabilityError("Availability is temporarily unavailable.");
+        })
+        .finally(() => setReservationAvailabilityLoading(false));
 
       getRestaurantById(selectedRestaurant.id)
         .then((updatedRestaurant) => setSelectedRestaurant(updatedRestaurant))
@@ -630,6 +659,12 @@ export default function UserSearch({
   }, [restaurantMenu]);
 
   const availabilityBadge = useMemo(() => {
+    if (reservationAvailabilityLoading) {
+      return { label: "Checking availability...", tone: "warn" };
+    }
+    if (reservationAvailabilityError) {
+      return { label: reservationAvailabilityError, tone: "warn" };
+    }
     if (!reservationAvailability) return null;
 
     const availableSeats = Number(reservationAvailability.available_seats || 0);
@@ -648,7 +683,7 @@ export default function UserSearch({
     if (ratio >= 0.6) return { label: `${availableSeats} seats available at ${slotLabel}`, tone: "good" };
     if (ratio >= 0.25) return { label: `${availableSeats} seats available at ${slotLabel}`, tone: "warn" };
     return { label: `${availableSeats} seats available at ${slotLabel}`, tone: "danger" };
-  }, [reservationAvailability, reservationSlot?.time]);
+  }, [reservationAvailability, reservationSlot?.time, reservationAvailabilityLoading, reservationAvailabilityError]);
 
   const restaurantHoursLabel = useMemo(() => {
     if (!selectedRestaurant) return "Hours unavailable";
@@ -905,13 +940,21 @@ export default function UserSearch({
                 const date = reservation?.reservation_date || reservationSlot?.date || getCurrentSlotParams().date;
                 const time = String(reservation?.reservation_time || reservationSlot?.time || getCurrentSlotParams().time).slice(0, 5);
                 setReservationSlot({ date, time });
+                setReservationAvailabilityLoading(true);
                 getReservationAvailability({
                   restaurantId: selectedRestaurant.id,
                   date,
                   time,
                 })
-                  .then((availability) => setReservationAvailability(availability))
-                  .catch(() => setReservationAvailability(null));
+                  .then((availability) => {
+                    setReservationAvailability(availability);
+                    setReservationAvailabilityError("");
+                  })
+                  .catch(() => {
+                    setReservationAvailability(null);
+                    setReservationAvailabilityError("Availability is temporarily unavailable.");
+                  })
+                  .finally(() => setReservationAvailabilityLoading(false));
                 window.dispatchEvent(
                   new CustomEvent("ds:reservation-changed", {
                     detail: {
@@ -1205,70 +1248,17 @@ export default function UserSearch({
           }}
           aria-label="Search restaurants"
         />
-      </div>
-
-      <div className="quickFiltersBar" role="toolbar" aria-label="Quick filters">
         <button
           type="button"
-          className={`quickFilterBtn ${filters.minRating >= 4 ? "is-active" : ""}`}
-          onClick={toggleQuickTopRated}
-          disabled={optionCounts.topRated === 0}
-          aria-pressed={filters.minRating >= 4}
-          aria-label="Toggle top rated"
+          className={`searchFilterBtn${activeFilterChips.length > 0 ? " is-active" : ""}`}
+          onClick={openDrawer}
+          aria-haspopup="dialog"
+          aria-expanded={drawerOpen}
         >
-          Top Rated ({optionCounts.topRated})
-        </button>
-        <button
-          type="button"
-          className={`quickFilterBtn ${filters.openNow ? "is-active" : ""}`}
-          onClick={toggleQuickOpenNow}
-          disabled={optionCounts.openNow === 0}
-          aria-pressed={filters.openNow}
-          aria-label="Toggle open now"
-        >
-          Open Now ({optionCounts.openNow})
-        </button>
-        <button
-          type="button"
-          className={`quickFilterBtn ${filters.availabilityDate === getTodayDateValue() ? "is-active" : ""}`}
-          onClick={toggleQuickAvailableToday}
-          aria-pressed={filters.availabilityDate === getTodayDateValue()}
-          aria-label="Toggle available today"
-        >
-          Available Today ({optionCounts.availableToday})
-        </button>
-        <button
-          type="button"
-          className={`quickFilterBtn ${(filters.priceRange.length === 1 && filters.priceRange[0] === "$$") ? "is-active" : ""}`}
-          onClick={toggleQuickPrice}
-          disabled={optionCounts.price["$$"] === 0}
-          aria-pressed={filters.priceRange.length === 1 && filters.priceRange[0] === "$$"}
-          aria-label="Toggle price filter"
-        >
-          Price ({optionCounts.price["$$"] || 0})
-        </button>
-        <button
-          type="button"
-          className={`quickFilterBtn ${filters.dietarySupport.includes("Vegetarian") ? "is-active" : ""}`}
-          onClick={toggleQuickDietary}
-          disabled={optionCounts.dietary.Vegetarian === 0}
-          aria-pressed={filters.dietarySupport.includes("Vegetarian")}
-          aria-label="Toggle dietary filter"
-        >
-          Dietary ({optionCounts.dietary.Vegetarian || 0})
-        </button>
-        <button
-          type="button"
-          className={`quickFilterBtn ${filters.distanceEnabled ? "is-active" : ""}`}
-          onClick={toggleQuickDistance}
-          disabled={effectiveGeo.latitude == null || effectiveGeo.longitude == null}
-          aria-pressed={filters.distanceEnabled}
-          aria-label="Toggle distance filter"
-        >
-          Distance
-        </button>
-        <button type="button" className="quickFilterBtn quickFilterBtn--advanced" onClick={openDrawer} aria-haspopup="dialog" aria-expanded={drawerOpen}>
-          Advanced Filters
+          ⚙ Filters
+          {activeFilterChips.length > 0 && (
+            <span className="searchFilterBtn__badge">{activeFilterChips.length}</span>
+          )}
         </button>
       </div>
 
@@ -1288,26 +1278,55 @@ export default function UserSearch({
 
       <div className="searchResultsHeader">
         <p className="searchResultsHeader__count">{filteredRestaurants.length} restaurants found</p>
-        <label className="searchSortControl">
+        <div className="searchSortControl">
           <span>Sort by</span>
-          <select
-            className="select searchSortControl__select"
-            value={filters.sortBy}
-            onChange={(e) => updateFilters((prev) => ({ ...prev, sortBy: e.target.value }))}
-            aria-label="Sort restaurants"
-          >
-            {sortOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+          <div className="sortDropdown">
+            <button
+              type="button"
+              className="sortDropdown__btn"
+              onClick={() => setSortOpen((v) => !v)}
+              aria-haspopup="listbox"
+              aria-expanded={sortOpen}
+            >
+              {sortOptions.find((o) => o.value === filters.sortBy)?.label || "Top Rated"}
+              <span className="sortDropdown__arrow">▾</span>
+            </button>
+            {sortOpen && (
+              <>
+                <div className="sortDropdown__backdrop" onClick={() => setSortOpen(false)} />
+                <div className="sortDropdown__menu" role="listbox">
+                  {sortOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="option"
+                      aria-selected={filters.sortBy === option.value}
+                      className={`sortDropdown__item${filters.sortBy === option.value ? " is-active" : ""}`}
+                      onClick={() => {
+                        updateFilters((prev) => ({ ...prev, sortBy: option.value }));
+                        setSortOpen(false);
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="restaurantGrid">
         {restaurantsLoading ? (
           <LoadingSkeleton variant="card" count={8} className="restaurantGridSkeleton" />
+        ) : restaurantsError ? (
+          <EmptyState
+            title="We couldn't load restaurants"
+            message={restaurantsError}
+            actionLabel="Try Again"
+            onAction={retryRestaurants}
+          />
         ) : filteredRestaurants.length === 0 ? (
           <EmptyState
             title="No restaurants match your filters"
@@ -1386,13 +1405,42 @@ export default function UserSearch({
           <div className="filterDrawer__backdrop" onClick={closeDrawer} />
           <aside className="filterDrawer__panel" ref={drawerRef}>
             <header className="filterDrawer__header">
-              <h2>Advanced Filters</h2>
-              <button type="button" className="btn btn--ghost" onClick={closeDrawer} aria-label="Close advanced filters">
-                Close
-              </button>
+              <h2>Filters</h2>
+              <button type="button" className="filterDrawer__closeBtn" onClick={closeDrawer} aria-label="Close filters">✕</button>
             </header>
 
             <div className="filterDrawer__body">
+              {/* Quick toggles */}
+              <section className="filterDrawer__section">
+                <div className="filterDrawer__label">Quick</div>
+                <div className="filterDrawer__quickToggles">
+                  <button
+                    type="button"
+                    className={`filterQuickChip${drawerFilters.minRating >= 4 ? " is-on" : ""}`}
+                    onClick={() => setDrawerFilters((prev) => ({ ...prev, minRating: prev.minRating >= 4 ? 0 : 4 }))}
+                  >⭐ Top Rated</button>
+                  <button
+                    type="button"
+                    className={`filterQuickChip${drawerFilters.openNow ? " is-on" : ""}`}
+                    onClick={() => setDrawerFilters((prev) => ({ ...prev, openNow: !prev.openNow }))}
+                  >🟢 Open Now</button>
+                  <button
+                    type="button"
+                    className={`filterQuickChip${drawerFilters.availabilityDate === getTodayDateValue() ? " is-on" : ""}`}
+                    onClick={() => setDrawerFilters((prev) => {
+                      const on = prev.availabilityDate === getTodayDateValue();
+                      return { ...prev, availabilityDate: on ? "" : getTodayDateValue(), availabilityTime: on ? "" : getCurrentSlotParams().time };
+                    })}
+                  >📅 Available Today</button>
+                  <button
+                    type="button"
+                    className={`filterQuickChip${drawerFilters.distanceEnabled ? " is-on" : ""}`}
+                    disabled={effectiveGeo.latitude == null}
+                    onClick={() => setDrawerFilters((prev) => ({ ...prev, distanceEnabled: !prev.distanceEnabled }))}
+                  >📍 Near Me</button>
+                </div>
+              </section>
+
               <section className="filterDrawer__section">
                 <label className="filterDrawer__label" htmlFor="drawer-rating">Rating ({drawerFilters.minRating})</label>
                 <input

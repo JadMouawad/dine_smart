@@ -57,16 +57,8 @@ async function createReservation(db, data) {
       status,
       confirmation_id
     )
-    SELECT
-      $1, $2, $3, $4, $5, $6, $7, $8, $9
-    WHERE NOT EXISTS (
-      SELECT 1
-      FROM reservations existing
-      WHERE existing.restaurant_id = $2
-        AND existing.reservation_date = $3
-        AND existing.reservation_time = $4
-        AND existing.status IN ('pending', 'accepted', 'confirmed')
-    )
+    VALUES
+      ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     RETURNING id, user_id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time, party_size,
               seating_preference, special_request, status, confirmation_id, created_at, updated_at;
   `;
@@ -105,6 +97,18 @@ async function getUserReservations(db, userId) {
     ORDER BY r.reservation_date DESC, r.reservation_time DESC, r.created_at DESC;
   `;
   return db.query(query, [userId]);
+}
+
+async function getActiveUserReservationsForDate(db, userId, reservationDate) {
+  const query = `
+    SELECT r.id, r.restaurant_id, r.reservation_time::text AS reservation_time, r.status
+    FROM reservations r
+    WHERE r.user_id = $1
+      AND r.reservation_date = $2
+      AND r.status IN ('pending', 'accepted', 'confirmed')
+    ORDER BY r.reservation_time ASC, r.created_at ASC;
+  `;
+  return db.query(query, [userId, reservationDate]);
 }
 
 async function cancelReservation(db, reservationId) {
@@ -172,6 +176,75 @@ async function updateOwnerReservationStatus(db, { reservationId, ownerId, status
   return db.query(query, [reservationId, ownerId, status]);
 }
 
+async function getReservationsForSlot(db, restaurantId, reservationDate, reservationTime) {
+  const query = `
+    SELECT party_size, seating_preference
+    FROM reservations
+    WHERE restaurant_id = $1
+      AND reservation_date = $2
+      AND reservation_time = $3
+      AND status IN ('pending', 'accepted', 'confirmed');
+  `;
+  return db.query(query, [restaurantId, reservationDate, reservationTime]);
+}
+
+async function getSlotAdjustments(db, restaurantId, reservationDate, reservationTime) {
+  const query = `
+    SELECT seating_preference, adjustment
+    FROM reservation_slot_adjustments
+    WHERE restaurant_id = $1
+      AND reservation_date = $2
+      AND reservation_time = $3;
+  `;
+  return db.query(query, [restaurantId, reservationDate, reservationTime]);
+}
+
+async function getSlotAdjustment(db, restaurantId, reservationDate, reservationTime, seatingPreference) {
+  const query = `
+    SELECT seating_preference, adjustment
+    FROM reservation_slot_adjustments
+    WHERE restaurant_id = $1
+      AND reservation_date = $2
+      AND reservation_time = $3
+      AND seating_preference = $4
+    LIMIT 1;
+  `;
+  return db.query(query, [restaurantId, reservationDate, reservationTime, seatingPreference]);
+}
+
+async function upsertSlotAdjustment(db, data) {
+  const {
+    restaurantId,
+    reservationDate,
+    reservationTime,
+    seatingPreference,
+    adjustment,
+  } = data;
+
+  const query = `
+    INSERT INTO reservation_slot_adjustments (
+      restaurant_id,
+      reservation_date,
+      reservation_time,
+      seating_preference,
+      adjustment
+    )
+    VALUES ($1, $2, $3, $4, $5)
+    ON CONFLICT (restaurant_id, reservation_date, reservation_time, seating_preference)
+    DO UPDATE SET adjustment = EXCLUDED.adjustment, updated_at = NOW()
+    RETURNING id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time,
+              seating_preference, adjustment, created_at, updated_at;
+  `;
+
+  return db.query(query, [
+    restaurantId,
+    reservationDate,
+    reservationTime,
+    seatingPreference,
+    adjustment,
+  ]);
+}
+
 module.exports = {
   getRestaurantById,
   getTableConfigByRestaurantId,
@@ -179,9 +252,14 @@ module.exports = {
   createReservation,
   getReservationById,
   getUserReservations,
+  getActiveUserReservationsForDate,
   cancelReservation,
   getOwnerReservations,
   getOwnerReservationById,
   updateOwnerReservationStatus,
+  getReservationsForSlot,
+  getSlotAdjustments,
+  getSlotAdjustment,
+  upsertSlotAdjustment,
 };
 

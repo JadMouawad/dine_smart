@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS users (
   provider VARCHAR(20) DEFAULT 'local',         -- 'local' | 'google'
   is_suspended BOOLEAN DEFAULT false,
   suspended_at TIMESTAMPTZ,
+  no_show_count INTEGER NOT NULL DEFAULT 0,
+  banned_until DATE,
   phone VARCHAR(30),
   latitude NUMERIC(9, 6),
   longitude NUMERIC(9, 6),
@@ -123,6 +125,19 @@ CREATE TABLE IF NOT EXISTS restaurant_table_configs (
   outdoor_capacity INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS reservation_slot_adjustments (
+  id SERIAL PRIMARY KEY,
+  restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  reservation_date DATE NOT NULL,
+  reservation_time TIME NOT NULL,
+  seating_preference VARCHAR(50) NOT NULL DEFAULT 'any',
+  adjustment INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT reservation_slot_adjustments_preference_check CHECK (seating_preference IN ('any', 'indoor', 'outdoor')),
+  CONSTRAINT reservation_slot_adjustments_unique UNIQUE (restaurant_id, reservation_date, reservation_time, seating_preference)
 );
 
 CREATE TABLE IF NOT EXISTS events (

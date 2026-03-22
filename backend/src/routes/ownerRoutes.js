@@ -80,4 +80,20 @@ router.patch(
   reservationController.updateReservationStatusForOwner
 );
 
+router.get(
+  "/restaurants/:id/slot-adjustments",
+  authenticateToken,
+  authorizeRoles("owner"),
+  requireApprovedRestaurant,
+  reservationController.getSlotAdjustmentForOwner
+);
+
+router.post(
+  "/restaurants/:id/slot-adjustments",
+  authenticateToken,
+  authorizeRoles("owner"),
+  requireApprovedRestaurant,
+  reservationController.upsertSlotAdjustmentForOwner
+);
+
 module.exports = router;
