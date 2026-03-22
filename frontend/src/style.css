@@ -4796,6 +4796,10 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 [data-theme="light"] .favoriteHeartBtn.is-active {
   color: #C9A227;
 }
+[data-theme="light"] .favoriteHeartBtn.is-active .favoriteHeartIcon {
+  fill: #C9A227;
+  stroke: #C9A227;
+}
 
 .reserveMiniBtn {
   padding: 6px 10px;
@@ -5128,6 +5132,16 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   padding: 10px 14px;
   font-size: 13px;
   font-weight: 600;
+}
+.inlineToast--error {
+  border-color: rgba(220, 80, 80, 0.45);
+  background: rgba(220, 80, 80, 0.15);
+  color: #ff9999;
+}
+[data-theme="light"] .inlineToast--error {
+  border-color: rgba(180, 40, 40, 0.35);
+  background: rgba(220, 80, 80, 0.08);
+  color: #b92d2d;
 }
 
 .metaPill--good {

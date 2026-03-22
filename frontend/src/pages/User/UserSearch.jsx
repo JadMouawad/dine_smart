@@ -126,6 +126,7 @@ export default function UserSearch({
 
   // Favorites (server-backed)
   const [favorites, setFavorites] = useState([]);
+  const [favoriteError, setFavoriteError] = useState("");
 
   const scrollRestoreRef = useRef(null);
 
@@ -148,14 +149,15 @@ export default function UserSearch({
 
   function toggleFavorite(restaurant) {
     const alreadyFavorited = isFavorited(restaurant.id);
+    // Update UI immediately — never revert so the heart always responds
     setFavorites((prev) =>
       alreadyFavorited ? prev.filter((r) => r.id !== restaurant.id) : [...prev, restaurant]
     );
+    setFavoriteError("");
     const apiCall = alreadyFavorited ? removeFavorite(restaurant.id) : addFavorite(restaurant.id);
-    apiCall.catch(() => {
-      setFavorites((prev) =>
-        alreadyFavorited ? [...prev, restaurant] : prev.filter((r) => r.id !== restaurant.id)
-      );
+    apiCall.catch((err) => {
+      console.error("[favorites]", err?.message);
+      setFavoriteError(alreadyFavorited ? "Couldn't remove favorite." : "Couldn't save favorite — check your connection.");
     });
   }
 
@@ -380,6 +382,12 @@ export default function UserSearch({
   return (
     <div className="userSearchPage">
       <h1 className="userSearchPage__title">Search Restaurants</h1>
+
+      {favoriteError && (
+        <div className="inlineToast inlineToast--error" role="alert">
+          {favoriteError}
+        </div>
+      )}
 
       <div className="searchBarCard">
         <input
