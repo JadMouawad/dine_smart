@@ -4786,6 +4786,17 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   stroke: #C9A227;
 }
 
+/* light mode — heart must be dark so it shows on white/cream cards */
+[data-theme="light"] .favoriteHeartBtn {
+  color: rgba(80, 45, 10, 0.55);
+}
+[data-theme="light"] .favoriteHeartBtn:hover {
+  color: rgba(80, 45, 10, 0.85);
+}
+[data-theme="light"] .favoriteHeartBtn.is-active {
+  color: #C9A227;
+}
+
 .reserveMiniBtn {
   padding: 6px 10px;
   font-size: 12px;

@@ -25,8 +25,8 @@ router.use("/discover", discoverRoutes);
 router.use("/reviews", reviewModerationRoutes);
 router.use("/auth", authRoutes);
 router.use("/profile", profileRoutes);
+router.use("/me/favorites", favoriteRoutes); // must be before /me so Express doesn't swallow it
 router.use("/me", profileRoutes); // alias so frontend /api/me works
-router.use("/me/favorites", favoriteRoutes);
 router.get("/users/profile", requireAuth, profileController.getProfile);
 router.use("/reservations", reservationRoutes);
 router.use("/owner", ownerRoutes);
