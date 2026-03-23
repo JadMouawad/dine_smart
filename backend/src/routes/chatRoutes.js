@@ -5,7 +5,16 @@ const searchService = require("../services/searchService");
 const restaurantService = require("../services/restaurantService");
 const reservationService = require("../services/reservationService");
 
-console.log("chatRoutes.js loaded");
+const GREETING_MESSAGE =
+  "Hi! I’m Diney. I can help you discover restaurants on DineSmart, check hours, look at reviews, and check availability. Tell me what you’re craving.";
+
+const IDENTITY_MESSAGE =
+  "Hey! I’m Diney, DineSmart’s restaurant assistant. I can help with things like finding nearby spots, narrowing by cuisine, budget, rating, or dietary preferences, checking restaurant details and hours, and checking reservation availability.";
+
+const OUT_OF_SCOPE_MESSAGE =
+  "I’m Diney, so I stay focused on DineSmart restaurant help. I can help with restaurant discovery, reviews, hours, and reservation availability.";
+
+const DEFAULT_NEARBY_RADIUS_KM = 10;
 
 const normalizePriceRanges = (priceRanges = []) => {
   const normalized = new Set();
@@ -14,21 +23,24 @@ const normalizePriceRanges = (priceRanges = []) => {
     const value = String(raw || "").trim().toLowerCase();
 
     if (!value) continue;
+
     if (["$", "$$", "$$$", "$$$$"].includes(value)) {
       normalized.add(value);
       continue;
     }
+
     if (["cheap", "budget", "affordable", "inexpensive", "low"].includes(value)) {
       normalized.add("$");
       continue;
     }
+
     if (["moderate", "mid", "mid-range", "average"].includes(value)) {
       normalized.add("$$");
       continue;
     }
-    if (["expensive", "fancy", "fine dining", "luxury", "high-end"].includes(value)) {
+
+    if (["expensive", "fancy", "fine dining", "luxury", "high-end", "premium"].includes(value)) {
       normalized.add("$$$");
-      continue;
     }
   }
 
@@ -42,6 +54,24 @@ const getCurrentTime = () => {
   const hh = String(now.getHours()).padStart(2, "0");
   const mm = String(now.getMinutes()).padStart(2, "0");
   return `${hh}:${mm}:00`;
+};
+
+const formatTimeLabel = (value) => {
+  const match = String(value || "").match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (!match) return value || "";
+
+  const hours = Number(match[1]);
+  const minutes = match[2];
+  const suffix = hours >= 12 ? "PM" : "AM";
+  const normalizedHours = ((hours + 11) % 12) + 1;
+  return `${normalizedHours}:${minutes} ${suffix}`;
+};
+
+const joinNaturally = (values = []) => {
+  const cleaned = values.filter(Boolean);
+  if (cleaned.length <= 1) return cleaned[0] || "";
+  if (cleaned.length === 2) return `${cleaned[0]} and ${cleaned[1]}`;
+  return `${cleaned.slice(0, -1).join(", ")}, and ${cleaned[cleaned.length - 1]}`;
 };
 
 const isOpenNow = (openingTime, closingTime) => {
@@ -63,29 +93,6 @@ const isOpenNow = (openingTime, closingTime) => {
   return current >= open || current <= close;
 };
 
-const articleFor = (phrase = "") => {
-  const text = String(phrase || "").trim();
-  if (!text) return "a";
-
-  const lower = text.toLowerCase();
-
-  const specialAnPrefixes = ["honest", "honor", "honour", "hour", "heir", "herb"];
-  const specialAStarts = ["uni", "use", "user", "utility", "utensil", "uk", "euro", "one", "once", "ubiquit", "ufo"];
-
-  if (specialAnPrefixes.some((prefix) => lower.startsWith(prefix))) return "an";
-  if (specialAStarts.some((prefix) => lower.startsWith(prefix))) return "a";
-  if (/^[aeio]/.test(lower)) return "an";
-  if (/^u/.test(lower)) return "an";
-
-  return "a";
-};
-
-const formatCuisinePhrase = (cuisine = "") => {
-  const cleaned = String(cuisine || "").trim();
-  if (!cleaned) return "restaurant";
-  return `${articleFor(cleaned)} ${cleaned} restaurant`;
-};
-
 const buildRestaurantCard = (restaurant) => ({
   id: restaurant.id,
   name: restaurant.name,
@@ -96,39 +103,117 @@ const buildRestaurantCard = (restaurant) => ({
   opening_time: restaurant.opening_time,
   closing_time: restaurant.closing_time,
   address: restaurant.address,
+  latitude: restaurant.latitude,
+  longitude: restaurant.longitude,
   distance_km: restaurant.distance_km,
   review_count: restaurant.review_count,
   active_event_count: restaurant.active_event_count,
-  popularity_score: restaurant.popularity_score
+  popularity_score: restaurant.popularity_score,
+  available_seats: restaurant.available_seats,
 });
 
-const buildSearchMessage = (parsed, restaurants) => {
-  if (!restaurants.length) {
-    return "I couldn’t find a strong match right now. Try changing the cuisine, budget, or dietary filter and I’ll search again.";
-  }
-
-  const top = restaurants.slice(0, 3);
-  const first = top[0];
-  const cuisineLabel = parsed.cuisines?.length ? parsed.cuisines.join(", ") : first.cuisine || "restaurant";
-
-  if (top.length === 1) {
-    return `I found a great option for you: ${first.name}, ${formatCuisinePhrase(cuisineLabel)}${first.rating ? ` rated ${first.rating}` : ""}${first.price_range ? ` in the ${first.price_range} price range` : ""}.`;
-  }
-
-  const names = top.map((r) => r.name).join(", ");
-  return `Here are a few ${cuisineLabel} places you might enjoy: ${names}. I picked them based on your request and sorted the results by rating.`;
+const budgetLabelMap = {
+  "$": "budget-friendly",
+  "$$": "moderately priced",
+  "$$$": "upscale",
+  "$$$$": "luxury",
 };
 
-const buildSearchSuggestions = (parsed, restaurants) => {
+const describeSearchRequest = (parsed = {}) => {
+  const phrases = [];
+
+  if (parsed.cuisines?.length) {
+    phrases.push(`${joinNaturally(parsed.cuisines)} spots`);
+  } else {
+    phrases.push("restaurants");
+  }
+
+  if (parsed.priceRanges?.length) {
+    const budgetLabels = parsed.priceRanges.map((value) => budgetLabelMap[value] || value);
+    phrases.push(joinNaturally(budgetLabels));
+  }
+
+  if (parsed.dietarySupport?.length) {
+    phrases.push(`${joinNaturally(parsed.dietarySupport)}-friendly`);
+  }
+
+  if (parsed.minRating != null) {
+    phrases.push(`${parsed.minRating}+ rated`);
+  }
+
+  if (parsed.maxRating != null) {
+    phrases.push(parsed.maxRating <= 1 ? "1★ rated" : `${parsed.maxRating}★ and below`);
+  }
+
+  if (parsed.openNow) {
+    phrases.push("open right now");
+  }
+
+  if (parsed.useProximity) {
+    phrases.push(parsed.distanceRadiusKm != null ? `within ${parsed.distanceRadiusKm} km` : "near you");
+  }
+
+  return phrases;
+};
+
+const buildSearchMessage = ({ parsed, restaurants, locationApplied = false, locationMissing = false }) => {
+  const request = describeSearchRequest(parsed);
+
   if (!restaurants.length) {
-    return ["Try another cuisine", "Add a budget like $$", "Remove one filter", "Search open now"];
+    const qualifier = request.length ? ` for ${joinNaturally(request)}` : "";
+    if (locationMissing && parsed.useProximity) {
+      return `I couldn’t find a strong match${qualifier}. I also don’t have your location yet, so I couldn’t truly do a nearby search.`;
+    }
+    return `I couldn’t find a strong match${qualifier} right now. I can broaden the search if you want.`;
+  }
+
+  const shown = restaurants.slice(0, 5);
+  const locationPrefix = locationMissing && parsed.useProximity
+    ? "I don’t have your location yet, so I’m showing the best matches I could find instead of true nearby results. "
+    : "";
+
+  const snippets = shown.map((restaurant) => {
+    const bits = [
+      restaurant.cuisine,
+      restaurant.price_range,
+      restaurant.rating != null ? `${Number(restaurant.rating).toFixed(1)}★` : "",
+      locationApplied && restaurant.distance_km != null ? `${Number(restaurant.distance_km).toFixed(1)} km away` : "",
+    ].filter(Boolean);
+
+    return bits.length
+      ? `${restaurant.name} (${bits.join(" • ")})`
+      : restaurant.name;
+  });
+
+  if (shown.length === 1) {
+    return `${locationPrefix}I found 1 match: ${snippets[0]}.`;
+  }
+
+  return `${locationPrefix}I found ${restaurants.length} match${restaurants.length === 1 ? "" : "es"}: ${joinNaturally(snippets)}.`;
+};
+
+const buildSearchSuggestions = ({ parsed, restaurants, locationMissing = false }) => {
+  if (!restaurants.length) {
+    const suggestions = [
+      "Broaden the cuisine",
+      "Try a different budget",
+      "Show anything open now",
+      "Search by restaurant name",
+    ];
+
+    if (locationMissing && parsed.useProximity) {
+      suggestions.unshift("Share your location for nearby results");
+    }
+
+    return suggestions.slice(0, 4);
   }
 
   const suggestions = [];
+  if (locationMissing && parsed.useProximity) suggestions.push("Share your location for nearby results");
   if (!parsed.priceRanges?.length) suggestions.push("Filter by budget");
   if (!parsed.dietarySupport?.length) suggestions.push("Add vegan, halal, or vegetarian");
-  if (!parsed.openNow) suggestions.push("Show only places open now");
-  suggestions.push("Sort by rating");
+  if (!parsed.openNow) suggestions.push("Show only open now");
+  suggestions.push("Check availability at one of these");
 
   return suggestions.slice(0, 4);
 };
@@ -138,354 +223,465 @@ const buildPopularityText = (restaurant) => {
   const reviews = Number(restaurant.review_count || 0);
 
   if (rating >= 4.5 && reviews >= 50) {
-    return `${restaurant.name} seems very well-loved — it has a strong ${rating.toFixed(1)} rating across ${reviews} reviews.`;
+    return `${restaurant.name} looks very well-loved — it’s sitting at ${rating.toFixed(1)}★ across ${reviews} reviews.`;
   }
 
   if (rating >= 4.0 && reviews >= 10) {
-    return `${restaurant.name} seems to be well-liked by diners, with a ${rating.toFixed(1)} rating${reviews ? ` from ${reviews} reviews` : ""}.`;
+    return `${restaurant.name} seems to be a solid pick. It has a ${rating.toFixed(1)}★ rating${reviews ? ` from ${reviews} reviews` : ""}.`;
   }
 
   if (rating > 0) {
-    return `${restaurant.name} currently has a ${rating.toFixed(1)} rating${reviews ? ` from ${reviews} reviews` : ""}.`;
+    return `${restaurant.name} currently has a ${rating.toFixed(1)}★ rating${reviews ? ` from ${reviews} reviews` : ""}, so there’s at least some diner feedback to go on.`;
   }
 
-  return `I found ${restaurant.name}, but I don’t have enough rating information yet to say how popular it is.`;
+  return `I found ${restaurant.name}, but I don’t have enough review data yet to say how popular it is.`;
 };
 
-const buildRestaurantDetailsMessage = (userMessage, restaurant, parsed) => {
+const buildReviewText = (userMessage, restaurant) => {
   const lowerMessage = String(userMessage || "").toLowerCase();
-  const asksPopularity =
-    /\b(loved|popular|good|great|worth|liked|best|famous|recommended|well[- ]?liked)\b/.test(lowerMessage);
+  const rating = Number(restaurant.rating || 0);
+  const reviews = Number(restaurant.review_count || 0);
+  const asksNegativeReviews = /\b(bad|negative|poor|terrible|awful|worst|low rated|low-rated)\b/.test(lowerMessage);
+
+  if (reviews <= 0 || rating <= 0) {
+    return `I found ${restaurant.name}, but there isn’t enough review data on DineSmart yet to say whether it has good or bad reviews.`;
+  }
+
+  if (asksNegativeReviews) {
+    if (rating <= 2.5) {
+      return `Yes — ${restaurant.name} has some fairly weak feedback right now, with a ${rating.toFixed(1)}★ rating across ${reviews} reviews.`;
+    }
+    if (rating >= 4) {
+      return `Not really — ${restaurant.name} is actually reviewing well on DineSmart, with a ${rating.toFixed(1)}★ rating across ${reviews} reviews.`;
+    }
+    return `${restaurant.name} looks mixed rather than clearly bad right now, with a ${rating.toFixed(1)}★ rating across ${reviews} reviews.`;
+  }
+
+  return `${restaurant.name} currently has a ${rating.toFixed(1)}★ rating across ${reviews} reviews on DineSmart.`;
+};
+
+const buildRestaurantDetailsMessage = (userMessage, restaurant) => {
+  const lowerMessage = String(userMessage || "").toLowerCase();
+  const asksPopularity = /\b(loved|popular|good|great|worth|liked|recommended|recommend)\b/.test(lowerMessage);
+  const asksReviews = /\b(review|reviews|rating|ratings|rated|star|stars|bad)\b/.test(lowerMessage);
+
+  if (asksReviews) {
+    return buildReviewText(userMessage, restaurant);
+  }
 
   if (asksPopularity) {
     return buildPopularityText(restaurant);
   }
 
-  const parts = [];
-
-  parts.push(`${restaurant.name} is ${formatCuisinePhrase(restaurant.cuisine)}`);
-
-  if (restaurant.rating) {
-    parts.push(`with a ${Number(restaurant.rating).toFixed(1)} rating`);
-  }
-
-  if (restaurant.price_range) {
-    parts.push(`in the ${restaurant.price_range} price range`);
-  }
-
-  if (restaurant.opening_time && restaurant.closing_time) {
-    parts.push(`and it’s open from ${restaurant.opening_time} to ${restaurant.closing_time}`);
-  }
-
-  return `${parts.join(" ")}.`;
+  const details = [restaurant.cuisine, restaurant.price_range].filter(Boolean).join(" • ");
+  return `I found ${restaurant.name}${details ? ` (${details})` : ""}. ${restaurant.address ? `It’s located at ${restaurant.address}.` : ""}`.trim();
 };
 
+const buildHoursMessage = (restaurant, requestedOpenNow = false) => {
+  if (!restaurant.opening_time || !restaurant.closing_time) {
+    return `I found ${restaurant.name}, but I don’t have its hours yet.`;
+  }
+
+  const openStatus = isOpenNow(restaurant.opening_time, restaurant.closing_time);
+  const hoursText = `${formatTimeLabel(restaurant.opening_time)} to ${formatTimeLabel(restaurant.closing_time)}`;
+
+  if (requestedOpenNow) {
+    if (openStatus === true) {
+      return `Yes — ${restaurant.name} is open right now. Today’s hours are ${hoursText}.`;
+    }
+    if (openStatus === false) {
+      return `No — ${restaurant.name} isn’t open right now. Today’s hours are ${hoursText}.`;
+    }
+  }
+
+  if (openStatus === true) {
+    return `${restaurant.name} is currently open. Its hours are ${hoursText}.`;
+  }
+  if (openStatus === false) {
+    return `${restaurant.name} is currently closed. Its hours are ${hoursText}.`;
+  }
+
+  return `${restaurant.name} is open from ${hoursText}.`;
+};
+
+const buildAvailabilityMessage = ({ restaurant, availability, partySize }) => {
+  const when = `${availability.reservation_date} at ${formatTimeLabel(availability.reservation_time)}`;
+  const suggestions = availability.suggested_times?.length
+    ? ` Nearby times that may work: ${joinNaturally(availability.suggested_times.map(formatTimeLabel))}.`
+    : "";
+
+  if (availability.is_outside_operating_hours) {
+    return `${restaurant.name} isn’t serving reservations at ${formatTimeLabel(availability.reservation_time)}. Its hours are ${formatTimeLabel(restaurant.opening_time)} to ${formatTimeLabel(restaurant.closing_time)}.${suggestions}`;
+  }
+
+  if (availability.is_fully_booked) {
+    return `${restaurant.name} is fully booked on ${when}.${suggestions}`;
+  }
+
+  if (partySize != null) {
+    if (availability.can_accommodate_party) {
+      return `${restaurant.name} can accommodate a party of ${partySize} on ${when}. There ${availability.available_seats === 1 ? "is" : "are"} ${availability.available_seats} seat${availability.available_seats === 1 ? "" : "s"} still available at that time.`;
+    }
+
+    return `${restaurant.name} has ${availability.available_seats} seats left on ${when}, so it can’t seat a party of ${partySize} at that exact time.${suggestions}`;
+  }
+
+  return `${restaurant.name} has ${availability.available_seats} seat${availability.available_seats === 1 ? "" : "s"} available on ${when}.${suggestions}`;
+};
+
+const parseCoordinate = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const extractLocationContext = (req) => {
+  const body = req.body || {};
+  const locationSource = body.location || body.context?.location || body.userLocation || {};
+  const latitude = parseCoordinate(
+    locationSource.latitude ?? body.latitude ?? req.query?.latitude ?? req.user?.latitude
+  );
+  const longitude = parseCoordinate(
+    locationSource.longitude ?? body.longitude ?? req.query?.longitude ?? req.user?.longitude
+  );
+
+  return {
+    latitude,
+    longitude,
+    hasCoordinates: latitude != null && longitude != null,
+  };
+};
+
+const createResponseMeta = (timings) =>
+  process.env.NODE_ENV === "production" ? undefined : { timings_ms: timings };
+
 router.post("/chat", async (req, res) => {
-  const startedAt = Date.now();
-  console.log("1. CHAT ROUTE HIT");
+  const routeStartedAt = Date.now();
+  const timings = {};
+
+  const mark = (label, startedAt) => {
+    timings[label] = Date.now() - startedAt;
+  };
 
   try {
-    const { message } = req.body;
-    console.log("2. message received:", message);
+    const { message } = req.body || {};
 
-    if (!message || !message.trim()) {
-      console.log("3. message missing");
-      console.log("TOTAL ROUTE TIME ms:", Date.now() - startedAt);
+    if (!message || !String(message).trim()) {
       return res.status(400).json({ message: "Message is required" });
     }
 
-    const normalizedMessage = String(message).trim().toLowerCase();
-
-    if (["hi", "hii", "hiiii", "hello", "hey", "heyy"].includes(normalizedMessage)) {
-      console.log("3. fast greeting path");
-      console.log("TOTAL ROUTE TIME ms:", Date.now() - startedAt);
-      return res.json({
-        message: "Hi! I’m Diney — I can help you find restaurants, check opening hours, and look up seat availability.",
-        parsed: {
-          intent: "greeting",
-          greeting: true,
-          outOfScope: false,
-          needsClarification: false,
-          clarificationQuestion: "",
-          restaurantName: "",
-          cuisines: [],
-          dietarySupport: [],
-          priceRanges: [],
-          vibe: [],
-          openNow: false,
-          minRating: null,
-          partySize: null,
-          availabilityDate: "",
-          availabilityTime: "",
-          summary: "Greeting"
-        },
-        restaurants: [],
-        suggestions: [
-          "Suggest Italian restaurants",
-          "Show open places now",
-          "Check availability at a restaurant",
-          "Find 4-star places"
-        ]
-      });
-    }
-
-    console.log("4. before parseDineSmartMessage");
     const parseStartedAt = Date.now();
     const parsed = await parseDineSmartMessage(message);
-    console.log("5. parsed finished:", parsed);
-    console.log("PARSE TIME ms:", Date.now() - parseStartedAt);
+    mark("parse", parseStartedAt);
 
     if (parsed.greeting) {
-      console.log("6. greeting branch");
-      console.log("TOTAL ROUTE TIME ms:", Date.now() - startedAt);
       return res.json({
-        message: "Hi! I’m Diney — I can help you find restaurants, check opening hours, and look up seat availability.",
+        message: GREETING_MESSAGE,
         parsed,
         restaurants: [],
         suggestions: [
-          "Suggest Italian restaurants",
-          "Show open places now",
-          "Check availability at a restaurant",
-          "Find 4-star places"
-        ]
+          "Find Italian restaurants",
+          "What’s open now?",
+          "Check a restaurant’s hours",
+          "See availability tonight",
+        ],
+        meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
+      });
+    }
+
+    if (parsed.identityQuestion || parsed.intent === "identity") {
+      return res.json({
+        message: IDENTITY_MESSAGE,
+        parsed,
+        restaurants: [],
+        suggestions: [
+          "Restaurants near me",
+          "Show affordable sushi",
+          "Check Victoria’s hours",
+          "See availability for 2 tonight",
+        ],
+        meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
       });
     }
 
     if (parsed.outOfScope) {
-      console.log("7. outOfScope branch");
-      console.log("TOTAL ROUTE TIME ms:", Date.now() - startedAt);
       return res.json({
-        message: "I can help with DineSmart restaurant searches, restaurant details, hours, availability, and restaurant-related website questions.",
+        message: OUT_OF_SCOPE_MESSAGE,
         parsed,
         restaurants: [],
         suggestions: [
-          "Suggest sushi places",
+          "Restaurants near me",
           "Is Victoria open now?",
           "Check availability tonight",
-          "Find vegan restaurants"
-        ]
+          "Show vegan restaurants",
+        ],
+        meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
       });
     }
 
     if (parsed.needsClarification) {
-      console.log("8. clarification branch");
-
-      // lightweight rescue: if user typed only a restaurant name, try matching it before asking clarification
       const maybeRestaurantName = String(message || "").trim();
+
       if (maybeRestaurantName && maybeRestaurantName.split(/\s+/).length <= 5) {
-        const rescueLookupStartedAt = Date.now();
+        const lookupStartedAt = Date.now();
         const rescuedRestaurant = await restaurantService.findRestaurantByName(maybeRestaurantName);
-        console.log("RESTAURANT LOOKUP TIME ms:", Date.now() - rescueLookupStartedAt);
+        mark("restaurant_lookup", lookupStartedAt);
 
         if (rescuedRestaurant) {
-          console.log("8b. clarification rescued into restaurant_details");
-          console.log("TOTAL ROUTE TIME ms:", Date.now() - startedAt);
           return res.json({
-            message: buildRestaurantDetailsMessage(message, rescuedRestaurant, parsed),
+            message: buildRestaurantDetailsMessage(message, rescuedRestaurant),
             parsed: {
               ...parsed,
               intent: "restaurant_details",
               restaurantName: rescuedRestaurant.name,
               needsClarification: false,
-              clarificationQuestion: ""
+              clarificationQuestion: "",
             },
             restaurant: buildRestaurantCard(rescuedRestaurant),
             suggestions: [
               "Check availability there",
               "Is it open now?",
-              "Show similar restaurants",
-              "See highly rated options"
-            ]
+              "Show similar places",
+              "See highly rated options",
+            ],
+            meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
           });
         }
       }
 
-      console.log("TOTAL ROUTE TIME ms:", Date.now() - startedAt);
       return res.json({
-        message: parsed.clarificationQuestion || "Could you tell me a bit more about what you’re looking for?",
+        message:
+          parsed.clarificationQuestion ||
+          "Tell me a restaurant name, cuisine, budget, or whether you want hours or availability.",
         parsed,
         restaurants: [],
         suggestions: [
-          "Italian restaurants",
+          "Affordable sushi",
           "Open now",
-          "4-star places",
-          "Availability tonight"
-        ]
+          "Victoria",
+          "Availability tonight for 4",
+        ],
+        meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
       });
     }
 
     if (parsed.intent === "hours_check" || parsed.intent === "restaurant_details") {
-      console.log("9. hours/details branch");
-
       if (!parsed.restaurantName) {
-        console.log("10. no restaurantName for hours/details");
-        console.log("TOTAL ROUTE TIME ms:", Date.now() - startedAt);
         return res.json({
           message: "Which restaurant would you like me to check?",
           parsed,
           restaurants: [],
-          suggestions: ["Victoria", "Sushi World", "Curry Palace"]
+          suggestions: ["Victoria", "Sushi World", "Curry Palace"],
+          meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
         });
       }
 
-      const restaurantLookupStartedAt = Date.now();
-      console.log("11. before findRestaurantByName:", parsed.restaurantName);
+      const lookupStartedAt = Date.now();
       const restaurant = await restaurantService.findRestaurantByName(parsed.restaurantName);
-      console.log("12. after findRestaurantByName:", restaurant?.name || null);
-      console.log("RESTAURANT LOOKUP TIME ms:", Date.now() - restaurantLookupStartedAt);
+      mark("restaurant_lookup", lookupStartedAt);
 
       if (!restaurant) {
-        console.log("13. restaurant not found");
-        console.log("TOTAL ROUTE TIME ms:", Date.now() - startedAt);
         return res.json({
-          message: `I couldn’t find a restaurant named "${parsed.restaurantName}".`,
+          message: `I couldn’t find a restaurant named “${parsed.restaurantName}.”`,
           parsed,
           restaurants: [],
-          suggestions: ["Check the spelling", "Try another restaurant name"]
+          suggestions: ["Check the spelling", "Try another restaurant name"],
+          meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
         });
       }
 
-      const openStatus = isOpenNow(restaurant.opening_time, restaurant.closing_time);
-      console.log("14. hours/details response ready");
-      console.log("TOTAL ROUTE TIME ms:", Date.now() - startedAt);
-
       return res.json({
-        message: parsed.intent === "hours_check"
-          ? `${restaurant.name} is open from ${restaurant.opening_time || "N/A"} to ${restaurant.closing_time || "N/A"}${parsed.openNow ? `, and it is currently ${openStatus ? "open" : "closed"}` : ""}.`
-          : buildRestaurantDetailsMessage(message, restaurant, parsed),
-        parsed,
+        message:
+          parsed.intent === "hours_check"
+            ? buildHoursMessage(restaurant, parsed.openNow)
+            : buildRestaurantDetailsMessage(message, restaurant),
+        parsed: {
+          ...parsed,
+          restaurantName: restaurant.name,
+        },
         restaurant: buildRestaurantCard(restaurant),
         suggestions: [
           "Check availability there",
           "Show similar restaurants",
-          "Show open now",
-          "See highly rated options"
-        ]
+          "What’s open now?",
+          "See highly rated spots",
+        ],
+        meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
       });
     }
 
     if (parsed.intent === "availability_check") {
-      console.log("15. availability branch");
-
       if (!parsed.restaurantName) {
-        console.log("16. no restaurantName for availability");
-        console.log("TOTAL ROUTE TIME ms:", Date.now() - startedAt);
         return res.json({
           message: "Which restaurant would you like me to check availability for?",
           parsed,
           restaurants: [],
-          suggestions: ["Victoria tonight for 2", "Sushi World at 8 PM", "Curry Palace tomorrow"]
+          suggestions: ["Victoria tonight for 2", "Sushi World at 8 PM", "Curry Palace tomorrow"],
+          meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
         });
       }
 
-      const restaurantLookupStartedAt = Date.now();
-      console.log("17. before findRestaurantByName:", parsed.restaurantName);
+      const lookupStartedAt = Date.now();
       const restaurant = await restaurantService.findRestaurantByName(parsed.restaurantName);
-      console.log("18. after findRestaurantByName:", restaurant?.name || null);
-      console.log("RESTAURANT LOOKUP TIME ms:", Date.now() - restaurantLookupStartedAt);
+      mark("restaurant_lookup", lookupStartedAt);
 
       if (!restaurant) {
-        console.log("19. restaurant not found for availability");
-        console.log("TOTAL ROUTE TIME ms:", Date.now() - startedAt);
         return res.json({
-          message: `I couldn’t find a restaurant named "${parsed.restaurantName}".`,
+          message: `I couldn’t find a restaurant named “${parsed.restaurantName}.”`,
           parsed,
           restaurants: [],
-          suggestions: ["Check the spelling", "Try another restaurant name"]
+          suggestions: ["Check the spelling", "Try another restaurant name"],
+          meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
         });
       }
 
       const reservationDate = parsed.availabilityDate || getTodayDate();
       const reservationTime = parsed.availabilityTime || getCurrentTime();
-      const partySize = parsed.partySize || 2;
-
-      console.log("20. before getAvailability", {
-        restaurantId: restaurant.id,
-        reservationDate,
-        reservationTime,
-        partySize
-      });
+      const requestedPartySize = parsed.partySize;
+      const effectivePartySize = requestedPartySize || 1;
 
       const availabilityStartedAt = Date.now();
       const result = await reservationService.getAvailability({
         restaurantId: restaurant.id,
         reservationDate,
         reservationTime,
-        partySize
+        partySize: effectivePartySize,
       });
-      console.log("21. after getAvailability", result);
-      console.log("AVAILABILITY TIME ms:", Date.now() - availabilityStartedAt);
+      mark("availability_lookup", availabilityStartedAt);
 
       if (!result.success) {
-        console.log("22. availability returned failure");
-        console.log("TOTAL ROUTE TIME ms:", Date.now() - startedAt);
         return res.status(result.status).json({
           message: result.error,
           parsed,
           restaurant: buildRestaurantCard(restaurant),
-          suggestions: ["Try another time", "Reduce party size", "Check tomorrow instead"]
+          suggestions: ["Try another time", "Reduce the party size", "Check tomorrow instead"],
+          meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
         });
       }
 
-      console.log("23. availability response ready");
-      console.log("TOTAL ROUTE TIME ms:", Date.now() - startedAt);
-
       return res.json({
-        message: `${restaurant.name} currently has ${result.availability.available_seats} seats available at ${result.availability.reservation_time} on ${result.availability.reservation_date}. ${result.availability.can_accommodate_party ? `It can accommodate a party of ${partySize}.` : `It cannot accommodate a party of ${partySize} at that time.`}`,
+        message: buildAvailabilityMessage({
+          restaurant,
+          availability: result.availability,
+          partySize: requestedPartySize ?? null,
+        }),
         parsed,
         restaurant: buildRestaurantCard(restaurant),
         availability: result.availability,
         suggestions: result.availability.suggested_times?.length
-          ? result.availability.suggested_times
-          : ["Try a different time", "Try another date"]
+          ? result.availability.suggested_times.map(formatTimeLabel)
+          : ["Try a different time", "Try another date"],
+        meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
       });
     }
+
+    const locationContext = extractLocationContext(req);
+    const useLocationFilters = parsed.useProximity && locationContext.hasCoordinates;
+    const locationMissing = parsed.useProximity && !locationContext.hasCoordinates;
 
     const filters = {
       priceRanges: normalizePriceRanges(parsed.priceRanges || []),
       dietarySupport: parsed.dietarySupport || [],
       minRating: parsed.minRating,
+      maxRating: parsed.maxRating,
       openNow: parsed.openNow === true,
       availabilityDate: parsed.availabilityDate || null,
       availabilityTime: parsed.availabilityTime || null,
-      sortBy: "rating",
-      verifiedOnly: true
+      partySize: parsed.partySize || null,
+      latitude: useLocationFilters ? locationContext.latitude : null,
+      longitude: useLocationFilters ? locationContext.longitude : null,
+      distanceRadius: useLocationFilters
+        ? parsed.distanceRadiusKm || DEFAULT_NEARBY_RADIUS_KM
+        : null,
+      sortBy: parsed.sortBy || (useLocationFilters ? "distance" : "rating"),
+      verifiedOnly: true,
     };
 
-    console.log("24. before searchService", {
+    const searchStartedAt = Date.now();
+    let restaurants = await searchService.searchRestaurants({
       query: parsed.restaurantName || "",
       cuisines: parsed.cuisines || [],
-      filters
+      filters,
     });
 
-    const searchStartedAt = Date.now();
-    const restaurants = await searchService.searchRestaurants({
-      query: parsed.restaurantName || "",
-      cuisines: parsed.cuisines || [],
-      filters
-    });
-    console.log("25. after searchService", restaurants?.length);
-    console.log("SEARCH TIME ms:", Date.now() - searchStartedAt);
+    const lowerMessage = String(message || "").toLowerCase();
+
+    const looksLikeBestSearch =
+      parsed.sortBy === "rating_desc" &&
+      parsed.minRating === 5 &&
+      /\b(best|top|highest rated|top rated|best rated)\b/.test(lowerMessage);
+
+    const looksLikeWorstSearch =
+      parsed.sortBy === "rating_asc" &&
+      parsed.maxRating === 1 &&
+      /\b(worst|lowest rated|one star|1 star)\b/.test(lowerMessage);
+
+    if (!restaurants.length && looksLikeBestSearch) {
+      restaurants = await searchService.searchRestaurants({
+        query: parsed.restaurantName || "",
+        cuisines: parsed.cuisines || [],
+        filters: {
+          ...filters,
+          minRating: 4,
+          sortBy: "rating_desc",
+        },
+      });
+    }
+
+    if (!restaurants.length && looksLikeWorstSearch) {
+      restaurants = await searchService.searchRestaurants({
+        query: parsed.restaurantName || "",
+        cuisines: parsed.cuisines || [],
+        filters: {
+          ...filters,
+          maxRating: 2.5,
+          sortBy: "rating_asc",
+        },
+      });
+    }
+
+    mark("search", searchStartedAt);
 
     const cards = restaurants.slice(0, 5).map(buildRestaurantCard);
-    console.log("26. final search response ready");
-    console.log("TOTAL ROUTE TIME ms:", Date.now() - startedAt);
+    const total = Date.now() - routeStartedAt;
+
+    if (total > 1500) {
+      console.info("[chat] slow request", {
+        total_ms: total,
+        timings_ms: timings,
+        message: String(message).slice(0, 120),
+      });
+    }
 
     return res.json({
-      message: buildSearchMessage(parsed, cards),
+      message: buildSearchMessage({
+        parsed,
+        restaurants: cards,
+        locationApplied: useLocationFilters,
+        locationMissing,
+      }),
       parsed,
       restaurants: cards,
-      suggestions: buildSearchSuggestions(parsed, cards)
+      suggestions: buildSearchSuggestions({
+        parsed,
+        restaurants: cards,
+        locationMissing,
+      }),
+      meta: createResponseMeta({
+        ...timings,
+        total,
+        location_used: useLocationFilters,
+        location_missing: locationMissing,
+      }),
     });
   } catch (error) {
-    console.error("27. Chat route error:", error);
-    console.error("28. Error message:", error?.message);
-    console.error("29. Error stack:", error?.stack);
-    console.log("TOTAL ROUTE TIME ms:", Date.now() - startedAt);
+    console.error("Chat route error:", error);
     return res.status(500).json({
-      message: "Something went wrong while processing your request."
+      message: "Something went wrong while processing your request. Please try again.",
     });
   }
 });
 
 module.exports = router;
+module.exports.__testables = {
+  buildRestaurantDetailsMessage,
+};

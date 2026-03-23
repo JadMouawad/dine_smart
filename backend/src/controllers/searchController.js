@@ -24,6 +24,53 @@ const parseArray = (value) => {
     .filter(Boolean);
 };
 
+const normalizeDietarySupport = (values = []) => {
+  const mapping = {
+    vegetarian: "vegetarian",
+    vegan: "vegan",
+    halal: "halal",
+    gf: "gluten-free",
+    glutenfree: "gluten-free",
+    "gluten-free": "gluten-free",
+    "gluten free": "gluten-free",
+    dairyfree: "dairy-free",
+    "dairy-free": "dairy-free",
+    "dairy free": "dairy-free",
+    kosher: "kosher"
+  };
+
+  return [...new Set(values
+    .map((value) => String(value || "").trim().toLowerCase())
+    .map((value) => mapping[value.replace(/\s+/g, " ")] || mapping[value.replace(/[^a-z-]/g, "")] || value)
+    .filter(Boolean))];
+};
+
+const normalizePriceRanges = (values = []) => {
+  const mapped = new Set();
+
+  for (const raw of values) {
+    const value = String(raw || "").trim().toLowerCase();
+    if (!value) continue;
+    if (["$", "$$", "$$$", "$$$$"].includes(value)) {
+      mapped.add(value);
+      continue;
+    }
+    if (["cheap", "budget", "affordable", "inexpensive"].includes(value)) {
+      mapped.add("$");
+      continue;
+    }
+    if (["moderate", "mid", "mid-range", "average"].includes(value)) {
+      mapped.add("$$");
+      continue;
+    }
+    if (["expensive", "premium", "luxury", "fine dining"].includes(value)) {
+      mapped.add("$$$");
+    }
+  }
+
+  return [...mapped];
+};
+
 const parseAvailabilitySlot = (value) => {
   if (!value) return null;
   const raw = String(value).trim();
@@ -38,8 +85,8 @@ const searchRestaurants = async (req, res) => {
   try {
     const query = req.query.query ? String(req.query.query).trim() : "";
     const cuisines = parseArray(req.query.cuisine);
-    const priceRanges = parseArray(req.query.price_range);
-    const dietarySupport = parseArray(req.query.dietary_support);
+    const priceRanges = normalizePriceRanges(parseArray(req.query.price_range));
+    const dietarySupport = normalizeDietarySupport(parseArray(req.query.dietary_support));
     const availabilitySlot = parseAvailabilitySlot(req.query.availability_slot);
 
     // Public search remains gated to approved restaurants.
@@ -50,12 +97,14 @@ const searchRestaurants = async (req, res) => {
       cuisines,
       filters: {
         minRating: parseNumber(req.query.min_rating, null),
+        maxRating: parseNumber(req.query.max_rating, null),
         priceRanges,
         verifiedOnly,
         dietarySupport,
         openNow: parseBoolean(req.query.open_now, null),
         availabilityDate: req.query.availability_date ? String(req.query.availability_date).trim() : (availabilitySlot?.date || null),
         availabilityTime: req.query.availability_time ? String(req.query.availability_time).trim() : (availabilitySlot?.time || null),
+        partySize: parseNumber(req.query.party_size, null),
         latitude: parseNumber(req.query.latitude, null),
         longitude: parseNumber(req.query.longitude, null),
         distanceRadius: parseNumber(req.query.distance_radius, null),

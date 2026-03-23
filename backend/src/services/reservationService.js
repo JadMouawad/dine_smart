@@ -491,10 +491,20 @@ const getAvailability = async ({ restaurantId, reservationDate, reservationTime,
     return availability;
   }
 
-  const lowCapacityThreshold = Math.max(2, Math.floor(availability.totalCapacity * 0.2));
-  const shouldSuggest = availability.availableSeats <= lowCapacityThreshold;
-  const suggestedTimes = shouldSuggest
-    ? await getSuggestedTimes({
+  const withinOperatingHours = isWithinOperatingHours(
+  normalizedTime,
+  availability.restaurant.opening_time,
+  availability.restaurant.closing_time
+);
+
+const lowCapacityThreshold = Math.max(2, Math.floor(availability.totalCapacity * 0.2));
+const shouldSuggest =
+  !withinOperatingHours ||
+  availability.availableSeats <= lowCapacityThreshold ||
+  availability.availableSeats < parsedPartySize;
+
+const suggestedTimes = shouldSuggest
+  ? await getSuggestedTimes({
       restaurantId: parsedRestaurantId,
       reservationDate: normalizedDate,
       reservationTime: normalizedTime,
@@ -502,23 +512,25 @@ const getAvailability = async ({ restaurantId, reservationDate, reservationTime,
       restaurant: availability.restaurant,
       totalCapacity: availability.totalCapacity,
     })
-    : [];
+  : [];
 
-  return {
-    success: true,
-    status: 200,
-    availability: {
-      restaurant_id: parsedRestaurantId,
-      reservation_date: normalizedDate,
-      reservation_time: normalizedTime,
-      total_capacity: availability.totalCapacity,
-      booked_seats: availability.bookedSeats,
-      available_seats: availability.availableSeats,
-      is_fully_booked: availability.availableSeats <= 0,
-      can_accommodate_party: availability.availableSeats >= parsedPartySize,
-      suggested_times: suggestedTimes,
-    },
-  };
+return {
+  success: true,
+  status: 200,
+  availability: {
+    restaurant_id: parsedRestaurantId,
+    reservation_date: normalizedDate,
+    reservation_time: normalizedTime,
+    total_capacity: availability.totalCapacity,
+    booked_seats: availability.bookedSeats,
+    available_seats: availability.availableSeats,
+    is_fully_booked: availability.availableSeats <= 0,
+    is_outside_operating_hours: !withinOperatingHours,
+    can_accommodate_party:
+      withinOperatingHours && availability.availableSeats >= parsedPartySize,
+    suggested_times: suggestedTimes,
+  },
+};
 };
 
 module.exports = {

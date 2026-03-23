@@ -117,6 +117,24 @@ const createRestaurant = async (data) => {
   return restaurant;
 };
 
+const CUISINE_SEARCH_ALIASES = {
+  Italian: ["italian", "pizza", "pasta", "risotto"],
+  Japanese: ["japanese", "sushi", "ramen", "yakitori"],
+  "Middle Eastern": ["middle eastern", "middle-eastern", "lebanese", "shawarma", "shawerma", "falafel", "kebbeh", "kibbeh", "mezze", "manakish", "manaeesh"],
+  Mexican: ["mexican", "taco", "tacos", "burrito", "burritos"],
+  American: ["american", "burger", "burgers", "bbq", "barbecue"],
+  Indian: ["indian", "curry", "biryani"],
+  Chinese: ["chinese", "dumpling", "dumplings"],
+  Thai: ["thai", "pad thai"],
+  Korean: ["korean", "bibimbap"],
+  Seafood: ["seafood", "fish", "shrimp"],
+  Steakhouse: ["steak", "steakhouse"],
+  Breakfast: ["breakfast", "brunch"],
+  International: ["international", "fusion", "global", "world cuisine", "world cuisines"],
+  Vegan: ["vegan"],
+  Vegetarian: ["vegetarian"],
+};
+
 const getAllRestaurants = async () => {
   const result = await pool.query(`
     SELECT *
@@ -230,6 +248,7 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
   const cuisineList = Array.isArray(cuisines) ? cuisines.filter(Boolean) : [cuisines].filter(Boolean);
 
   const minRating = Number.isFinite(Number(filters.minRating)) ? Number(filters.minRating) : null;
+  const maxRating = Number.isFinite(Number(filters.maxRating)) ? Number(filters.maxRating) : null;
   const rawPriceRanges = filters.priceRanges ?? filters.priceRange ?? [];
   const priceRanges = Array.isArray(rawPriceRanges) ? rawPriceRanges.filter(Boolean) : [];
   const verifiedOnly = filters.verifiedOnly !== false;
@@ -241,6 +260,7 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
   const longitude = Number.isFinite(Number(filters.longitude)) ? Number(filters.longitude) : null;
   const distanceRadius = Number.isFinite(Number(filters.distanceRadius)) ? Number(filters.distanceRadius) : null;
   const onlyLebanon = filters.onlyLebanon === true;
+  const partySize = Number.isFinite(Number(filters.partySize)) ? Number(filters.partySize) : null;
   const sortBy = String(filters.sortBy || "rating").trim().toLowerCase();
 
   const values = [];
@@ -322,21 +342,48 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
   selectExtras.push(`${distanceExpression} AS distance_km`);
 
   if (trimmed) {
-    const searchPattern = `%${trimmed}%`;
-    conditions.push(`(r.name ILIKE $${idx} OR r.cuisine ILIKE $${idx} OR r.description ILIKE $${idx})`);
-    values.push(searchPattern);
-    idx += 1;
+    const cleanedQuery = cleanRestaurantName(trimmed);
+    const compactQuery = compactRestaurantName(cleanedQuery || trimmed);
+    const namePattern = `%${trimmed}%`;
+    const cleanedPattern = `%${cleanedQuery || trimmed}%`;
+    const compactPattern = `%${compactQuery}%`;
+
+    conditions.push(`(
+      r.name ILIKE $${idx}
+      OR COALESCE(r.cuisine, '') ILIKE $${idx}
+      OR COALESCE(r.description, '') ILIKE $${idx}
+      OR regexp_replace(lower(r.name), '[^a-z0-9]+', '', 'g') LIKE $${idx + 1}
+      OR regexp_replace(lower(regexp_replace(r.name, '\\m(restaurant|resto|rest|cafe|café|bistro|grill|place)\\M', '', 'gi')), '[^a-z0-9]+', '', 'g') LIKE $${idx + 1}
+      OR r.name ILIKE $${idx + 2}
+    )`);
+    values.push(namePattern, compactPattern, cleanedPattern);
+    idx += 3;
   }
 
   if (cuisineList.length > 0) {
-    conditions.push(`r.cuisine = ANY($${idx}::text[])`);
-    values.push(cuisineList);
-    idx += 1;
-  }
+  const aliasTerms = cuisineList.flatMap((cuisine) => CUISINE_SEARCH_ALIASES[cuisine] || [cuisine]);
+  const aliasPatterns = [...new Set(aliasTerms.map((term) => `%${term}%`))];
+
+  conditions.push(`(
+    r.cuisine = ANY($${idx}::text[])
+    OR COALESCE(r.name, '') ILIKE ANY($${idx + 1}::text[])
+    OR COALESCE(r.description, '') ILIKE ANY($${idx + 1}::text[])
+    OR COALESCE(r.cuisine, '') ILIKE ANY($${idx + 1}::text[])
+  )`);
+
+  values.push(cuisineList, aliasPatterns);
+  idx += 2;
+}
 
   if (minRating != null) {
     conditions.push(`COALESCE(r.rating, 0) >= $${idx}`);
     values.push(minRating);
+    idx += 1;
+  }
+
+  if (maxRating != null) {
+    conditions.push(`COALESCE(r.rating, 0) <= $${idx}`);
+    values.push(maxRating);
     idx += 1;
   }
 
@@ -395,15 +442,16 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
         0
       )
     `;
-    const availableExpression = `
-      CASE
-        WHEN COALESCE(slot.booked_seats, 0) > 0 THEN 0
-        ELSE ${capacityExpression}
-      END
-    `;
+    const availableExpression = `GREATEST(${capacityExpression} - COALESCE(slot.booked_seats, 0), 0)`;
 
     selectExtras.push(`${availableExpression}::int AS available_seats`);
-    conditions.push(`${availableExpression} > 0`);
+    if (partySize != null && partySize > 0) {
+      conditions.push(`${availableExpression} >= $${idx}`);
+      values.push(partySize);
+      idx += 1;
+    } else {
+      conditions.push(`${availableExpression} > 0`);
+    }
   }
 
   const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
@@ -412,6 +460,8 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
     orderBy = hasCoords
       ? "ORDER BY distance_km ASC NULLS LAST, r.rating DESC NULLS LAST, review_count DESC, r.name ASC"
       : "ORDER BY r.rating DESC NULLS LAST, review_count DESC, r.name ASC";
+  } else if (sortBy === "rating_asc") {
+    orderBy = "ORDER BY r.rating ASC NULLS LAST, review_count DESC, r.name ASC";
   } else if (sortBy === "reviews") {
     orderBy = "ORDER BY review_count DESC, r.rating DESC NULLS LAST, r.name ASC";
   } else if (sortBy === "popularity") {
@@ -491,94 +541,116 @@ const upsertTableConfigByRestaurantId = async (restaurantId, config) => {
 const cleanRestaurantName = (name = "") => {
   return String(name || "")
     .trim()
-    .replace(/\b(restaurant|resto|cafe|café|bistro|grill|place)\b/gi, "")
+    .replace(/\b(restaurant|resto|rest|cafe|café|bistro|grill|place)\b/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
+};
+
+const compactRestaurantName = (name = "") => cleanRestaurantName(name)
+  .toLowerCase()
+  .normalize("NFKD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .replace(/[^a-z0-9]+/g, "");
+
+  const getApprovedRestaurantLookupCandidates = async () => {
+  const result = await pool.query(
+    `
+      SELECT
+        r.id,
+        r.name,
+        r.cuisine,
+        r.rating,
+        r.price_range,
+        r.dietary_support,
+        r.opening_time,
+        r.closing_time,
+        r.address,
+        r.latitude,
+        r.longitude,
+        (
+          SELECT COUNT(*)::int
+          FROM reviews rv
+          WHERE rv.restaurant_id = r.id
+        ) AS review_count,
+        r.updated_at
+      FROM restaurants r
+      WHERE r.is_verified = true
+        AND r.approval_status = 'approved'
+      ORDER BY r.updated_at DESC, r.name ASC
+    `
+  );
+
+  return result.rows;
 };
 
 const findRestaurantByName = async (name) => {
   const original = String(name || "").trim();
   const cleaned = cleanRestaurantName(original);
+  const compact = compactRestaurantName(cleaned || original);
 
   if (!original && !cleaned) return null;
 
-  const exactResult = await pool.query(
+  const result = await pool.query(
     `
-      SELECT
-        id,
-        name,
-        cuisine,
-        rating,
-        price_range,
-        dietary_support,
-        opening_time,
-        closing_time,
-        address,
-        is_verified,
-        updated_at
-      FROM restaurants
-      WHERE LOWER(name) = LOWER($1)
-         OR LOWER(name) = LOWER($2)
+      WITH candidates AS (
+        SELECT
+          r.id,
+          r.name,
+          r.cuisine,
+          r.rating,
+          r.price_range,
+          r.dietary_support,
+          r.opening_time,
+          r.closing_time,
+          r.address,
+          (
+            SELECT COUNT(*)::int
+            FROM reviews rv
+            WHERE rv.restaurant_id = r.id
+          ) AS review_count,
+          r.is_verified,
+          r.updated_at,
+          LOWER(r.name) AS lowered_name,
+          LOWER(regexp_replace(r.name, '\\m(restaurant|resto|rest|cafe|café|bistro|grill|place)\\M', '', 'gi')) AS cleaned_name,
+          regexp_replace(lower(regexp_replace(r.name, '\\m(restaurant|resto|rest|cafe|café|bistro|grill|place)\\M', '', 'gi')), '[^a-z0-9]+', '', 'g') AS compact_name
+        FROM restaurants r
+        WHERE r.is_verified = true
+          AND r.approval_status = 'approved'
+      )
+      SELECT id, name, cuisine, rating, price_range, dietary_support, opening_time, closing_time, address, review_count, is_verified, updated_at
+      FROM candidates
+      WHERE lowered_name = LOWER($1)
+         OR cleaned_name = LOWER($2)
+         OR compact_name = $3
+         OR lowered_name LIKE LOWER($4)
+         OR cleaned_name LIKE LOWER($5)
+         OR compact_name LIKE $6
+         OR POSITION($3 IN compact_name) > 0
+      ORDER BY CASE
+        WHEN lowered_name = LOWER($1) THEN 1
+        WHEN cleaned_name = LOWER($2) THEN 2
+        WHEN compact_name = $3 THEN 3
+        WHEN lowered_name LIKE LOWER($4) THEN 4
+        WHEN cleaned_name LIKE LOWER($5) THEN 5
+        WHEN compact_name LIKE $6 THEN 6
+        WHEN POSITION($3 IN compact_name) > 0 THEN 7
+        ELSE 99
+      END,
+      LENGTH(name) ASC,
+      updated_at DESC
       LIMIT 1
     `,
-    [original, cleaned]
+    [
+      original,
+      cleaned || original,
+      compact,
+      `${original}%`,
+      `${cleaned || original}%`,
+      `${compact}%`,
+    ]
   );
 
-  if (exactResult.rows.length) {
-    return exactResult.rows[0];
-  }
-
-  const startsWithResult = await pool.query(
-    `
-      SELECT
-        id,
-        name,
-        cuisine,
-        rating,
-        price_range,
-        dietary_support,
-        opening_time,
-        closing_time,
-        address,
-        is_verified,
-        updated_at
-      FROM restaurants
-      WHERE LOWER(name) LIKE LOWER($1)
-         OR LOWER(name) LIKE LOWER($2)
-      ORDER BY is_verified DESC, updated_at DESC
-      LIMIT 1
-    `,
-    [`${original}%`, `${cleaned}%`]
-  );
-
-  if (startsWithResult.rows.length) {
-    return startsWithResult.rows[0];
-  }
-
-  const containsResult = await pool.query(
-    `
-      SELECT
-        id,
-        name,
-        cuisine,
-        rating,
-        price_range,
-        dietary_support,
-        opening_time,
-        closing_time,
-        address,
-        is_verified,
-        updated_at
-      FROM restaurants
-      WHERE LOWER(name) LIKE LOWER($1)
-         OR LOWER(name) LIKE LOWER($2)
-      ORDER BY is_verified DESC, updated_at DESC
-      LIMIT 1
-    `,
-    [`%${original}%`, `%${cleaned}%`]
-  );
-
-  return containsResult.rows[0] || null;
+  return result.rows[0] || null;
 };
 
 module.exports = {
@@ -593,9 +665,6 @@ module.exports = {
   updateRestaurantRating,
   getTableConfigByRestaurantId,
   upsertTableConfigByRestaurantId,
+  getApprovedRestaurantLookupCandidates,
   findRestaurantByName,
 };
-
-
-
-

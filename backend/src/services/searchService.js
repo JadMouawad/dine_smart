@@ -1,5 +1,6 @@
 const restaurantRepository = require("../repositories/restaurantRepository");
 const searchRepository = require("../repositories/searchRepository");
+const restaurantService = require("./restaurantService");
 
 const parsePositiveInt = (value, fallback) => {
   const parsed = parseInt(value, 10);
@@ -8,7 +9,20 @@ const parsePositiveInt = (value, fallback) => {
 };
 
 const searchRestaurants = async ({ query = "", cuisines = [], filters = {} }) => {
-  return restaurantRepository.searchRestaurants(query, cuisines, filters);
+  const trimmedQuery = String(query || "").trim();
+  const cuisineList = Array.isArray(cuisines) ? cuisines.filter(Boolean) : [cuisines].filter(Boolean);
+
+  const primaryResults = await restaurantRepository.searchRestaurants(trimmedQuery, cuisineList, filters);
+  if (primaryResults.length || !trimmedQuery || cuisineList.length > 0) {
+    return primaryResults;
+  }
+
+  const fuzzyRestaurant = await restaurantService.findRestaurantByName(trimmedQuery);
+  if (!fuzzyRestaurant) {
+    return primaryResults;
+  }
+
+  return restaurantRepository.searchRestaurants(fuzzyRestaurant.name, cuisineList, filters);
 };
 
 const saveSearch = async ({ userId, name, filters }) => {
