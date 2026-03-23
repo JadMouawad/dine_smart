@@ -9,6 +9,15 @@ const getStats = async (req, res) => {
   }
 };
 
+const getRecentAiLogs = async (req, res) => {
+  try {
+    const logs = await adminService.getRecentAiLogs(req.query.limit);
+    return res.status(200).json(logs);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 const getRecentActivity = async (req, res) => {
   try {
     const activity = await adminService.getRecentActivity(req.query.limit);
@@ -137,6 +146,7 @@ const deleteFlaggedReview = async (req, res) => {
 
 module.exports = {
   getStats,
+  getRecentAiLogs,
   getRecentActivity,
   getPendingRestaurants,
   approveRestaurant,
