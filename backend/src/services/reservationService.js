@@ -19,6 +19,21 @@ const ALLOWED_SEATING_PREFERENCES = new Set(["indoor", "outdoor"]);
 const ALLOWED_ADJUSTMENT_PREFERENCES = new Set(["any", "indoor", "outdoor"]);
 const MAX_ADJUSTMENT = 200;
 
+const withTransaction = async (callback) => {
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await callback(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 const parseDateOnly = (value) => {
   if (!value) return null;
   const parsed = new Date(`${value}T00:00:00`);
@@ -244,10 +259,11 @@ const getSlotAvailability = async ({
   seatingPreference = null,
   restaurantOverride = null,
   totalCapacityOverride = null,
+  dbClient = db,
 }) => {
   const restaurantResult = restaurantOverride
     ? { rows: [restaurantOverride] }
-    : await ReservationModel.getRestaurantById(db, restaurantId);
+    : await ReservationModel.getRestaurantById(dbClient, restaurantId);
   const restaurant = restaurantResult.rows[0];
   if (!restaurant) {
     return { success: false, status: 404, error: "Restaurant not found" };
@@ -257,7 +273,7 @@ const getSlotAvailability = async ({
     return { success: false, status: 403, error: "Restaurant is not accepting reservations yet" };
   }
 
-  const configResult = await ReservationModel.getTableConfigByRestaurantId(db, restaurantId);
+  const configResult = await ReservationModel.getTableConfigByRestaurantId(dbClient, restaurantId);
   const tableConfig = configResult.rows[0];
   if (!tableConfig) {
     return { success: false, status: 409, error: "Table configuration is not set for this restaurant" };
@@ -268,14 +284,14 @@ const getSlotAvailability = async ({
   const hasTableConfig = (tableCounts.seats2 + tableCounts.seats4 + tableCounts.seats6) > 0;
 
   const reservationsResult = await ReservationModel.getReservationsForSlot(
-    db,
+    dbClient,
     restaurantId,
     reservationDate,
     reservationTime
   );
 
   const adjustmentResult = await ReservationModel.getSlotAdjustments(
-    db,
+    dbClient,
     restaurantId,
     reservationDate,
     reservationTime
@@ -385,6 +401,14 @@ const formatBanDateLabel = (date) => (
     : "a later date"
 );
 
+const buildSlotLockKey = ({ restaurantId, reservationDate, reservationTime }) => (
+  `reservation-slot:${restaurantId}:${reservationDate}:${reservationTime}`
+);
+
+const buildUserDayLockKey = ({ userId, reservationDate }) => (
+  `reservation-user-day:${userId}:${reservationDate}`
+);
+
 const createReservation = async ({
   userId,
   restaurantId,
@@ -455,111 +479,162 @@ const createReservation = async ({
     return { success: false, status: 403, error: `You are temporarily banned from booking until ${label} due to multiple no-shows.` };
   }
 
-  const activeUserReservationsResult = await ReservationModel.getActiveUserReservationsForDate(
-    db,
-    userId,
-    normalizedDate
-  );
+  let createdReservation = null;
+  let confirmationId = null;
+  let reservationRestaurant = null;
 
-  if (activeUserReservationsResult.rows.length > 0 && reservationMinutes != null) {
-    for (const reservation of activeUserReservationsResult.rows) {
-      const existingMinutes = parseTimeToMinutes(reservation.reservation_time);
-      if (existingMinutes == null) continue;
+  const creationResult = await withTransaction(async (client) => {
+    await ReservationModel.acquireTransactionLock(
+      client,
+      buildUserDayLockKey({ userId, reservationDate: normalizedDate })
+    );
+    await ReservationModel.acquireTransactionLock(
+      client,
+      buildSlotLockKey({
+        restaurantId: parsedRestaurantId,
+        reservationDate: normalizedDate,
+        reservationTime: normalizedTime,
+      })
+    );
 
-      const diff = Math.abs(reservationMinutes - existingMinutes);
-      if (diff === 0) {
-        return {
-          success: false,
-          status: 409,
-          error: "You already have a reservation at this time. Please choose a different time slot.",
-        };
-      }
+    const transactionalUser = await UserModel.findById(client, userId);
+    if (!transactionalUser) {
+      return { success: false, status: 404, error: "User not found" };
+    }
+    if (transactionalUser.banned_until && !isBanActive(transactionalUser.banned_until)) {
+      await UserModel.clearBan(client, transactionalUser.id);
+      transactionalUser.banned_until = null;
+    }
+    if (transactionalUser.no_show_count >= 3 && !transactionalUser.banned_until) {
+      const banUntil = addOneMonth();
+      await UserModel.setBannedUntil(client, transactionalUser.id, banUntil);
+      const label = formatBanDateLabel(banUntil);
+      return {
+        success: false,
+        status: 403,
+        error: `You are temporarily banned from booking until ${label} due to multiple no-shows.`,
+      };
+    }
+    if (isBanActive(transactionalUser.banned_until)) {
+      const label = formatBanDateLabel(toDateOnly(transactionalUser.banned_until));
+      return {
+        success: false,
+        status: 403,
+        error: `You are temporarily banned from booking until ${label} due to multiple no-shows.`,
+      };
+    }
 
-      if (diff < 120) {
-        const existingLabel = formatTimeForEmail(reservation.reservation_time);
-        return {
-          success: false,
-          status: 409,
-          error: `Please choose a time at least 2 hours apart from your other reservation at ${existingLabel}.`,
-        };
+    const activeUserReservationsResult = await ReservationModel.getActiveUserReservationsForDate(
+      client,
+      userId,
+      normalizedDate
+    );
+
+    if (activeUserReservationsResult.rows.length > 0 && reservationMinutes != null) {
+      for (const reservation of activeUserReservationsResult.rows) {
+        const existingMinutes = parseTimeToMinutes(reservation.reservation_time);
+        if (existingMinutes == null) continue;
+
+        const diff = Math.abs(reservationMinutes - existingMinutes);
+        if (diff === 0) {
+          return {
+            success: false,
+            status: 409,
+            error: "You already have a reservation at this time. Please choose a different time slot.",
+          };
+        }
+
+        if (diff < 120) {
+          const existingLabel = formatTimeForEmail(reservation.reservation_time);
+          return {
+            success: false,
+            status: 409,
+            error: `Please choose a time at least 2 hours apart from your other reservation at ${existingLabel}.`,
+          };
+        }
       }
     }
-  }
 
-  const availability = await getSlotAvailability({
-    restaurantId: parsedRestaurantId,
-    reservationDate: normalizedDate,
-    reservationTime: normalizedTime,
-    partySize: parsedPartySize,
-    seatingPreference: normalizedSeating,
-  });
-
-  if (!availability.success) {
-    return availability;
-  }
-
-  if (!isWithinOperatingHours(normalizedTime, availability.restaurant.opening_time, availability.restaurant.closing_time)) {
-    return { success: false, status: 400, error: "Reservation time is outside restaurant operating hours" };
-  }
-
-  if (!availability.canAccommodateParty) {
-    const suggestedTimes = await getSuggestedTimes({
+    const availability = await getSlotAvailability({
       restaurantId: parsedRestaurantId,
       reservationDate: normalizedDate,
       reservationTime: normalizedTime,
       partySize: parsedPartySize,
       seatingPreference: normalizedSeating,
-      restaurant: availability.restaurant,
-      baseCapacity: availability.baseCapacity,
+      dbClient: client,
     });
 
-    const preferredSeats = normalizedSeating
-      ? availability.availableSeatsPreference
-      : availability.availableSeats;
-    const availableSeats = Math.max(preferredSeats ?? availability.availableSeats, 0);
-    const seatLabel = normalizedSeating ? `${normalizedSeating} seats` : "seats";
-    const tableComboIssue = availability.hasTableConfig && !availability.canFitTables;
+    if (!availability.success) {
+      return availability;
+    }
 
-    return {
-      success: false,
-      status: 409,
-      error: tableComboIssue
-        ? `No table combination available for a party of ${parsedPartySize} at that time`
-        : `Only ${availableSeats} ${seatLabel} available`,
-      availableSeats,
-      suggestedTimes,
-    };
-  }
+    if (!isWithinOperatingHours(normalizedTime, availability.restaurant.opening_time, availability.restaurant.closing_time)) {
+      return { success: false, status: 400, error: "Reservation time is outside restaurant operating hours" };
+    }
 
-  let createdReservation = null;
-  let confirmationId = null;
-
-  for (let attempt = 1; attempt <= 5; attempt += 1) {
-    confirmationId = createConfirmationId();
-    try {
-      const insertResult = await ReservationModel.createReservation(db, {
-        userId,
+    if (!availability.canAccommodateParty) {
+      const suggestedTimes = await getSuggestedTimes({
         restaurantId: parsedRestaurantId,
         reservationDate: normalizedDate,
         reservationTime: normalizedTime,
         partySize: parsedPartySize,
         seatingPreference: normalizedSeating,
-        specialRequest: cleanedSpecialRequest,
-        status: "pending",
-        confirmationId,
+        restaurant: availability.restaurant,
+        baseCapacity: availability.baseCapacity,
       });
-      createdReservation = insertResult.rows[0];
-      break;
-    } catch (error) {
-      // unique_violation for confirmation_id can happen in rare collisions
-      if (error.code !== "23505") {
-        throw error;
+
+      const preferredSeats = normalizedSeating
+        ? availability.availableSeatsPreference
+        : availability.availableSeats;
+      const availableSeats = Math.max(preferredSeats ?? availability.availableSeats, 0);
+      const seatLabel = normalizedSeating ? `${normalizedSeating} seats` : "seats";
+      const tableComboIssue = availability.hasTableConfig && !availability.canFitTables;
+
+      return {
+        success: false,
+        status: 409,
+        error: tableComboIssue
+          ? `No table combination available for a party of ${parsedPartySize} at that time`
+          : `Only ${availableSeats} ${seatLabel} available`,
+        availableSeats,
+        suggestedTimes,
+      };
+    }
+
+    reservationRestaurant = availability.restaurant;
+
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      confirmationId = createConfirmationId();
+      try {
+        const insertResult = await ReservationModel.createReservation(client, {
+          userId,
+          restaurantId: parsedRestaurantId,
+          reservationDate: normalizedDate,
+          reservationTime: normalizedTime,
+          partySize: parsedPartySize,
+          seatingPreference: normalizedSeating,
+          specialRequest: cleanedSpecialRequest,
+          status: "pending",
+          confirmationId,
+        });
+        createdReservation = insertResult.rows[0];
+        break;
+      } catch (error) {
+        if (error.code !== "23505") {
+          throw error;
+        }
       }
     }
-  }
 
-  if (!createdReservation) {
-    return { success: false, status: 409, error: "Reservation could not be created. Please try again." };
+    if (!createdReservation) {
+      return { success: false, status: 409, error: "Reservation could not be created. Please try again." };
+    }
+
+    return { success: true };
+  });
+
+  if (!creationResult.success) {
+    return creationResult;
   }
 
   if (user?.email) {
@@ -567,7 +642,7 @@ const createReservation = async ({
       await sendReservationConfirmationEmail({
         to: user.email,
         userName: user.full_name || "Guest",
-        restaurantName: availability.restaurant.name,
+        restaurantName: reservationRestaurant.name,
         reservationDate: formatDateForEmail(normalizedDate),
         reservationTime: formatTimeForEmail(normalizedTime),
         partySize: parsedPartySize,
@@ -586,7 +661,7 @@ const createReservation = async ({
     status: 201,
     reservation: {
       ...createdReservation,
-      restaurant_name: availability.restaurant.name,
+      restaurant_name: reservationRestaurant.name,
     },
   };
 };

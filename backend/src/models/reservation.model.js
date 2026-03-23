@@ -10,6 +10,13 @@ async function getRestaurantById(db, restaurantId) {
   return db.query(query, [restaurantId]);
 }
 
+async function acquireTransactionLock(db, lockKey) {
+  const query = `
+    SELECT pg_advisory_xact_lock(hashtext($1));
+  `;
+  return db.query(query, [lockKey]);
+}
+
 async function getTableConfigByRestaurantId(db, restaurantId) {
   const query = `
     SELECT restaurant_id, total_capacity, table_2_person, table_4_person, table_6_person,
@@ -246,6 +253,7 @@ async function upsertSlotAdjustment(db, data) {
 }
 
 module.exports = {
+  acquireTransactionLock,
   getRestaurantById,
   getTableConfigByRestaurantId,
   getBookedSeatsForSlot,

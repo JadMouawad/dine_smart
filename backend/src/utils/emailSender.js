@@ -242,11 +242,45 @@ const sendRestaurantRejectionEmail = async ({
   await transporter.sendMail(mailOptions);
 };
 
+const sendRestaurantApprovalEmail = async ({
+  to,
+  ownerName = "Restaurant owner",
+  restaurantName,
+}) => {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Restaurant approved - DineSmart</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2>Restaurant Approved</h2>
+      <p>Hi ${ownerName},</p>
+      <p>Your restaurant <strong>${restaurantName}</strong> has been approved on DineSmart.</p>
+      <p>Your listing is now active and ready for users to discover and book.</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+      <p style="font-size: 12px; color: #888;">DineSmart - Restaurant onboarding</p>
+    </body>
+    </html>
+  `;
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    to,
+    subject: "Your restaurant has been approved",
+    html,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
 module.exports = {
   sendVerificationEmail,
   sendReservationConfirmationEmail,
   sendReservationCancellationEmail,
   sendNoShowWarningEmail,
   sendNoShowBanEmail,
+  sendRestaurantApprovalEmail,
   sendRestaurantRejectionEmail,
 };
