@@ -734,6 +734,19 @@ html[data-theme="light"] .quickFilterBtn.is-active {
 [data-theme="light"] .restaurantProfileHero__img {
   background: rgba(255, 244, 220, 0.60);
 }
+[data-theme="light"] .restaurantProfileHero__carouselArrow {
+  background: rgba(255, 251, 243, 0.92);
+  border-color: rgba(175, 115, 45, 0.28);
+  color: rgba(80, 45, 15, 0.92);
+}
+[data-theme="light"] .restaurantProfileHero__carouselArrow:hover {
+  background: rgba(255, 248, 235, 0.98);
+}
+[data-theme="light"] .restaurantProfileHero__carouselIndex {
+  background: rgba(255, 251, 243, 0.92);
+  border-color: rgba(175, 115, 45, 0.24);
+  color: rgba(80, 45, 15, 0.92);
+}
 [data-theme="light"] .restaurantProfileHero__logo {
   background: rgba(255, 244, 220, 0.80);
   border-color: rgba(175, 115, 45, 0.28);
@@ -772,6 +785,27 @@ html[data-theme="light"] .quickFilterBtn.is-active {
 }
 
 /* ── imageCard labels & formats ── */
+[data-theme="light"] .imageCard {
+  border-color: rgba(175, 115, 45, 0.22);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.92),
+      rgba(255, 248, 235, 0.74)
+    ),
+    rgba(255, 251, 243, 0.88);
+  box-shadow: 0 14px 30px rgba(130, 80, 10, 0.10);
+}
+[data-theme="light"] .imageCard__preview {
+  border-color: rgba(175, 115, 45, 0.24);
+  background: rgba(255, 248, 235, 0.78);
+}
+[data-theme="light"] .imageCard__placeholder {
+  color: rgba(80, 45, 15, 0.76);
+}
+[data-theme="light"] .imageCard__img--logo {
+  background: rgba(255, 248, 235, 0.72);
+}
 [data-theme="light"] .imageCard__title {
   color: rgba(26, 14, 6, 0.88);
 }
@@ -2688,6 +2722,12 @@ body {
   margin: 0 auto;
 }
 
+.ownerProfileViewCard__topActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
 .ownerProfileViewGrid {
   display: grid;
   gap: 10px;
@@ -2761,6 +2801,19 @@ body {
   object-fit: cover;
 }
 
+.ownerProfileViewGallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  max-width: 420px;
+}
+
+.ownerProfileViewImage--gallery {
+  width: 100%;
+  max-width: none;
+  height: 96px;
+}
+
 .imageCard {
   border: 1px solid rgba(255, 255, 255, 0.12);
   background:
@@ -2806,6 +2859,88 @@ body {
 .imageCard__img--logo {
   object-fit: contain;
   background: rgba(0, 0, 0, 0.12);
+}
+
+.imageCard__carousel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.imageCard__img--gallery {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.imageCard__carouselArrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.56);
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.imageCard__carouselArrow--left {
+  left: 8px;
+}
+
+.imageCard__carouselArrow--right {
+  right: 8px;
+}
+
+.imageCard__carouselArrow:hover {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.imageCard__carouselMeta {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(0, 0, 0, 0.48);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.imageCard__removeBtn {
+  position: static;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.58);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.imageCard__removeBtn:hover {
+  background: rgba(0, 0, 0, 0.72);
 }
 
 .imageCard__placeholder {
@@ -4139,6 +4274,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   aspect-ratio: 4 / 3;
   border-radius: 16px;
   overflow: hidden;
+  position: relative;
   background: rgba(0, 0, 0, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.14);
   display: grid;
@@ -4156,6 +4292,50 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   font-weight: 700;
   font-size: 14px;
   letter-spacing: 0.3px;
+}
+
+.restaurantCard__coverArrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.14);
+  color: rgba(255, 255, 255, 0.96);
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.restaurantCard__coverArrow--left {
+  left: 7px;
+}
+
+.restaurantCard__coverArrow--right {
+  right: 7px;
+}
+
+.restaurantCard__coverArrow:hover {
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.restaurantCard__coverIndex {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .restaurantCard__body {
@@ -5520,6 +5700,51 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   color: rgba(255, 255, 255, 0.92);
   text-align: center;
   padding: 14px;
+}
+
+.restaurantProfileHero__carouselArrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.52);
+  color: rgba(255, 255, 255, 0.96);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.restaurantProfileHero__carouselArrow--left {
+  left: 8px;
+}
+
+.restaurantProfileHero__carouselArrow--right {
+  right: 8px;
+}
+
+.restaurantProfileHero__carouselArrow:hover {
+  background: rgba(0, 0, 0, 0.68);
+}
+
+.restaurantProfileHero__carouselIndex {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  z-index: 2;
 }
 
 .restaurantHeroInfoCard {
@@ -7810,6 +8035,51 @@ html[data-theme="light"] .quickFilterBtn {
   transition: transform 0.45s ease;
 }
 
+.exploreListCard__bgArrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.14);
+  color: rgba(255, 255, 255, 0.96);
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 3;
+}
+
+.exploreListCard__bgArrow--left {
+  left: 8px;
+}
+
+.exploreListCard__bgArrow--right {
+  right: 8px;
+}
+
+.exploreListCard__bgArrow:hover {
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.exploreListCard__bgIndex {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  z-index: 3;
+}
+
 .exploreListCard:hover .exploreListCard__bg img {
   transform: scale(1.06);
 }
@@ -7945,6 +8215,19 @@ html[data-theme="light"] .quickFilterBtn {
 
 [data-theme="light"] .exploreListCard__bg {
   background: linear-gradient(135deg, rgba(201, 162, 39, 0.22) 0%, rgba(200, 180, 140, 0.50) 100%);
+}
+[data-theme="light"] .exploreListCard__bgArrow {
+  background: rgba(255, 251, 243, 0.42);
+  border-color: rgba(175, 115, 45, 0.28);
+  color: rgba(80, 45, 15, 0.92);
+}
+[data-theme="light"] .exploreListCard__bgArrow:hover {
+  background: rgba(255, 248, 235, 0.54);
+}
+[data-theme="light"] .exploreListCard__bgIndex {
+  background: rgba(255, 251, 243, 0.92);
+  border-color: rgba(175, 115, 45, 0.24);
+  color: rgba(80, 45, 15, 0.92);
 }
 
 /* Right: map with rounded corners */
@@ -8270,4 +8553,50 @@ html[data-theme="light"] .quickFilterBtn {
   color: var(--text-muted, rgba(255,255,255,0.55));
   margin: 0;
   max-width: 400px;
+}
+
+/* Ensure owner profile image upload cards render light in light mode */
+[data-theme="light"] .ownerProfileGrid__media .imageCard {
+  border-color: rgba(175, 115, 45, 0.24) !important;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.95),
+      rgba(255, 248, 235, 0.78)
+    ),
+    rgba(255, 251, 243, 0.92) !important;
+  box-shadow: 0 14px 30px rgba(130, 80, 10, 0.10) !important;
+}
+[data-theme="light"] .ownerProfileGrid__media .imageCard__preview,
+[data-theme="light"] .ownerProfileGrid__media .imageCard__preview--equal,
+[data-theme="light"] .ownerProfileGrid__media .imageCard__preview--logo {
+  border-color: rgba(175, 115, 45, 0.26) !important;
+  background: rgba(255, 248, 235, 0.82) !important;
+}
+[data-theme="light"] .ownerProfileGrid__media .imageCard__placeholder {
+  color: rgba(80, 45, 15, 0.78) !important;
+}
+[data-theme="light"] .ownerProfileGrid__media .imageCard__formats {
+  color: rgba(80, 45, 15, 0.72) !important;
+}
+[data-theme="light"] .ownerProfileGrid__media .imageCard__carouselMeta {
+  border-color: rgba(175, 115, 45, 0.26);
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(80, 45, 15, 0.92);
+}
+[data-theme="light"] .ownerProfileGrid__media .imageCard__carouselArrow {
+  border-color: rgba(175, 115, 45, 0.3);
+  background: rgba(255, 255, 255, 0.92);
+  color: rgba(80, 45, 15, 0.95);
+}
+[data-theme="light"] .ownerProfileGrid__media .imageCard__carouselArrow:hover {
+  background: rgba(255, 248, 235, 0.98);
+}
+[data-theme="light"] .ownerProfileGrid__media .imageCard__removeBtn {
+  border-color: rgba(175, 115, 45, 0.3);
+  background: rgba(255, 255, 255, 0.92);
+  color: rgba(80, 45, 15, 0.92);
+}
+[data-theme="light"] .ownerProfileGrid__media .imageCard__removeBtn:hover {
+  background: rgba(255, 248, 235, 0.98);
 }

@@ -25,6 +25,31 @@ function parseDietarySupport(value) {
   return normalized.split(",").map((i) => i.trim()).filter(Boolean);
 }
 
+function getRestaurantGalleryUrls(restaurant) {
+  const rawGallery = Array.isArray(restaurant?.gallery_urls)
+    ? restaurant.gallery_urls
+    : Array.isArray(restaurant?.galleryUrls)
+      ? restaurant.galleryUrls
+      : [];
+
+  const cleanedGallery = rawGallery
+    .map((url) => String(url || "").trim())
+    .filter(Boolean);
+
+  if (cleanedGallery.length) return cleanedGallery;
+
+  const fallbackImage = [
+    restaurant?.coverUrl,
+    restaurant?.cover_url,
+    restaurant?.logoUrl,
+    restaurant?.logo_url,
+  ]
+    .map((url) => String(url || "").trim())
+    .find(Boolean);
+
+  return fallbackImage ? [fallbackImage] : [];
+}
+
 function getInitialFilters() {
   return {
     minRating: 0,
@@ -43,12 +68,67 @@ function getInitialFilters() {
 
 // ── Memoized restaurant card ───────────────────────────────────────────────
 const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, onSelect, onFavorite, onReserve }) {
+  const imageUrls = useMemo(() => getRestaurantGalleryUrls(r), [r]);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const activeImageUrl = imageUrls[activeImageIndex] || "";
+
+  useEffect(() => {
+    if (!imageUrls.length) {
+      setActiveImageIndex(0);
+      return;
+    }
+    setActiveImageIndex((prev) => {
+      if (prev < 0) return 0;
+      if (prev >= imageUrls.length) return imageUrls.length - 1;
+      return prev;
+    });
+  }, [imageUrls]);
+
+  const showPrevImage = (event) => {
+    event.stopPropagation();
+    if (imageUrls.length <= 1) return;
+    setActiveImageIndex((prev) => (prev - 1 + imageUrls.length) % imageUrls.length);
+  };
+
+  const showNextImage = (event) => {
+    event.stopPropagation();
+    if (imageUrls.length <= 1) return;
+    setActiveImageIndex((prev) => (prev + 1) % imageUrls.length);
+  };
+
   return (
     <article className="restaurantCard restaurantCard--search" onClick={() => onSelect(r)}>
       <div className="restaurantCard__cover">
-        {(r.coverUrl || r.cover_url)
-          ? <img className="restaurantCard__coverImg" src={r.coverUrl || r.cover_url} alt={`${r.name} cover`} loading="lazy" />
-          : <div className="restaurantCard__coverPlaceholder">No image</div>}
+        {activeImageUrl ? (
+          <>
+            <img className="restaurantCard__coverImg" src={activeImageUrl} alt={`${r.name} cover`} loading="lazy" />
+            {imageUrls.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  className="restaurantCard__coverArrow restaurantCard__coverArrow--left"
+                  onClick={showPrevImage}
+                  aria-label="Previous image"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  className="restaurantCard__coverArrow restaurantCard__coverArrow--right"
+                  onClick={showNextImage}
+                  aria-label="Next image"
+                >
+                  ›
+                </button>
+                <div className="restaurantCard__coverIndex">
+                  {activeImageIndex + 1}/{imageUrls.length}
+                </div>
+              </>
+            )}
+          </>
+        ) : (
+          <div className="restaurantCard__coverPlaceholder">No image</div>
+        )}
       </div>
       <div className="restaurantCard__body">
         <div className="restaurantCard__header">

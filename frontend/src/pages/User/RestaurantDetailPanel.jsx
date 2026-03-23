@@ -53,6 +53,7 @@ export default function RestaurantDetailPanel({
   const [reservationAvailabilityLoading, setReservationAvailabilityLoading] = useState(false);
   const [reservationAvailabilityError, setReservationAvailabilityError] = useState("");
   const [currentRestaurant, setCurrentRestaurant] = useState(restaurant);
+  const [activeHeroImageIndex, setActiveHeroImageIndex] = useState(0);
 
   // ── Menu accordion ────────────────────────────────────────
   const [expandedSections, setExpandedSections] = useState({});
@@ -135,6 +136,53 @@ export default function RestaurantDetailPanel({
     if (!opening || !closing) return "Hours unavailable";
     return `${String(opening).slice(0, 5)} - ${String(closing).slice(0, 5)}`;
   }, [currentRestaurant]);
+
+  const restaurantGalleryUrls = useMemo(() => {
+    const directGallery = Array.isArray(currentRestaurant?.gallery_urls)
+      ? currentRestaurant.gallery_urls
+      : Array.isArray(currentRestaurant?.galleryUrls)
+        ? currentRestaurant.galleryUrls
+        : [];
+
+    const cleanedGallery = directGallery
+      .map((url) => String(url || "").trim())
+      .filter(Boolean);
+
+    if (cleanedGallery.length) return cleanedGallery;
+
+    const fallbackImage = [
+      currentRestaurant?.coverUrl,
+      currentRestaurant?.cover_url,
+      currentRestaurant?.logoUrl,
+      currentRestaurant?.logo_url,
+    ]
+      .map((url) => String(url || "").trim())
+      .find(Boolean);
+
+    return fallbackImage ? [fallbackImage] : [];
+  }, [currentRestaurant]);
+
+  useEffect(() => {
+    if (restaurantGalleryUrls.length === 0) {
+      setActiveHeroImageIndex(0);
+      return;
+    }
+    setActiveHeroImageIndex((prev) => {
+      if (prev < 0) return 0;
+      if (prev >= restaurantGalleryUrls.length) return restaurantGalleryUrls.length - 1;
+      return prev;
+    });
+  }, [restaurantGalleryUrls]);
+
+  function showPreviousHeroImage() {
+    if (restaurantGalleryUrls.length <= 1) return;
+    setActiveHeroImageIndex((prev) => (prev - 1 + restaurantGalleryUrls.length) % restaurantGalleryUrls.length);
+  }
+
+  function showNextHeroImage() {
+    if (restaurantGalleryUrls.length <= 1) return;
+    setActiveHeroImageIndex((prev) => (prev + 1) % restaurantGalleryUrls.length);
+  }
 
   const availabilityBadge = useMemo(() => {
     if (reservationAvailabilityLoading) return { label: "Checking availability...", tone: "warn" };
@@ -269,12 +317,38 @@ export default function RestaurantDetailPanel({
         </div>
 
         <div className="restaurantProfileHero__media">
-          {(currentRestaurant.coverUrl || currentRestaurant.cover_url || currentRestaurant.logoUrl || currentRestaurant.logo_url) ? (
-            <img
-              loading="lazy" className="restaurantProfileHero__img"
-              src={currentRestaurant.coverUrl || currentRestaurant.cover_url || currentRestaurant.logoUrl || currentRestaurant.logo_url}
-              alt={`${currentRestaurant.name} cover`}
-            />
+          {restaurantGalleryUrls.length ? (
+            <>
+              <img
+                loading="lazy"
+                className="restaurantProfileHero__img"
+                src={restaurantGalleryUrls[activeHeroImageIndex]}
+                alt={`${currentRestaurant.name} background ${activeHeroImageIndex + 1}`}
+              />
+              {restaurantGalleryUrls.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className="restaurantProfileHero__carouselArrow restaurantProfileHero__carouselArrow--left"
+                    aria-label="Previous background image"
+                    onClick={showPreviousHeroImage}
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    className="restaurantProfileHero__carouselArrow restaurantProfileHero__carouselArrow--right"
+                    aria-label="Next background image"
+                    onClick={showNextHeroImage}
+                  >
+                    ›
+                  </button>
+                  <div className="restaurantProfileHero__carouselIndex">
+                    {activeHeroImageIndex + 1} / {restaurantGalleryUrls.length}
+                  </div>
+                </>
+              )}
+            </>
           ) : (
             <div className="restaurantProfileHero__placeholder">DineSmart • {currentRestaurant.name}</div>
           )}

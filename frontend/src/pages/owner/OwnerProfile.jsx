@@ -33,6 +33,7 @@ const DIETARY_OPTIONS = [
 ];
 
 const DEFAULT_MAP_CENTER = { lat: 33.893791, lng: 35.501777 };
+const MAX_GALLERY_PHOTOS = 8;
 
 function splitAddressAndCity(rawAddress) {
   const value = String(rawAddress || "").trim();
@@ -57,6 +58,13 @@ function buildAddress(address, city) {
   return `${cleanAddress}, ${cleanCity}`;
 }
 
+function normalizeGalleryUrls(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((url) => String(url || "").trim())
+    .filter(Boolean);
+}
+
 export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
   const { theme, toggleTheme } = useTheme();
   const [restaurantName, setRestaurantName] = useState("");
@@ -70,7 +78,8 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
   const [priceRange, setPriceRange] = useState("");
   const [dietarySupport, setDietarySupport] = useState([]);
   const [logoDataUrl, setLogoDataUrl] = useState("");
-  const [coverDataUrl, setCoverDataUrl] = useState("");
+  const [galleryDataUrls, setGalleryDataUrls] = useState([]);
+  const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [error, setError] = useState("");
@@ -103,7 +112,9 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
         setPriceRange(restaurant.price_range || "");
         setDietarySupport(Array.isArray(restaurant.dietary_support) ? restaurant.dietary_support : []);
         setLogoDataUrl(restaurant.logo_url || restaurant.logoUrl || "");
-        setCoverDataUrl(restaurant.cover_url || restaurant.coverUrl || "");
+        const storedGallery = normalizeGalleryUrls(restaurant.gallery_urls || restaurant.galleryUrls || []);
+        const legacyCover = String(restaurant.cover_url || restaurant.coverUrl || "").trim();
+        setGalleryDataUrls(storedGallery.length ? storedGallery : (legacyCover ? [legacyCover] : []));
 
         const lat = Number(restaurant.latitude);
         const lng = Number(restaurant.longitude);
@@ -128,10 +139,16 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     [logoDataUrl, existingRestaurant]
   );
 
-  const coverPreviewUrl = useMemo(
-    () => coverDataUrl || existingRestaurant?.cover_url || existingRestaurant?.coverUrl || "",
-    [coverDataUrl, existingRestaurant]
-  );
+  const galleryPreviewUrls = useMemo(() => {
+    if (galleryDataUrls.length > 0) return normalizeGalleryUrls(galleryDataUrls);
+    const existingGallery = normalizeGalleryUrls(existingRestaurant?.gallery_urls || existingRestaurant?.galleryUrls || []);
+    if (existingGallery.length > 0) return existingGallery;
+    const legacyCover = String(existingRestaurant?.cover_url || existingRestaurant?.coverUrl || "").trim();
+    return legacyCover ? [legacyCover] : [];
+  }, [galleryDataUrls, existingRestaurant]);
+
+  const coverPreviewUrl = galleryPreviewUrls[0] || "";
+  const activeGalleryPhoto = galleryPreviewUrls[activeGalleryIndex] || "";
 
   const profileName = restaurantName.trim() || existingRestaurant?.name || "Your Restaurant";
 
@@ -139,6 +156,18 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     if (!onLogoPreviewChange) return;
     onLogoPreviewChange(logoPreviewUrl || "");
   }, [logoPreviewUrl, onLogoPreviewChange]);
+
+  useEffect(() => {
+    if (galleryPreviewUrls.length === 0) {
+      setActiveGalleryIndex(0);
+      return;
+    }
+    setActiveGalleryIndex((prev) => {
+      if (prev < 0) return 0;
+      if (prev >= galleryPreviewUrls.length) return galleryPreviewUrls.length - 1;
+      return prev;
+    });
+  }, [galleryPreviewUrls]);
 
   function readFileAsDataUrl(file) {
     return new Promise((resolve, reject) => {
@@ -164,19 +193,61 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     }
   }
 
-  async function onPickCover(event) {
-    const file = event.target.files && event.target.files[0];
-    if (!file) return;
-    if (!file.type?.startsWith("image/")) {
-      alert("Please select an image file (PNG, JPG, JPEG).");
+  async function onPickGallery(event) {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+
+    const imageFiles = files.filter((file) => file.type?.startsWith("image/"));
+    if (imageFiles.length !== files.length) {
+      alert("Only image files are allowed (PNG, JPG, JPEG).");
+    }
+    if (!imageFiles.length) {
       event.target.value = "";
       return;
     }
+
     try {
-      setCoverDataUrl(await readFileAsDataUrl(file));
+      const pickedUrls = await Promise.all(imageFiles.map((file) => readFileAsDataUrl(file)));
+      setGalleryDataUrls((prev) => {
+        const merged = [...prev, ...pickedUrls]
+          .map((url) => String(url || "").trim())
+          .filter(Boolean);
+        const deduped = [...new Set(merged)];
+        if (deduped.length > MAX_GALLERY_PHOTOS) {
+          alert(`You can upload up to ${MAX_GALLERY_PHOTOS} photos.`);
+          return deduped.slice(0, MAX_GALLERY_PHOTOS);
+        }
+        return deduped;
+      });
+      setActiveGalleryIndex((prev) => (prev < 0 ? 0 : prev));
     } catch (fileError) {
       alert(fileError.message || "Failed to process image.");
+    } finally {
+      event.target.value = "";
     }
+  }
+
+  function removeGalleryPhoto(indexToRemove) {
+    setGalleryDataUrls((prev) => {
+      const next = prev.filter((_, index) => index !== indexToRemove);
+      setActiveGalleryIndex((current) => {
+        if (next.length === 0) return 0;
+        if (indexToRemove < current) return current - 1;
+        if (current >= next.length) return next.length - 1;
+        return current;
+      });
+      return next;
+    });
+  }
+
+  function showPreviousGalleryPhoto() {
+    if (galleryPreviewUrls.length <= 1) return;
+    setActiveGalleryIndex((prev) => (prev - 1 + galleryPreviewUrls.length) % galleryPreviewUrls.length);
+  }
+
+  function showNextGalleryPhoto() {
+    if (galleryPreviewUrls.length <= 1) return;
+    setActiveGalleryIndex((prev) => (prev + 1) % galleryPreviewUrls.length);
   }
 
   // Handle map click → pin restaurant location
@@ -236,6 +307,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
         dietary_support: dietarySupport,
         logo_url: logoPreviewUrl || null,
         cover_url: coverPreviewUrl || null,
+        gallery_urls: galleryPreviewUrls,
       };
 
       if (existingRestaurant) {
@@ -274,6 +346,11 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
 
       {existingRestaurant && !isEditing ? (
         <section className="formCard ownerProfileViewCard">
+          <div className="ownerProfileViewCard__topActions">
+            <button className="btn btn--gold" type="button" onClick={startEditing}>
+              Edit profile & photos
+            </button>
+          </div>
           <div className="ownerProfileViewGrid">
             <div className="ownerProfileViewRow">
               <span className="ownerProfileViewLabel">Restaurant name</span>
@@ -286,9 +363,21 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
               </span>
             </div>
             <div className="ownerProfileViewRow">
-              <span className="ownerProfileViewLabel">Background image</span>
+              <span className="ownerProfileViewLabel">Restaurant photos</span>
               <span className="ownerProfileViewValue">
-                {coverPreviewUrl ? <img loading="lazy" className="ownerProfileViewImage" src={coverPreviewUrl} alt={`${profileName} background`} /> : "Not set"}
+                {galleryPreviewUrls.length ? (
+                  <div className="ownerProfileViewGallery">
+                    {galleryPreviewUrls.map((photoUrl, index) => (
+                      <img
+                        key={`${photoUrl}-${index}`}
+                        loading="lazy"
+                        className="ownerProfileViewImage ownerProfileViewImage--gallery"
+                        src={photoUrl}
+                        alt={`${profileName} photo ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                ) : "Not set"}
               </span>
             </div>
             <div className="ownerProfileViewRow">
@@ -354,11 +443,6 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
             </div>
           </div>
 
-          <div className="formCard__actions">
-            <button className="btn btn--gold btn--xl" type="button" onClick={startEditing}>
-              Edit
-            </button>
-          </div>
         </section>
       ) : (
         <form className="ownerProfile__form" onSubmit={onSubmit}>
@@ -382,19 +466,57 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
               </div>
 
               <div className="imageCard imageCard--equal">
-                <div className="imageCard__title">Background image</div>
+                <div className="imageCard__title">Restaurant photos</div>
                 <div className="imageCard__preview imageCard__preview--equal">
-                  {coverPreviewUrl ? (
-                    <img loading="lazy" className="imageCard__img" src={coverPreviewUrl} alt="Background" />
+                  {galleryPreviewUrls.length ? (
+                    <div className="imageCard__carousel">
+                      <img
+                        loading="lazy"
+                        className="imageCard__img imageCard__img--gallery"
+                        src={activeGalleryPhoto}
+                        alt={`Restaurant photo ${activeGalleryIndex + 1}`}
+                      />
+                      {galleryPreviewUrls.length > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            className="imageCard__carouselArrow imageCard__carouselArrow--left"
+                            onClick={showPreviousGalleryPhoto}
+                            aria-label="Previous photo"
+                          >
+                            ‹
+                          </button>
+                          <button
+                            type="button"
+                            className="imageCard__carouselArrow imageCard__carouselArrow--right"
+                            onClick={showNextGalleryPhoto}
+                            aria-label="Next photo"
+                          >
+                            ›
+                          </button>
+                        </>
+                      )}
+                      <div className="imageCard__carouselMeta">
+                        <span>{activeGalleryIndex + 1} / {galleryPreviewUrls.length}</span>
+                        <button
+                          type="button"
+                          className="imageCard__removeBtn"
+                          onClick={() => removeGalleryPhoto(activeGalleryIndex)}
+                          aria-label={`Remove photo ${activeGalleryIndex + 1}`}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     <div className="imageCard__placeholder">
-                      <div className="imageCard__formats">PNG, JPG, or JPEG</div>
+                      <div className="imageCard__formats">PNG, JPG, or JPEG (up to {MAX_GALLERY_PHOTOS} photos)</div>
                     </div>
                   )}
                 </div>
                 <label className="btn btn--gold imageCard__btn">
-                  Upload background
-                  <input className="imageCard__input" type="file" accept="image/png, image/jpeg" onChange={onPickCover} />
+                  Upload photos
+                  <input className="imageCard__input" type="file" accept="image/png, image/jpeg" multiple onChange={onPickGallery} />
                 </label>
               </div>
             </div>

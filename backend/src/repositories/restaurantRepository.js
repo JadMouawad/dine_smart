@@ -35,6 +35,8 @@ const createRestaurant = async (data) => {
     logo_url: logoUrlRaw,
     coverUrl,
     cover_url: coverUrlRaw,
+    galleryUrls,
+    gallery_urls: galleryUrlsRaw,
     openingTime,
     closingTime,
     opening_time: openingTimeRaw,
@@ -46,7 +48,10 @@ const createRestaurant = async (data) => {
   const closingValue = closingTime || closingTimeRaw || null;
   const priceRangeValue = priceRange || priceRangeRaw || null;
   const logoValue = logoUrl || logoUrlRaw || null;
-  const coverValue = coverUrl || coverUrlRaw || null;
+  const galleryUrlsValue = (Array.isArray(galleryUrls) ? galleryUrls : (Array.isArray(galleryUrlsRaw) ? galleryUrlsRaw : []))
+    .map((url) => String(url || "").trim())
+    .filter(Boolean);
+  const coverValue = coverUrl || coverUrlRaw || galleryUrlsValue[0] || null;
   const dietarySupportValue = Array.isArray(dietarySupport)
     ? dietarySupport
     : Array.isArray(dietarySupportRaw)
@@ -56,6 +61,7 @@ const createRestaurant = async (data) => {
   const restaurantColumns = await getRestaurantColumns();
   const includeLogo = restaurantColumns.has("logo_url");
   const includeCover = restaurantColumns.has("cover_url");
+  const includeGallery = restaurantColumns.has("gallery_urls");
 
   const columns = [
     "name",
@@ -70,6 +76,7 @@ const createRestaurant = async (data) => {
     "dietary_support",
     ...(includeLogo ? ["logo_url"] : []),
     ...(includeCover ? ["cover_url"] : []),
+    ...(includeGallery ? ["gallery_urls"] : []),
     "owner_id",
     "is_verified",
     "approval_status",
@@ -88,13 +95,16 @@ const createRestaurant = async (data) => {
     dietarySupportValue,
     ...(includeLogo ? [logoValue] : []),
     ...(includeCover ? [coverValue] : []),
+    ...(includeGallery ? [galleryUrlsValue] : []),
     ownerId,
     false,
     "pending",
   ];
 
   const placeholders = values.map((_, index) =>
-    columns[index] === "dietary_support" ? `$${index + 1}::text[]` : `$${index + 1}`
+    columns[index] === "dietary_support" || columns[index] === "gallery_urls"
+      ? `$${index + 1}::text[]`
+      : `$${index + 1}`
   );
 
   const result = await pool.query(
@@ -179,6 +189,7 @@ const updateRestaurant = async (id, data) => {
     "menu_sections",
     "logo_url",
     "cover_url",
+    "gallery_urls",
   ]);
 
   const fields = [];
@@ -186,7 +197,11 @@ const updateRestaurant = async (id, data) => {
   let index = 1;
 
   for (const key in data) {
-    const normalizedKey = key === "menu" ? "menu_sections" : key;
+    const normalizedKey = key === "menu"
+      ? "menu_sections"
+      : key === "galleryUrls"
+        ? "gallery_urls"
+        : key;
     if (!allowedColumns.has(normalizedKey)) continue;
     if (!restaurantColumns.has(normalizedKey)) continue;
 
@@ -194,6 +209,11 @@ const updateRestaurant = async (id, data) => {
 
     if (normalizedKey === "menu_sections") {
       values.push(JSON.stringify(data[key]));
+    } else if (normalizedKey === "gallery_urls") {
+      const galleryUrlsValue = Array.isArray(data[key])
+        ? data[key].map((url) => String(url || "").trim()).filter(Boolean)
+        : [];
+      values.push(galleryUrlsValue);
     } else {
       values.push(data[key]);
     }
