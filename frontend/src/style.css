@@ -8697,7 +8697,6 @@ html[data-theme="light"] .quickFilterBtn {
   max-width: 400px;
 }
 
-<<<<<<< HEAD
 .adminAiCard {
   display: grid;
   gap: 14px;
@@ -9055,7 +9054,8 @@ html[data-theme="light"] .quickFilterBtn {
   .chatWidget__cardActions .btn {
     flex: 1;
   }
-=======
+}
+
 /* Ensure owner profile image upload cards render light in light mode */
 [data-theme="light"] .ownerProfileGrid__media .imageCard {
   border-color: rgba(175, 115, 45, 0.24) !important;
@@ -9100,5 +9100,4 @@ html[data-theme="light"] .quickFilterBtn {
 }
 [data-theme="light"] .ownerProfileGrid__media .imageCard__removeBtn:hover {
   background: rgba(255, 248, 235, 0.98);
->>>>>>> 2fba00bbbb45756f5ba0d1d5b065447e6adad551
 }
