@@ -8,6 +8,8 @@ const ReservationModel = require("../models/reservation.model");
 const {
   sendReservationConfirmationEmail,
   sendReservationCancellationEmail,
+  sendNoShowWarningEmail,
+  sendNoShowBanEmail,
 } = require("../utils/emailSender");
 
 const MAX_PARTY_SIZE = 12;
@@ -74,6 +76,21 @@ const toTimeValue = (minutes) => {
   const hours = Math.floor(normalized / 60);
   const mins = normalized % 60;
   return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:00`;
+};
+
+const withTransaction = async (callback) => {
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await callback(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 const createConfirmationId = () => {
@@ -533,6 +550,64 @@ return {
 };
 };
 
+const NO_SHOW_BAN_THRESHOLD = 3;
+const NO_SHOW_BAN_DAYS = 30;
+
+const markNoShow = async ({ reservationId, ownerId }) => {
+  const parsedReservationId = parseInt(reservationId, 10);
+  const parsedOwnerId = parseInt(ownerId, 10);
+
+  if (Number.isNaN(parsedReservationId)) {
+    return { success: false, status: 400, error: "Invalid reservation ID" };
+  }
+
+  const existingResult = await ReservationModel.getOwnerReservationById(db, {
+    reservationId: parsedReservationId,
+    ownerId: parsedOwnerId,
+  });
+  const existing = existingResult.rows[0];
+  if (!existing) {
+    return { success: false, status: 404, error: "Reservation not found" };
+  }
+
+  if (!["pending", "accepted", "confirmed"].includes(existing.status)) {
+    return { success: false, status: 409, error: `Cannot mark a ${existing.status} reservation as no-show` };
+  }
+
+  return withTransaction(async (client) => {
+    await client.query(
+      `UPDATE reservations SET status = 'no-show', updated_at = NOW() WHERE id = $1`,
+      [parsedReservationId]
+    );
+
+    const updatedUser = await UserModel.incrementNoShowCount(client, existing.user_id);
+    const noShowCount = updatedUser?.no_show_count ?? 0;
+
+    let bannedUntilLabel = null;
+    if (noShowCount >= NO_SHOW_BAN_THRESHOLD) {
+      const banDate = new Date();
+      banDate.setDate(banDate.getDate() + NO_SHOW_BAN_DAYS);
+      await UserModel.setBannedUntil(client, existing.user_id, banDate.toISOString().slice(0, 10));
+      bannedUntilLabel = banDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    }
+
+    const user = await UserModel.findById(db, existing.user_id);
+    if (user?.email) {
+      try {
+        if (bannedUntilLabel) {
+          await sendNoShowBanEmail({ to: user.email, userName: user.full_name || "Guest", bannedUntilLabel });
+        } else if (noShowCount === NO_SHOW_BAN_THRESHOLD - 1) {
+          await sendNoShowWarningEmail({ to: user.email, userName: user.full_name || "Guest" });
+        }
+      } catch (emailError) {
+        console.warn("Failed to send no-show email:", emailError.message);
+      }
+    }
+
+    return { success: true, status: 200, noShowCount, banned: !!bannedUntilLabel, bannedUntilLabel };
+  });
+};
+
 module.exports = {
   createReservation,
   getReservationsForUser,
@@ -540,4 +615,5 @@ module.exports = {
   cancelReservation,
   updateReservationStatusForOwner,
   getAvailability,
+  markNoShow,
 };
