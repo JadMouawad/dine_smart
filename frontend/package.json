@@ -13,6 +13,7 @@
     "@react-oauth/google": "^0.13.4",
     "@studio-freight/lenis": "^1.0.42",
     "framer-motion": "^12.35.1",
+    "gsap": "^3.14.2",
     "leaflet": "^1.9.4",
     "mapbox-gl": "^3.20.0",
     "react": "^19.2.0",
