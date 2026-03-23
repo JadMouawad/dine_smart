@@ -10,7 +10,7 @@ import { getCrowdMeterMeta } from "../../utils/crowdMeter";
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const DEFAULT_CENTER = { lat: 33.893791, lng: 35.501777 };
 
-import { CUISINES, PRICE_OPTIONS, DIETARY_OPTIONS, RATING_OPTIONS } from "../../constants/filters";
+import { CUISINES, PRICE_OPTIONS, DIETARY_OPTIONS } from "../../constants/filters";
 
 
 const defaultFilters = {
@@ -26,6 +26,12 @@ const defaultFilters = {
 function parseCoord(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed !== 0 ? parsed : null;
+}
+
+function clampRating(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.max(0, Math.min(5, Math.round(parsed * 10) / 10));
 }
 
 function getRestaurantGalleryUrls(restaurant) {
@@ -235,6 +241,7 @@ export default function UserExplore({ onOpenRestaurant }) {
   }, [restaurants]);
 
   const sliderPct = ((filters.distanceRadius - 1) / 49 * 100).toFixed(1);
+  const ratingSliderPct = ((Number(filters.minRating || 0) / 5) * 100).toFixed(1);
 
   return (
     <div className="explorePage">
@@ -375,13 +382,31 @@ export default function UserExplore({ onOpenRestaurant }) {
                   Open Now
                 </button>
               </div>
-              <div className="exploreFilterChips">
-                {RATING_OPTIONS.map((opt) => (
-                  <button key={opt.label} type="button"
-                    className={`filterChip${Number(filters.minRating) === opt.value ? " filterChip--on" : ""}`}
-                    onClick={() => setFilters((prev) => ({ ...prev, minRating: opt.value }))}
-                  >{opt.label}</button>
-                ))}
+              <div className="exploreFilterRatingControls">
+                <input
+                  className="exploreFilterRange"
+                  type="range"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  value={filters.minRating}
+                  style={{ "--pct": ratingSliderPct }}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, minRating: clampRating(e.target.value) }))}
+                  aria-label="Minimum rating"
+                />
+                <input
+                  className="exploreFilterNumber"
+                  type="number"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  value={Number(filters.minRating || 0).toFixed(1)}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, minRating: clampRating(e.target.value) }))}
+                  aria-label="Minimum rating exact value"
+                />
+              </div>
+              <div className="exploreFilterRange__ticks">
+                <span>0.0</span><span>2.5</span><span>5.0</span>
               </div>
             </div>
 

@@ -430,8 +430,8 @@ const updateReservationStatusForOwner = async ({ reservationId, ownerId, action 
   if (Number.isNaN(parsedOwnerId)) {
     return { success: false, status: 400, error: "Invalid owner ID" };
   }
-  if (!["accept", "reject"].includes(normalizedAction)) {
-    return { success: false, status: 400, error: "Action must be accept or reject" };
+  if (!["accept", "reject", "complete"].includes(normalizedAction)) {
+    return { success: false, status: 400, error: "Action must be accept, reject, or complete" };
   }
 
   const existingResult = await ReservationModel.getOwnerReservationById(db, {
@@ -461,7 +461,24 @@ const updateReservationStatusForOwner = async ({ reservationId, ownerId, action 
     }
   }
 
-  const nextStatus = normalizedAction === "accept" ? "accepted" : "rejected";
+  if (normalizedAction === "complete") {
+    if (existing.status === "completed") {
+      return { success: true, status: 200, reservation: existing };
+    }
+    if (["cancelled", "rejected", "no-show"].includes(existing.status)) {
+      return { success: false, status: 409, error: `${existing.status} reservations cannot be marked as completed` };
+    }
+    if (!["accepted", "confirmed"].includes(existing.status)) {
+      return { success: false, status: 409, error: "Only accepted reservations can be marked as completed" };
+    }
+  }
+
+  const nextStatus =
+    normalizedAction === "accept"
+      ? "accepted"
+      : normalizedAction === "reject"
+        ? "rejected"
+        : "completed";
   const updatedResult = await ReservationModel.updateOwnerReservationStatus(db, {
     reservationId: parsedReservationId,
     ownerId: parsedOwnerId,
@@ -473,6 +490,115 @@ const updateReservationStatusForOwner = async ({ reservationId, ownerId, action 
   }
 
   return { success: true, status: 200, reservation: updated };
+};
+
+const getSlotAdjustmentForOwner = async ({
+  restaurantId,
+  ownerId,
+  reservationDate,
+  reservationTime,
+  seatingPreference,
+}) => {
+  const parsedRestaurantId = parseInt(restaurantId, 10);
+  const parsedOwnerId = parseInt(ownerId, 10);
+  const normalizedDate = String(reservationDate || "").trim();
+  const normalizedTime = normalizeTime(reservationTime);
+  const normalizedSeating = String(seatingPreference || "any").trim().toLowerCase() || "any";
+
+  if (Number.isNaN(parsedRestaurantId)) {
+    return { success: false, status: 400, error: "Invalid restaurant ID" };
+  }
+  if (Number.isNaN(parsedOwnerId)) {
+    return { success: false, status: 400, error: "Invalid owner ID" };
+  }
+  if (!normalizedDate || !parseDateOnly(normalizedDate)) {
+    return { success: false, status: 400, error: "Invalid reservation date" };
+  }
+  if (!normalizedTime) {
+    return { success: false, status: 400, error: "Invalid reservation time" };
+  }
+  if (!["any", ...ALLOWED_SEATING_PREFERENCES].includes(normalizedSeating)) {
+    return { success: false, status: 400, error: "Invalid seating preference" };
+  }
+
+  const restaurantResult = await ReservationModel.getRestaurantById(db, parsedRestaurantId);
+  const restaurant = restaurantResult.rows[0];
+  if (!restaurant || parseInt(restaurant.owner_id, 10) !== parsedOwnerId) {
+    return { success: false, status: 404, error: "Restaurant not found" };
+  }
+
+  const adjustmentResult = await ReservationModel.getSlotAdjustment(
+    db,
+    parsedRestaurantId,
+    normalizedDate,
+    normalizedTime,
+    normalizedSeating
+  );
+  const adjustment = adjustmentResult.rows[0];
+
+  return {
+    success: true,
+    status: 200,
+    adjustment: {
+      restaurant_id: parsedRestaurantId,
+      reservation_date: normalizedDate,
+      reservation_time: normalizedTime,
+      seating_preference: normalizedSeating,
+      adjustment: parseInt(adjustment?.adjustment, 10) || 0,
+    },
+  };
+};
+
+const upsertSlotAdjustmentForOwner = async ({
+  restaurantId,
+  ownerId,
+  reservationDate,
+  reservationTime,
+  seatingPreference,
+  adjustment,
+}) => {
+  const parsedRestaurantId = parseInt(restaurantId, 10);
+  const parsedOwnerId = parseInt(ownerId, 10);
+  const parsedAdjustment = parseInt(adjustment, 10);
+  const normalizedDate = String(reservationDate || "").trim();
+  const normalizedTime = normalizeTime(reservationTime);
+  const normalizedSeating = String(seatingPreference || "any").trim().toLowerCase() || "any";
+
+  if (Number.isNaN(parsedRestaurantId)) {
+    return { success: false, status: 400, error: "Invalid restaurant ID" };
+  }
+  if (Number.isNaN(parsedOwnerId)) {
+    return { success: false, status: 400, error: "Invalid owner ID" };
+  }
+  if (!normalizedDate || !parseDateOnly(normalizedDate)) {
+    return { success: false, status: 400, error: "Invalid reservation date" };
+  }
+  if (!normalizedTime) {
+    return { success: false, status: 400, error: "Invalid reservation time" };
+  }
+  if (Number.isNaN(parsedAdjustment)) {
+    return { success: false, status: 400, error: "Adjustment must be a valid number" };
+  }
+  if (!["any", ...ALLOWED_SEATING_PREFERENCES].includes(normalizedSeating)) {
+    return { success: false, status: 400, error: "Invalid seating preference" };
+  }
+
+  const restaurantResult = await ReservationModel.getRestaurantById(db, parsedRestaurantId);
+  const restaurant = restaurantResult.rows[0];
+  if (!restaurant || parseInt(restaurant.owner_id, 10) !== parsedOwnerId) {
+    return { success: false, status: 404, error: "Restaurant not found" };
+  }
+
+  const upsertResult = await ReservationModel.upsertSlotAdjustment(db, {
+    restaurantId: parsedRestaurantId,
+    reservationDate: normalizedDate,
+    reservationTime: normalizedTime,
+    seatingPreference: normalizedSeating,
+    adjustment: parsedAdjustment,
+  });
+  const saved = upsertResult.rows[0];
+
+  return { success: true, status: 200, adjustment: saved };
 };
 
 const getAvailability = async ({ restaurantId, reservationDate, reservationTime, partySize = null }) => {
@@ -614,6 +740,8 @@ module.exports = {
   getReservationsForOwner,
   cancelReservation,
   updateReservationStatusForOwner,
+  getSlotAdjustmentForOwner,
+  upsertSlotAdjustmentForOwner,
   getAvailability,
   markNoShow,
 };

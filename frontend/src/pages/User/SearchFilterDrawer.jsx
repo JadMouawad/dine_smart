@@ -63,6 +63,12 @@ export default function SearchFilterDrawer({
 
   if (!isOpen) return null;
 
+  const clampRating = (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return 0;
+    return Math.max(0, Math.min(5, Math.round(parsed * 10) / 10));
+  };
+
   function toggleArray(key, value) {
     setLocal((prev) => {
       const current = prev[key] || [];
@@ -132,18 +138,31 @@ export default function SearchFilterDrawer({
 
           <section className="filterDrawer__section">
             <label className="filterDrawer__label" htmlFor="drawer-rating">
-              Rating ({local.minRating})
+              Rating ({Number(local.minRating || 0).toFixed(1)}+)
             </label>
-            <input
-              id="drawer-rating"
-              type="range"
-              min="0"
-              max="5"
-              step="0.5"
-              value={local.minRating}
-              onChange={(e) => setLocal((p) => ({ ...p, minRating: Number(e.target.value) }))}
-              aria-label="Minimum rating"
-            />
+            <div className="filterDrawer__ratingRow">
+              <input
+                id="drawer-rating"
+                type="range"
+                min="0"
+                max="5"
+                step="0.1"
+                value={local.minRating}
+                onChange={(e) => setLocal((p) => ({ ...p, minRating: clampRating(e.target.value) }))}
+                aria-label="Minimum rating"
+              />
+              <input
+                className="filterDrawer__ratingInput"
+                type="number"
+                min="0"
+                max="5"
+                step="0.1"
+                value={Number(local.minRating || 0).toFixed(1)}
+                onChange={(e) => setLocal((p) => ({ ...p, minRating: clampRating(e.target.value) }))}
+                aria-label="Minimum rating exact value"
+              />
+            </div>
+            <div className="filterDrawer__hint">Decimal ratings supported (e.g. 4.7)</div>
           </section>
 
           <section className="filterDrawer__section">

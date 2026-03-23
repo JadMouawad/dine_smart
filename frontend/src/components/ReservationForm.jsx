@@ -79,6 +79,16 @@ function buildTimeOptions(openingTime, closingTime) {
   return options;
 }
 
+function isTimeSlotInPast(selectedDate, timeValue, nowMs) {
+  if (!(selectedDate instanceof Date) || Number.isNaN(selectedDate.getTime())) return false;
+  const minutes = parseTimeToMinutes(timeValue);
+  if (minutes == null) return false;
+
+  const slotDateTime = new Date(selectedDate);
+  slotDateTime.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
+  return slotDateTime.getTime() <= nowMs;
+}
+
 export default function ReservationForm({ isOpen, onClose, restaurant, onReserved, inline = false }) {
   const { user } = useAuth();
   const [date, setDate] = useState(null);
@@ -93,6 +103,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [suggestedTimes, setSuggestedTimes] = useState([]);
   const [showAllTimes, setShowAllTimes] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const today = useMemo(() => getDayStart(new Date()), []);
   const selectedDateValue = useMemo(() => toDateValue(date), [date]);
@@ -130,6 +141,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
 
   useEffect(() => {
     if (!isOpen) return;
+    setNowMs(Date.now());
     setDate(null);
     setTime("");
     setPartySize("2");
@@ -142,6 +154,20 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
     setSuggestedTimes([]);
     setShowAllTimes(false);
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const intervalId = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 30000);
+    return () => window.clearInterval(intervalId);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!date || !time) return;
+    if (!isTimeSlotInPast(date, time, nowMs)) return;
+    setTime("");
+  }, [date, time, nowMs]);
 
   useEffect(() => {
     if (!isOpen || !restaurant?.id || !selectedDateValue || !time) {
@@ -288,6 +314,9 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
             dateFormat="yyyy-MM-dd"
             placeholderText="Choose reservation date"
             className="input datePickerInput"
+            popperPlacement="bottom-start"
+            popperClassName="reservationDatePickerPopper"
+            calendarClassName="reservationDatePickerCalendar"
             disabled={isBanned}
             required
           />
@@ -299,17 +328,19 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
           <div key={selectedDateValue || "empty-date"} className="reservationTimeGrid">
             {visibleTimeOptions.map((option) => {
               const selected = time === option.value;
+              const isPastSlot = selectedDateValue ? isTimeSlotInPast(date, option.value, nowMs) : false;
               return (
                 <button
                   key={option.value}
-                  className={`timeSlotBtn ${selected ? "is-selected" : ""}`}
+                  className={`timeSlotBtn ${selected ? "is-selected" : ""} ${isPastSlot ? "is-unavailable" : ""}`}
                   type="button"
-                  disabled={!selectedDateValue || isBanned}
+                  disabled={!selectedDateValue || isBanned || isPastSlot}
                   onClick={() => {
                     setTime(option.value);
                     setErrors((prev) => ({ ...prev, time: "" }));
                   }}
                   aria-pressed={selected}
+                  aria-label={isPastSlot ? `${option.label} unavailable` : option.label}
                 >
                   {selected && <span className="timeSlotBtn__activeBg" />}
                   <span className="timeSlotBtn__label">{option.label}</span>

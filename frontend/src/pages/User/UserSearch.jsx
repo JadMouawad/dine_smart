@@ -236,7 +236,8 @@ export default function UserSearch({
     const apiCall = alreadyFavorited ? removeFavorite(restaurant.id) : addFavorite(restaurant.id);
     apiCall.catch((err) => {
       console.error("[favorites]", err?.message);
-      toast.error(alreadyFavorited ? "Couldn't remove favorite." : "Couldn't save favorite — check your connection.");
+      const fallbackMessage = alreadyFavorited ? "Couldn't remove favorite." : "Couldn't save favorite.";
+      toast.error(err?.message ? `${fallbackMessage} ${err.message}` : fallbackMessage);
     });
   }
 

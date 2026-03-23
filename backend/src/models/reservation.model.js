@@ -3,7 +3,7 @@
 
 async function getRestaurantById(db, restaurantId) {
   const query = `
-    SELECT id, name, opening_time, closing_time, is_verified, approval_status
+    SELECT id, owner_id, name, opening_time, closing_time, is_verified, approval_status
     FROM restaurants
     WHERE id = $1;
   `;

@@ -10,6 +10,7 @@ export default function OwnerReviews() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [responseDrafts, setResponseDrafts] = useState({});
+  const [editingResponses, setEditingResponses] = useState({});
   const [savingReviewId, setSavingReviewId] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -61,6 +62,9 @@ export default function OwnerReviews() {
     setError("");
     setSuccess("");
     try {
+      const hadResponse = reviews.some(
+        (review) => review.id === reviewId && String(review.owner_response || "").trim()
+      );
       const updated = await respondToReviewAsOwner(reviewId, response);
       setReviews((prev) =>
         prev.map((review) =>
@@ -69,12 +73,31 @@ export default function OwnerReviews() {
             : review
         )
       );
-      setSuccess("Owner response saved.");
+      setEditingResponses((prev) => ({ ...prev, [reviewId]: false }));
+      setSuccess(hadResponse ? "Owner response updated." : "Owner response saved.");
     } catch (err) {
       setError(err.message || "Failed to save owner response.");
     } finally {
       setSavingReviewId(null);
     }
+  }
+
+  function startEditingResponse(reviewId, existingResponse) {
+    setError("");
+    setSuccess("");
+    setResponseDrafts((prev) => ({
+      ...prev,
+      [reviewId]: prev[reviewId] ?? String(existingResponse || ""),
+    }));
+    setEditingResponses((prev) => ({ ...prev, [reviewId]: true }));
+  }
+
+  function cancelEditingResponse(reviewId) {
+    setEditingResponses((prev) => ({ ...prev, [reviewId]: false }));
+    setResponseDrafts((prev) => ({
+      ...prev,
+      [reviewId]: reviews.find((review) => review.id === reviewId)?.owner_response ?? "",
+    }));
   }
 
   if (loading) {
@@ -107,6 +130,12 @@ export default function OwnerReviews() {
         ) : (
           reviews.map((review) => (
             <article className="menuSectionBlock" key={review.id}>
+              {(() => {
+                const hasOwnerResponse = Boolean(String(review.owner_response || "").trim());
+                const isEditing = Boolean(editingResponses[review.id]) || !hasOwnerResponse;
+                const responseLabel = hasOwnerResponse ? "Edit response" : "Respond as Owner";
+                return (
+                  <>
               <div className="menuSectionHeader">
                 <button className="btn btn--gold ownerMenuSectionBtn" type="button">
                   {(review.user_name || review.authorName || "Guest")}
@@ -130,29 +159,56 @@ export default function OwnerReviews() {
                 </div>
               )}
 
-              <label className="field">
-                <span>Respond as Owner</span>
-                <textarea
-                  className="textarea"
-                  rows={3}
-                  value={responseDrafts[review.id] ?? review.owner_response ?? ""}
-                  onChange={(event) =>
-                    setResponseDrafts((prev) => ({ ...prev, [review.id]: event.target.value }))
-                  }
-                  placeholder="Write a response to this review..."
-                />
-              </label>
+              {isEditing && (
+                <label className="field">
+                  <span>{responseLabel}</span>
+                  <textarea
+                    className="textarea"
+                    rows={3}
+                    value={responseDrafts[review.id] ?? review.owner_response ?? ""}
+                    onChange={(event) =>
+                      setResponseDrafts((prev) => ({ ...prev, [review.id]: event.target.value }))
+                    }
+                    placeholder="Write a response to this review..."
+                  />
+                </label>
+              )}
 
               <div className="formCard__actions">
-                <button
-                  className="btn btn--gold"
-                  type="button"
-                  onClick={() => saveResponse(review.id)}
-                  disabled={savingReviewId === review.id}
-                >
-                  {savingReviewId === review.id ? "Saving..." : "Save Response"}
-                </button>
+                {hasOwnerResponse && !isEditing ? (
+                  <button
+                    className="btn btn--gold"
+                    type="button"
+                    onClick={() => startEditingResponse(review.id, review.owner_response)}
+                  >
+                    Edit Response
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      className="btn btn--gold"
+                      type="button"
+                      onClick={() => saveResponse(review.id)}
+                      disabled={savingReviewId === review.id}
+                    >
+                      {savingReviewId === review.id ? "Saving..." : hasOwnerResponse ? "Save Changes" : "Save Response"}
+                    </button>
+                    {hasOwnerResponse && (
+                      <button
+                        className="btn btn--ghost"
+                        type="button"
+                        onClick={() => cancelEditingResponse(review.id)}
+                        disabled={savingReviewId === review.id}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
+                  </>
+                );
+              })()}
             </article>
           ))
         )}

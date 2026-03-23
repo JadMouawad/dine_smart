@@ -3,6 +3,7 @@ import { getMyRestaurant } from "../../services/restaurantService";
 import {
   getOwnerReservations,
   updateOwnerReservationStatus,
+  markOwnerReservationNoShow,
   getOwnerSlotAdjustment,
   saveOwnerSlotAdjustment,
 } from "../../services/reservationService";
@@ -128,7 +129,16 @@ export default function OwnerReservations() {
       })
       .catch((err) => {
         if (cancelled) return;
-        setAdjustmentError(err.message || "Couldn't load seat adjustments for this slot.");
+        const rawMessage = String(err?.message || "").toLowerCase();
+        const isInternalRuntimeMessage =
+          rawMessage.includes("not a function") ||
+          rawMessage.includes("reservationservice.") ||
+          rawMessage.includes("undefined");
+        setAdjustmentError(
+          isInternalRuntimeMessage
+            ? "Couldn't load seat adjustments for this slot."
+            : (err.message || "Couldn't load seat adjustments for this slot.")
+        );
       })
       .finally(() => {
         if (!cancelled) setAdjustmentFetching(false);
@@ -201,6 +211,7 @@ export default function OwnerReservations() {
     setAdjustmentLoading(true);
     setAdjustmentError("");
     setAdjustmentMessage("");
+    setSuccess("");
     try {
       const saved = await saveOwnerSlotAdjustment(restaurant.id, {
         date: adjustmentDate,
@@ -210,8 +221,18 @@ export default function OwnerReservations() {
       });
       setAdjustmentValue(String(saved?.adjustment ?? parsedAdjustment));
       setAdjustmentMessage("Seat adjustment saved.");
+      setSuccess("Seat adjustment saved.");
     } catch (err) {
-      setAdjustmentError(err.message || "Couldn't save seat adjustment.");
+      const rawMessage = String(err?.message || "").toLowerCase();
+      const isInternalRuntimeMessage =
+        rawMessage.includes("not a function") ||
+        rawMessage.includes("reservationservice.") ||
+        rawMessage.includes("undefined");
+      setAdjustmentError(
+        isInternalRuntimeMessage
+          ? "Couldn't save seat adjustment."
+          : (err.message || "Couldn't save seat adjustment.")
+      );
     } finally {
       setAdjustmentLoading(false);
     }
@@ -222,14 +243,19 @@ export default function OwnerReservations() {
     setError("");
     setSuccess("");
     try {
-      const updated = await updateOwnerReservationStatus(reservationId, action);
-      setReservations((prev) =>
-        prev.map((reservation) =>
-          reservation.id === reservationId
-            ? { ...reservation, ...updated }
-            : reservation
-        )
-      );
+      const existingReservation = reservations.find((reservation) => reservation.id === reservationId) || null;
+      let updatedReservation = null;
+
+      if (action === "no-show") {
+        await markOwnerReservationNoShow(reservationId);
+        updatedReservation = existingReservation
+          ? { ...existingReservation, status: "no-show" }
+          : null;
+      } else {
+        updatedReservation = await updateOwnerReservationStatus(reservationId, action);
+      }
+
+      await loadReservations();
       const messageMap = {
         accept: "Reservation accepted.",
         reject: "Reservation rejected.",
@@ -241,9 +267,9 @@ export default function OwnerReservations() {
         new CustomEvent("ds:reservation-changed", {
           detail: {
             reservationId,
-            restaurantId: updated.restaurant_id,
-            date: updated.reservation_date,
-            time: updated.reservation_time,
+            restaurantId: updatedReservation?.restaurant_id ?? existingReservation?.restaurant_id,
+            date: updatedReservation?.reservation_date ?? existingReservation?.reservation_date,
+            time: updatedReservation?.reservation_time ?? existingReservation?.reservation_time,
             action: action === "accept"
               ? "accepted"
               : action === "reject"
