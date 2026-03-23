@@ -1,6 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
-import Lenis from "@studio-freight/lenis";
 
 import { useAuth } from "./auth/AuthContext.jsx";
 
@@ -37,14 +36,6 @@ function AppContent() {
   const [searchPresetToken, setSearchPresetToken] = useState(0);
 
   const { user, loading, logout } = useAuth();
-
-  // Smooth scroll
-  useEffect(() => {
-    const lenis = new Lenis({ lerp: 0.08, smoothWheel: true });
-    function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
-    requestAnimationFrame(raf);
-    return () => lenis.destroy();
-  }, []);
 
   const openModal = useCallback((nextMode) => {
     setMode(nextMode);
