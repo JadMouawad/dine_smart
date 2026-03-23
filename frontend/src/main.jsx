@@ -7,6 +7,7 @@ import { AuthProvider } from "./auth/AuthContext.jsx";
 import { ThemeProvider } from "./auth/ThemeContext.jsx";
 import { BrowserRouter } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { Toaster } from "sonner";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -17,6 +18,17 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <AuthProvider>
           <BrowserRouter>
             <App />
+            <Toaster
+              position="top-right"
+              richColors
+              closeButton
+              toastOptions={{
+                style: {
+                  fontFamily: "inherit",
+                  borderRadius: "12px",
+                },
+              }}
+            />
           </BrowserRouter>
         </AuthProvider>
       </GoogleOAuthProvider>

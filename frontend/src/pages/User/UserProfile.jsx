@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { getProfile, updateProfile } from "../../services/profileService.js";
 import { getFavorites } from "../../services/favoriteService.js";
@@ -31,8 +32,6 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const [savedLocation, setSavedLocation] = useState({ latitude: null, longitude: null });
   const [locationStatus, setLocationStatus] = useState("idle"); // idle | detecting | granted | denied
   const [profileLoading, setProfileLoading] = useState(true);
-  const [profileError, setProfileError] = useState("");
-  const [profileSuccess, setProfileSuccess] = useState("");
 
   // Load favorites from server
   useEffect(() => {
@@ -133,16 +132,13 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
 
   async function onSubmit(e) {
     e.preventDefault();
-    setProfileError("");
-    setProfileSuccess("");
-
     if (!isGoogleAccount && newPassword.trim()) {
       if (!confirmNewPassword.trim()) {
-        setProfileError("Please confirm your new password.");
+        toast.error("Please confirm your new password.");
         return;
       }
       if (newPassword !== confirmNewPassword) {
-        setProfileError("New password and confirm password do not match.");
+        toast.error("New password and confirm password do not match.");
         return;
       }
     }
@@ -163,7 +159,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       const savedAvatar = updated?.profilePictureUrl ?? payload.profilePictureUrl;
       setProfilePictureUrl(savedAvatar);
       setProfilePictureDataUrl("");
-      setProfileSuccess("Profile saved successfully.");
+      toast.success("Profile saved successfully.");
       setNewPassword("");
       setConfirmNewPassword("");
       setShowNewPassword(false);
@@ -171,7 +167,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       // Refresh user in context so Explore page picks up new coords
       refreshUser?.();
     } catch (err) {
-      setProfileError(err.message || "Failed to save profile.");
+      toast.error(err.message || "Failed to save profile.");
     }
   }
 
@@ -200,9 +196,6 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
           <input className="imageCard__input" type="file" accept="image/png, image/jpeg" onChange={onPickProfile} />
         </label>
       </section>
-
-      {profileError && <p className="formCard__error userProfile__feedbackError">{profileError}</p>}
-      {profileSuccess && <p className="formCard__success userProfile__feedbackSuccess">{profileSuccess}</p>}
 
       <div className="userProfileLayout">
         <form className="formCard formCard--userProfile userProfileFormCard" onSubmit={onSubmit}>

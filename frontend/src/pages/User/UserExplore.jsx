@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Map, { Marker, NavigationControl } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { FiSliders } from "react-icons/fi";
@@ -247,11 +248,25 @@ export default function UserExplore({ onOpenRestaurant }) {
       </div>
 
       {/* ── Floating filter dropdown (fixed — escapes overflow:hidden) ── */}
+      <AnimatePresence>
       {filtersOpen && (
         <>
-          <div className="exploreFilterBackdrop" onClick={() => setFiltersOpen(false)} />
+          <motion.div
+            className="exploreFilterBackdrop"
+            onClick={() => setFiltersOpen(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          />
 
-          <div className="exploreFilterDropdown">
+          <motion.div
+            className="exploreFilterDropdown"
+            initial={{ opacity: 0, y: -10, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.97 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
 
             {/* Header */}
             <div className="exploreFilterDropdown__head">
@@ -351,9 +366,10 @@ export default function UserExplore({ onOpenRestaurant }) {
               </div>
             </div>
 
-          </div>
+          </motion.div>
         </>
       )}
+      </AnimatePresence>
 
       {/* ── Split body ── */}
       <div className="exploreBody">
@@ -366,8 +382,8 @@ export default function UserExplore({ onOpenRestaurant }) {
           {error && <p className="fieldError">{error}</p>}
 
           <div className="exploreListGrid">
-            {restaurants.map((restaurant) => (
-              <article
+            {restaurants.map((restaurant, i) => (
+              <motion.article
                 key={restaurant.id}
                 ref={(el) => { cardRefs.current[restaurant.id] = el; }}
                 className={`exploreListCard${selectedRestaurantId === restaurant.id ? " is-selected" : ""}`}
@@ -375,6 +391,10 @@ export default function UserExplore({ onOpenRestaurant }) {
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => e.key === "Enter" && handleSelectRestaurant(restaurant.id)}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.04, ease: "easeOut" }}
+                whileHover={{ scale: 1.02 }}
               >
                 {/* Full-bleed background image */}
                 <div className="exploreListCard__bg">
@@ -409,7 +429,7 @@ export default function UserExplore({ onOpenRestaurant }) {
                     </div>
                   </div>
                 </div>
-              </article>
+              </motion.article>
             ))}
           </div>
         </div>

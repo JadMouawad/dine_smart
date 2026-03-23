@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { searchRestaurants, getRestaurantById } from "../../services/restaurantService";
 import { getFavorites, addFavorite, removeFavorite } from "../../services/favoriteService";
@@ -103,9 +105,6 @@ export default function UserSearch({
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [restaurantNotFound, setRestaurantNotFound] = useState(false);
 
-  // Toast (passed into RestaurantDetailPanel so it can trigger it)
-  const [reservationToast, setReservationToast] = useState("");
-
   // Filter drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [filters, setFilters] = useState(getInitialFilters());
@@ -118,7 +117,6 @@ export default function UserSearch({
 
   // Favorites (server-backed)
   const [favorites, setFavorites] = useState([]);
-  const [favoriteError, setFavoriteError] = useState("");
 
   const scrollRestoreRef = useRef(null);
 
@@ -146,11 +144,10 @@ export default function UserSearch({
     setFavorites((prev) =>
       alreadyFavorited ? prev.filter((r) => r.id !== restaurant.id) : [...prev, restaurant]
     );
-    setFavoriteError("");
     const apiCall = alreadyFavorited ? removeFavorite(restaurant.id) : addFavorite(restaurant.id);
     apiCall.catch((err) => {
       console.error("[favorites]", err?.message);
-      setFavoriteError(alreadyFavorited ? "Couldn't remove favorite." : "Couldn't save favorite — check your connection.");
+      toast.error(alreadyFavorited ? "Couldn't remove favorite." : "Couldn't save favorite — check your connection.");
     });
   }
 
@@ -333,12 +330,6 @@ export default function UserSearch({
     return () => document.body.classList.remove("ds-nav-not-sticky");
   }, [selectedRestaurant]);
 
-  // Auto-dismiss reservation toast
-  useEffect(() => {
-    if (!reservationToast) return undefined;
-    const id = window.setTimeout(() => setReservationToast(""), 3500);
-    return () => window.clearTimeout(id);
-  }, [reservationToast]);
 
   // ── Render: not found ─────────────────────────────────────
   if (restaurantNotFound) {
@@ -366,8 +357,6 @@ export default function UserSearch({
         onToggleFavorite={toggleFavorite}
         requireAuth={requireAuth}
         onBack={() => { setSelectedRestaurant(null); setRestaurantNotFound(false); }}
-        reservationToast={reservationToast}
-        setReservationToast={setReservationToast}
       />
     );
   }
@@ -376,12 +365,6 @@ export default function UserSearch({
   return (
     <div className="userSearchPage">
       <h1 className="userSearchPage__title">Search Restaurants</h1>
-
-      {favoriteError && (
-        <div className="inlineToast inlineToast--error" role="alert">
-          {favoriteError}
-        </div>
-      )}
 
       <div className="searchBarCard">
         <input
@@ -474,15 +457,21 @@ export default function UserSearch({
             onAction={resetFilters}
           />
         ) : null}
-        {!restaurantsLoading && filteredRestaurants.map((r) => (
-          <RestaurantCard
+        {!restaurantsLoading && filteredRestaurants.map((r, i) => (
+          <motion.div
             key={r.id}
-            r={r}
-            isFavorited={isFavorited(r.id)}
-            onSelect={(restaurant) => setSelectedRestaurant(restaurant)}
-            onFavorite={(restaurant) => { if (!requireAuth()) return; toggleFavorite(restaurant); }}
-            onReserve={(restaurant) => { if (!requireAuth()) return; setSelectedRestaurant(restaurant); }}
-          />
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.28, delay: i * 0.04, ease: "easeOut" }}
+          >
+            <RestaurantCard
+              r={r}
+              isFavorited={isFavorited(r.id)}
+              onSelect={(restaurant) => setSelectedRestaurant(restaurant)}
+              onFavorite={(restaurant) => { if (!requireAuth()) return; toggleFavorite(restaurant); }}
+              onReserve={(restaurant) => { if (!requireAuth()) return; setSelectedRestaurant(restaurant); }}
+            />
+          </motion.div>
         ))}
       </div>
 

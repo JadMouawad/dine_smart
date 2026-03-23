@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { FiArrowLeft, FiClock, FiMapPin, FiStar, FiTrash2 } from "react-icons/fi";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { getReviewsByRestaurantId, createReview, deleteReview } from "../../services/reviewService";
@@ -23,7 +24,6 @@ import { FILLED_STAR, EMPTY_STAR } from "../../constants/filters";
  *   onToggleFavorite(restaurant) – function
  *   requireAuth()   – returns false and fires a side-effect if user must log in
  *   onBack()        – called when the user clicks "Back to Search"
- *   reservationToast / setReservationToast – lifted so parent can show toast
  */
 export default function RestaurantDetailPanel({
   restaurant,
@@ -31,8 +31,6 @@ export default function RestaurantDetailPanel({
   onToggleFavorite,
   requireAuth,
   onBack,
-  reservationToast,
-  setReservationToast,
 }) {
   const { user } = useAuth();
 
@@ -214,8 +212,6 @@ export default function RestaurantDetailPanel({
   // ── Render ────────────────────────────────────────────────
   return (
     <div className="userSearchPage">
-      {reservationToast && <div className="inlineToast">{reservationToast}</div>}
-
       <header className="restaurantPageHeader">
         <button
           className="btn btn--ghost restaurantPageHeader__backBtn"
@@ -337,7 +333,7 @@ export default function RestaurantDetailPanel({
             restaurant={currentRestaurant}
             onClose={() => {}}
             onReserved={(reservation) => {
-              setReservationToast("Booked successfully.");
+              toast.success("Booked successfully! 🎉");
               const date = reservation?.reservation_date || reservationSlot?.date || getCurrentSlotParams().date;
               const time = String(reservation?.reservation_time || reservationSlot?.time || getCurrentSlotParams().time).slice(0, 5);
               setReservationSlot({ date, time });
