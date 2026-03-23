@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Map, { Marker, NavigationControl } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { FiSliders } from "react-icons/fi";
@@ -8,18 +9,8 @@ import { searchRestaurants } from "../../services/restaurantService";
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const DEFAULT_CENTER = { lat: 33.893791, lng: 35.501777 };
 
-const CUISINES = [
-  "American","Middle Eastern","French","Mexican","Chinese",
-  "Japanese","Italian","Indian","International",
-];
-const PRICE_OPTIONS = ["$", "$$", "$$$", "$$$$"];
-const DIETARY_OPTIONS = ["Vegetarian", "Vegan", "Halal", "GF"];
-const RATING_OPTIONS = [
-  { value: 0, label: "Any" },
-  { value: 3.5, label: "3.5+" },
-  { value: 4, label: "4.0+" },
-  { value: 4.5, label: "4.5+" },
-];
+import { CUISINES, PRICE_OPTIONS, DIETARY_OPTIONS, RATING_OPTIONS } from "../../constants/filters";
+
 
 const defaultFilters = {
   minRating: 0,
@@ -48,6 +39,7 @@ export default function UserExplore({ onOpenRestaurant }) {
   const [error, setError]             = useState("");
   const [selectedRestaurantId, setSelectedRestaurantId] = useState(null);
   const [gpsCoords, setGpsCoords]     = useState({ lat: null, lng: null });
+  const [gpsDenied, setGpsDenied]     = useState(false);
 
   const cardRefs  = useRef({});
   const watchIdRef = useRef(null);
@@ -71,19 +63,54 @@ export default function UserExplore({ onOpenRestaurant }) {
     zoom: 13,
   });
 
-  // Silent background GPS — retries automatically, works on non-GPS devices
+  // GPS — getCurrentPosition for immediate fix, watchPosition for live updates
   useEffect(() => {
-    if (!navigator.geolocation) return;
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const lat = Number(pos.coords.latitude.toFixed(6));
-        const lng = Number(pos.coords.longitude.toFixed(6));
-        setGpsCoords({ lat, lng });
-        setViewState((vs) => ({ ...vs, latitude: lat, longitude: lng, zoom: Math.max(vs.zoom, 14) }));
-      },
-      () => { /* silently ignore — map stays at profile/default */ },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
-    );
+    if (!navigator.geolocation) { setGpsDenied(true); return; }
+
+    function applyPos(pos) {
+      const lat = Number(pos.coords.latitude.toFixed(6));
+      const lng = Number(pos.coords.longitude.toFixed(6));
+      setGpsCoords({ lat, lng });
+      setGpsDenied(false);
+      setViewState((vs) => ({ ...vs, latitude: lat, longitude: lng, zoom: Math.max(vs.zoom, 14) }));
+    }
+
+    async function tryIpFallback() {
+      try {
+        const res = await fetch("https://ipapi.co/json/");
+        const data = await res.json();
+        if (data.latitude && data.longitude) {
+          setGpsCoords({ lat: Number(data.latitude), lng: Number(data.longitude) });
+          setViewState((vs) => ({ ...vs, latitude: Number(data.latitude), longitude: Number(data.longitude), zoom: Math.max(vs.zoom, 13) }));
+        }
+      } catch {
+        // IP lookup failed too — stay at default
+      }
+    }
+
+    function handleErr(err) {
+      if (err.code === 1) {
+        setGpsDenied(true); // PERMISSION_DENIED — user blocked it
+      } else {
+        // POSITION_UNAVAILABLE or TIMEOUT (e.g. Mac on hotspot) — try IP fallback
+        tryIpFallback();
+      }
+    }
+
+    // Fast one-shot to show dot immediately (no waiting for watchPosition's first tick)
+    navigator.geolocation.getCurrentPosition(applyPos, handleErr, {
+      enableHighAccuracy: false,
+      timeout: 8000,
+      maximumAge: 0,
+    });
+
+    // Then keep updating
+    watchIdRef.current = navigator.geolocation.watchPosition(applyPos, handleErr, {
+      enableHighAccuracy: false,
+      timeout: 10000,
+      maximumAge: 0,
+    });
+
     return () => {
       if (watchIdRef.current != null) navigator.geolocation.clearWatch(watchIdRef.current);
     };
@@ -117,6 +144,22 @@ export default function UserExplore({ onOpenRestaurant }) {
     () => restaurants.filter((r) => parseCoord(r.latitude) != null && parseCoord(r.longitude) != null),
     [restaurants]
   );
+
+  // Memoize marker JSX — only re-renders when restaurants list or selection changes
+  const restaurantMarkers = useMemo(() => restaurantsWithCoords.map((restaurant) => {
+    const lat = parseCoord(restaurant.latitude);
+    const lng = parseCoord(restaurant.longitude);
+    if (lat == null || lng == null) return null;
+    const label = restaurant.name.length > 16 ? restaurant.name.slice(0, 16) + "…" : restaurant.name;
+    return (
+      <Marker key={`marker-${restaurant.id}`} longitude={lng} latitude={lat} anchor="bottom">
+        <div
+          className={`exploreMarker__pill${selectedRestaurantId === restaurant.id ? " is-selected" : ""}`}
+          onClick={() => handleSelectRestaurant(restaurant.id)}
+        >{label}</div>
+      </Marker>
+    );
+  }), [restaurantsWithCoords, selectedRestaurantId]);
 
   useEffect(() => {
     if (!selectedRestaurantId) return;
@@ -156,6 +199,16 @@ export default function UserExplore({ onOpenRestaurant }) {
   return (
     <div className="explorePage">
 
+      {/* ── GPS denied banner ── */}
+      {gpsDenied && (
+        <div className="exploreGpsBanner">
+          <span>📍 Location blocked.</span>
+          <span className="exploreGpsBanner__steps">
+            In your browser address bar, click the lock icon → <strong>Site settings</strong> → set <strong>Location</strong> to <em>Allow</em>, then refresh.
+          </span>
+        </div>
+      )}
+
       {/* ── Top bar ── */}
       <div className="exploreTopBar">
         <input
@@ -167,13 +220,17 @@ export default function UserExplore({ onOpenRestaurant }) {
           aria-label="Search restaurants"
         />
 
-        {/* 📍 Re-center — appears only when GPS has a fix */}
-        {gpsCoords.lat != null && (
+        {/* 📍 Re-center — appears when GPS fix or profile coords available */}
+        {(gpsCoords.lat != null || profileCoords != null) && (
           <button
             className="exploreLocateBtn is-granted"
             type="button"
             title="Center map on my location"
-            onClick={() => setViewState((vs) => ({ ...vs, latitude: gpsCoords.lat, longitude: gpsCoords.lng, zoom: 15 }))}
+            onClick={() => {
+              const lat = gpsCoords.lat ?? profileCoords?.lat;
+              const lng = gpsCoords.lng ?? profileCoords?.lng;
+              setViewState((vs) => ({ ...vs, latitude: lat, longitude: lng, zoom: 15 }));
+            }}
           >📍</button>
         )}
 
@@ -191,11 +248,25 @@ export default function UserExplore({ onOpenRestaurant }) {
       </div>
 
       {/* ── Floating filter dropdown (fixed — escapes overflow:hidden) ── */}
+      <AnimatePresence>
       {filtersOpen && (
         <>
-          <div className="exploreFilterBackdrop" onClick={() => setFiltersOpen(false)} />
+          <motion.div
+            className="exploreFilterBackdrop"
+            onClick={() => setFiltersOpen(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          />
 
-          <div className="exploreFilterDropdown">
+          <motion.div
+            className="exploreFilterDropdown"
+            initial={{ opacity: 0, y: -10, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.97 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
 
             {/* Header */}
             <div className="exploreFilterDropdown__head">
@@ -295,9 +366,10 @@ export default function UserExplore({ onOpenRestaurant }) {
               </div>
             </div>
 
-          </div>
+          </motion.div>
         </>
       )}
+      </AnimatePresence>
 
       {/* ── Split body ── */}
       <div className="exploreBody">
@@ -310,8 +382,8 @@ export default function UserExplore({ onOpenRestaurant }) {
           {error && <p className="fieldError">{error}</p>}
 
           <div className="exploreListGrid">
-            {restaurants.map((restaurant) => (
-              <article
+            {restaurants.map((restaurant, i) => (
+              <motion.article
                 key={restaurant.id}
                 ref={(el) => { cardRefs.current[restaurant.id] = el; }}
                 className={`exploreListCard${selectedRestaurantId === restaurant.id ? " is-selected" : ""}`}
@@ -319,6 +391,10 @@ export default function UserExplore({ onOpenRestaurant }) {
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => e.key === "Enter" && handleSelectRestaurant(restaurant.id)}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.04, ease: "easeOut" }}
+                whileHover={{ scale: 1.02 }}
               >
                 {/* Full-bleed background image */}
                 <div className="exploreListCard__bg">
@@ -353,7 +429,7 @@ export default function UserExplore({ onOpenRestaurant }) {
                     </div>
                   </div>
                 </div>
-              </article>
+              </motion.article>
             ))}
           </div>
         </div>
@@ -369,28 +445,21 @@ export default function UserExplore({ onOpenRestaurant }) {
           >
             <NavigationControl position="top-right" />
 
-            {/* Blue dot — only when GPS has a fix */}
-            {gpsCoords.lat != null && gpsCoords.lng != null && (
-              <Marker longitude={gpsCoords.lng} latitude={gpsCoords.lat} anchor="center">
-                <div className="exploreUserDot" />
-              </Marker>
-            )}
-
-            {/* Restaurant name-pill markers */}
-            {restaurantsWithCoords.map((restaurant) => {
-              const lat = parseCoord(restaurant.latitude);
-              const lng = parseCoord(restaurant.longitude);
-              if (lat == null || lng == null) return null;
-              const label = restaurant.name.length > 16 ? restaurant.name.slice(0, 16) + "…" : restaurant.name;
+            {/* Blue dot — GPS fix preferred, falls back to profile coords */}
+            {(() => {
+              const dotLat = gpsCoords.lat ?? profileCoords?.lat ?? null;
+              const dotLng = gpsCoords.lng ?? profileCoords?.lng ?? null;
+              const isApprox = gpsCoords.lat == null && profileCoords != null;
+              if (dotLat == null || dotLng == null) return null;
               return (
-                <Marker key={`marker-${restaurant.id}`} longitude={lng} latitude={lat} anchor="bottom">
-                  <div
-                    className={`exploreMarker__pill${selectedRestaurantId === restaurant.id ? " is-selected" : ""}`}
-                    onClick={() => handleSelectRestaurant(restaurant.id)}
-                  >{label}</div>
+                <Marker longitude={dotLng} latitude={dotLat} anchor="center">
+                  <div className={`exploreUserDot${isApprox ? " exploreUserDot--approx" : ""}`} />
                 </Marker>
               );
-            })}
+            })()}
+
+            {/* Restaurant name-pill markers (memoized) */}
+            {restaurantMarkers}
           </Map>
         </div>
 

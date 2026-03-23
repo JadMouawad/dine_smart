@@ -1,40 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { getProfile, updateProfile } from "../../services/profileService.js";
+import { getFavorites } from "../../services/favoriteService.js";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useTheme } from "../../auth/ThemeContext.jsx";
 
-const FAVORITES_KEY = "ds_favorites";
-const FILLED_STAR = "\u2605";
-const EMPTY_STAR = "\u2606";
-const DEFAULT_AVATAR =
-  "data:image/svg+xml;utf8," +
-  encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <defs>
-    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0%" stop-color="#C9A227" />
-      <stop offset="100%" stop-color="#a07a1e" />
-    </linearGradient>
-  </defs>
-  <rect width="128" height="128" rx="64" fill="url(#g)" />
-  <circle cx="64" cy="48" r="23" fill="#fff8e1"/>
-  <path d="M24 112c5-20 20-31 40-31s35 11 40 31" fill="#fff8e1"/>
-</svg>`);
-
-function loadFavorites() {
-  try {
-    return JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
+import { FILLED_STAR, EMPTY_STAR } from "../../constants/filters";
+import { DEFAULT_AVATAR } from "../../constants/avatar";
 
 export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant }) {
   const { user, refreshUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
-  const [favorites] = useState(() => loadFavorites());
+  const [favorites, setFavorites] = useState([]);
   const [myReviews, setMyReviews] = useState([]);
 
   const [profilePictureUrl, setProfilePictureUrl] = useState("");
@@ -53,8 +32,14 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const [savedLocation, setSavedLocation] = useState({ latitude: null, longitude: null });
   const [locationStatus, setLocationStatus] = useState("idle"); // idle | detecting | granted | denied
   const [profileLoading, setProfileLoading] = useState(true);
-  const [profileError, setProfileError] = useState("");
-  const [profileSuccess, setProfileSuccess] = useState("");
+
+  // Load favorites from server
+  useEffect(() => {
+    if (!user?.id) return;
+    getFavorites()
+      .then((data) => setFavorites(Array.isArray(data) ? data : []))
+      .catch(() => setFavorites([]));
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -147,16 +132,13 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
 
   async function onSubmit(e) {
     e.preventDefault();
-    setProfileError("");
-    setProfileSuccess("");
-
     if (!isGoogleAccount && newPassword.trim()) {
       if (!confirmNewPassword.trim()) {
-        setProfileError("Please confirm your new password.");
+        toast.error("Please confirm your new password.");
         return;
       }
       if (newPassword !== confirmNewPassword) {
-        setProfileError("New password and confirm password do not match.");
+        toast.error("New password and confirm password do not match.");
         return;
       }
     }
@@ -177,7 +159,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       const savedAvatar = updated?.profilePictureUrl ?? payload.profilePictureUrl;
       setProfilePictureUrl(savedAvatar);
       setProfilePictureDataUrl("");
-      setProfileSuccess("Profile saved successfully.");
+      toast.success("Profile saved successfully.");
       setNewPassword("");
       setConfirmNewPassword("");
       setShowNewPassword(false);
@@ -185,7 +167,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       // Refresh user in context so Explore page picks up new coords
       refreshUser?.();
     } catch (err) {
-      setProfileError(err.message || "Failed to save profile.");
+      toast.error(err.message || "Failed to save profile.");
     }
   }
 
@@ -214,9 +196,6 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
           <input className="imageCard__input" type="file" accept="image/png, image/jpeg" onChange={onPickProfile} />
         </label>
       </section>
-
-      {profileError && <p className="formCard__error userProfile__feedbackError">{profileError}</p>}
-      {profileSuccess && <p className="formCard__success userProfile__feedbackSuccess">{profileSuccess}</p>}
 
       <div className="userProfileLayout">
         <form className="formCard formCard--userProfile userProfileFormCard" onSubmit={onSubmit}>
@@ -281,6 +260,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
             ) : (
               <p className="userProfileFormHint" style={{ marginTop: 2 }}>No location saved yet.</p>
             )}
+
             <button
               type="button"
               className="btn btn--ghost"

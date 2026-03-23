@@ -3,39 +3,7 @@ import { useAuth } from "../../auth/AuthContext.jsx";
 import { getDiscoverFeed } from "../../services/restaurantService";
 import LoadingSkeleton from "../../components/LoadingSkeleton.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
-
-function normalizeDateInput(value) {
-  if (!value) return "";
-  const raw = String(value).trim();
-  const directMatch = raw.match(/^(\d{4}-\d{2}-\d{2})/);
-  if (directMatch) return directMatch[1];
-
-  const parsed = new Date(raw);
-  if (Number.isNaN(parsed.getTime())) return "";
-  return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
-}
-
-function formatDateRange(startDate, endDate) {
-  if (!startDate && !endDate) return "Dates TBD";
-  const start = toDateValue(startDate);
-  const end = toDateValue(endDate);
-  const startLabel = start ? start.toLocaleDateString() : "";
-  const endLabel = end ? end.toLocaleDateString() : "";
-  if (startLabel && endLabel && startLabel !== endLabel) return `${startLabel} - ${endLabel}`;
-  return startLabel || endLabel || "Dates TBD";
-}
-
-function toDateValue(dateValue) {
-  const normalized = normalizeDateInput(dateValue);
-  if (!normalized) return null;
-  const parsed = new Date(`${normalized}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed;
-}
-
-function startOfDay(date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
+import { toDateObject, startOfDay, formatDateRange } from "../../utils/dateUtils";
 
 function bucketEvents(events = []) {
   const today = startOfDay(new Date());
@@ -47,7 +15,7 @@ function bucketEvents(events = []) {
   };
 
   events.forEach((event) => {
-    const eventDate = toDateValue(event.start_date || event.event_date || event.end_date);
+    const eventDate = toDateObject(event.start_date || event.event_date || event.end_date);
     if (!eventDate) {
       buckets.later.push(event);
       return;
@@ -94,9 +62,6 @@ function SectionRestaurants({ title, badge, restaurants, onOpenRestaurant }) {
                 {restaurant.distance_km != null ? `${restaurant.distance_km} km away` : "Distance unavailable"}
               </div>
               {(restaurant.active_event_count || 0) > 0 && <div className="discoverFeedCard__badge">{restaurant.active_event_count} event(s)</div>}
-              <div className="discoverFeedCard__meta">
-                {(restaurant.rating || 0) >= 4.5 ? "New Restaurant" : "Recommended For You"}
-              </div>
             </div>
           </article>
         ))}
@@ -119,7 +84,7 @@ function EventCard({ event, onOpenRestaurant }) {
           <button
             className="btn btn--ghost discoverEventCard__actionBtn"
             type="button"
-            onClick={() => onOpenRestaurant?.(event.restaurant_id)}
+            onClick={() => onOpenRestaurant?.({ id: event.restaurant_id, name: event.restaurant_name })}
           >
             View Restaurant
           </button>

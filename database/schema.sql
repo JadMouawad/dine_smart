@@ -201,3 +201,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_unique ON users(phone)
 INSERT INTO roles (name) VALUES ('user'), ('owner'), ('admin')
 ON CONFLICT DO NOTHING;
 
+
+
+-- User favorites (restaurant bookmarks)
+CREATE TABLE IF NOT EXISTS user_favorites (
+  user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (user_id, restaurant_id)
+);

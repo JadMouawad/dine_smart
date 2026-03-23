@@ -131,8 +131,9 @@ export function AuthProvider({ children }) {
       const me = await getCurrentUser();
       const userData = me.user ?? me;
       setUser(userData);
-    } catch {
-      // silently ignore — user stays as-is
+    } catch (err) {
+      console.warn("[AuthContext] refreshUser failed:", err?.message);
+      // user stays as-is; not a critical failure
     }
   }
 

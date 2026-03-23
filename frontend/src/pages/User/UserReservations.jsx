@@ -3,66 +3,7 @@ import { useAuth } from "../../auth/AuthContext.jsx";
 import { cancelReservation, getReservationsByUserId } from "../../services/reservationService.js";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
-
-function toDateTimeValue(reservation) {
-  const datePart = String(reservation.reservation_date || "").trim();
-  const timePart = String(reservation.reservation_time || "00:00:00").slice(0, 8);
-
-  const [hours, minutes, seconds] = String(timePart).split(":").map((value) => parseInt(value, 10));
-  const normalizedHours = Number.isFinite(hours) ? hours : 0;
-  const normalizedMinutes = Number.isFinite(minutes) ? minutes : 0;
-  const normalizedSeconds = Number.isFinite(seconds) ? seconds : 0;
-
-  const dateOnly = datePart.includes("T") ? datePart.slice(0, 10) : datePart;
-  const separator = dateOnly.includes("-") ? "-" : dateOnly.includes("/") ? "/" : null;
-  if (separator) {
-    const rawParts = dateOnly.split(separator).map((value) => parseInt(value, 10));
-    if (rawParts.length === 3 && rawParts.every((value) => Number.isFinite(value))) {
-      let year;
-      let month;
-      let day;
-
-      if (String(dateOnly.split(separator)[0]).length === 4) {
-        year = rawParts[0];
-        month = rawParts[1];
-        day = rawParts[2];
-      } else if (rawParts[0] > 12) {
-        day = rawParts[0];
-        month = rawParts[1];
-        year = rawParts[2];
-      } else {
-        month = rawParts[0];
-        day = rawParts[1];
-        year = rawParts[2];
-      }
-
-      return new Date(year, month - 1, day, normalizedHours, normalizedMinutes, normalizedSeconds);
-    }
-  }
-
-  const fallback = new Date(`${datePart} ${timePart}`);
-  if (!Number.isNaN(fallback.getTime())) return fallback;
-
-  return null;
-}
-
-function formatReservationDate(reservation) {
-  const date = toDateTimeValue(reservation);
-  if (!date || Number.isNaN(date.getTime())) return String(reservation?.reservation_date || "");
-  return date.toLocaleDateString();
-}
-
-function formatReservationTime(reservation) {
-  const date = toDateTimeValue(reservation);
-  if (!date || Number.isNaN(date.getTime())) return String(reservation?.reservation_time || "").slice(0, 5);
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-function toSortTimestamp(reservation, fallbackValue) {
-  const date = toDateTimeValue(reservation);
-  if (!date || Number.isNaN(date.getTime())) return fallbackValue;
-  return date.getTime();
-}
+import { formatReservationDate, formatReservationTime, toReservationSortTimestamp, toReservationDateTime } from "../../utils/dateUtils";
 
 function toStatusClass(status) {
   const normalized = String(status || "").toLowerCase();
@@ -113,7 +54,7 @@ export default function UserReservations() {
     const grouped = { upcoming: [], past: [] };
 
     reservations.forEach((reservation) => {
-      const dateTime = toDateTimeValue(reservation);
+      const dateTime = toReservationDateTime(reservation);
       const hasValidDateTime = dateTime instanceof Date && !Number.isNaN(dateTime.getTime());
       const hasPassed = hasValidDateTime ? dateTime < now : false;
       const normalizedStatus = String(reservation.status || "").toLowerCase();
@@ -130,8 +71,8 @@ export default function UserReservations() {
       }
     });
 
-    grouped.upcoming.sort((a, b) => toSortTimestamp(a, Number.MAX_SAFE_INTEGER) - toSortTimestamp(b, Number.MAX_SAFE_INTEGER));
-    grouped.past.sort((a, b) => toSortTimestamp(b, 0) - toSortTimestamp(a, 0));
+    grouped.upcoming.sort((a, b) => toReservationSortTimestamp(a, Number.MAX_SAFE_INTEGER) - toReservationSortTimestamp(b, Number.MAX_SAFE_INTEGER));
+    grouped.past.sort((a, b) => toReservationSortTimestamp(b, 0) - toReservationSortTimestamp(a, 0));
     return grouped;
   }, [reservations, clockNow]);
 

@@ -14,6 +14,7 @@ const eventsRoutes = require("./eventsRoutes");
 const discoverRoutes = require("./discoverRoutes");
 const reviewModerationRoutes = require("./reviewModerationRoutes");
 const chatRoutes = require("./chatRoutes");
+const favoriteRoutes = require("./favoriteRoutes");
 const requireAuth = require("../middleware/requireAuth");
 const profileController = require("../controllers/profileController");
 
@@ -25,6 +26,7 @@ router.use("/discover", discoverRoutes);
 router.use("/reviews", reviewModerationRoutes);
 router.use("/auth", authRoutes);
 router.use("/profile", profileRoutes);
+router.use("/me/favorites", favoriteRoutes); // must be before /me so Express doesn't swallow it
 router.use("/me", profileRoutes); // alias so frontend /api/me works
 router.get("/users/profile", requireAuth, profileController.getProfile);
 router.use("/reservations", reservationRoutes);

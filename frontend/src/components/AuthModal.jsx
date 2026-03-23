@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { GoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
 import { FiEye, FiEyeOff } from "react-icons/fi";
@@ -189,7 +190,13 @@ export default function AuthModal({
     <div className="modal is-open" id="modal" aria-hidden="false" role="dialog" aria-modal="true">
       <div className="modal__backdrop" data-close="true" onClick={onClose} />
 
-      <div className="modal__panel" role="document">
+      <motion.div
+        className="modal__panel"
+        role="document"
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+      >
         <button className="modal__close" aria-label="Close" type="button" onClick={onClose}>
           X
         </button>
@@ -493,7 +500,7 @@ export default function AuthModal({
             </p>
           </form>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }
