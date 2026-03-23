@@ -33,7 +33,8 @@ export default function OwnerShell() {
         setApprovalStatus(String(restaurant?.approval_status || ""));
       })
       .catch(() => {
-        setApprovalStatus("");
+        // Preserve the last known status on transient failures so the owner shell
+        // does not jump into an empty/incorrect state after a save.
       });
   };
 

@@ -61,6 +61,17 @@ export function AuthProvider({ children }) {
     restoreSession();
   }, [token]);
 
+  useEffect(() => {
+    function handleStorage(event) {
+      if (event.key !== TOKEN_KEY) return;
+      const nextToken = readStoredToken();
+      setToken((prev) => (prev === nextToken ? prev : nextToken));
+    }
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
   async function login(email, password) {
     const data = await loginUser({ email, password });
     const newToken = data.token ?? data.accessToken;

@@ -77,6 +77,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
   const [success, setSuccess] = useState("");
   const [existingRestaurant, setExistingRestaurant] = useState(null);
   const [isEditing, setIsEditing] = useState(true);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   // Mapbox controlled view state
   const [viewState, setViewState] = useState({
@@ -115,6 +116,10 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
       })
       .catch((err) => {
         console.error("getMyRestaurant error:", err.message);
+        setError((prev) => prev || "We couldn't refresh your restaurant profile right now.");
+      })
+      .finally(() => {
+        setInitialLoadComplete(true);
       });
   }, []);
 
@@ -235,7 +240,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
 
       if (existingRestaurant) {
         const updated = await updateMyRestaurant(payload);
-        setExistingRestaurant(updated);
+        setExistingRestaurant((prev) => ({ ...(prev || {}), ...updated }));
         setSuccess("Restaurant updated successfully!");
         setIsEditing(false);
         if (onSaved) onSaved();
@@ -262,6 +267,10 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
   return (
     <div className="ownerProfile">
       <h1 className="ownerProfile__title">{existingRestaurant ? "Edit Restaurant Profile" : "Set Up Restaurant Profile"}</h1>
+
+      {!existingRestaurant && initialLoadComplete && error && (
+        <div className="ownerProfile__feedback ownerProfile__feedback--error">{error}</div>
+      )}
 
       {existingRestaurant && !isEditing ? (
         <section className="formCard ownerProfileViewCard">
