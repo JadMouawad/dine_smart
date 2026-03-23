@@ -9,10 +9,12 @@ import UserDiscover from "./UserDiscover.jsx";
 import UserExplore from "./UserExplore.jsx";
 import { getProfile } from "../../services/profileService.js";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
+import ChatWidget from "../../components/ChatWidget.jsx";
 
 export default function UserShell({ initialActive = "search" }) {
     const [active, setActive] = useState(initialActive);
     const [restaurantToOpen, setRestaurantToOpen] = useState(null);
+    const [chatCommand, setChatCommand] = useState(null);
     const [userAvatarUrl, setUserAvatarUrl] = useState("");
     const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
     const navigate = useNavigate();
@@ -60,6 +62,15 @@ export default function UserShell({ initialActive = "search" }) {
         navigate("/");
     }
 
+    function handleChatAction(action) {
+        if (!action?.type) return;
+        setActive("search");
+        setChatCommand({
+            ...action,
+            id: action.id || `chat-${Date.now()}`,
+        });
+    }
+
     return (
         <div className="userArea">
             <UserNav
@@ -85,6 +96,8 @@ export default function UserShell({ initialActive = "search" }) {
                     <UserSearch
                       restaurantToOpen={restaurantToOpen}
                       clearRestaurantToOpen={() => setRestaurantToOpen(null)}
+                      chatCommand={chatCommand}
+                      clearChatCommand={() => setChatCommand(null)}
                     />
                   )}
 
@@ -127,6 +140,8 @@ export default function UserShell({ initialActive = "search" }) {
               onConfirm={handleLogout}
               onCancel={() => setConfirmLogoutOpen(false)}
             />
+
+            <ChatWidget onAction={handleChatAction} />
         </div>
     );
 }

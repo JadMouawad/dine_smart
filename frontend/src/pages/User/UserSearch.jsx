@@ -87,6 +87,8 @@ export default function UserSearch({
   onRequireSignup,
   restaurantToOpen,
   clearRestaurantToOpen,
+  chatCommand,
+  clearChatCommand,
   onSearchActiveChange,
   initialCuisine = "",
   initialCuisineToken = 0,
@@ -104,6 +106,7 @@ export default function UserSearch({
   // Detail view
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [restaurantNotFound, setRestaurantNotFound] = useState(false);
+  const [reservationIntentToken, setReservationIntentToken] = useState(0);
 
   // Filter drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -172,6 +175,7 @@ export default function UserSearch({
     const toNum = (v, fallback = 0) => { const n = Number(v); return Number.isFinite(n) ? n : fallback; };
     if (sortBy === "alphabetical") return list.sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || "")));
     if (sortBy === "distance") return list.sort((a, b) => { const ad = toNum(a?.distance_km, Number.MAX_SAFE_INTEGER), bd = toNum(b?.distance_km, Number.MAX_SAFE_INTEGER); return ad !== bd ? ad - bd : toNum(b?.rating) - toNum(a?.rating); });
+    if (sortBy === "rating_asc") return list.sort((a, b) => { const ar = toNum(a?.rating), br = toNum(b?.rating); return ar !== br ? ar - br : String(a?.name || "").localeCompare(String(b?.name || "")); });
     if (sortBy === "reviews") return list.sort((a, b) => { const ar = toNum(a?.review_count), br = toNum(b?.review_count); return ar !== br ? br - ar : toNum(b?.rating) - toNum(a?.rating); });
     if (sortBy === "popularity") return list.sort((a, b) => { const ap = toNum(a?.popularity_score), bp = toNum(b?.popularity_score); return ap !== bp ? bp - ap : toNum(b?.rating) - toNum(a?.rating); });
     return list.sort((a, b) => { const ar = toNum(a?.rating), br = toNum(b?.rating); return ar !== br ? br - ar : String(a?.name || "").localeCompare(String(b?.name || "")); });
@@ -204,7 +208,7 @@ export default function UserSearch({
     if (filters.availabilityTime) chips.push({ key: "time", label: `Time: ${filters.availabilityTime}`, clear: () => updateFilters((p) => ({ ...p, availabilityTime: "" })) });
     if (filters.distanceEnabled) chips.push({ key: "distance", label: `Distance: ${filters.distanceRadius}km`, clear: () => updateFilters((p) => ({ ...p, distanceEnabled: false })) });
     if (filters.sortBy && filters.sortBy !== "rating") {
-      const labels = { distance: "Distance", reviews: "Reviews", popularity: "Popularity", alphabetical: "A-Z" };
+      const labels = { rating_asc: "Lowest Rated", distance: "Distance", reviews: "Reviews", popularity: "Popularity", alphabetical: "A-Z" };
       chips.push({ key: "sort", label: `Sort: ${labels[filters.sortBy] || filters.sortBy}`, clear: () => updateFilters((p) => ({ ...p, sortBy: "rating" })) });
     }
     filters.priceRange.forEach((p) => chips.push({ key: `price-${p}`, label: `Price: ${PRICE_LABELS[p] || p}`, clear: () => updateFilters((prev) => ({ ...prev, priceRange: prev.priceRange.filter((x) => x !== p) })) }));
@@ -215,6 +219,7 @@ export default function UserSearch({
 
   const sortOptions = [
     { value: "rating", label: "Top Rated" },
+    { value: "rating_asc", label: "Lowest Rated" },
     { value: "distance", label: "Nearest" },
     { value: "reviews", label: "Most Reviewed" },
     { value: "popularity", label: "Most Popular" },
@@ -296,6 +301,69 @@ export default function UserSearch({
       .finally(() => clearRestaurantToOpen?.());
   }, [restaurantToOpen, clearRestaurantToOpen]);
 
+  useEffect(() => {
+    if (!chatCommand?.type) return;
+
+    let cancelled = false;
+
+    async function applyChatCommand() {
+      const { type, payload = {} } = chatCommand;
+
+      if (type === "search_restaurants" || type === "apply_filters") {
+        setRestaurantNotFound(false);
+        setSelectedRestaurant(null);
+        setQuery(typeof payload.query === "string" ? payload.query : "");
+        setFilters({
+          ...getInitialFilters(),
+          ...(payload.filters && typeof payload.filters === "object" ? payload.filters : {}),
+        });
+        clearChatCommand?.();
+        return;
+      }
+
+      if (type !== "view_restaurant" && type !== "book_table") {
+        clearChatCommand?.();
+        return;
+      }
+
+      setRestaurantNotFound(false);
+
+      const openReservation = type === "book_table";
+      const openResolvedRestaurant = (restaurant) => {
+        if (cancelled) return;
+        setSelectedRestaurant(restaurant);
+        if (openReservation) {
+          setReservationIntentToken((prev) => prev + 1);
+        }
+      };
+
+      const restaurantId = payload.restaurantId ?? payload.restaurant?.id ?? null;
+
+      if (restaurantId == null) {
+        if (payload.restaurant) {
+          openResolvedRestaurant(payload.restaurant);
+        }
+        clearChatCommand?.();
+        return;
+      }
+
+      try {
+        const restaurant = await getRestaurantById(restaurantId);
+        openResolvedRestaurant(restaurant);
+      } catch {
+        if (!cancelled) setRestaurantNotFound(true);
+      } finally {
+        if (!cancelled) clearChatCommand?.();
+      }
+    }
+
+    applyChatCommand();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chatCommand, clearChatCommand]);
+
   // Scroll restore after filter change
   useEffect(() => {
     if (scrollRestoreRef.current == null) return;
@@ -356,6 +424,7 @@ export default function UserSearch({
         isFavorited={isFavorited}
         onToggleFavorite={toggleFavorite}
         requireAuth={requireAuth}
+        reservationIntentToken={reservationIntentToken}
         onBack={() => { setSelectedRestaurant(null); setRestaurantNotFound(false); }}
       />
     );

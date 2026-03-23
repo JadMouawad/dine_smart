@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { getAdminRecentActivity, getAdminStats } from "../../services/adminService";
+import {
+  getAdminAiSettings,
+  getAdminRecentActivity,
+  getAdminStats,
+  updateAdminAiSettings,
+} from "../../services/adminService";
 
 function formatActivityType(type) {
   if (type === "user_registration") return "New user registration";
@@ -10,8 +15,10 @@ function formatActivityType(type) {
 
 export default function AdminDashboard({ onOpenPending, onOpenFlags, onOpenUsers, onStatsLoaded }) {
   const [stats, setStats] = useState(null);
+  const [aiSettings, setAiSettings] = useState(null);
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [aiBusy, setAiBusy] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -21,13 +28,15 @@ export default function AdminDashboard({ onOpenPending, onOpenFlags, onOpenUsers
       setLoading(true);
       setError("");
       try {
-        const [statsData, activityData] = await Promise.all([
+        const [statsData, activityData, aiSettingsData] = await Promise.all([
           getAdminStats(),
           getAdminRecentActivity(10),
+          getAdminAiSettings(),
         ]);
         if (cancelled) return;
         setStats(statsData);
         setActivity(Array.isArray(activityData) ? activityData : []);
+        setAiSettings(aiSettingsData);
         onStatsLoaded?.(statsData);
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load admin dashboard.");
@@ -41,6 +50,20 @@ export default function AdminDashboard({ onOpenPending, onOpenFlags, onOpenUsers
       cancelled = true;
     };
   }, [onStatsLoaded]);
+
+  async function handleToggleAi() {
+    if (!aiSettings) return;
+    setAiBusy(true);
+    setError("");
+    try {
+      const updated = await updateAdminAiSettings(!aiSettings.ai_chat_enabled);
+      setAiSettings(updated);
+    } catch (err) {
+      setError(err.message || "Failed to update AI chat settings.");
+    } finally {
+      setAiBusy(false);
+    }
+  }
 
   return (
     <div className="adminPage">
@@ -73,6 +96,34 @@ export default function AdminDashboard({ onOpenPending, onOpenFlags, onOpenUsers
           <button className="btn btn--gold" type="button" onClick={onOpenPending}>Review Pending Restaurants</button>
           <button className="btn btn--ghost" type="button" onClick={onOpenFlags}>Moderate Flagged Reviews</button>
           <button className="btn btn--ghost" type="button" onClick={onOpenUsers}>Manage Users</button>
+        </div>
+      </div>
+
+      <div className="formCard adminAiCard">
+        <div className="ownerTableConfigSectionTitle">AI Chat</div>
+        <p className="adminAiCard__text">
+          {loading
+            ? "Loading AI chat status..."
+            : aiSettings?.ai_chat_enabled
+              ? "AI chat is currently enabled for users."
+              : "AI chat is currently disabled for users."}
+        </p>
+        <div className="adminAiCard__actions">
+          <span className={`adminAiCard__badge ${aiSettings?.ai_chat_enabled ? "is-on" : "is-off"}`}>
+            {aiSettings?.ai_chat_enabled ? "Enabled" : "Disabled"}
+          </span>
+          <button
+            className={aiSettings?.ai_chat_enabled ? "btn btn--ghost" : "btn btn--gold"}
+            type="button"
+            disabled={loading || aiBusy || !aiSettings}
+            onClick={handleToggleAi}
+          >
+            {aiBusy
+              ? "Saving..."
+              : aiSettings?.ai_chat_enabled
+                ? "Disable AI Chat"
+                : "Enable AI Chat"}
+          </button>
         </div>
       </div>
 

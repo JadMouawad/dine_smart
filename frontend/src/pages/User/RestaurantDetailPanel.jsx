@@ -30,6 +30,7 @@ export default function RestaurantDetailPanel({
   isFavorited,
   onToggleFavorite,
   requireAuth,
+  reservationIntentToken = 0,
   onBack,
 }) {
   const { user } = useAuth();
@@ -162,6 +163,13 @@ export default function RestaurantDetailPanel({
       reservationInlineRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }
+
+  useEffect(() => {
+    if (!reservationIntentToken) return;
+    if (!requireAuth()) return;
+    setDetailsTab("menu");
+    openInlineReservation();
+  }, [reservationIntentToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handlePostReview() {
     if (!requireAuth()) return;

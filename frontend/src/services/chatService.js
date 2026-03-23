@@ -1,8 +1,10 @@
 import { apiRequest } from "./apiClient";
 
-export async function sendChatMessage(message, filters = {}) {
+export async function sendChatMessage(message, options = {}) {
+  const { filters = {}, location = null } = options;
+
   return apiRequest("/chat", {
     method: "POST",
-    body: JSON.stringify({ message, filters }),
+    body: JSON.stringify({ message, filters, location }),
   });
 }

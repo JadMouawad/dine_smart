@@ -4,6 +4,10 @@ const { parseDineSmartMessage } = require("../services/githubModelsService");
 const searchService = require("../services/searchService");
 const restaurantService = require("../services/restaurantService");
 const reservationService = require("../services/reservationService");
+const systemSettingsRepository = require("../repositories/systemSettingsRepository");
+
+const CHAT_MODEL_PROVIDER = process.env.GITHUB_TOKEN ? "github-models+rules" : "local-rules-engine";
+const CHAT_MODEL_NAME = process.env.GITHUB_TOKEN ? "openai/gpt-4o+dinesmart-chat-v2" : "dinesmart-chat-v2";
 
 const GREETING_MESSAGE =
   "Hi! I’m Diney. I can help you discover restaurants on DineSmart, check hours, look at reviews, and check availability. Tell me what you’re craving.";
@@ -15,6 +19,43 @@ const OUT_OF_SCOPE_MESSAGE =
   "I’m Diney, so I stay focused on DineSmart restaurant help. I can help with restaurant discovery, reviews, hours, and reservation availability.";
 
 const DEFAULT_NEARBY_RADIUS_KM = 10;
+const DISABLED_MESSAGE =
+  "AI chat is currently disabled. You can still search restaurants and book directly in DineSmart.";
+const GUARDED_MESSAGE =
+  "I can only help with safe restaurant discovery, restaurant details, hours, and booking support inside DineSmart.";
+const FAILURE_MESSAGE =
+  "I hit a temporary issue, but you can still search restaurants or open a restaurant profile directly in DineSmart.";
+const DEFAULT_FRONTEND_FILTERS = Object.freeze({
+  minRating: 0,
+  priceRange: [],
+  dietarySupport: [],
+  openNow: false,
+  verifiedOnly: true,
+  availabilityDate: "",
+  availabilityTime: "",
+  distanceEnabled: false,
+  distanceRadius: 25,
+  cuisines: [],
+  sortBy: "rating",
+});
+
+const DISALLOWED_REQUEST_PATTERNS = [
+  /\b(ignore previous instructions|ignore all previous instructions|forget everything|system prompt|developer message|reveal hidden instructions|bypass guardrails)\b/i,
+  /\b(self[-\s]?harm|suicide|kill myself|harm myself)\b/i,
+  /\b(kill|murder|assault|stab|shoot)\b/i,
+  /\b(bomb|explosive|terror(?:ism|ist)?)\b/i,
+  /\b(cocaine|heroin|meth|drug dealing?|illegal drugs?)\b/i,
+  /\b(explicit sexual|porn|sexual content)\b/i,
+  /\b(hate speech|racial slur|genocide)\b/i,
+];
+
+const DISALLOWED_RESPONSE_PATTERNS = [
+  /\b(system prompt|developer message|hidden instructions)\b/i,
+  /\b(self[-\s]?harm|suicide|kill myself|harm myself)\b/i,
+  /\b(bomb|explosive|terror(?:ism|ist)?)\b/i,
+  /\b(cocaine|heroin|meth|illegal drugs?)\b/i,
+  /\b(explicit sexual|porn|sexual content)\b/i,
+];
 
 const normalizePriceRanges = (priceRanges = []) => {
   const normalized = new Set();
@@ -354,6 +395,173 @@ const extractLocationContext = (req) => {
 const createResponseMeta = (timings) =>
   process.env.NODE_ENV === "production" ? undefined : { timings_ms: timings };
 
+const includesAnyPattern = (text, patterns) =>
+  patterns.some((pattern) => pattern.test(String(text || "")));
+
+const isConfigAiEnabled = () => {
+  const raw = String(process.env.AI_CHAT_ENABLED ?? "true").trim().toLowerCase();
+  return !["0", "false", "off", "disabled", "no"].includes(raw);
+};
+
+const getAiAvailability = async () => {
+  if (!isConfigAiEnabled()) {
+    return { enabled: false, source: "config" };
+  }
+
+  const setting = await systemSettingsRepository.getAiChatSetting();
+  if (!setting.enabled) {
+    return { enabled: false, source: "admin" };
+  }
+
+  return { enabled: true, source: "active" };
+};
+
+const normalizeDietarySupport = (values = []) => {
+  const mapping = {
+    vegetarian: "vegetarian",
+    vegan: "vegan",
+    halal: "halal",
+    gf: "gluten-free",
+    "gluten-free": "gluten-free",
+    "gluten free": "gluten-free",
+    "dairy-free": "dairy-free",
+    "dairy free": "dairy-free",
+    kosher: "kosher",
+  };
+
+  return [...new Set(values
+    .map((value) => String(value || "").trim().toLowerCase())
+    .map((value) => mapping[value] || value)
+    .filter(Boolean))];
+};
+
+const normalizeFrontendSort = (sortBy = "", useLocationFilters = false) => {
+  const normalized = String(sortBy || "").trim().toLowerCase();
+  if (["distance", "reviews", "popularity", "alphabetical", "rating_asc"].includes(normalized)) {
+    return normalized;
+  }
+  if (normalized === "rating_desc") return "rating";
+  return useLocationFilters ? "distance" : "rating";
+};
+
+const buildFrontendFilters = ({ parsed = {}, useLocationFilters = false }) => ({
+  ...DEFAULT_FRONTEND_FILTERS,
+  minRating: parsed.minRating ?? DEFAULT_FRONTEND_FILTERS.minRating,
+  priceRange: normalizePriceRanges(parsed.priceRanges || []),
+  dietarySupport: normalizeDietarySupport(parsed.dietarySupport || []),
+  openNow: parsed.openNow === true,
+  availabilityDate: parsed.availabilityDate || "",
+  availabilityTime: String(parsed.availabilityTime || "").slice(0, 5),
+  distanceEnabled: Boolean(useLocationFilters),
+  distanceRadius: useLocationFilters
+    ? parsed.distanceRadiusKm || DEFAULT_NEARBY_RADIUS_KM
+    : DEFAULT_FRONTEND_FILTERS.distanceRadius,
+  cuisines: Array.isArray(parsed.cuisines) ? parsed.cuisines.filter(Boolean) : [],
+  sortBy: normalizeFrontendSort(parsed.sortBy, useLocationFilters),
+});
+
+const hasMeaningfulFilters = (filters = {}) => (
+  Number(filters.minRating || 0) > 0
+  || Boolean(filters.openNow)
+  || Boolean(filters.availabilityDate)
+  || Boolean(filters.availabilityTime)
+  || Boolean(filters.distanceEnabled)
+  || (Array.isArray(filters.priceRange) && filters.priceRange.length > 0)
+  || (Array.isArray(filters.dietarySupport) && filters.dietarySupport.length > 0)
+  || (Array.isArray(filters.cuisines) && filters.cuisines.length > 0)
+  || (filters.sortBy && filters.sortBy !== "rating")
+);
+
+const createAction = (type, label, payload = {}) => ({
+  id: `${type}:${payload.restaurantId || payload.query || label}`.toLowerCase().replace(/\s+/g, "-"),
+  type,
+  label,
+  payload,
+});
+
+const dedupeActions = (actions = []) => {
+  const seen = new Set();
+  return actions.filter((action) => {
+    const key = `${action.type}:${JSON.stringify(action.payload || {})}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+const buildResponseActions = ({ parsed = {}, restaurants = [], restaurant = null, frontendFilters, query = "" }) => {
+  const resolvedRestaurants = restaurants.length ? restaurants : (restaurant ? [restaurant] : []);
+  const primaryRestaurant = resolvedRestaurants[0] || null;
+  const actions = [
+    createAction("search_restaurants", "Search restaurants", {
+      query,
+      filters: frontendFilters,
+    }),
+  ];
+
+  if (hasMeaningfulFilters(frontendFilters)) {
+    actions.push(createAction("apply_filters", "Apply filters", {
+      query,
+      filters: frontendFilters,
+    }));
+  }
+
+  if (primaryRestaurant) {
+    actions.push(createAction("view_restaurant", "View restaurant", {
+      restaurantId: primaryRestaurant.id,
+    }));
+    actions.push(createAction("book_table", "Book a table", {
+      restaurantId: primaryRestaurant.id,
+      restaurantName: primaryRestaurant.name,
+      reservationDate: parsed.availabilityDate || "",
+      reservationTime: String(parsed.availabilityTime || "").slice(0, 5),
+      partySize: parsed.partySize || null,
+    }));
+  }
+
+  return dedupeActions(actions).slice(0, 4);
+};
+
+const sanitizeChatPayload = (payload = {}) => {
+  const normalized = {
+    ...payload,
+    restaurants: Array.isArray(payload.restaurants) ? payload.restaurants : [],
+    actions: Array.isArray(payload.actions) ? payload.actions : [],
+    suggestions: Array.isArray(payload.suggestions) ? payload.suggestions : [],
+  };
+
+  const candidateStrings = [
+    normalized.message,
+    ...normalized.suggestions,
+    ...normalized.actions.map((action) => action.label),
+  ];
+
+  if (!candidateStrings.some((value) => includesAnyPattern(value, DISALLOWED_RESPONSE_PATTERNS))) {
+    return normalized;
+  }
+
+  return {
+    message: GUARDED_MESSAGE,
+    parsed: { intent: "guardrail" },
+    restaurants: [],
+    actions: [
+      createAction("search_restaurants", "Search restaurants", {
+        query: "",
+        filters: DEFAULT_FRONTEND_FILTERS,
+      }),
+    ],
+    suggestions: ["Search restaurants"],
+    blocked: true,
+    metadata: {
+      model_provider: CHAT_MODEL_PROVIDER,
+      model_name: CHAT_MODEL_NAME,
+    },
+  };
+};
+
+const sendSafeJson = (res, payload, status = 200) =>
+  res.status(status).json(sanitizeChatPayload(payload));
+
 router.post("/chat", async (req, res) => {
   const routeStartedAt = Date.now();
   const timings = {};
@@ -364,17 +572,91 @@ router.post("/chat", async (req, res) => {
 
   try {
     const { message } = req.body || {};
+    const trimmedMessage = String(message || "").trim();
+    const baseFilters = buildFrontendFilters({ parsed: {}, useLocationFilters: false });
 
     if (!message || !String(message).trim()) {
       return res.status(400).json({ message: "Message is required" });
     }
 
+    if (includesAnyPattern(trimmedMessage, DISALLOWED_REQUEST_PATTERNS)) {
+      return sendSafeJson(res, {
+        message: GUARDED_MESSAGE,
+        parsed: { intent: "guardrail" },
+        restaurants: [],
+        actions: [
+          createAction("search_restaurants", "Search restaurants", {
+            query: "",
+            filters: baseFilters,
+          }),
+          createAction("apply_filters", "Apply filters", {
+            query: "",
+            filters: { ...baseFilters, openNow: true },
+          }),
+        ],
+        actions: [
+          createAction("search_restaurants", "Search restaurants", {
+            query: "",
+            filters: baseFilters,
+          }),
+        ],
+        suggestions: [
+          "Search restaurants",
+          "Apply filters",
+          "Book a table",
+        ],
+        blocked: true,
+        metadata: {
+          model_provider: CHAT_MODEL_PROVIDER,
+          model_name: CHAT_MODEL_NAME,
+        },
+        meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt, blocked: true }),
+      });
+    }
+
+    const aiStatusStartedAt = Date.now();
+    const aiAvailability = await getAiAvailability();
+    mark("ai_status", aiStatusStartedAt);
+
+    if (!aiAvailability.enabled) {
+      return sendSafeJson(res, {
+        message: DISABLED_MESSAGE,
+        parsed: { intent: "disabled" },
+        restaurants: [],
+        actions: [
+          createAction("search_restaurants", "Search restaurants", {
+            query: "",
+            filters: baseFilters,
+          }),
+          createAction("apply_filters", "Apply filters", {
+            query: "",
+            filters: baseFilters,
+          }),
+        ],
+        suggestions: [
+          "Search restaurants",
+          "Apply filters",
+        ],
+        blocked: true,
+        ai_disabled: true,
+        metadata: {
+          model_provider: CHAT_MODEL_PROVIDER,
+          model_name: CHAT_MODEL_NAME,
+        },
+        meta: createResponseMeta({
+          ...timings,
+          total: Date.now() - routeStartedAt,
+          disabled_source: aiAvailability.source,
+        }),
+      });
+    }
+
     const parseStartedAt = Date.now();
-    const parsed = await parseDineSmartMessage(message);
+    const parsed = await parseDineSmartMessage(trimmedMessage);
     mark("parse", parseStartedAt);
 
     if (parsed.greeting) {
-      return res.json({
+      return sendSafeJson(res, {
         message: GREETING_MESSAGE,
         parsed,
         restaurants: [],
@@ -384,36 +666,69 @@ router.post("/chat", async (req, res) => {
           "Check a restaurant’s hours",
           "See availability tonight",
         ],
+        metadata: {
+          model_provider: CHAT_MODEL_PROVIDER,
+          model_name: CHAT_MODEL_NAME,
+        },
         meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
       });
     }
 
     if (parsed.identityQuestion || parsed.intent === "identity") {
-      return res.json({
+      return sendSafeJson(res, {
         message: IDENTITY_MESSAGE,
         parsed,
         restaurants: [],
+        actions: [
+          createAction("search_restaurants", "Search restaurants", {
+            query: "",
+            filters: baseFilters,
+          }),
+          createAction("apply_filters", "Apply filters", {
+            query: "",
+            filters: { ...baseFilters, openNow: true },
+          }),
+        ],
         suggestions: [
           "Restaurants near me",
           "Show affordable sushi",
           "Check Victoria’s hours",
           "See availability for 2 tonight",
         ],
+        metadata: {
+          model_provider: CHAT_MODEL_PROVIDER,
+          model_name: CHAT_MODEL_NAME,
+        },
         meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
       });
     }
 
     if (parsed.outOfScope) {
-      return res.json({
+      return sendSafeJson(res, {
         message: OUT_OF_SCOPE_MESSAGE,
         parsed,
         restaurants: [],
+        actions: [
+          createAction("search_restaurants", "Search restaurants", {
+            query: "",
+            filters: baseFilters,
+          }),
+          createAction("apply_filters", "Apply filters", {
+            query: "",
+            filters: { ...baseFilters, openNow: true },
+          }),
+        ],
         suggestions: [
           "Restaurants near me",
           "Is Victoria open now?",
           "Check availability tonight",
           "Show vegan restaurants",
         ],
+        blocked: true,
+        metadata: {
+          model_provider: CHAT_MODEL_PROVIDER,
+          model_name: CHAT_MODEL_NAME,
+        },
         meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
       });
     }
@@ -427,50 +742,88 @@ router.post("/chat", async (req, res) => {
         mark("restaurant_lookup", lookupStartedAt);
 
         if (rescuedRestaurant) {
-          return res.json({
+          const rescuedCard = buildRestaurantCard(rescuedRestaurant);
+          const rescuedParsed = {
+            ...parsed,
+            intent: "restaurant_details",
+            restaurantName: rescuedRestaurant.name,
+            needsClarification: false,
+            clarificationQuestion: "",
+          };
+
+          return sendSafeJson(res, {
             message: buildRestaurantDetailsMessage(message, rescuedRestaurant),
-            parsed: {
-              ...parsed,
-              intent: "restaurant_details",
-              restaurantName: rescuedRestaurant.name,
-              needsClarification: false,
-              clarificationQuestion: "",
-            },
-            restaurant: buildRestaurantCard(rescuedRestaurant),
+            parsed: rescuedParsed,
+            restaurant: rescuedCard,
+            restaurants: [rescuedCard],
+            actions: buildResponseActions({
+              parsed: rescuedParsed,
+              restaurant: rescuedCard,
+              frontendFilters: buildFrontendFilters({ parsed: rescuedParsed, useLocationFilters: false }),
+              query: rescuedRestaurant.name,
+            }),
             suggestions: [
               "Check availability there",
               "Is it open now?",
               "Show similar places",
               "See highly rated options",
             ],
+            metadata: {
+              model_provider: CHAT_MODEL_PROVIDER,
+              model_name: CHAT_MODEL_NAME,
+            },
             meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
           });
         }
       }
 
-      return res.json({
+      return sendSafeJson(res, {
         message:
           parsed.clarificationQuestion ||
           "Tell me a restaurant name, cuisine, budget, or whether you want hours or availability.",
         parsed,
         restaurants: [],
+        actions: [
+          createAction("search_restaurants", "Search restaurants", {
+            query: "",
+            filters: baseFilters,
+          }),
+          createAction("apply_filters", "Apply filters", {
+            query: "",
+            filters: buildFrontendFilters({ parsed, useLocationFilters: false }),
+          }),
+        ],
         suggestions: [
           "Affordable sushi",
           "Open now",
           "Victoria",
           "Availability tonight for 4",
         ],
+        metadata: {
+          model_provider: CHAT_MODEL_PROVIDER,
+          model_name: CHAT_MODEL_NAME,
+        },
         meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
       });
     }
 
     if (parsed.intent === "hours_check" || parsed.intent === "restaurant_details") {
       if (!parsed.restaurantName) {
-        return res.json({
+        return sendSafeJson(res, {
           message: "Which restaurant would you like me to check?",
           parsed,
           restaurants: [],
+          actions: [
+            createAction("search_restaurants", "Search restaurants", {
+              query: "",
+              filters: baseFilters,
+            }),
+          ],
           suggestions: ["Victoria", "Sushi World", "Curry Palace"],
+          metadata: {
+            model_provider: CHAT_MODEL_PROVIDER,
+            model_name: CHAT_MODEL_NAME,
+          },
           meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
         });
       }
@@ -480,42 +833,76 @@ router.post("/chat", async (req, res) => {
       mark("restaurant_lookup", lookupStartedAt);
 
       if (!restaurant) {
-        return res.json({
+        return sendSafeJson(res, {
           message: `I couldn’t find a restaurant named “${parsed.restaurantName}.”`,
           parsed,
           restaurants: [],
+          actions: [
+            createAction("search_restaurants", "Search restaurants", {
+              query: parsed.restaurantName,
+              filters: baseFilters,
+            }),
+          ],
           suggestions: ["Check the spelling", "Try another restaurant name"],
+          metadata: {
+            model_provider: CHAT_MODEL_PROVIDER,
+            model_name: CHAT_MODEL_NAME,
+          },
           meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
         });
       }
 
-      return res.json({
+      const detailCard = buildRestaurantCard(restaurant);
+      const detailParsed = {
+        ...parsed,
+        restaurantName: restaurant.name,
+      };
+
+      return sendSafeJson(res, {
         message:
           parsed.intent === "hours_check"
             ? buildHoursMessage(restaurant, parsed.openNow)
             : buildRestaurantDetailsMessage(message, restaurant),
-        parsed: {
-          ...parsed,
-          restaurantName: restaurant.name,
-        },
-        restaurant: buildRestaurantCard(restaurant),
+        parsed: detailParsed,
+        restaurant: detailCard,
+        restaurants: [detailCard],
+        actions: buildResponseActions({
+          parsed: detailParsed,
+          restaurant: detailCard,
+          frontendFilters: buildFrontendFilters({ parsed: detailParsed, useLocationFilters: false }),
+          query: restaurant.name,
+        }),
         suggestions: [
           "Check availability there",
           "Show similar restaurants",
           "What’s open now?",
           "See highly rated spots",
         ],
+        metadata: {
+          model_provider: CHAT_MODEL_PROVIDER,
+          model_name: CHAT_MODEL_NAME,
+        },
         meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
       });
     }
 
     if (parsed.intent === "availability_check") {
       if (!parsed.restaurantName) {
-        return res.json({
+        return sendSafeJson(res, {
           message: "Which restaurant would you like me to check availability for?",
           parsed,
           restaurants: [],
+          actions: [
+            createAction("search_restaurants", "Search restaurants", {
+              query: "",
+              filters: baseFilters,
+            }),
+          ],
           suggestions: ["Victoria tonight for 2", "Sushi World at 8 PM", "Curry Palace tomorrow"],
+          metadata: {
+            model_provider: CHAT_MODEL_PROVIDER,
+            model_name: CHAT_MODEL_NAME,
+          },
           meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
         });
       }
@@ -525,11 +912,21 @@ router.post("/chat", async (req, res) => {
       mark("restaurant_lookup", lookupStartedAt);
 
       if (!restaurant) {
-        return res.json({
+        return sendSafeJson(res, {
           message: `I couldn’t find a restaurant named “${parsed.restaurantName}.”`,
           parsed,
           restaurants: [],
+          actions: [
+            createAction("search_restaurants", "Search restaurants", {
+              query: parsed.restaurantName,
+              filters: baseFilters,
+            }),
+          ],
           suggestions: ["Check the spelling", "Try another restaurant name"],
+          metadata: {
+            model_provider: CHAT_MODEL_PROVIDER,
+            model_name: CHAT_MODEL_NAME,
+          },
           meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
         });
       }
@@ -548,28 +945,52 @@ router.post("/chat", async (req, res) => {
       });
       mark("availability_lookup", availabilityStartedAt);
 
+      const availabilityCard = buildRestaurantCard(restaurant);
+
       if (!result.success) {
-        return res.status(result.status).json({
+        return sendSafeJson(res, {
           message: result.error,
           parsed,
-          restaurant: buildRestaurantCard(restaurant),
+          restaurant: availabilityCard,
+          restaurants: [availabilityCard],
+          actions: buildResponseActions({
+            parsed,
+            restaurant: availabilityCard,
+            frontendFilters: buildFrontendFilters({ parsed, useLocationFilters: false }),
+            query: restaurant.name,
+          }),
           suggestions: ["Try another time", "Reduce the party size", "Check tomorrow instead"],
+          metadata: {
+            model_provider: CHAT_MODEL_PROVIDER,
+            model_name: CHAT_MODEL_NAME,
+          },
           meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
         });
       }
 
-      return res.json({
+      return sendSafeJson(res, {
         message: buildAvailabilityMessage({
           restaurant,
           availability: result.availability,
           partySize: requestedPartySize ?? null,
         }),
         parsed,
-        restaurant: buildRestaurantCard(restaurant),
+        restaurant: availabilityCard,
+        restaurants: [availabilityCard],
         availability: result.availability,
+        actions: buildResponseActions({
+          parsed,
+          restaurant: availabilityCard,
+          frontendFilters: buildFrontendFilters({ parsed, useLocationFilters: false }),
+          query: restaurant.name,
+        }),
         suggestions: result.availability.suggested_times?.length
           ? result.availability.suggested_times.map(formatTimeLabel)
           : ["Try a different time", "Try another date"],
+        metadata: {
+          model_provider: CHAT_MODEL_PROVIDER,
+          model_name: CHAT_MODEL_NAME,
+        },
         meta: createResponseMeta({ ...timings, total: Date.now() - routeStartedAt }),
       });
     }
@@ -580,7 +1001,7 @@ router.post("/chat", async (req, res) => {
 
     const filters = {
       priceRanges: normalizePriceRanges(parsed.priceRanges || []),
-      dietarySupport: parsed.dietarySupport || [],
+      dietarySupport: normalizeDietarySupport(parsed.dietarySupport || []),
       minRating: parsed.minRating,
       maxRating: parsed.maxRating,
       openNow: parsed.openNow === true,
@@ -652,7 +1073,9 @@ router.post("/chat", async (req, res) => {
       });
     }
 
-    return res.json({
+    const frontendFilters = buildFrontendFilters({ parsed, useLocationFilters });
+
+    return sendSafeJson(res, {
       message: buildSearchMessage({
         parsed,
         restaurants: cards,
@@ -661,11 +1084,21 @@ router.post("/chat", async (req, res) => {
       }),
       parsed,
       restaurants: cards,
+      actions: buildResponseActions({
+        parsed,
+        restaurants: cards,
+        frontendFilters,
+        query: parsed.restaurantName || "",
+      }),
       suggestions: buildSearchSuggestions({
         parsed,
         restaurants: cards,
         locationMissing,
       }),
+      metadata: {
+        model_provider: CHAT_MODEL_PROVIDER,
+        model_name: CHAT_MODEL_NAME,
+      },
       meta: createResponseMeta({
         ...timings,
         total,
@@ -675,8 +1108,30 @@ router.post("/chat", async (req, res) => {
     });
   } catch (error) {
     console.error("Chat route error:", error);
-    return res.status(500).json({
-      message: "Something went wrong while processing your request. Please try again.",
+    return sendSafeJson(res, {
+      message: FAILURE_MESSAGE,
+      parsed: { intent: "fallback" },
+      restaurants: [],
+      actions: [
+        createAction("search_restaurants", "Search restaurants", {
+          query: "",
+          filters: DEFAULT_FRONTEND_FILTERS,
+        }),
+        createAction("apply_filters", "Apply filters", {
+          query: "",
+          filters: DEFAULT_FRONTEND_FILTERS,
+        }),
+      ],
+      suggestions: [
+        "Search restaurants",
+        "Apply filters",
+      ],
+      blocked: true,
+      metadata: {
+        model_provider: CHAT_MODEL_PROVIDER,
+        model_name: CHAT_MODEL_NAME,
+      },
+      meta: createResponseMeta({ total: Date.now() - routeStartedAt, fallback: true }),
     });
   }
 });

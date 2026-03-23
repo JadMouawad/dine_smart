@@ -4,6 +4,17 @@ export async function getAdminStats() {
   return apiRequest("/admin/stats", { method: "GET" });
 }
 
+export async function getAdminAiSettings() {
+  return apiRequest("/admin/ai/settings", { method: "GET" });
+}
+
+export async function updateAdminAiSettings(aiChatEnabled) {
+  return apiRequest("/admin/ai/settings", {
+    method: "PUT",
+    body: JSON.stringify({ ai_chat_enabled: aiChatEnabled }),
+  });
+}
+
 export async function getAdminRecentActivity(limit = 10) {
   return apiRequest(`/admin/activity?limit=${encodeURIComponent(limit)}`, { method: "GET" });
 }

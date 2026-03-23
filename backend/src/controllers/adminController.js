@@ -18,6 +18,28 @@ const getRecentAiLogs = async (req, res) => {
   }
 };
 
+const getAiSettings = async (_req, res) => {
+  try {
+    const settings = await adminService.getAiSettings();
+    return res.status(200).json(settings);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const updateAiSettings = async (req, res) => {
+  try {
+    const result = await adminService.updateAiSettings({
+      aiChatEnabled: req.body.ai_chat_enabled,
+      adminId: req.user.id,
+    });
+    if (!result.success) return res.status(result.status).json({ message: result.error });
+    return res.status(200).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 const getRecentActivity = async (req, res) => {
   try {
     const activity = await adminService.getRecentActivity(req.query.limit);
@@ -147,6 +169,8 @@ const deleteFlaggedReview = async (req, res) => {
 module.exports = {
   getStats,
   getRecentAiLogs,
+  getAiSettings,
+  updateAiSettings,
   getRecentActivity,
   getPendingRestaurants,
   approveRestaurant,

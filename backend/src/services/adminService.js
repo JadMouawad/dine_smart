@@ -1,4 +1,6 @@
 const adminRepository = require("../repositories/adminRepository");
+const chatRepository = require("../repositories/chatRepository");
+const systemSettingsRepository = require("../repositories/systemSettingsRepository");
 const {
   sendRestaurantApprovalEmail,
   sendRestaurantRejectionEmail,
@@ -24,6 +26,42 @@ const getStats = async () => {
 const getRecentAiLogs = async (limit = 20) => {
   const safeLimit = Math.min(parsePositiveInt(limit, 20), 100);
   return chatRepository.getRecentConversationLogs(safeLimit);
+};
+
+const getAiSettings = async () => {
+  const setting = await systemSettingsRepository.getAiChatSetting();
+  return {
+    ai_chat_enabled: setting.enabled,
+    updated_at: setting.updated_at,
+    updated_by: setting.updated_by,
+  };
+};
+
+const updateAiSettings = async ({ aiChatEnabled, adminId }) => {
+  if (typeof aiChatEnabled !== "boolean") {
+    return { success: false, status: 400, error: "ai_chat_enabled must be a boolean" };
+  }
+
+  const updated = await systemSettingsRepository.setAiChatSetting({
+    enabled: aiChatEnabled,
+    updatedBy: adminId,
+  });
+
+  await adminRepository.insertAuditLog({
+    adminId,
+    action: updated.enabled ? "ai_chat_enabled" : "ai_chat_disabled",
+    entityType: "app_setting",
+    details: { ai_chat_enabled: updated.enabled },
+  });
+
+  return {
+    success: true,
+    data: {
+      ai_chat_enabled: updated.enabled,
+      updated_at: updated.updated_at,
+      updated_by: updated.updated_by,
+    },
+  };
 };
 
 const getRecentActivity = async (limit = 10) => {
@@ -228,6 +266,8 @@ const deleteFlaggedReview = async ({ flagId, adminId }) => {
 module.exports = {
   getStats,
   getRecentAiLogs,
+  getAiSettings,
+  updateAiSettings,
   getRecentActivity,
   getPendingRestaurants,
   approveRestaurant,

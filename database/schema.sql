@@ -186,6 +186,13 @@ CREATE TABLE IF NOT EXISTS admin_audit_logs (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS app_settings (
+  key VARCHAR(80) PRIMARY KEY,
+  value_json JSONB NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_by INTEGER REFERENCES users(id) ON DELETE SET NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_admin_id ON admin_audit_logs(admin_id);
 CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created_at ON admin_audit_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_restaurants_geo ON restaurants(latitude, longitude);
@@ -200,6 +207,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_unique ON users(phone)
 -- Insert default roles
 INSERT INTO roles (name) VALUES ('user'), ('owner'), ('admin')
 ON CONFLICT DO NOTHING;
+
+INSERT INTO app_settings (key, value_json)
+VALUES ('ai_chat_enabled', '{"enabled": true}'::jsonb)
+ON CONFLICT (key) DO NOTHING;
 
 
 

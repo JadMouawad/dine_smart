@@ -9,6 +9,8 @@ router.use(authenticateToken, authorizeRoles("admin"));
 router.get("/stats", adminController.getStats);
 router.get("/activity", adminController.getRecentActivity);
 router.get("/ai/logs", adminController.getRecentAiLogs);
+router.get("/ai/settings", adminController.getAiSettings);
+router.put("/ai/settings", adminController.updateAiSettings);
 
 router.get("/restaurants/pending", adminController.getPendingRestaurants);
 router.put("/restaurants/:id/approve", adminController.approveRestaurant);
