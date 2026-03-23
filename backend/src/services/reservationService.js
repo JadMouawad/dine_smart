@@ -13,7 +13,7 @@ const {
 } = require("../utils/emailSender");
 
 const MAX_PARTY_SIZE = 12;
-const MIN_RESERVATION_MINUTES = 12 * 60;
+const MIN_RESERVATION_MINUTES = 0;
 const ALLOWED_SEATING_PREFERENCES = new Set(["indoor", "outdoor"]);
 
 const parseDateOnly = (value) => {

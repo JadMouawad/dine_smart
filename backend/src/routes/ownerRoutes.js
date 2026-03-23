@@ -80,6 +80,14 @@ router.patch(
   reservationController.updateReservationStatusForOwner
 );
 
+router.patch(
+  "/reservations/:id/no-show",
+  authenticateToken,
+  authorizeRoles("owner"),
+  requireApprovedRestaurant,
+  reservationController.markNoShow
+);
+
 router.get(
   "/restaurants/:id/slot-adjustments",
   authenticateToken,

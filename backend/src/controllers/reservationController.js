@@ -165,6 +165,23 @@ const upsertSlotAdjustmentForOwner = async (req, res) => {
   }
 };
 
+const markNoShow = async (req, res) => {
+  try {
+    const result = await reservationService.markNoShow({
+      reservationId: req.params.id,
+      ownerId: req.user.id,
+    });
+
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createReservation,
   getReservationsByUser,
@@ -174,4 +191,5 @@ module.exports = {
   getAvailability,
   getSlotAdjustmentForOwner,
   upsertSlotAdjustmentForOwner,
+  markNoShow,
 };
