@@ -246,9 +246,15 @@ const deleteRestaurant = async (id) => {
 const searchRestaurants = async (query, cuisines = [], filters = {}) => {
   const trimmed = (query || "").trim();
   const cuisineList = Array.isArray(cuisines) ? cuisines.filter(Boolean) : [cuisines].filter(Boolean);
+  const toFiniteNumberOrNull = (value) => {
+    if (value == null) return null;
+    if (typeof value === "string" && value.trim() === "") return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
 
-  const minRating = Number.isFinite(Number(filters.minRating)) ? Number(filters.minRating) : null;
-  const maxRating = Number.isFinite(Number(filters.maxRating)) ? Number(filters.maxRating) : null;
+  const minRating = toFiniteNumberOrNull(filters.minRating);
+  const maxRating = toFiniteNumberOrNull(filters.maxRating);
   const rawPriceRanges = filters.priceRanges ?? filters.priceRange ?? [];
   const priceRanges = Array.isArray(rawPriceRanges) ? rawPriceRanges.filter(Boolean) : [];
   const verifiedOnly = filters.verifiedOnly !== false;
@@ -256,11 +262,11 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
   const openNow = filters.openNow === true;
   const availabilityDate = filters.availabilityDate ? String(filters.availabilityDate).trim() : null;
   const availabilityTime = filters.availabilityTime ? String(filters.availabilityTime).trim() : null;
-  const latitude = Number.isFinite(Number(filters.latitude)) ? Number(filters.latitude) : null;
-  const longitude = Number.isFinite(Number(filters.longitude)) ? Number(filters.longitude) : null;
-  const distanceRadius = Number.isFinite(Number(filters.distanceRadius)) ? Number(filters.distanceRadius) : null;
+  const latitude = toFiniteNumberOrNull(filters.latitude);
+  const longitude = toFiniteNumberOrNull(filters.longitude);
+  const distanceRadius = toFiniteNumberOrNull(filters.distanceRadius);
   const onlyLebanon = filters.onlyLebanon === true;
-  const partySize = Number.isFinite(Number(filters.partySize)) ? Number(filters.partySize) : null;
+  const partySize = toFiniteNumberOrNull(filters.partySize);
   const sortBy = String(filters.sortBy || "rating").trim().toLowerCase();
 
   const values = [];

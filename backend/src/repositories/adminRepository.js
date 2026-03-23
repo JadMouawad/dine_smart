@@ -267,7 +267,9 @@ const suspendUser = async (userId) => {
 
 const deleteUserAndOwnedData = async (userId) => {
   return withTransaction(async (client) => {
-    await client.query(`DELETE FROM restaurants WHERE owner_id = $1`, [userId]);
+    // Orphan restaurants instead of deleting them — the FK is ON DELETE SET NULL
+    // so the restaurant data is preserved for admin records even after owner removal.
+    await client.query(`UPDATE restaurants SET owner_id = NULL WHERE owner_id = $1`, [userId]);
     const userResult = await client.query(
       `DELETE FROM users WHERE id = $1 RETURNING id, full_name, email`,
       [userId]
