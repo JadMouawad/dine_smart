@@ -4,6 +4,7 @@ import { getDiscoverFeed } from "../../services/restaurantService";
 import LoadingSkeleton from "../../components/LoadingSkeleton.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
 import { toDateObject, startOfDay, formatDateRange } from "../../utils/dateUtils";
+import { getCrowdMeterMeta } from "../../utils/crowdMeter";
 
 function bucketEvents(events = []) {
   const today = startOfDay(new Date());
@@ -45,6 +46,9 @@ function SectionRestaurants({ title, badge, restaurants, onOpenRestaurant }) {
       </div>
       <div className="restaurantGrid">
         {restaurants.map((restaurant) => (
+          (() => {
+            const crowd = getCrowdMeterMeta(restaurant);
+            return (
           <article
             key={`${title}-${restaurant.id}`}
             className="restaurantCard discoverFeedCard"
@@ -58,12 +62,18 @@ function SectionRestaurants({ title, badge, restaurants, onOpenRestaurant }) {
                 </div>
               </div>
               <div className="restaurantCard__cuisine">{restaurant.cuisine || "Cuisine not set"}</div>
+              <div className={`crowdMeter crowdMeter--${crowd.level}`}>
+                <span className="crowdMeter__dot" />
+                <span>Live Crowd: {crowd.label}{crowd.pct != null ? ` (${crowd.pct}%)` : ""}</span>
+              </div>
               <div className="discoverFeedCard__meta">
                 {restaurant.distance_km != null ? `${restaurant.distance_km} km away` : "Distance unavailable"}
               </div>
               {(restaurant.active_event_count || 0) > 0 && <div className="discoverFeedCard__badge">{restaurant.active_event_count} event(s)</div>}
             </div>
           </article>
+            );
+          })()
         ))}
       </div>
     </section>

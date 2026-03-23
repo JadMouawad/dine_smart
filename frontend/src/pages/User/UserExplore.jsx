@@ -5,6 +5,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { FiSliders } from "react-icons/fi";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { searchRestaurants } from "../../services/restaurantService";
+import { getCrowdMeterMeta } from "../../utils/crowdMeter";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const DEFAULT_CENTER = { lat: 33.893791, lng: 35.501777 };
@@ -426,6 +427,7 @@ export default function UserExplore({ onOpenRestaurant }) {
                 const images = getRestaurantGalleryUrls(restaurant);
                 const activeImageIndex = imageIndexByRestaurantId[restaurant.id] || 0;
                 const activeImageUrl = images[activeImageIndex] || "";
+                const crowd = getCrowdMeterMeta(restaurant);
                 const showPreviousImage = (event) => {
                   event.stopPropagation();
                   if (images.length <= 1) return;
@@ -494,6 +496,10 @@ export default function UserExplore({ onOpenRestaurant }) {
                 {/* Gradient overlay + all text */}
                 <div className="exploreListCard__overlay">
                   <div className="exploreListCard__top">
+                    <span className={`crowdMeter crowdMeter--compact crowdMeter--${crowd.level}`}>
+                      <span className="crowdMeter__dot" />
+                      <span>{crowd.label}</span>
+                    </span>
                     {restaurant.distance_km != null && (
                       <span className="exploreListCard__dist">{restaurant.distance_km} km</span>
                     )}

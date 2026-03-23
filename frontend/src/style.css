@@ -456,6 +456,25 @@ html[data-theme="light"] .quickFilterBtn.is-active {
 [data-theme="light"] .restaurantCard__metaLine {
   color: rgba(80, 45, 15, 0.75);
 }
+[data-theme="light"] .crowdMeter {
+  border-color: rgba(175, 115, 45, 0.22);
+  background: rgba(255, 251, 243, 0.9);
+}
+[data-theme="light"] .crowdMeter--free {
+  color: #2f8f4f;
+}
+[data-theme="light"] .crowdMeter--moderate {
+  color: #9a6a00;
+}
+[data-theme="light"] .crowdMeter--busy {
+  color: #b73b3b;
+}
+[data-theme="light"] .crowdMeter--unknown {
+  color: rgba(80, 45, 15, 0.68);
+}
+[data-theme="light"] .crowdMeter--compact {
+  background: rgba(255, 251, 243, 0.92);
+}
 
 /* Discover page */
 [data-theme="light"] .discoverEventSection {
@@ -582,6 +601,31 @@ html[data-theme="light"] .quickFilterBtn.is-active {
   background: rgba(255, 248, 235, 0.90);
   border-color: rgba(175, 115, 45, 0.20);
   color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .restaurantHeroInfoLabel {
+  color: rgba(80, 45, 15, 0.62);
+}
+[data-theme="light"] .restaurantHeroInfoValue {
+  color: rgba(26, 14, 6, 0.94);
+}
+[data-theme="light"] .restaurantHeroInfoSub {
+  color: rgba(80, 45, 15, 0.72);
+}
+[data-theme="light"] .restaurantHeroInfoItem--crowd.restaurantHeroInfoItem--free {
+  border-color: rgba(34, 139, 72, 0.35);
+  background: rgba(34, 139, 72, 0.12);
+}
+[data-theme="light"] .restaurantHeroInfoItem--crowd.restaurantHeroInfoItem--moderate {
+  border-color: rgba(180, 120, 20, 0.36);
+  background: rgba(180, 120, 20, 0.12);
+}
+[data-theme="light"] .restaurantHeroInfoItem--crowd.restaurantHeroInfoItem--busy {
+  border-color: rgba(183, 59, 59, 0.36);
+  background: rgba(183, 59, 59, 0.11);
+}
+[data-theme="light"] .restaurantHeroInfoItem--crowd.restaurantHeroInfoItem--unknown {
+  border-color: rgba(175, 115, 45, 0.22);
+  background: rgba(255, 251, 243, 0.8);
 }
 [data-theme="light"] .restaurantProfileHero__badges {
   background: rgba(255, 251, 243, 0.80);
@@ -4389,6 +4433,52 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   font-weight: 600;
 }
 
+.crowdMeter {
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.28);
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.crowdMeter__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.95;
+}
+
+.crowdMeter--free {
+  color: #7be495;
+}
+
+.crowdMeter--moderate {
+  color: #f8d66d;
+}
+
+.crowdMeter--busy {
+  color: #ff8c8c;
+}
+
+.crowdMeter--unknown {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.crowdMeter--compact {
+  margin-top: 0;
+  padding: 2px 7px;
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
 .restaurantCard__actions {
   margin-top: 4px;
   display: flex;
@@ -5749,8 +5839,8 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 .restaurantHeroInfoCard {
   position: static;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   padding: 10px;
   border-radius: 14px;
@@ -5762,21 +5852,69 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 .restaurantHeroInfoItem {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  border-radius: 999px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(0, 0, 0, 0.16);
   color: rgba(255, 255, 255, 0.92);
   font-size: 12px;
   font-weight: 600;
+  min-height: 52px;
 }
 
 .restaurantHeroInfoIcon {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1;
+  margin-top: 1px;
+}
+
+.restaurantHeroInfoText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.restaurantHeroInfoLabel {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+  font-weight: 700;
+}
+
+.restaurantHeroInfoValue {
+  color: rgba(255, 255, 255, 0.96);
+  font-weight: 700;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.restaurantHeroInfoSub {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 11px;
+}
+
+.restaurantHeroInfoItem--crowd.restaurantHeroInfoItem--free {
+  border-color: rgba(34, 197, 94, 0.42);
+  background: rgba(34, 197, 94, 0.16);
+}
+
+.restaurantHeroInfoItem--crowd.restaurantHeroInfoItem--moderate {
+  border-color: rgba(251, 191, 36, 0.42);
+  background: rgba(251, 191, 36, 0.18);
+}
+
+.restaurantHeroInfoItem--crowd.restaurantHeroInfoItem--busy {
+  border-color: rgba(239, 68, 68, 0.42);
+  background: rgba(239, 68, 68, 0.16);
+}
+
+.restaurantHeroInfoItem--crowd.restaurantHeroInfoItem--unknown {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .restaurantProfileHero__metaRow {
@@ -6004,11 +6142,13 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   .restaurantHeroInfoCard {
     gap: 6px;
     padding: 8px;
+    grid-template-columns: 1fr;
   }
 
   .restaurantHeroInfoItem {
     font-size: 11px;
-    padding: 4px 8px;
+    padding: 7px 9px;
+    min-height: 48px;
   }
 
   .restaurantActionBar {
@@ -8105,7 +8245,9 @@ html[data-theme="light"] .quickFilterBtn {
 /* Top row — distance badge (top-right) */
 .exploreListCard__top {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
 }
 
 .exploreListCard__dist {

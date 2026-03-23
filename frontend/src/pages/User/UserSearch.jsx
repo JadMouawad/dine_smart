@@ -9,6 +9,7 @@ import EmptyState from "../../components/EmptyState.jsx";
 import SearchFilterDrawer from "./SearchFilterDrawer.jsx";
 import RestaurantDetailPanel from "./RestaurantDetailPanel.jsx";
 import { getTodayDateValue, isOpenNow } from "../../utils/timeUtils";
+import { getCrowdMeterMeta } from "../../utils/crowdMeter";
 import { CUISINES, DIETARY_OPTIONS, PRICE_OPTIONS, PRICE_LABELS, DIETARY_LABELS, FILLED_STAR } from "../../constants/filters";
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -71,6 +72,7 @@ const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, onSe
   const imageUrls = useMemo(() => getRestaurantGalleryUrls(r), [r]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const activeImageUrl = imageUrls[activeImageIndex] || "";
+  const crowd = useMemo(() => getCrowdMeterMeta(r), [r]);
 
   useEffect(() => {
     if (!imageUrls.length) {
@@ -145,6 +147,10 @@ const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, onSe
           </button>
         </div>
         <div className="restaurantCard__cuisine">{r.cuisine || "Cuisine not set"}</div>
+        <div className={`crowdMeter crowdMeter--${crowd.level}`}>
+          <span className="crowdMeter__dot" />
+          <span>Live Crowd: {crowd.label}{crowd.pct != null ? ` (${crowd.pct}%)` : ""}</span>
+        </div>
         <div className="restaurantCard__metaLine">{FILLED_STAR} {r.rating ?? "N/A"}</div>
         <div className="restaurantCard__metaLine">
           {r.distance_km != null ? `${r.distance_km} km away` : (r.address || "Location unavailable")}

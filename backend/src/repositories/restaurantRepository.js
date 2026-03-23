@@ -145,6 +145,11 @@ const CUISINE_SEARCH_ALIASES = {
   Vegetarian: ["vegetarian"],
 };
 
+const CURRENT_CROWD_SLOT_SQL = `(
+  date_trunc('hour', now())
+  + (floor(extract(minute from now()) / 30) * interval '30 minute')
+)::time`;
+
 const getAllRestaurants = async () => {
   const result = await pool.query(`
     SELECT *
@@ -157,12 +162,56 @@ const getAllRestaurants = async () => {
 };
 
 const getRestaurantById = async (id) => {
+  const crowdBaseCapacityExpression = `
+    COALESCE(
+      NULLIF(
+        (COALESCE(crowd_rtc.table_2_person, 0) * 2)
+        + (COALESCE(crowd_rtc.table_4_person, 0) * 4)
+        + (COALESCE(crowd_rtc.table_6_person, 0) * 6),
+        0
+      ),
+      crowd_rtc.total_capacity,
+      0
+    )
+  `;
+  const crowdCapacityExpression = `GREATEST(${crowdBaseCapacityExpression} + COALESCE(crowd_adj.adjustment, 0), 0)`;
+  const crowdBookedExpression = `COALESCE(crowd_slot.booked_seats, 0)`;
+  const crowdRatioExpression = `(${crowdBookedExpression}::numeric / NULLIF(${crowdCapacityExpression}, 0)::numeric)`;
+
   const result = await pool.query(`
-    SELECT *
-    FROM restaurants
-    WHERE id = $1
-      AND is_verified = true
-      AND approval_status = 'approved'
+    SELECT
+      r.*,
+      ${crowdCapacityExpression}::int AS crowd_total_capacity,
+      ${crowdBookedExpression}::int AS crowd_booked_seats,
+      CASE
+        WHEN ${crowdCapacityExpression} <= 0 THEN NULL
+        ELSE LEAST(100, ROUND(${crowdRatioExpression} * 100))::int
+      END AS crowd_pct,
+      CASE
+        WHEN ${crowdCapacityExpression} <= 0 THEN 'unknown'
+        WHEN ${crowdRatioExpression} >= 0.70 THEN 'busy'
+        WHEN ${crowdRatioExpression} >= 0.35 THEN 'moderate'
+        ELSE 'free'
+      END AS crowd_level
+    FROM restaurants r
+    LEFT JOIN restaurant_table_configs crowd_rtc ON crowd_rtc.restaurant_id = r.id
+    LEFT JOIN LATERAL (
+      SELECT COALESCE(SUM(rs.party_size), 0)::int AS booked_seats
+      FROM reservations rs
+      WHERE rs.restaurant_id = r.id
+        AND rs.reservation_date = CURRENT_DATE
+        AND rs.reservation_time = ${CURRENT_CROWD_SLOT_SQL}
+        AND rs.status IN ('pending', 'accepted', 'confirmed')
+    ) crowd_slot ON true
+    LEFT JOIN reservation_slot_adjustments crowd_adj
+      ON crowd_adj.restaurant_id = r.id
+      AND crowd_adj.reservation_date = CURRENT_DATE
+      AND crowd_adj.reservation_time = ${CURRENT_CROWD_SLOT_SQL}
+      AND crowd_adj.seating_preference = 'any'
+    WHERE r.id = $1
+      AND r.is_verified = true
+      AND r.approval_status = 'approved'
+    LIMIT 1
   `, [id]);
   return result.rows[0];
 };
@@ -335,6 +384,59 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
     ) pop ON true
   `);
   selectExtras.push("COALESCE(pop.popularity_score, 0) AS popularity_score");
+
+  // Live crowd meter joins: estimate occupancy for the current 30-min slot.
+  joins.push("LEFT JOIN restaurant_table_configs crowd_rtc ON crowd_rtc.restaurant_id = r.id");
+  joins.push(`
+    LEFT JOIN LATERAL (
+      SELECT COALESCE(SUM(rs.party_size), 0)::int AS booked_seats
+      FROM reservations rs
+      WHERE rs.restaurant_id = r.id
+        AND rs.reservation_date = CURRENT_DATE
+        AND rs.reservation_time = ${CURRENT_CROWD_SLOT_SQL}
+        AND rs.status IN ('pending', 'accepted', 'confirmed')
+    ) crowd_slot ON true
+  `);
+  joins.push(`
+    LEFT JOIN reservation_slot_adjustments crowd_adj
+      ON crowd_adj.restaurant_id = r.id
+      AND crowd_adj.reservation_date = CURRENT_DATE
+      AND crowd_adj.reservation_time = ${CURRENT_CROWD_SLOT_SQL}
+      AND crowd_adj.seating_preference = 'any'
+  `);
+
+  const crowdBaseCapacityExpression = `
+    COALESCE(
+      NULLIF(
+        (COALESCE(crowd_rtc.table_2_person, 0) * 2)
+        + (COALESCE(crowd_rtc.table_4_person, 0) * 4)
+        + (COALESCE(crowd_rtc.table_6_person, 0) * 6),
+        0
+      ),
+      crowd_rtc.total_capacity,
+      0
+    )
+  `;
+  const crowdCapacityExpression = `GREATEST(${crowdBaseCapacityExpression} + COALESCE(crowd_adj.adjustment, 0), 0)`;
+  const crowdBookedExpression = `COALESCE(crowd_slot.booked_seats, 0)`;
+  const crowdRatioExpression = `(${crowdBookedExpression}::numeric / NULLIF(${crowdCapacityExpression}, 0)::numeric)`;
+
+  selectExtras.push(`${crowdCapacityExpression}::int AS crowd_total_capacity`);
+  selectExtras.push(`${crowdBookedExpression}::int AS crowd_booked_seats`);
+  selectExtras.push(`
+    CASE
+      WHEN ${crowdCapacityExpression} <= 0 THEN NULL
+      ELSE LEAST(100, ROUND(${crowdRatioExpression} * 100))::int
+    END AS crowd_pct
+  `);
+  selectExtras.push(`
+    CASE
+      WHEN ${crowdCapacityExpression} <= 0 THEN 'unknown'
+      WHEN ${crowdRatioExpression} >= 0.70 THEN 'busy'
+      WHEN ${crowdRatioExpression} >= 0.35 THEN 'moderate'
+      ELSE 'free'
+    END AS crowd_level
+  `);
 
   const hasCoords = latitude != null && longitude != null;
   let distanceExpression = "NULL::numeric";
