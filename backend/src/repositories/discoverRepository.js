@@ -1,5 +1,59 @@
 const pool = require("../config/db");
 
+const CURRENT_CROWD_SLOT_SQL = `(
+  date_trunc('hour', now())
+  + (floor(extract(minute from now()) / 30) * interval '30 minute')
+)::time`;
+
+const CROWD_BASE_CAPACITY_SQL = `
+  COALESCE(
+    NULLIF(
+      (COALESCE(crowd_rtc.table_2_person, 0) * 2)
+      + (COALESCE(crowd_rtc.table_4_person, 0) * 4)
+      + (COALESCE(crowd_rtc.table_6_person, 0) * 6),
+      0
+    ),
+    crowd_rtc.total_capacity,
+    0
+  )
+`;
+const CROWD_CAPACITY_SQL = `GREATEST(${CROWD_BASE_CAPACITY_SQL} + COALESCE(crowd_adj.adjustment, 0), 0)`;
+const CROWD_BOOKED_SQL = `COALESCE(crowd_slot.booked_seats, 0)`;
+const CROWD_RATIO_SQL = `(${CROWD_BOOKED_SQL}::numeric / NULLIF(${CROWD_CAPACITY_SQL}, 0)::numeric)`;
+
+const getCrowdSelect = () => `
+  ${CROWD_CAPACITY_SQL}::int AS crowd_total_capacity,
+  ${CROWD_BOOKED_SQL}::int AS crowd_booked_seats,
+  CASE
+    WHEN ${CROWD_CAPACITY_SQL} <= 0 THEN NULL
+    ELSE LEAST(100, ROUND(${CROWD_RATIO_SQL} * 100))::int
+  END AS crowd_pct,
+  CASE
+    WHEN ${CROWD_CAPACITY_SQL} <= 0 THEN 'unknown'
+    WHEN ${CROWD_RATIO_SQL} >= 0.70 THEN 'busy'
+    WHEN ${CROWD_RATIO_SQL} >= 0.35 THEN 'moderate'
+    ELSE 'free'
+  END AS crowd_level
+`;
+
+const getCrowdJoins = () => `
+  LEFT JOIN restaurant_table_configs crowd_rtc
+    ON crowd_rtc.restaurant_id = r.id
+  LEFT JOIN LATERAL (
+    SELECT COALESCE(SUM(rs.party_size), 0)::int AS booked_seats
+    FROM reservations rs
+    WHERE rs.restaurant_id = r.id
+      AND rs.reservation_date = CURRENT_DATE
+      AND rs.reservation_time = ${CURRENT_CROWD_SLOT_SQL}
+      AND rs.status IN ('pending', 'accepted', 'confirmed')
+  ) crowd_slot ON true
+  LEFT JOIN reservation_slot_adjustments crowd_adj
+    ON crowd_adj.restaurant_id = r.id
+    AND crowd_adj.reservation_date = CURRENT_DATE
+    AND crowd_adj.reservation_time = ${CURRENT_CROWD_SLOT_SQL}
+    AND crowd_adj.seating_preference = 'any'
+`;
+
 const buildDistanceSelect = (latitude, longitude, startIndex = 1) => {
   if (latitude == null || longitude == null) {
     return {
@@ -62,7 +116,8 @@ const getCommonRestaurantSelect = (distanceSql) => `
   r.opening_time,
   r.closing_time,
   ${distanceSql},
-  COALESCE(ev.active_event_count, 0) AS active_event_count
+  COALESCE(ev.active_event_count, 0) AS active_event_count,
+  ${getCrowdSelect()}
 `;
 
 const getNearYou = async ({ latitude = null, longitude = null, radiusKm = null, limit = 8 }) => {
@@ -85,6 +140,7 @@ const getNearYou = async ({ latitude = null, longitude = null, radiusKm = null, 
       SELECT
         ${getCommonRestaurantSelect(distance.sql)}
       FROM restaurants r
+      ${getCrowdJoins()}
       LEFT JOIN LATERAL (
         SELECT COUNT(*)::int AS active_event_count
         FROM events e
@@ -132,6 +188,7 @@ const getPopularRightNow = async ({ latitude = null, longitude = null, radiusKm 
         ${getCommonRestaurantSelect(distance.sql)},
         COALESCE(pop.recent_reservations, 0) AS recent_reservations
       FROM restaurants r
+      ${getCrowdJoins()}
       LEFT JOIN LATERAL (
         SELECT COUNT(*)::int AS recent_reservations
         FROM reservations rs
@@ -222,6 +279,7 @@ const getMatchesPreferences = async ({
       SELECT
         ${getCommonRestaurantSelect(distance.sql)}
       FROM restaurants r
+      ${getCrowdJoins()}
       LEFT JOIN LATERAL (
         SELECT COUNT(*)::int AS active_event_count
         FROM events e
@@ -318,6 +376,7 @@ const getHighlyRated = async ({ latitude = null, longitude = null, radiusKm = nu
       SELECT
         ${getCommonRestaurantSelect(distance.sql)}
       FROM restaurants r
+      ${getCrowdJoins()}
       LEFT JOIN LATERAL (
         SELECT COUNT(*)::int AS active_event_count
         FROM events e

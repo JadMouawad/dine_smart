@@ -9,6 +9,7 @@ import EmptyState from "../../components/EmptyState.jsx";
 import SearchFilterDrawer from "./SearchFilterDrawer.jsx";
 import RestaurantDetailPanel from "./RestaurantDetailPanel.jsx";
 import { getTodayDateValue, isOpenNow } from "../../utils/timeUtils";
+import { getCrowdMeterMeta } from "../../utils/crowdMeter";
 import { CUISINES, DIETARY_OPTIONS, PRICE_OPTIONS, PRICE_LABELS, DIETARY_LABELS, FILLED_STAR } from "../../constants/filters";
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -23,6 +24,31 @@ function parseDietarySupport(value) {
     return normalized.slice(1, -1).split(",").map((i) => i.replace(/^"|"$/g, "").trim()).filter(Boolean);
   }
   return normalized.split(",").map((i) => i.trim()).filter(Boolean);
+}
+
+function getRestaurantGalleryUrls(restaurant) {
+  const rawGallery = Array.isArray(restaurant?.gallery_urls)
+    ? restaurant.gallery_urls
+    : Array.isArray(restaurant?.galleryUrls)
+      ? restaurant.galleryUrls
+      : [];
+
+  const cleanedGallery = rawGallery
+    .map((url) => String(url || "").trim())
+    .filter(Boolean);
+
+  if (cleanedGallery.length) return cleanedGallery;
+
+  const fallbackImage = [
+    restaurant?.coverUrl,
+    restaurant?.cover_url,
+    restaurant?.logoUrl,
+    restaurant?.logo_url,
+  ]
+    .map((url) => String(url || "").trim())
+    .find(Boolean);
+
+  return fallbackImage ? [fallbackImage] : [];
 }
 
 function getInitialFilters() {
@@ -43,12 +69,68 @@ function getInitialFilters() {
 
 // ── Memoized restaurant card ───────────────────────────────────────────────
 const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, onSelect, onFavorite, onReserve }) {
+  const imageUrls = useMemo(() => getRestaurantGalleryUrls(r), [r]);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const activeImageUrl = imageUrls[activeImageIndex] || "";
+  const crowd = useMemo(() => getCrowdMeterMeta(r), [r]);
+
+  useEffect(() => {
+    if (!imageUrls.length) {
+      setActiveImageIndex(0);
+      return;
+    }
+    setActiveImageIndex((prev) => {
+      if (prev < 0) return 0;
+      if (prev >= imageUrls.length) return imageUrls.length - 1;
+      return prev;
+    });
+  }, [imageUrls]);
+
+  const showPrevImage = (event) => {
+    event.stopPropagation();
+    if (imageUrls.length <= 1) return;
+    setActiveImageIndex((prev) => (prev - 1 + imageUrls.length) % imageUrls.length);
+  };
+
+  const showNextImage = (event) => {
+    event.stopPropagation();
+    if (imageUrls.length <= 1) return;
+    setActiveImageIndex((prev) => (prev + 1) % imageUrls.length);
+  };
+
   return (
     <article className="restaurantCard restaurantCard--search" onClick={() => onSelect(r)}>
       <div className="restaurantCard__cover">
-        {(r.coverUrl || r.cover_url)
-          ? <img className="restaurantCard__coverImg" src={r.coverUrl || r.cover_url} alt={`${r.name} cover`} loading="lazy" />
-          : <div className="restaurantCard__coverPlaceholder">No image</div>}
+        {activeImageUrl ? (
+          <>
+            <img className="restaurantCard__coverImg" src={activeImageUrl} alt={`${r.name} cover`} loading="lazy" />
+            {imageUrls.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  className="restaurantCard__coverArrow restaurantCard__coverArrow--left"
+                  onClick={showPrevImage}
+                  aria-label="Previous image"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  className="restaurantCard__coverArrow restaurantCard__coverArrow--right"
+                  onClick={showNextImage}
+                  aria-label="Next image"
+                >
+                  ›
+                </button>
+                <div className="restaurantCard__coverIndex">
+                  {activeImageIndex + 1}/{imageUrls.length}
+                </div>
+              </>
+            )}
+          </>
+        ) : (
+          <div className="restaurantCard__coverPlaceholder">No image</div>
+        )}
       </div>
       <div className="restaurantCard__body">
         <div className="restaurantCard__header">
@@ -65,6 +147,10 @@ const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, onSe
           </button>
         </div>
         <div className="restaurantCard__cuisine">{r.cuisine || "Cuisine not set"}</div>
+        <div className={`crowdMeter crowdMeter--${crowd.level}`}>
+          <span className="crowdMeter__dot" />
+          <span>Live Crowd: {crowd.label}{crowd.pct != null ? ` (${crowd.pct}%)` : ""}</span>
+        </div>
         <div className="restaurantCard__metaLine">{FILLED_STAR} {r.rating ?? "N/A"}</div>
         <div className="restaurantCard__metaLine">
           {r.distance_km != null ? `${r.distance_km} km away` : (r.address || "Location unavailable")}

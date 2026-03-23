@@ -5,6 +5,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { FiSliders } from "react-icons/fi";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { searchRestaurants } from "../../services/restaurantService";
+import { getCrowdMeterMeta } from "../../utils/crowdMeter";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const DEFAULT_CENTER = { lat: 33.893791, lng: 35.501777 };
@@ -27,6 +28,31 @@ function parseCoord(value) {
   return Number.isFinite(parsed) && parsed !== 0 ? parsed : null;
 }
 
+function getRestaurantGalleryUrls(restaurant) {
+  const rawGallery = Array.isArray(restaurant?.gallery_urls)
+    ? restaurant.gallery_urls
+    : Array.isArray(restaurant?.galleryUrls)
+      ? restaurant.galleryUrls
+      : [];
+
+  const cleanedGallery = rawGallery
+    .map((url) => String(url || "").trim())
+    .filter(Boolean);
+
+  if (cleanedGallery.length) return cleanedGallery;
+
+  const fallbackImage = [
+    restaurant?.coverUrl,
+    restaurant?.cover_url,
+    restaurant?.logoUrl,
+    restaurant?.logo_url,
+  ]
+    .map((url) => String(url || "").trim())
+    .find(Boolean);
+
+  return fallbackImage ? [fallbackImage] : [];
+}
+
 export default function UserExplore({ onOpenRestaurant }) {
   const { user } = useAuth();
 
@@ -40,6 +66,7 @@ export default function UserExplore({ onOpenRestaurant }) {
   const [selectedRestaurantId, setSelectedRestaurantId] = useState(null);
   const [gpsCoords, setGpsCoords]     = useState({ lat: null, lng: null });
   const [gpsDenied, setGpsDenied]     = useState(false);
+  const [imageIndexByRestaurantId, setImageIndexByRestaurantId] = useState({});
 
   const cardRefs  = useRef({});
   const watchIdRef = useRef(null);
@@ -165,6 +192,19 @@ export default function UserExplore({ onOpenRestaurant }) {
     if (!selectedRestaurantId) return;
     cardRefs.current[selectedRestaurantId]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [selectedRestaurantId]);
+
+  useEffect(() => {
+    setImageIndexByRestaurantId((prev) => {
+      const next = {};
+      for (const restaurant of restaurants) {
+        const images = getRestaurantGalleryUrls(restaurant);
+        if (!images.length) continue;
+        const current = Number(prev[restaurant.id] || 0);
+        next[restaurant.id] = Math.max(0, Math.min(current, images.length - 1));
+      }
+      return next;
+    });
+  }, [restaurants]);
 
   const activeFilterCount = [
     filters.priceRange.length,
@@ -383,6 +423,29 @@ export default function UserExplore({ onOpenRestaurant }) {
 
           <div className="exploreListGrid">
             {restaurants.map((restaurant, i) => (
+              (() => {
+                const images = getRestaurantGalleryUrls(restaurant);
+                const activeImageIndex = imageIndexByRestaurantId[restaurant.id] || 0;
+                const activeImageUrl = images[activeImageIndex] || "";
+                const crowd = getCrowdMeterMeta(restaurant);
+                const showPreviousImage = (event) => {
+                  event.stopPropagation();
+                  if (images.length <= 1) return;
+                  setImageIndexByRestaurantId((prev) => ({
+                    ...prev,
+                    [restaurant.id]: (activeImageIndex - 1 + images.length) % images.length,
+                  }));
+                };
+                const showNextImage = (event) => {
+                  event.stopPropagation();
+                  if (images.length <= 1) return;
+                  setImageIndexByRestaurantId((prev) => ({
+                    ...prev,
+                    [restaurant.id]: (activeImageIndex + 1) % images.length,
+                  }));
+                };
+
+                return (
               <motion.article
                 key={restaurant.id}
                 ref={(el) => { cardRefs.current[restaurant.id] = el; }}
@@ -398,18 +461,45 @@ export default function UserExplore({ onOpenRestaurant }) {
               >
                 {/* Full-bleed background image */}
                 <div className="exploreListCard__bg">
-                  {(restaurant.coverUrl || restaurant.cover_url) && (
+                  {activeImageUrl && (
                     <img
-                      src={restaurant.coverUrl || restaurant.cover_url}
+                      src={activeImageUrl}
                       alt={restaurant.name}
                       onError={(e) => { e.currentTarget.style.display = "none"; }}
                     />
+                  )}
+                  {images.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        className="exploreListCard__bgArrow exploreListCard__bgArrow--left"
+                        onClick={showPreviousImage}
+                        aria-label="Previous image"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        type="button"
+                        className="exploreListCard__bgArrow exploreListCard__bgArrow--right"
+                        onClick={showNextImage}
+                        aria-label="Next image"
+                      >
+                        ›
+                      </button>
+                      <div className="exploreListCard__bgIndex">
+                        {activeImageIndex + 1}/{images.length}
+                      </div>
+                    </>
                   )}
                 </div>
 
                 {/* Gradient overlay + all text */}
                 <div className="exploreListCard__overlay">
                   <div className="exploreListCard__top">
+                    <span className={`crowdMeter crowdMeter--compact crowdMeter--${crowd.level}`}>
+                      <span className="crowdMeter__dot" />
+                      <span>{crowd.label}</span>
+                    </span>
                     {restaurant.distance_km != null && (
                       <span className="exploreListCard__dist">{restaurant.distance_km} km</span>
                     )}
@@ -430,6 +520,8 @@ export default function UserExplore({ onOpenRestaurant }) {
                   </div>
                 </div>
               </motion.article>
+                );
+              })()
             ))}
           </div>
         </div>

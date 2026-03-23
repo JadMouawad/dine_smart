@@ -9,6 +9,7 @@ import ReservationForm from "../../components/ReservationForm.jsx";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 
 import { getCurrentSlotParams, formatTimeLabel } from "../../utils/timeUtils";
+import { getCrowdMeterMeta } from "../../utils/crowdMeter";
 import { FILLED_STAR, EMPTY_STAR } from "../../constants/filters";
 
 
@@ -33,6 +34,19 @@ export default function RestaurantDetailPanel({
   reservationIntentToken = 0,
   onBack,
 }) {
+  const mergeCrowdFields = (previous, next) => {
+    if (!next || typeof next !== "object") return previous;
+    const hasCrowdData = next.crowd_level != null || next.crowdLevel != null || next.crowd_pct != null || next.crowdPct != null;
+    if (hasCrowdData || !previous) return next;
+    return {
+      ...next,
+      crowd_level: previous.crowd_level ?? previous.crowdLevel ?? null,
+      crowd_pct: previous.crowd_pct ?? previous.crowdPct ?? null,
+      crowd_booked_seats: previous.crowd_booked_seats ?? previous.crowdBookedSeats ?? null,
+      crowd_total_capacity: previous.crowd_total_capacity ?? previous.crowdTotalCapacity ?? null,
+    };
+  };
+
   const { user } = useAuth();
 
   // ── Reviews ───────────────────────────────────────────────
@@ -54,6 +68,7 @@ export default function RestaurantDetailPanel({
   const [reservationAvailabilityLoading, setReservationAvailabilityLoading] = useState(false);
   const [reservationAvailabilityError, setReservationAvailabilityError] = useState("");
   const [currentRestaurant, setCurrentRestaurant] = useState(restaurant);
+  const [activeHeroImageIndex, setActiveHeroImageIndex] = useState(0);
 
   // ── Menu accordion ────────────────────────────────────────
   const [expandedSections, setExpandedSections] = useState({});
@@ -101,7 +116,9 @@ export default function RestaurantDetailPanel({
         .catch(() => { setReservationAvailability(null); setReservationAvailabilityError("Availability is temporarily unavailable."); })
         .finally(() => setReservationAvailabilityLoading(false));
       getRestaurantById(currentRestaurant.id)
-        .then(setCurrentRestaurant)
+        .then((updated) => {
+          setCurrentRestaurant((prev) => mergeCrowdFields(prev, updated));
+        })
         .catch(() => {});
     }
     window.addEventListener("ds:reservation-changed", handler);
@@ -128,6 +145,8 @@ export default function RestaurantDetailPanel({
     const v = Number(currentRestaurant?.rating ?? 0);
     return Number.isFinite(v) ? Math.max(0, Math.min(5, Math.round(v))) : 0;
   }, [currentRestaurant?.rating]);
+  const ratingStars = `${FILLED_STAR.repeat(ratingValue)}${EMPTY_STAR.repeat(Math.max(0, 5 - ratingValue))}`;
+  const crowdMeta = useMemo(() => getCrowdMeterMeta(currentRestaurant || {}), [currentRestaurant]);
 
   const restaurantHoursLabel = useMemo(() => {
     if (!currentRestaurant) return "Hours unavailable";
@@ -136,6 +155,53 @@ export default function RestaurantDetailPanel({
     if (!opening || !closing) return "Hours unavailable";
     return `${String(opening).slice(0, 5)} - ${String(closing).slice(0, 5)}`;
   }, [currentRestaurant]);
+
+  const restaurantGalleryUrls = useMemo(() => {
+    const directGallery = Array.isArray(currentRestaurant?.gallery_urls)
+      ? currentRestaurant.gallery_urls
+      : Array.isArray(currentRestaurant?.galleryUrls)
+        ? currentRestaurant.galleryUrls
+        : [];
+
+    const cleanedGallery = directGallery
+      .map((url) => String(url || "").trim())
+      .filter(Boolean);
+
+    if (cleanedGallery.length) return cleanedGallery;
+
+    const fallbackImage = [
+      currentRestaurant?.coverUrl,
+      currentRestaurant?.cover_url,
+      currentRestaurant?.logoUrl,
+      currentRestaurant?.logo_url,
+    ]
+      .map((url) => String(url || "").trim())
+      .find(Boolean);
+
+    return fallbackImage ? [fallbackImage] : [];
+  }, [currentRestaurant]);
+
+  useEffect(() => {
+    if (restaurantGalleryUrls.length === 0) {
+      setActiveHeroImageIndex(0);
+      return;
+    }
+    setActiveHeroImageIndex((prev) => {
+      if (prev < 0) return 0;
+      if (prev >= restaurantGalleryUrls.length) return restaurantGalleryUrls.length - 1;
+      return prev;
+    });
+  }, [restaurantGalleryUrls]);
+
+  function showPreviousHeroImage() {
+    if (restaurantGalleryUrls.length <= 1) return;
+    setActiveHeroImageIndex((prev) => (prev - 1 + restaurantGalleryUrls.length) % restaurantGalleryUrls.length);
+  }
+
+  function showNextHeroImage() {
+    if (restaurantGalleryUrls.length <= 1) return;
+    setActiveHeroImageIndex((prev) => (prev + 1) % restaurantGalleryUrls.length);
+  }
 
   const availabilityBadge = useMemo(() => {
     if (reservationAvailabilityLoading) return { label: "Checking availability...", tone: "warn" };
@@ -188,7 +254,7 @@ export default function RestaurantDetailPanel({
         getRestaurantById(currentRestaurant.id),
       ]);
       setReviews(Array.isArray(reviewsData) ? reviewsData : []);
-      setCurrentRestaurant(updated);
+      setCurrentRestaurant((prev) => mergeCrowdFields(prev, updated));
       window.dispatchEvent(new CustomEvent("ds:review-changed", { detail: { restaurantId: currentRestaurant.id, action: "created" } }));
     } catch (err) {
       setReviewError(err.message || "Failed to post review.");
@@ -207,7 +273,7 @@ export default function RestaurantDetailPanel({
         getRestaurantById(currentRestaurant.id),
       ]);
       setReviews(Array.isArray(reviewsData) ? reviewsData : []);
-      setCurrentRestaurant(updated);
+      setCurrentRestaurant((prev) => mergeCrowdFields(prev, updated));
       window.dispatchEvent(new CustomEvent("ds:review-changed", { detail: { restaurantId: currentRestaurant.id, action: "deleted" } }));
     } catch (err) {
       setReviewError(err.message || "Failed to delete review.");
@@ -254,35 +320,86 @@ export default function RestaurantDetailPanel({
         <div className="restaurantHeroInfoCard">
           <div className="restaurantHeroInfoItem">
             <span className="restaurantHeroInfoIcon">🍽</span>
-            <span>{currentRestaurant.cuisine || "Cuisine"}</span>
+            <div className="restaurantHeroInfoText">
+              <span className="restaurantHeroInfoLabel">Cuisine</span>
+              <span className="restaurantHeroInfoValue">{currentRestaurant.cuisine || "Not set"}</span>
+            </div>
           </div>
           <div className="restaurantHeroInfoItem">
             <FiStar className="restaurantHeroInfoIcon" />
-            <span>
-              {currentRestaurant.rating ?? "N/A"} ({FILLED_STAR.repeat(ratingValue)}{EMPTY_STAR.repeat(Math.max(0, 5 - ratingValue))})
-            </span>
+            <div className="restaurantHeroInfoText">
+              <span className="restaurantHeroInfoLabel">Rating</span>
+              <span className="restaurantHeroInfoValue">{currentRestaurant.rating ?? "N/A"}</span>
+              <span className="restaurantHeroInfoSub">{ratingStars}</span>
+            </div>
           </div>
           <div className="restaurantHeroInfoItem">
             <FiMapPin className="restaurantHeroInfoIcon" />
-            <span>{currentRestaurant.distance_km != null ? `${currentRestaurant.distance_km} km` : "Distance unavailable"}</span>
+            <div className="restaurantHeroInfoText">
+              <span className="restaurantHeroInfoLabel">Distance</span>
+              <span className="restaurantHeroInfoValue">
+                {currentRestaurant.distance_km != null ? `${currentRestaurant.distance_km} km` : "Unavailable"}
+              </span>
+            </div>
           </div>
           <div className="restaurantHeroInfoItem">
             <span className="restaurantHeroInfoIcon">🪑</span>
-            <span>{availabilityBadge ? availabilityBadge.label : "Seats unavailable"}</span>
+            <div className="restaurantHeroInfoText">
+              <span className="restaurantHeroInfoLabel">Availability</span>
+              <span className="restaurantHeroInfoValue">{availabilityBadge ? availabilityBadge.label : "Seats unavailable"}</span>
+            </div>
           </div>
           <div className="restaurantHeroInfoItem">
             <FiClock className="restaurantHeroInfoIcon" />
-            <span>{restaurantHoursLabel}</span>
+            <div className="restaurantHeroInfoText">
+              <span className="restaurantHeroInfoLabel">Hours</span>
+              <span className="restaurantHeroInfoValue">{restaurantHoursLabel}</span>
+            </div>
+          </div>
+          <div className={`restaurantHeroInfoItem restaurantHeroInfoItem--crowd restaurantHeroInfoItem--${crowdMeta.level}`}>
+            <span className="restaurantHeroInfoIcon">👥</span>
+            <div className="restaurantHeroInfoText">
+              <span className="restaurantHeroInfoLabel">Live Crowd</span>
+              <span className="restaurantHeroInfoValue">
+                {crowdMeta.label}{crowdMeta.pct != null ? ` (${crowdMeta.pct}%)` : ""}
+              </span>
+            </div>
           </div>
         </div>
 
         <div className="restaurantProfileHero__media">
-          {(currentRestaurant.coverUrl || currentRestaurant.cover_url || currentRestaurant.logoUrl || currentRestaurant.logo_url) ? (
-            <img
-              loading="lazy" className="restaurantProfileHero__img"
-              src={currentRestaurant.coverUrl || currentRestaurant.cover_url || currentRestaurant.logoUrl || currentRestaurant.logo_url}
-              alt={`${currentRestaurant.name} cover`}
-            />
+          {restaurantGalleryUrls.length ? (
+            <>
+              <img
+                loading="lazy"
+                className="restaurantProfileHero__img"
+                src={restaurantGalleryUrls[activeHeroImageIndex]}
+                alt={`${currentRestaurant.name} background ${activeHeroImageIndex + 1}`}
+              />
+              {restaurantGalleryUrls.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className="restaurantProfileHero__carouselArrow restaurantProfileHero__carouselArrow--left"
+                    aria-label="Previous background image"
+                    onClick={showPreviousHeroImage}
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    className="restaurantProfileHero__carouselArrow restaurantProfileHero__carouselArrow--right"
+                    aria-label="Next background image"
+                    onClick={showNextHeroImage}
+                  >
+                    ›
+                  </button>
+                  <div className="restaurantProfileHero__carouselIndex">
+                    {activeHeroImageIndex + 1} / {restaurantGalleryUrls.length}
+                  </div>
+                </>
+              )}
+            </>
           ) : (
             <div className="restaurantProfileHero__placeholder">DineSmart • {currentRestaurant.name}</div>
           )}
@@ -314,7 +431,7 @@ export default function RestaurantDetailPanel({
               type="button"
               onClick={() => {
                 if (!requireAuth()) return;
-                setDetailsTab("menu");
+                setDetailsTab("reserve");
                 openInlineReservation();
               }}
             >Reserve</button>
@@ -403,7 +520,7 @@ export default function RestaurantDetailPanel({
             <div className="menuSectionEmpty">No menu uploaded yet.</div>
           )}
         </div>
-      ) : (
+      ) : detailsTab === "reviews" ? (
         <div className="restaurantReviewsPage" ref={reviewsSectionRef}>
           <div className="reviewCard">
             <div className="reviewCard__title">Add a review</div>
@@ -506,7 +623,7 @@ export default function RestaurantDetailPanel({
             <div className="menuSectionEmpty">No reviews yet. Be the first!</div>
           )}
         </div>
-      )}
+      ) : null}
 
       <ConfirmDialog
         open={Boolean(deleteReviewTarget)}
