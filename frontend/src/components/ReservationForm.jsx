@@ -63,7 +63,7 @@ function buildTimeOptions(openingTime, closingTime) {
   if (openingMinutes == null || closingMinutes == null) {
     const fallback = [];
     for (let minute = 0; minute <= 23 * 60 + 30; minute += SLOT_STEP_MINUTES) {
-      fallback.push({ value: toTimeValue(minute), label: toLabel(minute) });
+      fallback.push({ value: toTimeValue(minute), label: toLabel(minute), nextDay: false });
     }
     return fallback;
   }
@@ -74,19 +74,32 @@ function buildTimeOptions(openingTime, closingTime) {
 
   const options = [];
   for (let minute = start; minute <= end && options.length < 48; minute += SLOT_STEP_MINUTES) {
-    options.push({ value: toTimeValue(minute), label: toLabel(minute) });
+    const nextDay = minute >= (24 * 60);
+    const label = toLabel(minute) + (nextDay ? " +1" : "");
+    options.push({ value: toTimeValue(minute), label, nextDay });
   }
   return options;
 }
 
-function isTimeSlotInPast(selectedDate, timeValue, nowMs) {
+function isTimeSlotInPast(selectedDate, timeValue, nowMs, nextDay = false) {
   if (!(selectedDate instanceof Date) || Number.isNaN(selectedDate.getTime())) return false;
   const minutes = parseTimeToMinutes(timeValue);
   if (minutes == null) return false;
 
   const slotDateTime = new Date(selectedDate);
+  if (nextDay) slotDateTime.setDate(slotDateTime.getDate() + 1);
   slotDateTime.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
   return slotDateTime.getTime() <= nowMs;
+}
+
+function addOneDay(dateValue) {
+  if (!dateValue) return dateValue;
+  const d = new Date(`${dateValue}T00:00:00`);
+  d.setDate(d.getDate() + 1);
+  const y = d.getFullYear();
+  const m = pad2(d.getMonth() + 1);
+  const day = pad2(d.getDate());
+  return `${y}-${m}-${day}`;
 }
 
 export default function ReservationForm({ isOpen, onClose, restaurant, onReserved, inline = false }) {
@@ -165,9 +178,10 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
 
   useEffect(() => {
     if (!date || !time) return;
-    if (!isTimeSlotInPast(date, time, nowMs)) return;
+    const selectedOption = timeOptions.find((o) => o.value === time);
+    if (!isTimeSlotInPast(date, time, nowMs, selectedOption?.nextDay ?? false)) return;
     setTime("");
-  }, [date, time, nowMs]);
+  }, [date, time, nowMs, timeOptions]);
 
   useEffect(() => {
     if (!isOpen || !restaurant?.id || !selectedDateValue || !time) {
@@ -177,11 +191,14 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
       return;
     }
 
+    const selectedOption = timeOptions.find((o) => o.value === time);
+    const effectiveDate = selectedOption?.nextDay ? addOneDay(selectedDateValue) : selectedDateValue;
+
     let cancelled = false;
     setAvailabilityLoading(true);
     getReservationAvailability({
       restaurantId: restaurant.id,
-      date: selectedDateValue,
+      date: effectiveDate,
       time,
       partySize: Number(partySize) || 2,
       seatingPreference: seatingPreference || null,
@@ -205,7 +222,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
     return () => {
       cancelled = true;
     };
-  }, [isOpen, partySize, seatingPreference, restaurant?.id, selectedDateValue, time]);
+  }, [isOpen, partySize, seatingPreference, restaurant?.id, selectedDateValue, time, timeOptions]);
 
   if ((!isOpen && !inline) || !restaurant) return null;
 
@@ -239,6 +256,9 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
       nextErrors.date = "Date cannot be in the past.";
     }
 
+    const selectedOption = timeOptions.find((o) => o.value === time);
+    const effectiveDate = selectedOption?.nextDay ? addOneDay(selectedDateValue) : selectedDateValue;
+
     if (time && !timeOptions.some((option) => option.value === time)) {
       nextErrors.time = "Selected time is outside restaurant hours.";
     }
@@ -258,7 +278,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
     try {
       const reservation = await createReservation({
         restaurantId: restaurant.id,
-        date: selectedDateValue,
+        date: effectiveDate,
         time,
         partySize: parsedPartySize,
         seatingPreference: seatingPreference || null,
@@ -266,7 +286,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
       });
       onReserved?.({
         ...reservation,
-        reservation_date: selectedDateValue,
+        reservation_date: effectiveDate,
         reservation_time: `${time}:00`,
       });
       onClose?.();
@@ -328,7 +348,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
           <div key={selectedDateValue || "empty-date"} className="reservationTimeGrid">
             {visibleTimeOptions.map((option) => {
               const selected = time === option.value;
-              const isPastSlot = selectedDateValue ? isTimeSlotInPast(date, option.value, nowMs) : false;
+              const isPastSlot = selectedDateValue ? isTimeSlotInPast(date, option.value, nowMs, option.nextDay ?? false) : false;
               return (
                 <button
                   key={option.value}
