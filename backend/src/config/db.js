@@ -22,6 +22,13 @@ if (config.db.ssl || isRemote) {
   poolConfig.ssl = { rejectUnauthorized: false };
 }
 
+// Limit pool size for Supabase/cloud DBs to avoid exhausting connection limits
+if (isRemote) {
+  poolConfig.max = 3;
+  poolConfig.idleTimeoutMillis = 10000;
+  poolConfig.connectionTimeoutMillis = 5000;
+}
+
 const pool = new Pool(poolConfig);
 
 pool.on("error", (err) => {
