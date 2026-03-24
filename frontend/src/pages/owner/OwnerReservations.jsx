@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { getMyRestaurant } from "../../services/restaurantService";
+import { toast } from "sonner";
+import { getMyRestaurant, getOwnerRestaurantTableConfig } from "../../services/restaurantService";
 import {
   getOwnerReservations,
   updateOwnerReservationStatus,
@@ -77,7 +78,7 @@ export default function OwnerReservations() {
   const [adjustmentLoading, setAdjustmentLoading] = useState(false);
   const [adjustmentFetching, setAdjustmentFetching] = useState(false);
   const [adjustmentError, setAdjustmentError] = useState("");
-  const [adjustmentMessage, setAdjustmentMessage] = useState("");
+  const [baseCapacity, setBaseCapacity] = useState(null);
 
   async function loadReservations() {
     setError("");
@@ -100,7 +101,22 @@ export default function OwnerReservations() {
     let cancelled = false;
     getMyRestaurant()
       .then((data) => {
-        if (!cancelled) setRestaurant(data);
+        if (!cancelled) {
+          setRestaurant(data);
+          if (data?.id) {
+            getOwnerRestaurantTableConfig(data.id)
+              .then((config) => {
+                if (!cancelled && config) {
+                  const t2 = parseInt(config.table_2_person, 10) || 0;
+                  const t4 = parseInt(config.table_4_person, 10) || 0;
+                  const t6 = parseInt(config.table_6_person, 10) || 0;
+                  const tableBased = (t2 * 2) + (t4 * 4) + (t6 * 6);
+                  setBaseCapacity(tableBased > 0 ? tableBased : (parseInt(config.total_capacity, 10) || null));
+                }
+              })
+              .catch(() => {});
+          }
+        }
       })
       .catch(() => {
         if (!cancelled) setRestaurant(null);
@@ -115,7 +131,6 @@ export default function OwnerReservations() {
     let cancelled = false;
     setAdjustmentFetching(true);
     setAdjustmentError("");
-    setAdjustmentMessage("");
 
     getOwnerSlotAdjustment({
       restaurantId: restaurant.id,
@@ -204,13 +219,11 @@ export default function OwnerReservations() {
     const parsedAdjustment = parseInt(adjustmentValue, 10);
     if (Number.isNaN(parsedAdjustment)) {
       setAdjustmentError("Adjustment must be a valid number.");
-      setAdjustmentMessage("");
       return;
     }
 
     setAdjustmentLoading(true);
     setAdjustmentError("");
-    setAdjustmentMessage("");
     setSuccess("");
     try {
       const saved = await saveOwnerSlotAdjustment(restaurant.id, {
@@ -220,8 +233,7 @@ export default function OwnerReservations() {
         adjustment: parsedAdjustment,
       });
       setAdjustmentValue(String(saved?.adjustment ?? parsedAdjustment));
-      setAdjustmentMessage("Seat adjustment saved.");
-      setSuccess("Seat adjustment saved.");
+      toast.success("Seat adjustment saved.");
     } catch (err) {
       const rawMessage = String(err?.message || "").toLowerCase();
       const isInternalRuntimeMessage =
@@ -300,7 +312,7 @@ export default function OwnerReservations() {
   return (
     <div className="ownerTableConfigPage">
       <h1 className="ownerProfile__title">Reservations</h1>
-      {success && <div className="inlineToast">{success}</div>}
+      {success && <div className="inlineToast inlineToast--success">{success}</div>}
       {error && <div className="fieldError">{error}</div>}
 
       <section className="formCard slotAdjustCard">
@@ -344,7 +356,7 @@ export default function OwnerReservations() {
               </select>
             </label>
             <label className="field">
-              <span>Adjust available seats</span>
+              <span>Seat adjustment (+ to add, − to reduce)</span>
               <input
                 type="number"
                 step="1"
@@ -352,6 +364,14 @@ export default function OwnerReservations() {
                 onChange={(e) => setAdjustmentValue(e.target.value)}
                 required
               />
+              {baseCapacity != null && (() => {
+                const delta = parseInt(adjustmentValue, 10);
+                if (Number.isNaN(delta) || delta === 0) return <span className="slotAdjustHint">Base capacity: {baseCapacity} seats</span>;
+                const after = Math.max(baseCapacity + delta, 0);
+                return <span className={`slotAdjustHint ${after < baseCapacity ? "slotAdjustHint--reduce" : "slotAdjustHint--increase"}`}>
+                  {baseCapacity} → <strong>{after} seats</strong> for this slot
+                </span>;
+              })()}
             </label>
           </div>
 
@@ -359,7 +379,6 @@ export default function OwnerReservations() {
             <div className="slotAdjustStatus">Loading current adjustment...</div>
           )}
           {adjustmentError && <div className="fieldError">{adjustmentError}</div>}
-          {adjustmentMessage && <div className="inlineToast">{adjustmentMessage}</div>}
 
           <div className="slotAdjustActions">
             <button

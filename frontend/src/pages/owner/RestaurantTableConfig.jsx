@@ -98,7 +98,18 @@ export default function RestaurantTableConfig() {
       return;
     }
     if (/^\d+$/.test(value)) {
-      setForm((prev) => ({ ...prev, [field]: value }));
+      setForm((prev) => {
+        const next = { ...prev, [field]: value };
+        // Auto-sync total_capacity whenever table counts change
+        if (["table_2_person", "table_4_person", "table_6_person"].includes(field)) {
+          const t2 = field === "table_2_person" ? parseInt(value, 10) || 0 : toNumber(prev.table_2_person);
+          const t4 = field === "table_4_person" ? parseInt(value, 10) || 0 : toNumber(prev.table_4_person);
+          const t6 = field === "table_6_person" ? parseInt(value, 10) || 0 : toNumber(prev.table_6_person);
+          const computed = (t2 * 2) + (t4 * 4) + (t6 * 6);
+          if (computed > 0) next.total_capacity = String(computed);
+        }
+        return next;
+      });
     }
   }
 
@@ -115,14 +126,21 @@ export default function RestaurantTableConfig() {
       outdoor_capacity: toNumber(form.outdoor_capacity),
     };
 
-    if (payload.total_capacity <= 0) {
-      setError("Total capacity must be greater than 0.");
+    const tableBased = (payload.table_2_person * 2) + (payload.table_4_person * 4) + (payload.table_6_person * 6);
+    const effectiveTotal = tableBased > 0 ? tableBased : payload.total_capacity;
+
+    if (effectiveTotal <= 0) {
+      setError("Total seat capacity must be greater than 0. Enter at least one table or set a total capacity.");
       setSuccess("");
       return;
     }
 
-    if ((payload.indoor_capacity + payload.outdoor_capacity) > payload.total_capacity) {
-      setError("Indoor and outdoor capacities cannot exceed total capacity.");
+    // Keep total_capacity in sync with table-based seats
+    if (tableBased > 0) payload.total_capacity = tableBased;
+
+    const zoneTotal = payload.indoor_capacity + payload.outdoor_capacity;
+    if (zoneTotal > 0 && zoneTotal !== effectiveTotal) {
+      setError(`Indoor seats (${payload.indoor_capacity}) + outdoor seats (${payload.outdoor_capacity}) = ${zoneTotal}, but total seats = ${effectiveTotal}. They must match.`);
       setSuccess("");
       return;
     }
@@ -175,34 +193,20 @@ export default function RestaurantTableConfig() {
       <form className="formCard ownerTableConfigCard" onSubmit={onSubmit}>
         <div className="ownerTableConfigSummary">
           <div className="capacityPreview">
-            Total capacity target: {preview.total}
+            {preview.tableBased > 0
+              ? <>Total seats from tables: <strong>{preview.tableBased}</strong> seats</>
+              : <>Total capacity: <strong>{preview.total}</strong> seats</>}
           </div>
-          <div className="capacityPreview">
-            Table-based seats: {preview.tableBased}
-          </div>
-          <div className={`capacityPreview ${preview.zonesValid ? "" : "capacityPreview--warn"}`}>
-            Zone seats: {preview.zoneTotal} / {preview.total}
-          </div>
-        </div>
-
-        <label className="field">
-          <span>Total Capacity</span>
-          <input
-            type="number"
-            min="1"
-            value={form.total_capacity}
-            onChange={(e) => updateField("total_capacity", e.target.value)}
-            required
-          />
-        </label>
-
-        <div className="ownerEventActions">
-          <button className="btn btn--ghost" type="button" onClick={applyTableBasedCapacity}>
-            Use Table-Based Capacity
-          </button>
+          {preview.tableBased > 0 && preview.zoneTotal > 0 && (
+            <div className={`capacityPreview ${preview.zoneTotal === preview.tableBased ? "" : "capacityPreview--warn"}`}>
+              Indoor + outdoor: {preview.zoneTotal} / {preview.tableBased} seats
+              {preview.zoneTotal !== preview.tableBased && " ⚠ must equal total seats"}
+            </div>
+          )}
         </div>
 
         <div className="ownerTableConfigSectionTitle">Table Distribution</div>
+        <p className="slotAdjustHint">Enter the number of physical tables. Seats are calculated automatically.</p>
         <div className="ownerTableConfigColumns">
           <label className="field">
             <span>2-person tables</span>
@@ -236,10 +240,11 @@ export default function RestaurantTableConfig() {
           </label>
         </div>
 
-        <div className="ownerTableConfigSectionTitle">Seating Zones</div>
+        <div className="ownerTableConfigSectionTitle">Seating Zones (optional)</div>
+        <p className="slotAdjustHint">If you have both indoor and outdoor seating, enter how many seats are in each zone. They must add up to your total seats above. Leave both as 0 if you don't distinguish.</p>
         <div className="twoCols">
           <label className="field">
-            <span>Indoor capacity</span>
+            <span>Indoor seats</span>
             <input
               type="number"
               min="0"
@@ -249,7 +254,7 @@ export default function RestaurantTableConfig() {
             />
           </label>
           <label className="field">
-            <span>Outdoor capacity</span>
+            <span>Outdoor seats</span>
             <input
               type="number"
               min="0"
@@ -260,10 +265,10 @@ export default function RestaurantTableConfig() {
           </label>
         </div>
 
-        <div className={`capacityPreview ${preview.zonesValid ? "" : "capacityPreview--warn"}`}>
-          You can serve {preview.effective} guests with current configuration.
-          <br />
-          Table-based seats: {preview.tableBased} | Zone seats: {preview.zoneTotal} / {preview.total}
+        <div className={`capacityPreview ${preview.tableBased > 0 && preview.zoneTotal > 0 && preview.zoneTotal !== preview.tableBased ? "capacityPreview--warn" : ""}`}>
+          {preview.tableBased > 0
+            ? <>System will allow <strong>{preview.tableBased} seats</strong> per time slot ({preview.tableBased / Math.max(toNumber(form.table_2_person) + toNumber(form.table_4_person) + toNumber(form.table_6_person), 1)} seats/table on average).</>
+            : <>System will allow <strong>{preview.total} seats</strong> per time slot.</>}
         </div>
 
         <div className="formCard__actions">

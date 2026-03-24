@@ -70,6 +70,13 @@ const buildCapacityFromConfig = (tableConfig) => {
   return tableConfig.total_capacity || 0;
 };
 
+const normalizeSeatingPreference = (value) => {
+  if (value == null || String(value).trim() === "") return null;
+  const normalized = String(value).trim().toLowerCase();
+  if (!ALLOWED_SEATING_PREFERENCES.has(normalized)) return null;
+  return normalized;
+};
+
 const toTimeValue = (minutes) => {
   const dayMinutes = 24 * 60;
   const normalized = ((minutes % dayMinutes) + dayMinutes) % dayMinutes;
@@ -164,7 +171,7 @@ const getSuggestedTimes = async ({
   return suggestions;
 };
 
-const getSlotAvailability = async ({ restaurantId, reservationDate, reservationTime }) => {
+const getSlotAvailability = async ({ restaurantId, reservationDate, reservationTime, seatingPreference = null }) => {
   const restaurantResult = await ReservationModel.getRestaurantById(db, restaurantId);
   const restaurant = restaurantResult.rows[0];
   if (!restaurant) {
@@ -181,7 +188,35 @@ const getSlotAvailability = async ({ restaurantId, reservationDate, reservationT
     return { success: false, status: 409, error: "Table configuration is not set for this restaurant" };
   }
 
-  const totalCapacity = buildCapacityFromConfig(tableConfig);
+  const totalCapacityBase = buildCapacityFromConfig(tableConfig);
+  const slotAdjustmentsResult = await ReservationModel.getSlotAdjustments(
+    db,
+    restaurantId,
+    reservationDate,
+    reservationTime
+  );
+  const slotAdjustments = (slotAdjustmentsResult.rows || []).reduce((acc, row) => {
+    const key = String(row.seating_preference || "").toLowerCase();
+    const value = parseInt(row.adjustment, 10);
+    if (!Number.isNaN(value)) acc[key] = value;
+    return acc;
+  }, {});
+  const anyAdjustment = slotAdjustments.any || 0;
+  const indoorAdjustment = slotAdjustments.indoor || 0;
+  const outdoorAdjustment = slotAdjustments.outdoor || 0;
+  const indoorCapacityRaw = parseInt(tableConfig.indoor_capacity, 10);
+  const outdoorCapacityRaw = parseInt(tableConfig.outdoor_capacity, 10);
+  const indoorCapacityBase = Number.isFinite(indoorCapacityRaw) && indoorCapacityRaw > 0 ? indoorCapacityRaw : 0;
+  const outdoorCapacityBase = Number.isFinite(outdoorCapacityRaw) && outdoorCapacityRaw > 0 ? outdoorCapacityRaw : 0;
+  const hasSplitCapacity = indoorCapacityBase > 0 || outdoorCapacityBase > 0;
+  const indoorCapacityAdjusted = Math.max(indoorCapacityBase + indoorAdjustment, 0);
+  const outdoorCapacityAdjusted = Math.max(outdoorCapacityBase + outdoorAdjustment, 0);
+  // When split capacity is defined, total = sum of adjusted indoor + outdoor + any.
+  // When no split, total = table-based seats + all adjustments combined.
+  const totalCapacity = hasSplitCapacity
+    ? Math.max(indoorCapacityAdjusted + outdoorCapacityAdjusted + anyAdjustment, 0)
+    : Math.max(totalCapacityBase + anyAdjustment + indoorAdjustment + outdoorAdjustment, 0);
+  const totalAdjustment = totalCapacity - totalCapacityBase;
   const bookedResult = await ReservationModel.getBookedSeatsForSlot(
     db,
     restaurantId,
@@ -191,12 +226,47 @@ const getSlotAvailability = async ({ restaurantId, reservationDate, reservationT
   const bookedSeats = parseInt(bookedResult.rows[0]?.booked_seats, 10) || 0;
   const availableSeats = Math.max(totalCapacity - bookedSeats, 0);
 
+  const normalizedSeating = normalizeSeatingPreference(seatingPreference);
+  let preferenceCapacity = null;
+  let bookedSeatsPreference = null;
+  let availableSeatsPreference = null;
+
+  if (normalizedSeating) {
+    if (hasSplitCapacity) {
+      preferenceCapacity = normalizedSeating === "indoor"
+        ? indoorCapacityAdjusted
+        : outdoorCapacityAdjusted;
+    } else {
+      const specificPreferenceAdjustment = normalizedSeating === "indoor" ? indoorAdjustment : outdoorAdjustment;
+      preferenceCapacity = Math.max(totalCapacityBase + anyAdjustment + specificPreferenceAdjustment, 0);
+    }
+
+    const slotReservationsResult = await ReservationModel.getReservationsForSlot(
+      db,
+      restaurantId,
+      reservationDate,
+      reservationTime
+    );
+    bookedSeatsPreference = (slotReservationsResult.rows || []).reduce((sum, reservation) => {
+      const reservationPreference = String(reservation.seating_preference || "").toLowerCase();
+      if (reservationPreference !== normalizedSeating) return sum;
+      const reservationPartySize = parseInt(reservation.party_size, 10);
+      return sum + (Number.isNaN(reservationPartySize) ? 0 : reservationPartySize);
+    }, 0);
+    availableSeatsPreference = Math.max(preferenceCapacity - bookedSeatsPreference, 0);
+  }
+
   return {
     success: true,
     restaurant,
+    anyAdjustment,
+    totalAdjustment,
     totalCapacity,
     bookedSeats,
     availableSeats,
+    preferenceCapacity,
+    bookedSeatsPreference,
+    availableSeatsPreference,
   };
 };
 
@@ -247,8 +317,8 @@ const createReservation = async ({
     return { success: false, status: 400, error: "Reservation date cannot be in the past" };
   }
 
-  const normalizedSeating = seatingPreference ? String(seatingPreference).trim().toLowerCase() : null;
-  if (normalizedSeating && !ALLOWED_SEATING_PREFERENCES.has(normalizedSeating)) {
+  const normalizedSeating = normalizeSeatingPreference(seatingPreference);
+  if (seatingPreference && !normalizedSeating) {
     return { success: false, status: 400, error: "Invalid seating preference" };
   }
 
@@ -256,6 +326,7 @@ const createReservation = async ({
     restaurantId: parsedRestaurantId,
     reservationDate: normalizedDate,
     reservationTime: normalizedTime,
+    seatingPreference: normalizedSeating,
   });
 
   if (!availability.success) {
@@ -266,7 +337,12 @@ const createReservation = async ({
     return { success: false, status: 400, error: "Reservation time is outside restaurant operating hours" };
   }
 
-  if (availability.availableSeats < parsedPartySize) {
+  const availableSeatsForRequest =
+    normalizedSeating && availability.availableSeatsPreference != null
+      ? Math.min(availability.availableSeats, availability.availableSeatsPreference)
+      : availability.availableSeats;
+
+  if (availableSeatsForRequest < parsedPartySize) {
     const suggestedTimes = await getSuggestedTimes({
       restaurantId: parsedRestaurantId,
       reservationDate: normalizedDate,
@@ -279,8 +355,10 @@ const createReservation = async ({
     return {
       success: false,
       status: 409,
-      error: `Only ${availability.availableSeats} seats available`,
-      availableSeats: availability.availableSeats,
+      error: normalizedSeating && availability.availableSeatsPreference != null
+        ? `Only ${availableSeatsForRequest} ${normalizedSeating} seats available`
+        : `Only ${availableSeatsForRequest} seats available`,
+      availableSeats: availableSeatsForRequest,
       suggestedTimes,
     };
   }
@@ -601,7 +679,7 @@ const upsertSlotAdjustmentForOwner = async ({
   return { success: true, status: 200, adjustment: saved };
 };
 
-const getAvailability = async ({ restaurantId, reservationDate, reservationTime, partySize = null }) => {
+const getAvailability = async ({ restaurantId, reservationDate, reservationTime, partySize = null, seatingPreference = null }) => {
   const parsedRestaurantId = parseInt(restaurantId, 10);
   const normalizedDate = String(reservationDate || "").trim();
   const normalizedTime = normalizeTime(reservationTime);
@@ -624,10 +702,16 @@ const getAvailability = async ({ restaurantId, reservationDate, reservationTime,
     return { success: false, status: 400, error: "Invalid party size" };
   }
 
+  const normalizedSeating = normalizeSeatingPreference(seatingPreference);
+  if (seatingPreference && !normalizedSeating) {
+    return { success: false, status: 400, error: "Invalid seating preference" };
+  }
+
   const availability = await getSlotAvailability({
     restaurantId: parsedRestaurantId,
     reservationDate: normalizedDate,
     reservationTime: normalizedTime,
+    seatingPreference: normalizedSeating,
   });
 
   if (!availability.success) {
@@ -640,11 +724,16 @@ const getAvailability = async ({ restaurantId, reservationDate, reservationTime,
   availability.restaurant.closing_time
 );
 
+const availableSeatsForRequest =
+  normalizedSeating && availability.availableSeatsPreference != null
+    ? Math.min(availability.availableSeats, availability.availableSeatsPreference)
+    : availability.availableSeats;
+
 const lowCapacityThreshold = Math.max(2, Math.floor(availability.totalCapacity * 0.2));
 const shouldSuggest =
   !withinOperatingHours ||
-  availability.availableSeats <= lowCapacityThreshold ||
-  availability.availableSeats < parsedPartySize;
+  availableSeatsForRequest <= lowCapacityThreshold ||
+  availableSeatsForRequest < parsedPartySize;
 
 const suggestedTimes = shouldSuggest
   ? await getSuggestedTimes({
@@ -664,13 +753,19 @@ return {
     restaurant_id: parsedRestaurantId,
     reservation_date: normalizedDate,
     reservation_time: normalizedTime,
+    requested_seating_preference: normalizedSeating,
     total_capacity: availability.totalCapacity,
+    total_adjustment: availability.totalAdjustment ?? 0,
     booked_seats: availability.bookedSeats,
-    available_seats: availability.availableSeats,
-    is_fully_booked: availability.availableSeats <= 0,
+    available_seats_total: availability.availableSeats,
+    preference_capacity: availability.preferenceCapacity,
+    booked_seats_preference: availability.bookedSeatsPreference,
+    available_seats_preference: availability.availableSeatsPreference,
+    available_seats: availableSeatsForRequest,
+    is_fully_booked: availableSeatsForRequest <= 0,
     is_outside_operating_hours: !withinOperatingHours,
     can_accommodate_party:
-      withinOperatingHours && availability.availableSeats >= parsedPartySize,
+      withinOperatingHours && availableSeatsForRequest >= parsedPartySize,
     suggested_times: suggestedTimes,
   },
 };
