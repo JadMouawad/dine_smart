@@ -7,6 +7,7 @@ import {
   markOwnerReservationNoShow,
   getOwnerSlotAdjustment,
   saveOwnerSlotAdjustment,
+  getReservationAvailability,
 } from "../../services/reservationService";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
@@ -79,6 +80,7 @@ export default function OwnerReservations() {
   const [adjustmentFetching, setAdjustmentFetching] = useState(false);
   const [adjustmentError, setAdjustmentError] = useState("");
   const [baseCapacity, setBaseCapacity] = useState(null);
+  const [slotAvailability, setSlotAvailability] = useState(null);
 
   async function loadReservations() {
     setError("");
@@ -165,6 +167,29 @@ export default function OwnerReservations() {
   }, [restaurant?.id, adjustmentDate, adjustmentTime, adjustmentPreference]);
 
   useEffect(() => {
+    if (!restaurant?.id || !adjustmentDate || !adjustmentTime) return;
+    let cancelled = false;
+    setSlotAvailability(null);
+
+    getReservationAvailability({
+      restaurantId: restaurant.id,
+      date: adjustmentDate,
+      time: adjustmentTime,
+      seatingPreference: adjustmentPreference !== "any" ? adjustmentPreference : undefined,
+    })
+      .then((data) => {
+        if (!cancelled) setSlotAvailability(data);
+      })
+      .catch(() => {
+        if (!cancelled) setSlotAvailability(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurant?.id, adjustmentDate, adjustmentTime, adjustmentPreference]);
+
+  useEffect(() => {
     const timer = window.setInterval(() => setClockNow(Date.now()), 30000);
     return () => window.clearInterval(timer);
   }, []);
@@ -220,6 +245,19 @@ export default function OwnerReservations() {
     if (Number.isNaN(parsedAdjustment)) {
       setAdjustmentError("Adjustment must be a valid number.");
       return;
+    }
+
+    // Prevent reducing below already-booked seats
+    if (slotAvailability != null && parsedAdjustment < 0) {
+      const total = slotAvailability.total_capacity ?? baseCapacity ?? 0;
+      const booked = slotAvailability.booked_seats ?? 0;
+      const available = Math.max(total - booked, 0);
+      if (Math.abs(parsedAdjustment) > available) {
+        setAdjustmentError(
+          `Cannot reduce by ${Math.abs(parsedAdjustment)} — only ${available} seats are available (${booked} already booked).`
+        );
+        return;
+      }
     }
 
     setAdjustmentLoading(true);
@@ -361,16 +399,35 @@ export default function OwnerReservations() {
                 type="number"
                 step="1"
                 value={adjustmentValue}
+                min={baseCapacity != null ? -baseCapacity : undefined}
                 onChange={(e) => setAdjustmentValue(e.target.value)}
                 required
               />
-              {baseCapacity != null && (() => {
+              {(() => {
                 const delta = parseInt(adjustmentValue, 10);
-                if (Number.isNaN(delta) || delta === 0) return <span className="slotAdjustHint">Base capacity: {baseCapacity} seats</span>;
-                const after = Math.max(baseCapacity + delta, 0);
-                return <span className={`slotAdjustHint ${after < baseCapacity ? "slotAdjustHint--reduce" : "slotAdjustHint--increase"}`}>
-                  {baseCapacity} → <strong>{after} seats</strong> for this slot
-                </span>;
+                const total = slotAvailability?.total_capacity ?? baseCapacity;
+                const booked = slotAvailability?.booked_seats ?? 0;
+                const currentlyAvailable = total != null ? Math.max(total - booked, 0) : null;
+
+                if (total == null) return null;
+
+                if (Number.isNaN(delta) || delta === 0) {
+                  return (
+                    <span className="slotAdjustHint">
+                      {total} total &nbsp;·&nbsp; {booked} booked &nbsp;·&nbsp; <strong>{currentlyAvailable} available</strong>
+                    </span>
+                  );
+                }
+
+                const afterAvailable = Math.max(currentlyAvailable + delta, 0);
+                const isOver = afterAvailable === 0 && delta < 0 && Math.abs(delta) > currentlyAvailable;
+                return (
+                  <span className={`slotAdjustHint ${delta < 0 ? "slotAdjustHint--reduce" : "slotAdjustHint--increase"}`}>
+                    {total} total &nbsp;·&nbsp; {booked} booked &nbsp;·&nbsp;
+                    {currentlyAvailable} → <strong>{afterAvailable} available</strong>
+                    {isOver && <span className="slotAdjustHint--reduce"> ⚠ can't reduce below 0</span>}
+                  </span>
+                );
               })()}
             </label>
           </div>
