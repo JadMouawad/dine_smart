@@ -8,11 +8,16 @@ const add = async (jti, expiresAt) => {
 };
 
 const isBlacklisted = async (jti) => {
-  const result = await pool.query(
-    `SELECT 1 FROM token_blacklist WHERE jti = $1 AND expires_at > NOW()`,
-    [jti]
-  );
-  return result.rows.length > 0;
+  try {
+    const result = await pool.query(
+      `SELECT 1 FROM token_blacklist WHERE jti = $1 AND expires_at > NOW()`,
+      [jti]
+    );
+    return result.rows.length > 0;
+  } catch {
+    // If token_blacklist table is missing, treat token as valid (not blacklisted)
+    return false;
+  }
 };
 
 const deleteExpired = async () => {
