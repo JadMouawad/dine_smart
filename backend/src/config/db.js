@@ -13,7 +13,12 @@ if (config.db.connectionString) {
   poolConfig.database = config.db.database;
 }
 
-if (config.db.ssl) {
+// Auto-enable SSL for any remote (non-localhost) connection, or when DB_SSL=true
+const isRemote = config.db.connectionString
+  ? !config.db.connectionString.match(/localhost|127\.0\.0\.1/)
+  : (config.db.host && !config.db.host.match(/localhost|127\.0\.0\.1/));
+
+if (config.db.ssl || isRemote) {
   poolConfig.ssl = { rejectUnauthorized: false };
 }
 
