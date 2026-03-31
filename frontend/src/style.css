@@ -4210,13 +4210,22 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 .phoneRow {
   display: grid;
-  grid-template-columns: 130px 1fr;
+  grid-template-columns: 155px 1fr;
   gap: 12px;
   align-items: center;
 }
 
 .phoneRow__code {
   height: 44px;
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI", sans-serif;
+  padding-right: 18px;
+  background-position:
+    calc(100% - 12px) 50%,
+    calc(100% - 6px) 50%;
+}
+
+.phoneRow__code option {
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI", sans-serif;
 }
 
 .phoneRow__number {
@@ -9248,4 +9257,181 @@ html[data-theme="light"] .quickFilterBtn {
 }
 [data-theme="light"] .ownerProfileGrid__media .imageCard__removeBtn:hover {
   background: rgba(255, 248, 235, 0.98);
+}
+
+.resetPasswordPage {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+}
+
+.resetPasswordCard {
+  width: min(100%, 460px);
+  background: rgba(14, 20, 32, 0.92);
+  border: 1px solid rgba(201, 162, 39, 0.22);
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+}
+
+.resetPasswordCard__title {
+  margin: 0;
+  font-size: 32px;
+}
+
+.resetPasswordCard__subtitle {
+  margin: 10px 0 20px;
+  color: rgba(245, 239, 224, 0.76);
+}
+
+.resetPasswordCard__back {
+  margin-top: 14px;
+  width: 100%;
+}
+
+.profileDocumentCard,
+.documentCard {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(201, 162, 39, 0.16);
+}
+
+.profileDocumentCard__name,
+.documentCard__name {
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.profileDocumentCard__link,
+.documentCard__link {
+  color: #d7b45d;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.reviewCardFull__flag {
+  margin-top: 10px;
+}
+
+.reservationChartCard {
+  margin-bottom: 20px;
+}
+
+.reservationChartsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.reservationChartPanel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.reservationChartPanel__title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.reservationBarChart {
+  min-height: 220px;
+  display: flex;
+  align-items: end;
+  gap: 14px;
+}
+
+.reservationBarChart__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.reservationBarChart__value {
+  font-size: 13px;
+  color: rgba(245, 239, 224, 0.78);
+}
+
+.reservationBarChart__barWrap {
+  height: 150px;
+  width: 100%;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+}
+
+.reservationBarChart__bar {
+  width: min(46px, 100%);
+  border-radius: 14px 14px 8px 8px;
+  background: linear-gradient(180deg, #d8bb67 0%, #9c7432 100%);
+  box-shadow: 0 12px 30px rgba(201, 162, 39, 0.22);
+}
+
+.reservationBarChart__label {
+  font-size: 12px;
+  text-align: center;
+  color: rgba(245, 239, 224, 0.7);
+}
+
+.reservationPeakBadge {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(216, 187, 103, 0.12);
+  color: #f1d58a;
+  font-weight: 600;
+}
+
+.reservationHourList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reservationHourRow {
+  display: grid;
+  grid-template-columns: 60px 1fr 34px;
+  align-items: center;
+  gap: 10px;
+}
+
+.reservationHourRow__label,
+.reservationHourRow__value {
+  font-size: 13px;
+  color: rgba(245, 239, 224, 0.8);
+}
+
+.reservationHourRow__track {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.reservationHourRow__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(153, 113, 45, 0.92), rgba(216, 187, 103, 0.96));
+}
+
+.reservationHourRow__fill.is-peak {
+  background: linear-gradient(90deg, #ffb454, #ffd978);
+}
+
+@media (max-width: 900px) {
+  .reservationChartsGrid {
+    grid-template-columns: 1fr;
+  }
 }
