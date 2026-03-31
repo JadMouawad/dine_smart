@@ -4210,7 +4210,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 .phoneRow {
   display: grid;
-  grid-template-columns: 155px 1fr;
+  grid-template-columns: 148px 1fr;
   gap: 12px;
   align-items: center;
 }
@@ -4218,10 +4218,17 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .phoneRow__code {
   height: 44px;
   font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI", sans-serif;
-  padding-right: 18px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-left: 14px;
+  padding-right: 26px;
+  line-height: 1.15;
   background-position:
-    calc(100% - 12px) 50%,
-    calc(100% - 6px) 50%;
+    calc(100% - 16px) calc(50% + 1px),
+    calc(100% - 10px) calc(50% + 1px);
+  background-size:
+    6px 6px,
+    6px 6px;
 }
 
 .phoneRow__code option {
@@ -9288,6 +9295,50 @@ html[data-theme="light"] .quickFilterBtn {
 .resetPasswordCard__back {
   margin-top: 14px;
   width: 100%;
+}
+
+[data-theme="light"] .resetPasswordPage {
+  background:
+    radial-gradient(circle at top, rgba(223, 186, 118, 0.2), transparent 38%),
+    linear-gradient(180deg, #fffdf8 0%, #f7efe1 100%);
+}
+
+[data-theme="light"] .resetPasswordCard {
+  background: rgba(255, 252, 245, 0.96);
+  border: 1px solid rgba(175, 115, 45, 0.22);
+  box-shadow: 0 24px 60px rgba(140, 95, 32, 0.16);
+}
+
+[data-theme="light"] .resetPasswordCard__title {
+  color: rgba(80, 45, 15, 0.96);
+}
+
+[data-theme="light"] .resetPasswordCard__subtitle {
+  color: rgba(110, 68, 28, 0.78);
+}
+
+[data-theme="light"] .resetPasswordCard .field span {
+  color: rgba(96, 58, 21, 0.86);
+}
+
+[data-theme="light"] .resetPasswordCard .field input {
+  border-color: rgba(175, 115, 45, 0.22);
+  background: rgba(255, 255, 255, 0.96);
+  color: rgba(65, 38, 14, 0.96);
+}
+
+[data-theme="light"] .resetPasswordCard .field input::placeholder {
+  color: rgba(145, 109, 72, 0.68);
+}
+
+[data-theme="light"] .resetPasswordCard__back.btn--ghost {
+  border-color: rgba(175, 115, 45, 0.2);
+  background: rgba(255, 248, 235, 0.85);
+  color: rgba(80, 45, 15, 0.92);
+}
+
+[data-theme="light"] .resetPasswordCard__back.btn--ghost:hover {
+  background: rgba(255, 243, 220, 0.96);
 }
 
 .profileDocumentCard,
