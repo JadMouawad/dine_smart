@@ -8,14 +8,14 @@ export const COUNTRY_OPTIONS = [
   { label: "Lebanon", code: "+961", iso: "LB" },
   { label: "United States", code: "+1", iso: "US" },
   { label: "France", code: "+33", iso: "FR" },
-  { label: "United Kingdom", code: "+44", iso: "GB" },
-  { label: "United Arab Emirates", code: "+971", iso: "AE" },
+  { label: "UK", code: "+44", iso: "GB" },
+  { label: "UAE", code: "+971", iso: "AE" },
   { label: "Saudi Arabia", code: "+966", iso: "SA" },
   { label: "Germany", code: "+49", iso: "DE" },
 ].map((country) => ({
   ...country,
   flag: getFlagEmoji(country.iso),
-  displayLabel: `${country.label.replace("United ", "U. ")} (${country.code})`,
+  displayLabel: `${country.label} (${country.code})`,
 }));
 
 export function splitPhoneNumber(value) {
