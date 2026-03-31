@@ -40,6 +40,18 @@ CREATE TABLE IF NOT EXISTS email_verification_tokens (
 CREATE INDEX IF NOT EXISTS idx_email_verification_token ON email_verification_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_email_verification_user_id ON email_verification_tokens(user_id);
 
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash VARCHAR(255) NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_user_id ON password_reset_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_password_reset_expires_at ON password_reset_tokens(expires_at);
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -69,6 +81,10 @@ CREATE TABLE IF NOT EXISTS restaurants (
   logo_url TEXT,
   cover_url TEXT,
   gallery_urls TEXT[] DEFAULT ARRAY[]::TEXT[],
+  business_license_url TEXT,
+  business_license_name VARCHAR(255),
+  health_certificate_url TEXT,
+  health_certificate_name VARCHAR(255),
   is_verified BOOLEAN DEFAULT false,
   approval_status restaurant_approval_status DEFAULT 'pending',
   rejection_reason VARCHAR(500),
