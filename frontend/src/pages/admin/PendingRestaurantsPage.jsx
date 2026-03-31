@@ -105,6 +105,14 @@ export default function PendingRestaurantsPage({ onPendingCountChange }) {
               <div className="adminEntityCard__meta">
                 Owner: {restaurant.owner_name || "Unknown"} ({restaurant.owner_email || "No email"})
               </div>
+              {restaurant.business_license_url && (
+                <div className="adminEntityCard__meta">
+                  License:{" "}
+                  <a href={restaurant.business_license_url} target="_blank" rel="noreferrer">
+                    {restaurant.business_license_name || "View uploaded file"}
+                  </a>
+                </div>
+              )}
               <div className="adminEntityCard__meta">
                 Submitted: {new Date(restaurant.created_at).toLocaleDateString()}
               </div>

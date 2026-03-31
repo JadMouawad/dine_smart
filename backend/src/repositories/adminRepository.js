@@ -1,5 +1,19 @@
 const pool = require("../config/db");
 
+let restaurantColumnsCache = null;
+
+const getRestaurantColumns = async () => {
+  if (restaurantColumnsCache) return restaurantColumnsCache;
+  const result = await pool.query(`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'restaurants'
+  `);
+  restaurantColumnsCache = new Set(result.rows.map((row) => row.column_name));
+  return restaurantColumnsCache;
+};
+
 const withTransaction = async (callback) => {
   const client = await pool.connect();
   try {
@@ -72,12 +86,22 @@ const getRecentActivity = async (limit = 10) => {
 };
 
 const getPendingRestaurants = async () => {
+  const restaurantColumns = await getRestaurantColumns();
+  const businessLicenseUrlSelect = restaurantColumns.has("business_license_url")
+    ? "r.business_license_url"
+    : "NULL::text AS business_license_url";
+  const businessLicenseNameSelect = restaurantColumns.has("business_license_name")
+    ? "r.business_license_name"
+    : "NULL::varchar AS business_license_name";
+
   const result = await pool.query(`
     SELECT
       r.id,
       r.name,
       r.cuisine,
       r.address,
+      ${businessLicenseUrlSelect},
+      ${businessLicenseNameSelect},
       r.created_at,
       r.owner_id,
       u.full_name AS owner_name,

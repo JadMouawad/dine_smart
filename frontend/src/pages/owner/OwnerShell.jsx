@@ -67,10 +67,11 @@ export default function OwnerShell() {
           <div className="formCard formCard--userProfile ownerPendingCard">
             <div className="formCard__title">Approval Pending</div>
             <p className="userProfileFormHint" style={{ marginTop: 6 }}>
-              Your restaurant is awaiting admin approval. Once approved, you can edit your profile,
-              upload your logo, and access menu, events, table configuration, reviews, and reservations.
+              Your restaurant is awaiting admin approval. You can still update your profile and upload your business
+              license here while the rest of the owner tools stay locked.
             </p>
           </div>
+          <OwnerProfile onLogoPreviewChange={setRestaurantLogoUrl} onSaved={fetchApprovalStatus} />
         </main>
       </div>
     );

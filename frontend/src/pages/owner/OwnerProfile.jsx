@@ -34,6 +34,7 @@ const DIETARY_OPTIONS = [
 
 const DEFAULT_MAP_CENTER = { lat: 33.893791, lng: 35.501777 };
 const MAX_GALLERY_PHOTOS = 8;
+const VALID_DOCUMENT_TYPES = new Set(["application/pdf", "image/png", "image/jpeg"]);
 
 function splitAddressAndCity(rawAddress) {
   const value = String(rawAddress || "").trim();
@@ -79,6 +80,10 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
   const [dietarySupport, setDietarySupport] = useState([]);
   const [logoDataUrl, setLogoDataUrl] = useState("");
   const [galleryDataUrls, setGalleryDataUrls] = useState([]);
+  const [businessLicenseUrl, setBusinessLicenseUrl] = useState("");
+  const [businessLicenseName, setBusinessLicenseName] = useState("");
+  const [healthCertificateUrl, setHealthCertificateUrl] = useState("");
+  const [healthCertificateName, setHealthCertificateName] = useState("");
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -112,6 +117,10 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
         setPriceRange(restaurant.price_range || "");
         setDietarySupport(Array.isArray(restaurant.dietary_support) ? restaurant.dietary_support : []);
         setLogoDataUrl(restaurant.logo_url || restaurant.logoUrl || "");
+        setBusinessLicenseUrl(restaurant.business_license_url || "");
+        setBusinessLicenseName(restaurant.business_license_name || "");
+        setHealthCertificateUrl(restaurant.health_certificate_url || "");
+        setHealthCertificateName(restaurant.health_certificate_name || "");
         const storedGallery = normalizeGalleryUrls(restaurant.gallery_urls || restaurant.galleryUrls || []);
         const legacyCover = String(restaurant.cover_url || restaurant.coverUrl || "").trim();
         setGalleryDataUrls(storedGallery.length ? storedGallery : (legacyCover ? [legacyCover] : []));
@@ -227,6 +236,42 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     }
   }
 
+  async function onPickBusinessLicense(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    if (!VALID_DOCUMENT_TYPES.has(file.type)) {
+      alert("Please select a PDF, PNG, or JPG file.");
+      event.target.value = "";
+      return;
+    }
+    try {
+      setBusinessLicenseUrl(await readFileAsDataUrl(file));
+      setBusinessLicenseName(file.name);
+    } catch (fileError) {
+      alert(fileError.message || "Failed to process file.");
+    } finally {
+      event.target.value = "";
+    }
+  }
+
+  async function onPickHealthCertificate(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    if (!VALID_DOCUMENT_TYPES.has(file.type)) {
+      alert("Please select a PDF, PNG, or JPG file.");
+      event.target.value = "";
+      return;
+    }
+    try {
+      setHealthCertificateUrl(await readFileAsDataUrl(file));
+      setHealthCertificateName(file.name);
+    } catch (fileError) {
+      alert(fileError.message || "Failed to process file.");
+    } finally {
+      event.target.value = "";
+    }
+  }
+
   function removeGalleryPhoto(indexToRemove) {
     setGalleryDataUrls((prev) => {
       const next = prev.filter((_, index) => index !== indexToRemove);
@@ -308,6 +353,10 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
         logo_url: logoPreviewUrl || null,
         cover_url: coverPreviewUrl || null,
         gallery_urls: galleryPreviewUrls,
+        business_license_url: businessLicenseUrl || null,
+        business_license_name: businessLicenseName || null,
+        health_certificate_url: healthCertificateUrl || null,
+        health_certificate_name: healthCertificateName || null,
       };
 
       if (existingRestaurant) {
@@ -433,6 +482,26 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
               </span>
             </div>
             <div className="ownerProfileViewRow">
+              <span className="ownerProfileViewLabel">Business license</span>
+              <span className="ownerProfileViewValue">
+                {businessLicenseUrl ? (
+                  <a href={businessLicenseUrl} target="_blank" rel="noreferrer">
+                    {businessLicenseName || "View file"}
+                  </a>
+                ) : "Not uploaded"}
+              </span>
+            </div>
+            <div className="ownerProfileViewRow">
+              <span className="ownerProfileViewLabel">Health certificate</span>
+              <span className="ownerProfileViewValue">
+                {healthCertificateUrl ? (
+                  <a href={healthCertificateUrl} target="_blank" rel="noreferrer">
+                    {healthCertificateName || "View file"}
+                  </a>
+                ) : "Not uploaded"}
+              </span>
+            </div>
+            <div className="ownerProfileViewRow">
               <span className="ownerProfileViewLabel">Appearance</span>
               <span className="ownerProfileViewValue">
                 <button type="button" className="appearanceToggle" onClick={toggleTheme}>
@@ -517,6 +586,54 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                 <label className="btn btn--gold imageCard__btn">
                   Upload photos
                   <input className="imageCard__input" type="file" accept="image/png, image/jpeg" multiple onChange={onPickGallery} />
+                </label>
+              </div>
+
+              <div className="imageCard imageCard--equal">
+                <div className="imageCard__title">Business license</div>
+                <div className="imageCard__preview imageCard__preview--equal">
+                  {businessLicenseName ? (
+                    <div className="documentCard">
+                      <div className="documentCard__name">{businessLicenseName}</div>
+                      {businessLicenseUrl && (
+                        <a className="documentCard__link" href={businessLicenseUrl} target="_blank" rel="noreferrer">
+                          Preview file
+                        </a>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="imageCard__placeholder">
+                      <div className="imageCard__formats">PDF, PNG, or JPG</div>
+                    </div>
+                  )}
+                </div>
+                <label className="btn btn--gold imageCard__btn">
+                  Upload license
+                  <input className="imageCard__input" type="file" accept="application/pdf,image/png,image/jpeg" onChange={onPickBusinessLicense} />
+                </label>
+              </div>
+
+              <div className="imageCard imageCard--equal">
+                <div className="imageCard__title">Health certificate</div>
+                <div className="imageCard__preview imageCard__preview--equal">
+                  {healthCertificateName ? (
+                    <div className="documentCard">
+                      <div className="documentCard__name">{healthCertificateName}</div>
+                      {healthCertificateUrl && (
+                        <a className="documentCard__link" href={healthCertificateUrl} target="_blank" rel="noreferrer">
+                          Preview file
+                        </a>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="imageCard__placeholder">
+                      <div className="imageCard__formats">PDF, PNG, or JPG</div>
+                    </div>
+                  )}
+                </div>
+                <label className="btn btn--gold imageCard__btn">
+                  Upload certificate
+                  <input className="imageCard__input" type="file" accept="application/pdf,image/png,image/jpeg" onChange={onPickHealthCertificate} />
                 </label>
               </div>
             </div>
