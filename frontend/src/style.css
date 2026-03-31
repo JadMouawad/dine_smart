@@ -4210,7 +4210,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 .phoneRow {
   display: grid;
-  grid-template-columns: 148px 1fr;
+  grid-template-columns: 170px 1fr;
   gap: 12px;
   align-items: center;
 }
