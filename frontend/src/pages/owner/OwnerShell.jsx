@@ -10,6 +10,13 @@ import OwnerReviews from "./OwnerReviews.jsx";
 import OwnerReservations from "./OwnerReservations.jsx";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import { getMyRestaurant } from "../../services/restaurantService.js";
+import { getOwnerReservations } from "../../services/reservationService.js";
+
+const OWNER_SEEN_RESERVATIONS_KEY = "ds-owner-seen-reservation-ids";
+
+function normalizeReservationId(reservation) {
+  return String(reservation?.id ?? "");
+}
 
 export default function OwnerShell() {
   const [active, setActive] = useState("profile");
@@ -19,6 +26,7 @@ export default function OwnerShell() {
   const [restaurantLogoUrl, setRestaurantLogoUrl] = useState("");
   const [approvalStatus, setApprovalStatus] = useState("");
   const [approvalNotice, setApprovalNotice] = useState("");
+  const [unseenReservationCount, setUnseenReservationCount] = useState(0);
 
   useEffect(() => {
     if (!loading && (!user || user.role !== "owner")) {
@@ -33,8 +41,7 @@ export default function OwnerShell() {
         setApprovalStatus(String(restaurant?.approval_status || ""));
       })
       .catch(() => {
-        // Preserve the last known status on transient failures so the owner shell
-        // does not jump into an empty/incorrect state after a save.
+        // keep last known status
       });
   };
 
@@ -50,7 +57,74 @@ export default function OwnerShell() {
     }
   }, [approvalStatus]);
 
-  // Wait for auth to restore before rendering (so token is in localStorage for API calls)
+  useEffect(() => {
+    if (!user?.id || !isApproved) {
+      setUnseenReservationCount(0);
+      return;
+    }
+
+    const storageKey = `${OWNER_SEEN_RESERVATIONS_KEY}:${user.id}`;
+    let cancelled = false;
+
+    async function syncReservationBadge(markAllAsSeen = false) {
+      try {
+        const data = await getOwnerReservations();
+        if (cancelled) return;
+
+        const reservations = Array.isArray(data) ? data : [];
+        const reservationIds = reservations
+          .map(normalizeReservationId)
+          .filter(Boolean);
+
+        if (markAllAsSeen) {
+          localStorage.setItem(storageKey, JSON.stringify(reservationIds));
+          setUnseenReservationCount(0);
+          return;
+        }
+
+        const savedRaw = localStorage.getItem(storageKey);
+
+        if (!savedRaw) {
+          localStorage.setItem(storageKey, JSON.stringify(reservationIds));
+          setUnseenReservationCount(0);
+          return;
+        }
+
+        let seenIds = [];
+        try {
+          seenIds = JSON.parse(savedRaw);
+        } catch {
+          seenIds = [];
+        }
+
+        const seenSet = new Set((Array.isArray(seenIds) ? seenIds : []).map(String));
+
+        const unseenCount = reservationIds.filter((id) => !seenSet.has(id)).length;
+        setUnseenReservationCount(unseenCount);
+      } catch {
+        // keep last known count
+      }
+    }
+
+    if (active === "reservations") {
+      syncReservationBadge(true);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    syncReservationBadge(false);
+
+    const intervalId = window.setInterval(() => {
+      syncReservationBadge(false);
+    }, 20000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [user?.id, isApproved, active]);
+
   if (loading) return null;
   if (!user || user.role !== "owner") return null;
 
@@ -81,7 +155,9 @@ export default function OwnerShell() {
       <div className="ownerArea ownerArea--pending">
         <main className="ownerArea__main ownerArea__main--pending">
           <div className="formCard formCard--userProfile ownerPendingCard">
-            <div className="formCard__title" style={{ color: "#e53e3e" }}>Restaurant Rejected</div>
+            <div className="formCard__title" style={{ color: "#e53e3e" }}>
+              Restaurant Rejected
+            </div>
             <p className="userProfileFormHint" style={{ marginTop: 6 }}>
               Your restaurant application has been rejected by the admin. Please contact support for more information.
             </p>
@@ -102,6 +178,7 @@ export default function OwnerShell() {
         avatarSrc={restaurantLogoUrl}
         onLogout={() => setConfirmLogoutOpen(true)}
         isApproved={isApproved}
+        unseenReservationCount={unseenReservationCount}
       />
 
       <main className="ownerArea__main">
@@ -125,14 +202,19 @@ export default function OwnerShell() {
 
         {active === "reservations" && <OwnerReservations />}
 
-        {active !== "profile" && active !== "menu" && active !== "table-config" && active !== "events" && active !== "reviews" && active !== "reservations" && (
-          <div className="placeholderPage">
-            <h1 className="placeholderPage__title">
-              {active.charAt(0).toUpperCase() + active.slice(1)}
-            </h1>
-            <p className="placeholderPage__text">This page will be built next.</p>
-          </div>
-        )}
+        {active !== "profile" &&
+          active !== "menu" &&
+          active !== "table-config" &&
+          active !== "events" &&
+          active !== "reviews" &&
+          active !== "reservations" && (
+            <div className="placeholderPage">
+              <h1 className="placeholderPage__title">
+                {active.charAt(0).toUpperCase() + active.slice(1)}
+              </h1>
+              <p className="placeholderPage__text">This page will be built next.</p>
+            </div>
+          )}
       </main>
 
       <ConfirmDialog
