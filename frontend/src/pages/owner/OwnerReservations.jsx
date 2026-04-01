@@ -63,31 +63,35 @@ function getRoundedTimeValue() {
   return `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
 }
 
-const OWNER_RESERVATION_SORT_KEY = "ds-owner-reservations-sort";
+const OWNER_RESERVATION_FILTERS_KEY = "ds-owner-reservation-filters";
+
+const OWNER_PARTY_SIZE_OPTIONS = [
+  { value: "all", label: "All" },
+  { value: "2", label: "2" },
+  { value: "3", label: "3" },
+  { value: "4", label: "4" },
+  { value: "5", label: "5" },
+  { value: "6", label: "6" },
+  { value: "7", label: "7" },
+  { value: "8", label: "8" },
+  { value: "9", label: "9" },
+  { value: "10", label: "10" },
+  { value: "11", label: "11" },
+  { value: "12", label: "12" },
+];
 
 function getReservationNameValue(reservation) {
   return String(reservation?.customer_name || "").trim().toLowerCase();
 }
 
-function getReservationPartySizeValue(reservation) {
-  const value = Number(reservation?.party_size);
-  return Number.isFinite(value) ? value : 0;
-}
-
 function sortReservationsList(list, sortBy, isPastList = false) {
   const items = [...list];
 
-  if (sortBy === "name") {
+  if (sortBy === "az") {
     items.sort((a, b) => getReservationNameValue(a).localeCompare(getReservationNameValue(b)));
     return items;
   }
 
-  if (sortBy === "party-size") {
-    items.sort((a, b) => getReservationPartySizeValue(b) - getReservationPartySizeValue(a));
-    return items;
-  }
-
-  // default: time
   items.sort((a, b) => {
     const aTime = toDateTimeValue(a)?.getTime() ?? 0;
     const bTime = toDateTimeValue(b)?.getTime() ?? 0;
@@ -95,6 +99,14 @@ function sortReservationsList(list, sortBy, isPastList = false) {
   });
 
   return items;
+}
+
+function filterReservationsByPartySize(list, partySizeFilter) {
+  if (partySizeFilter === "all") return list;
+
+  return list.filter((reservation) => {
+    return String(reservation?.party_size ?? "") === String(partySizeFilter);
+  });
 }
 
 export default function OwnerReservations() {
@@ -115,13 +127,46 @@ export default function OwnerReservations() {
   const [adjustmentError, setAdjustmentError] = useState("");
   const [baseCapacity, setBaseCapacity] = useState(null);
   const [slotAvailability, setSlotAvailability] = useState(null);
-  const [sortBy, setSortBy] = useState(() => {
-  return localStorage.getItem(OWNER_RESERVATION_SORT_KEY) || "time";
-});
 
-useEffect(() => {
-  localStorage.setItem(OWNER_RESERVATION_SORT_KEY, sortBy);
-}, [sortBy]);
+  const [reservationView, setReservationView] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(OWNER_RESERVATION_FILTERS_KEY) || "{}");
+      return saved.view || "upcoming";
+    } catch {
+      return "upcoming";
+    }
+  });
+
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const [reservationSortBy, setReservationSortBy] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(OWNER_RESERVATION_FILTERS_KEY) || "{}");
+      return saved.sortBy || "date-time";
+    } catch {
+      return "date-time";
+    }
+  });
+
+  const [partySizeFilter, setPartySizeFilter] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(OWNER_RESERVATION_FILTERS_KEY) || "{}");
+      return saved.partySize || "all";
+    } catch {
+      return "all";
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      OWNER_RESERVATION_FILTERS_KEY,
+      JSON.stringify({
+        view: reservationView,
+        sortBy: reservationSortBy,
+        partySize: partySizeFilter,
+      })
+    );
+  }, [reservationView, reservationSortBy, partySizeFilter]);
 
   async function loadReservations() {
     setError("");
@@ -251,32 +296,48 @@ useEffect(() => {
     };
   }, []);
 
-  const { upcomingReservations, pastReservations } = useMemo(() => {
-  const now = new Date(clockNow);
-  const upcoming = [];
-  const past = [];
+  const { upcomingReservations, pastReservations, visibleReservations } = useMemo(() => {
+    const now = new Date(clockNow);
+    const upcoming = [];
+    const past = [];
 
-  reservations.forEach((reservation) => {
-    const normalizedStatus = String(reservation.status || "").trim().toLowerCase();
-    const reservationDateTime = toDateTimeValue(reservation);
-    const isExpired = reservationDateTime ? reservationDateTime < now : true;
-    const isCancelled = normalizedStatus === "cancelled";
-    const isAccepted = normalizedStatus === "accepted" || normalizedStatus === "confirmed";
-    const isPending = normalizedStatus === "pending";
+    reservations.forEach((reservation) => {
+      const normalizedStatus = String(reservation.status || "").trim().toLowerCase();
+      const reservationDateTime = toDateTimeValue(reservation);
+      const isExpired = reservationDateTime ? reservationDateTime < now : true;
+      const isCancelled = normalizedStatus === "cancelled";
+      const isAccepted = normalizedStatus === "accepted" || normalizedStatus === "confirmed";
+      const isPending = normalizedStatus === "pending";
 
-    if (isCancelled || isExpired || (!isAccepted && !isPending)) {
-      past.push(reservation);
-      return;
+      if (isCancelled || isExpired || (!isAccepted && !isPending)) {
+        past.push(reservation);
+        return;
+      }
+
+      upcoming.push(reservation);
+    });
+
+    const sortedUpcoming = sortReservationsList(upcoming, reservationSortBy, false);
+    const sortedPast = sortReservationsList(past, reservationSortBy, true);
+
+    const filteredUpcoming = filterReservationsByPartySize(sortedUpcoming, partySizeFilter);
+    const filteredPast = filterReservationsByPartySize(sortedPast, partySizeFilter);
+
+    let visible = filteredUpcoming;
+
+    if (reservationView === "past") {
+      visible = filteredPast;
+    } else if (reservationView === "all") {
+      visible = [...filteredUpcoming, ...filteredPast];
+      visible = sortReservationsList(visible, reservationSortBy, false);
     }
 
-    upcoming.push(reservation);
-  });
-
-  return {
-    upcomingReservations: sortReservationsList(upcoming, sortBy, false),
-    pastReservations: sortReservationsList(past, sortBy, true),
-  };
-}, [reservations, clockNow, sortBy]);
+    return {
+      upcomingReservations: filteredUpcoming,
+      pastReservations: filteredPast,
+      visibleReservations: visible,
+    };
+  }, [reservations, clockNow, reservationSortBy, partySizeFilter, reservationView]);
 
   async function handleSaveAdjustment(event) {
     event.preventDefault();
@@ -288,7 +349,6 @@ useEffect(() => {
       return;
     }
 
-    // Prevent reducing below already-booked seats
     if (slotAvailability != null && parsedAdjustment < 0) {
       const total = slotAvailability.total_capacity ?? baseCapacity ?? 0;
       const booked = slotAvailability.booked_seats ?? 0;
@@ -413,6 +473,7 @@ useEffect(() => {
                 required
               />
             </label>
+
             <label className="field">
               <span>Time</span>
               <input
@@ -422,6 +483,7 @@ useEffect(() => {
                 required
               />
             </label>
+
             <label className="field">
               <span>Seating</span>
               <select
@@ -434,6 +496,7 @@ useEffect(() => {
                 <option value="outdoor">Outdoor</option>
               </select>
             </label>
+
             <label className="field">
               <span>Seat adjustment (+ to add, − to reduce)</span>
               <input
@@ -462,6 +525,7 @@ useEffect(() => {
 
                 const afterAvailable = Math.max(currentlyAvailable + delta, 0);
                 const isOver = afterAvailable === 0 && delta < 0 && Math.abs(delta) > currentlyAvailable;
+
                 return (
                   <span className={`slotAdjustHint ${delta < 0 ? "slotAdjustHint--reduce" : "slotAdjustHint--increase"}`}>
                     {total} total &nbsp;·&nbsp; {booked} booked &nbsp;·&nbsp;
@@ -487,6 +551,7 @@ useEffect(() => {
             >
               Reset to 0
             </button>
+
             <button className="btn btn--gold" type="submit" disabled={adjustmentLoading || adjustmentFetching}>
               {adjustmentLoading ? "Saving..." : "Save Adjustment"}
             </button>
@@ -494,163 +559,229 @@ useEffect(() => {
         </form>
       </section>
 
-<div className="ownerReservationSortBar">
-  <span className="ownerReservationSortBar__label">Sort by</span>
+      <div className="ownerReservationToolbar">
+        <div className="ownerReservationTabs">
+          <button
+            type="button"
+            className={`ownerReservationTabs__btn ${reservationView === "upcoming" ? "is-active" : ""}`}
+            onClick={() => setReservationView("upcoming")}
+          >
+            Upcoming
+          </button>
 
-  <button
-    type="button"
-    className={`ownerReservationSortChip ${sortBy === "time" ? "is-active" : ""}`}
-    onClick={() => setSortBy("time")}
-  >
-    Time
-  </button>
+          <button
+            type="button"
+            className={`ownerReservationTabs__btn ${reservationView === "past" ? "is-active" : ""}`}
+            onClick={() => setReservationView("past")}
+          >
+            Past
+          </button>
 
-  <button
-    type="button"
-    className={`ownerReservationSortChip ${sortBy === "name" ? "is-active" : ""}`}
-    onClick={() => setSortBy("name")}
-  >
-    Name
-  </button>
+          <button
+            type="button"
+            className={`ownerReservationTabs__btn ${reservationView === "all" ? "is-active" : ""}`}
+            onClick={() => setReservationView("all")}
+          >
+            All
+          </button>
+        </div>
 
-  <button
-    type="button"
-    className={`ownerReservationSortChip ${sortBy === "party-size" ? "is-active" : ""}`}
-    onClick={() => setSortBy("party-size")}
-  >
-    Party Size
-  </button>
-</div>
+        <button
+          type="button"
+          className={`searchFilterBtn ${filtersOpen ? "is-active" : ""}`}
+          onClick={() => setFiltersOpen(true)}
+        >
+          ⚙ Filters
+        </button>
+      </div>
 
-      <section className="reservationSection">
-        <h2 className="reservationSection__title">Upcoming Reservations</h2>
-        {upcomingReservations.length === 0 ? (
-          <EmptyState
-            title="No upcoming reservations"
-            message="New reservation requests will appear here for quick approval."
-          />
-        ) : (
-          <div className="reservationList">
-            {upcomingReservations.map((reservation) => {
-            const normalizedStatus = String(reservation.status || "").toLowerCase();
-            const canTakeAction = normalizedStatus === "pending";
-            const canMarkOutcome = normalizedStatus === "accepted" || normalizedStatus === "confirmed";
-            return (
-              <article className="reservationCard" key={reservation.id}>
-                <div className="reservationCard__top">
-                  <div className="reservationCard__name">{reservation.customer_name || "Guest"}</div>
-                  <span className={toStatusClass(reservation.status)}>{formatOwnerReservationStatus(reservation.status)}</span>
-                </div>
-                <div className="reservationCard__meta">
-                  Restaurant: {reservation.restaurant_name || "N/A"}
-                </div>
-                <div className="reservationCard__meta">
-                  {formatDateTime(reservation)}
-                </div>
-                <div className="reservationCard__meta">
-                  Seats: {reservation.party_size} | Confirmation: {reservation.confirmation_id}
-                </div>
-                <div className="reservationCard__meta">
-                  Customer email: {reservation.customer_email || "N/A"}
-                </div>
-                {canTakeAction && (
-                  <div className="reservationCard__actions ownerReservationActions">
+      {filtersOpen && (
+        <>
+          <div className="ownerReservationFiltersBackdrop" onClick={() => setFiltersOpen(false)} />
+
+          <div className="ownerReservationFiltersModal">
+            <div className="ownerReservationFiltersModal__head">
+              <div className="ownerReservationFiltersModal__title">Filters</div>
+              <button
+                type="button"
+                className="ownerReservationFiltersModal__close"
+                onClick={() => setFiltersOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="ownerReservationFiltersModal__body">
+              <div className="ownerReservationFiltersSection">
+                <div className="ownerReservationFiltersSection__title">Sort by</div>
+
+                <label className="ownerReservationRadioRow">
+                  <input
+                    type="radio"
+                    name="ownerReservationSort"
+                    checked={reservationSortBy === "date-time"}
+                    onChange={() => setReservationSortBy("date-time")}
+                  />
+                  <span>Date & Time</span>
+                </label>
+
+                <label className="ownerReservationRadioRow">
+                  <input
+                    type="radio"
+                    name="ownerReservationSort"
+                    checked={reservationSortBy === "az"}
+                    onChange={() => setReservationSortBy("az")}
+                  />
+                  <span>A–Z</span>
+                </label>
+              </div>
+
+              <div className="ownerReservationFiltersSection">
+                <div className="ownerReservationFiltersSection__title">Party Size</div>
+
+                <div className="ownerReservationPartySizeGrid">
+                  {OWNER_PARTY_SIZE_OPTIONS.map((option) => (
                     <button
-                      className="btn btn--gold"
+                      key={option.value}
                       type="button"
-                      disabled={updatingId === reservation.id}
-                      onClick={() => handleAction(reservation.id, "accept")}
+                      className={`quickFilterBtn ${partySizeFilter === option.value ? "is-active" : ""}`}
+                      onClick={() => setPartySizeFilter(option.value)}
                     >
-                      {updatingId === reservation.id ? "Updating..." : "Accept"}
+                      {option.label}
                     </button>
-                    <button
-                      className="btn btn--ghost"
-                      type="button"
-                      disabled={updatingId === reservation.id}
-                      onClick={() => setConfirmRejectReservation(reservation)}
-                    >
-                      Reject
-                    </button>
-                  </div>
-                )}
-                {canMarkOutcome && (
-                  <div className="reservationCard__actions ownerReservationActions">
-                    <button
-                      className="btn btn--gold"
-                      type="button"
-                      disabled={updatingId === reservation.id}
-                      onClick={() => handleAction(reservation.id, "complete")}
-                    >
-                      Mark Completed
-                    </button>
-                    <button
-                      className="btn btn--ghost"
-                      type="button"
-                      disabled={updatingId === reservation.id}
-                      onClick={() => handleAction(reservation.id, "no-show")}
-                    >
-                      Mark No-show
-                    </button>
-                  </div>
-                )}
-              </article>
-            );
-            })}
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="ownerReservationFiltersModal__footer">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => {
+                  setReservationSortBy("date-time");
+                  setPartySizeFilter("all");
+                }}
+              >
+                Reset
+              </button>
+
+              <button
+                type="button"
+                className="btn btn--gold"
+                onClick={() => setFiltersOpen(false)}
+              >
+                Apply Filters
+              </button>
+            </div>
           </div>
-        )}
-      </section>
+        </>
+      )}
 
       <section className="reservationSection">
-        <h2 className="reservationSection__title">Past Reservations</h2>
-        {pastReservations.length === 0 ? (
+        <h2 className="reservationSection__title">
+          {reservationView === "upcoming"
+            ? "Upcoming Reservations"
+            : reservationView === "past"
+              ? "Past Reservations"
+              : "All Reservations"}
+        </h2>
+
+        {visibleReservations.length === 0 ? (
           <EmptyState
-            title="No past reservations yet"
-            message="Completed, cancelled, or rejected reservations will show here."
+            title="No reservations found"
+            message="Try another filter combination or switch between Upcoming, Past, and All."
           />
         ) : (
           <div className="reservationList">
-            {pastReservations.map((reservation) => {
+            {visibleReservations.map((reservation) => {
               const normalizedStatus = String(reservation.status || "").toLowerCase();
-              const canMarkOutcome = normalizedStatus === "accepted" || normalizedStatus === "confirmed";
+              const isPastCard = reservationView === "past" || (
+                reservationView === "all" &&
+                (normalizedStatus === "cancelled" ||
+                  normalizedStatus === "rejected" ||
+                  normalizedStatus === "completed" ||
+                  normalizedStatus === "no-show" ||
+                  (toDateTimeValue(reservation)?.getTime() ?? 0) < clockNow)
+              );
+
+              const canTakeAction = normalizedStatus === "pending" && !isPastCard;
+              const canMarkOutcome = (normalizedStatus === "accepted" || normalizedStatus === "confirmed") && !isPastCard;
+
               return (
-              <article className="reservationCard" key={reservation.id}>
-                <div className="reservationCard__top">
-                  <div className="reservationCard__name">{reservation.customer_name || "Guest"}</div>
-                  <span className={toStatusClass(reservation.status)}>{formatOwnerReservationStatus(reservation.status)}</span>
-                </div>
-                <div className="reservationCard__meta">
-                  Restaurant: {reservation.restaurant_name || "N/A"}
-                </div>
-                <div className="reservationCard__meta">
-                  {formatDateTime(reservation)}
-                </div>
-                <div className="reservationCard__meta">
-                  Seats: {reservation.party_size} | Confirmation: {reservation.confirmation_id}
-                </div>
-                <div className="reservationCard__meta">
-                  Customer email: {reservation.customer_email || "N/A"}
-                </div>
-                {canMarkOutcome && (
-                  <div className="reservationCard__actions ownerReservationActions">
-                    <button
-                      className="btn btn--gold"
-                      type="button"
-                      disabled={updatingId === reservation.id}
-                      onClick={() => handleAction(reservation.id, "complete")}
-                    >
-                      Mark Completed
-                    </button>
-                    <button
-                      className="btn btn--ghost"
-                      type="button"
-                      disabled={updatingId === reservation.id}
-                      onClick={() => handleAction(reservation.id, "no-show")}
-                    >
-                      Mark No-show
-                    </button>
+                <article className="reservationCard" key={reservation.id}>
+                  <div className="reservationCard__top">
+                    <div>
+                      <div className="reservationCard__name">{reservation.customer_name || "Guest"}</div>
+
+                      <div className="reservationCard__meta">
+                        Restaurant: {reservation.restaurant_name || "N/A"}
+                      </div>
+
+                      <div className="reservationCard__meta">
+                        {formatDateTime(reservation)}
+                      </div>
+
+                      <div className="reservationCard__meta">
+                        Seats: {reservation.party_size} | Confirmation: {reservation.confirmation_id}
+                      </div>
+
+                      <div className="reservationCard__meta">
+                        Customer email: {reservation.customer_email || "N/A"}
+                      </div>
+                    </div>
+
+                    <div className="reservationCard__statusWrap">
+                      <span className={toStatusClass(reservation.status)}>
+                        {formatOwnerReservationStatus(reservation.status)}
+                      </span>
+                    </div>
                   </div>
-                )}
-              </article>
+
+                  {canTakeAction && (
+                    <div className="reservationCard__actions ownerReservationActions">
+                      <button
+                        className="btn btn--gold"
+                        type="button"
+                        disabled={updatingId === reservation.id}
+                        onClick={() => handleAction(reservation.id, "accept")}
+                      >
+                        {updatingId === reservation.id ? "Updating..." : "Accept"}
+                      </button>
+
+                      <button
+                        className="btn btn--ghost"
+                        type="button"
+                        disabled={updatingId === reservation.id}
+                        onClick={() => setConfirmRejectReservation(reservation)}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+
+                  {canMarkOutcome && (
+                    <div className="reservationCard__actions ownerReservationActions">
+                      <button
+                        className="btn btn--gold"
+                        type="button"
+                        disabled={updatingId === reservation.id}
+                        onClick={() => handleAction(reservation.id, "complete")}
+                      >
+                        Mark Completed
+                      </button>
+
+                      <button
+                        className="btn btn--ghost"
+                        type="button"
+                        disabled={updatingId === reservation.id}
+                        onClick={() => handleAction(reservation.id, "no-show")}
+                      >
+                        Mark No-show
+                      </button>
+                    </div>
+                  )}
+                </article>
               );
             })}
           </div>

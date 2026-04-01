@@ -9253,56 +9253,209 @@ html[data-theme="light"] .quickFilterBtn {
   background: rgba(255, 248, 235, 0.98);
 }
 
-.ownerReservationSortBar {
+.ownerReservationToolbar {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
   flex-wrap: wrap;
+  margin: 18px 0 18px;
+}
+
+.ownerReservationTabs {
+  display: inline-flex;
   align-items: center;
   gap: 10px;
-  margin: 18px 0 14px;
+  flex-wrap: wrap;
 }
 
-.ownerReservationSortBar__label {
-  font-size: 13px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.78);
-}
-
-.ownerReservationSortChip {
-  min-height: 36px;
-  padding: 0 14px;
+.ownerReservationTabs__btn {
+  min-height: 40px;
+  padding: 0 16px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(8, 13, 42, 0.55);
-  color: rgba(255, 255, 255, 0.92);
-  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition: border-color 0.16s ease, transform 0.16s ease, background 0.16s ease;
+  transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
 }
 
-.ownerReservationSortChip:hover {
+.ownerReservationTabs__btn:hover {
   transform: translateY(-1px);
   border-color: rgba(201, 162, 39, 0.6);
 }
 
-.ownerReservationSortChip.is-active {
+.ownerReservationTabs__btn.is-active {
   background: rgba(201, 162, 39, 0.18);
   border-color: rgba(201, 162, 39, 0.72);
   color: #fff;
 }
 
-[data-theme="light"] .ownerReservationSortBar__label {
-  color: rgba(26, 14, 6, 0.74);
+.ownerReservationFiltersBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 20, 0.45);
+  z-index: 9998;
 }
 
-[data-theme="light"] .ownerReservationSortChip {
-  background: rgba(255, 248, 235, 0.90);
+.ownerReservationFiltersModal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(78vh, 760px);
+  transform: translate(-50%, -50%);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(10, 14, 50, 0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.45);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ownerReservationFiltersModal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ownerReservationFiltersModal__title {
+  font-size: 26px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.ownerReservationFiltersModal__close {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.ownerReservationFiltersModal__body {
+  padding: 18px 20px;
+  overflow-y: auto;
+  display: grid;
+  gap: 16px;
+}
+
+.ownerReservationFiltersSection {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.ownerReservationFiltersSection__title {
+  font-size: 15px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.ownerReservationRadioRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ownerReservationPartySizeGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ownerReservationFiltersModal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.reservationCard__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.reservationCard__statusWrap {
+  flex-shrink: 0;
+}
+
+.reservationCard__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+[data-theme="light"] .ownerReservationTabs__btn {
+  background: rgba(255, 248, 235, 0.9);
   border-color: rgba(175, 115, 45, 0.22);
   color: rgba(26, 14, 6, 0.88);
 }
 
-[data-theme="light"] .ownerReservationSortChip.is-active {
-  background: rgba(201, 162, 39, 0.20);
-  border-color: rgba(201, 162, 39, 0.60);
+[data-theme="light"] .ownerReservationTabs__btn.is-active {
+  background: rgba(201, 162, 39, 0.2);
+  border-color: rgba(201, 162, 39, 0.62);
   color: #5a3d00;
+}
+
+[data-theme="light"] .ownerReservationFiltersBackdrop {
+  background: rgba(30, 20, 10, 0.3);
+}
+
+[data-theme="light"] .ownerReservationFiltersModal {
+  background: rgba(253, 248, 238, 0.98);
+  border-color: rgba(175, 115, 45, 0.2);
+  box-shadow: 0 22px 70px rgba(150, 90, 30, 0.22);
+}
+
+[data-theme="light"] .ownerReservationFiltersModal__head {
+  border-bottom-color: rgba(175, 115, 45, 0.16);
+}
+
+[data-theme="light"] .ownerReservationFiltersModal__title {
+  color: #1A0E06;
+}
+
+[data-theme="light"] .ownerReservationFiltersModal__close {
+  background: rgba(255, 248, 235, 0.9);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.82);
+}
+
+[data-theme="light"] .ownerReservationFiltersSection {
+  border-color: rgba(175, 115, 45, 0.16);
+  background: rgba(255, 248, 235, 0.78);
+}
+
+[data-theme="light"] .ownerReservationFiltersSection__title {
+  color: rgba(26, 14, 6, 0.9);
+}
+
+[data-theme="light"] .ownerReservationRadioRow {
+  color: rgba(26, 14, 6, 0.82);
+}
+
+[data-theme="light"] .ownerReservationFiltersModal__footer {
+  border-top-color: rgba(175, 115, 45, 0.16);
 }
