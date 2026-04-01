@@ -2209,6 +2209,9 @@ body.ds-nav-not-sticky .nav {
 /* NAV LINK HOVER (rounded + glow) */
 
 .nav__links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 8px 14px;
   border-radius: 999px;
   transition:
