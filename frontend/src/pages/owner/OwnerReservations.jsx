@@ -65,21 +65,6 @@ function getRoundedTimeValue() {
 
 const OWNER_RESERVATION_FILTERS_KEY = "ds-owner-reservation-filters";
 
-const OWNER_PARTY_SIZE_OPTIONS = [
-  { value: "all", label: "All" },
-  { value: "2", label: "2" },
-  { value: "3", label: "3" },
-  { value: "4", label: "4" },
-  { value: "5", label: "5" },
-  { value: "6", label: "6" },
-  { value: "7", label: "7" },
-  { value: "8", label: "8" },
-  { value: "9", label: "9" },
-  { value: "10", label: "10" },
-  { value: "11", label: "11" },
-  { value: "12", label: "12" },
-];
-
 function getReservationNameValue(reservation) {
   return String(reservation?.customer_name || "").trim().toLowerCase();
 }
@@ -107,6 +92,10 @@ function filterReservationsByPartySize(list, partySizeFilter) {
   return list.filter((reservation) => {
     return String(reservation?.party_size ?? "") === String(partySizeFilter);
   });
+}
+
+function formatPartySizeFilterLabel(value) {
+  return value === "all" ? "All" : `${value}`;
 }
 
 export default function OwnerReservations() {
@@ -296,7 +285,7 @@ export default function OwnerReservations() {
     };
   }, []);
 
-  const { upcomingReservations, pastReservations, visibleReservations } = useMemo(() => {
+  const { visibleReservations } = useMemo(() => {
     const now = new Date(clockNow);
     const upcoming = [];
     const past = [];
@@ -332,11 +321,7 @@ export default function OwnerReservations() {
       visible = sortReservationsList(visible, reservationSortBy, false);
     }
 
-    return {
-      upcomingReservations: filteredUpcoming,
-      pastReservations: filteredPast,
-      visibleReservations: visible,
-    };
+    return { visibleReservations: visible };
   }, [reservations, clockNow, reservationSortBy, partySizeFilter, reservationView]);
 
   async function handleSaveAdjustment(event) {
@@ -639,17 +624,43 @@ export default function OwnerReservations() {
               <div className="ownerReservationFiltersSection">
                 <div className="ownerReservationFiltersSection__title">Party Size</div>
 
-                <div className="ownerReservationPartySizeGrid">
-                  {OWNER_PARTY_SIZE_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={`quickFilterBtn ${partySizeFilter === option.value ? "is-active" : ""}`}
-                      onClick={() => setPartySizeFilter(option.value)}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
+                <div className="ownerReservationSliderRow">
+                  <input
+                    className="ownerReservationSlider"
+                    type="range"
+                    min="0"
+                    max="12"
+                    step="1"
+                    value={partySizeFilter === "all" ? 0 : Number(partySizeFilter)}
+                    onChange={(e) => {
+                      const nextValue = Number(e.target.value);
+
+                      if (nextValue <= 1) {
+                        setPartySizeFilter("all");
+                        return;
+                      }
+
+                      setPartySizeFilter(String(nextValue));
+                    }}
+                  />
+
+                  <div className="ownerReservationSliderValue">
+                    {formatPartySizeFilterLabel(partySizeFilter)}
+                  </div>
+                </div>
+
+                <div className="ownerReservationSliderMarks">
+                  <span>All</span>
+                  <span>2</span>
+                  <span>4</span>
+                  <span>6</span>
+                  <span>8</span>
+                  <span>10</span>
+                  <span>12</span>
+                </div>
+
+                <div className="ownerReservationSliderHint">
+                  Slide to filter by an exact party size. Move it to the far left for all party sizes.
                 </div>
               </div>
             </div>
