@@ -63,6 +63,40 @@ function getRoundedTimeValue() {
   return `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
 }
 
+const OWNER_RESERVATION_SORT_KEY = "ds-owner-reservations-sort";
+
+function getReservationNameValue(reservation) {
+  return String(reservation?.customer_name || "").trim().toLowerCase();
+}
+
+function getReservationPartySizeValue(reservation) {
+  const value = Number(reservation?.party_size);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function sortReservationsList(list, sortBy, isPastList = false) {
+  const items = [...list];
+
+  if (sortBy === "name") {
+    items.sort((a, b) => getReservationNameValue(a).localeCompare(getReservationNameValue(b)));
+    return items;
+  }
+
+  if (sortBy === "party-size") {
+    items.sort((a, b) => getReservationPartySizeValue(b) - getReservationPartySizeValue(a));
+    return items;
+  }
+
+  // default: time
+  items.sort((a, b) => {
+    const aTime = toDateTimeValue(a)?.getTime() ?? 0;
+    const bTime = toDateTimeValue(b)?.getTime() ?? 0;
+    return isPastList ? bTime - aTime : aTime - bTime;
+  });
+
+  return items;
+}
+
 export default function OwnerReservations() {
   const [restaurant, setRestaurant] = useState(null);
   const [reservations, setReservations] = useState([]);
@@ -81,6 +115,13 @@ export default function OwnerReservations() {
   const [adjustmentError, setAdjustmentError] = useState("");
   const [baseCapacity, setBaseCapacity] = useState(null);
   const [slotAvailability, setSlotAvailability] = useState(null);
+  const [sortBy, setSortBy] = useState(() => {
+  return localStorage.getItem(OWNER_RESERVATION_SORT_KEY) || "time";
+});
+
+useEffect(() => {
+  localStorage.setItem(OWNER_RESERVATION_SORT_KEY, sortBy);
+}, [sortBy]);
 
   async function loadReservations() {
     setError("");
@@ -211,31 +252,31 @@ export default function OwnerReservations() {
   }, []);
 
   const { upcomingReservations, pastReservations } = useMemo(() => {
-    const now = new Date(clockNow);
-    const upcoming = [];
-    const past = [];
+  const now = new Date(clockNow);
+  const upcoming = [];
+  const past = [];
 
-    reservations.forEach((reservation) => {
-      const normalizedStatus = String(reservation.status || "").trim().toLowerCase();
-      const reservationDateTime = toDateTimeValue(reservation);
-      const isExpired = reservationDateTime ? reservationDateTime < now : true;
-      const isCancelled = normalizedStatus === "cancelled";
-      const isAccepted = normalizedStatus === "accepted" || normalizedStatus === "confirmed";
-      const isPending = normalizedStatus === "pending";
+  reservations.forEach((reservation) => {
+    const normalizedStatus = String(reservation.status || "").trim().toLowerCase();
+    const reservationDateTime = toDateTimeValue(reservation);
+    const isExpired = reservationDateTime ? reservationDateTime < now : true;
+    const isCancelled = normalizedStatus === "cancelled";
+    const isAccepted = normalizedStatus === "accepted" || normalizedStatus === "confirmed";
+    const isPending = normalizedStatus === "pending";
 
-      if (isCancelled || isExpired || (!isAccepted && !isPending)) {
-        past.push(reservation);
-        return;
-      }
+    if (isCancelled || isExpired || (!isAccepted && !isPending)) {
+      past.push(reservation);
+      return;
+    }
 
-      upcoming.push(reservation);
-    });
+    upcoming.push(reservation);
+  });
 
-    upcoming.sort((a, b) => (toDateTimeValue(a)?.getTime() ?? Number.MAX_SAFE_INTEGER) - (toDateTimeValue(b)?.getTime() ?? Number.MAX_SAFE_INTEGER));
-    past.sort((a, b) => (toDateTimeValue(b)?.getTime() ?? 0) - (toDateTimeValue(a)?.getTime() ?? 0));
-
-    return { upcomingReservations: upcoming, pastReservations: past };
-  }, [reservations, clockNow]);
+  return {
+    upcomingReservations: sortReservationsList(upcoming, sortBy, false),
+    pastReservations: sortReservationsList(past, sortBy, true),
+  };
+}, [reservations, clockNow, sortBy]);
 
   async function handleSaveAdjustment(event) {
     event.preventDefault();
@@ -452,6 +493,34 @@ export default function OwnerReservations() {
           </div>
         </form>
       </section>
+
+<div className="ownerReservationSortBar">
+  <span className="ownerReservationSortBar__label">Sort by</span>
+
+  <button
+    type="button"
+    className={`ownerReservationSortChip ${sortBy === "time" ? "is-active" : ""}`}
+    onClick={() => setSortBy("time")}
+  >
+    Time
+  </button>
+
+  <button
+    type="button"
+    className={`ownerReservationSortChip ${sortBy === "name" ? "is-active" : ""}`}
+    onClick={() => setSortBy("name")}
+  >
+    Name
+  </button>
+
+  <button
+    type="button"
+    className={`ownerReservationSortChip ${sortBy === "party-size" ? "is-active" : ""}`}
+    onClick={() => setSortBy("party-size")}
+  >
+    Party Size
+  </button>
+</div>
 
       <section className="reservationSection">
         <h2 className="reservationSection__title">Upcoming Reservations</h2>

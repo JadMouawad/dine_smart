@@ -9252,3 +9252,57 @@ html[data-theme="light"] .quickFilterBtn {
 [data-theme="light"] .ownerProfileGrid__media .imageCard__removeBtn:hover {
   background: rgba(255, 248, 235, 0.98);
 }
+
+.ownerReservationSortBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 14px;
+}
+
+.ownerReservationSortBar__label {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.ownerReservationSortChip {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(8, 13, 42, 0.55);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.16s ease, transform 0.16s ease, background 0.16s ease;
+}
+
+.ownerReservationSortChip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.6);
+}
+
+.ownerReservationSortChip.is-active {
+  background: rgba(201, 162, 39, 0.18);
+  border-color: rgba(201, 162, 39, 0.72);
+  color: #fff;
+}
+
+[data-theme="light"] .ownerReservationSortBar__label {
+  color: rgba(26, 14, 6, 0.74);
+}
+
+[data-theme="light"] .ownerReservationSortChip {
+  background: rgba(255, 248, 235, 0.90);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+
+[data-theme="light"] .ownerReservationSortChip.is-active {
+  background: rgba(201, 162, 39, 0.20);
+  border-color: rgba(201, 162, 39, 0.60);
+  color: #5a3d00;
+}
