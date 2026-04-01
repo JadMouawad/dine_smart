@@ -9716,3 +9716,28 @@ html[data-theme="light"] .quickFilterBtn {
 [data-theme="light"] .ownerReservationSliderHint {
   color: rgba(80, 45, 15, 0.72);
 }
+
+.restaurantCard__reviewCount {
+  display: inline-block;
+  margin-left: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.72);
+  letter-spacing: 0;
+}
+
+.restaurantHeroInfoReviewCount {
+  display: inline-block;
+  margin-left: 2px;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+[data-theme="light"] .restaurantCard__reviewCount {
+  color: rgba(80, 45, 15, 0.72);
+}
+
+[data-theme="light"] .restaurantHeroInfoReviewCount {
+  color: rgba(80, 45, 15, 0.72);
+}

@@ -146,6 +146,12 @@ export default function RestaurantDetailPanel({
     return Number.isFinite(v) ? Math.max(0, Math.min(5, Math.round(v))) : 0;
   }, [currentRestaurant?.rating]);
   const ratingStars = `${FILLED_STAR.repeat(ratingValue)}${EMPTY_STAR.repeat(Math.max(0, 5 - ratingValue))}`;
+  const reviewCount = useMemo(() => {
+    const directCount = Number(currentRestaurant?.review_count);
+    if (Number.isFinite(directCount) && directCount >= 0) return directCount;
+    return Array.isArray(reviews) ? reviews.length : 0;
+  }, [currentRestaurant?.review_count, reviews]);
+  const ratingDisplay = currentRestaurant?.rating ?? "N/A";
   const crowdMeta = useMemo(() => getCrowdMeterMeta(currentRestaurant || {}), [currentRestaurant]);
 
   const restaurantHoursLabel = useMemo(() => {
@@ -329,7 +335,9 @@ export default function RestaurantDetailPanel({
             <FiStar className="restaurantHeroInfoIcon" />
             <div className="restaurantHeroInfoText">
               <span className="restaurantHeroInfoLabel">Rating</span>
-              <span className="restaurantHeroInfoValue">{currentRestaurant.rating ?? "N/A"}</span>
+              <span className="restaurantHeroInfoValue">
+                {ratingDisplay} <span className="restaurantHeroInfoReviewCount">({reviewCount})</span>
+              </span>
               <span className="restaurantHeroInfoSub">{ratingStars}</span>
             </div>
           </div>
@@ -522,6 +530,15 @@ export default function RestaurantDetailPanel({
         </div>
       ) : detailsTab === "reviews" ? (
         <div className="restaurantReviewsPage" ref={reviewsSectionRef}>
+          <div className="restaurantReviewsHeader">
+            <div className="restaurantReviewsHeader__name">{currentRestaurant.name}</div>
+            <div className="restaurantReviewsHeader__meta">
+              <span className="metaPill">
+                {FILLED_STAR} {ratingDisplay} ({reviewCount})
+              </span>
+            </div>
+          </div>
+
           <div className="reviewCard">
             <div className="reviewCard__title">Add a review</div>
             <div className="reviewComposer">

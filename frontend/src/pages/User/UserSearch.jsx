@@ -73,6 +73,11 @@ const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, onSe
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const activeImageUrl = imageUrls[activeImageIndex] || "";
   const crowd = useMemo(() => getCrowdMeterMeta(r), [r]);
+  const reviewCount = useMemo(() => {
+    const directCount = Number(r?.review_count);
+    return Number.isFinite(directCount) && directCount >= 0 ? directCount : 0;
+  }, [r]);
+  const ratingDisplay = r?.rating ?? "N/A";
 
   useEffect(() => {
     if (!imageUrls.length) {
@@ -151,7 +156,9 @@ const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, onSe
           <span className="crowdMeter__dot" />
           <span>Live Crowd: {crowd.label}{crowd.pct != null ? ` (${crowd.pct}%)` : ""}</span>
         </div>
-        <div className="restaurantCard__metaLine">{FILLED_STAR} {r.rating ?? "N/A"}</div>
+        <div className="restaurantCard__metaLine">
+          {FILLED_STAR} {ratingDisplay} <span className="restaurantCard__reviewCount">({reviewCount})</span>
+        </div>
         <div className="restaurantCard__metaLine">
           {r.distance_km != null ? `${r.distance_km} km away` : (r.address || "Location unavailable")}
         </div>
