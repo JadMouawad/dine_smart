@@ -10294,9 +10294,13 @@ body.dark .slotDraftRemoveBtn:hover,
 }
 
 .ownerCalendarViewToggle__btn.is-active {
-  background: rgba(201, 162, 39, 0.16);
-  border-color: rgba(201, 162, 39, 0.4);
+  background: linear-gradient(135deg, rgba(201, 162, 39, 0.22), rgba(201, 162, 39, 0.12));
+  border: 1px solid rgba(201, 162, 39, 0.55);
   color: #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(201, 162, 39, 0.18) inset,
+    0 8px 20px rgba(201, 162, 39, 0.18);
+  transform: translateY(-1px);
 }
 
 .ownerCalendarLayout {
@@ -10748,6 +10752,15 @@ body.dark .slotDraftRemoveBtn:hover,
 [data-theme="light"] .ownerCalendarViewToggle {
   background: rgba(175, 115, 45, 0.08);
   border-color: rgba(175, 115, 45, 0.18);
+}
+
+[data-theme="light"] .ownerCalendarViewToggle__btn.is-active {
+  background: linear-gradient(135deg, rgba(201, 162, 39, 0.24), rgba(201, 162, 39, 0.14));
+  border: 1px solid rgba(175, 115, 45, 0.42);
+  color: rgba(26, 14, 6, 0.95);
+  box-shadow:
+    0 0 0 1px rgba(201, 162, 39, 0.16) inset,
+    0 8px 18px rgba(175, 115, 45, 0.14);
 }
 
 [data-theme="light"] .ownerCalendarMonthLabel,
