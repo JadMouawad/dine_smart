@@ -96,18 +96,51 @@ function filterReservationsByPartySize(list, partySizeFilter) {
   });
 }
 
-
 function formatDisabledSlotLabel(slot) {
-  const timeLabel = String(slot?.reservation_time || "").slice(0, 5);
+  const rawTime = String(slot?.reservation_time || "").slice(0, 5);
+  const [hours = "00", minutes = "00"] = rawTime.split(":");
+  const asDate = new Date(`2000-01-01T${hours}:${minutes}:00`);
+  const timeLabel = !Number.isNaN(asDate.getTime())
+    ? asDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : rawTime;
+
   const seating = String(slot?.seating_preference || "any").trim().toLowerCase();
   const seatingLabel = seating === "any"
     ? "All seating"
     : seating.charAt(0).toUpperCase() + seating.slice(1);
+
   return `${timeLabel} • ${seatingLabel}`;
 }
 
 function formatPartySizeFilterLabel(value) {
   return value === "all" ? "All" : `${value}`;
+}
+
+function normalizeTimeValue(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  return raw.slice(0, 5);
+}
+
+function createDisabledSlotDraft() {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    date: getTodayDateValue(),
+    time: getRoundedTimeValue(),
+    seatingPreference: "any",
+    reason: "",
+    isDisabled: false,
+    loading: false,
+    error: "",
+  };
+}
+
+function sameDisabledSlot(a, b) {
+  return (
+    String(a?.reservation_date || "") === String(b?.reservation_date || "") &&
+    normalizeTimeValue(a?.reservation_time) === normalizeTimeValue(b?.reservation_time) &&
+    String(a?.seating_preference || "any").toLowerCase() === String(b?.seatingPreference || b?.seating_preference || "any").toLowerCase()
+  );
 }
 
 export default function OwnerReservations() {
@@ -119,6 +152,7 @@ export default function OwnerReservations() {
   const [updatingId, setUpdatingId] = useState(null);
   const [confirmRejectReservation, setConfirmRejectReservation] = useState(null);
   const [clockNow, setClockNow] = useState(() => Date.now());
+
   const [adjustmentDate, setAdjustmentDate] = useState(getTodayDateValue());
   const [adjustmentTime, setAdjustmentTime] = useState(getRoundedTimeValue());
   const [adjustmentPreference, setAdjustmentPreference] = useState("any");
@@ -128,10 +162,10 @@ export default function OwnerReservations() {
   const [adjustmentError, setAdjustmentError] = useState("");
   const [baseCapacity, setBaseCapacity] = useState(null);
   const [slotAvailability, setSlotAvailability] = useState(null);
-  const [slotDisabled, setSlotDisabled] = useState(false);
-  const [slotDisableReason, setSlotDisableReason] = useState("");
-  const [disabledSlots, setDisabledSlots] = useState([]);
-  const [disabledSlotsLoading, setDisabledSlotsLoading] = useState(false);
+
+  const [disabledSlotDrafts, setDisabledSlotDrafts] = useState([createDisabledSlotDraft()]);
+  const [disabledSlotsByDate, setDisabledSlotsByDate] = useState({});
+  const [disabledSlotsLoadingByDate, setDisabledSlotsLoadingByDate] = useState({});
 
   const [reservationView, setReservationView] = useState(() => {
     try {
@@ -257,47 +291,6 @@ export default function OwnerReservations() {
     };
   }, [restaurant?.id, adjustmentDate, adjustmentTime, adjustmentPreference]);
 
-
-  useEffect(() => {
-    if (!restaurant?.id || !adjustmentDate) return;
-    let cancelled = false;
-    setDisabledSlotsLoading(true);
-
-    getOwnerDisabledSlots({
-      restaurantId: restaurant.id,
-      date: adjustmentDate,
-    })
-      .then((data) => {
-        if (cancelled) return;
-        const nextSlots = Array.isArray(data) ? data : [];
-        setDisabledSlots(nextSlots);
-
-        const selectedSlot = nextSlots.find((slot) => {
-          const sameTime = String(slot?.reservation_time || "").slice(0, 5) === String(adjustmentTime || "").slice(0, 5);
-          const samePreference = String(slot?.seating_preference || "any").toLowerCase() === String(adjustmentPreference || "any").toLowerCase();
-          return sameTime && samePreference;
-        });
-
-        setSlotDisabled(Boolean(selectedSlot));
-        setSlotDisableReason(String(selectedSlot?.reason || ""));
-      })
-      .catch(() => {
-        if (cancelled) {
-          return;
-        }
-        setDisabledSlots([]);
-        setSlotDisabled(false);
-        setSlotDisableReason("");
-      })
-      .finally(() => {
-        if (!cancelled) setDisabledSlotsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [restaurant?.id, adjustmentDate, adjustmentTime, adjustmentPreference]);
-
   useEffect(() => {
     if (!restaurant?.id || !adjustmentDate || !adjustmentTime) return;
     let cancelled = false;
@@ -341,6 +334,80 @@ export default function OwnerReservations() {
       window.removeEventListener("ds:reservation-changed", onReservationChanged);
     };
   }, []);
+
+  useEffect(() => {
+    if (!restaurant?.id) return;
+
+    const uniqueDates = [...new Set(disabledSlotDrafts.map((draft) => draft.date).filter(Boolean))];
+    if (uniqueDates.length === 0) return;
+
+    uniqueDates.forEach((dateValue) => {
+      let cancelled = false;
+
+      setDisabledSlotsLoadingByDate((prev) => ({
+        ...prev,
+        [dateValue]: true,
+      }));
+
+      getOwnerDisabledSlots({
+        restaurantId: restaurant.id,
+        date: dateValue,
+      })
+        .then((data) => {
+          if (cancelled) return;
+          const nextSlots = Array.isArray(data) ? data : [];
+
+          setDisabledSlotsByDate((prev) => ({
+            ...prev,
+            [dateValue]: nextSlots,
+          }));
+
+          setDisabledSlotDrafts((prevDrafts) =>
+            prevDrafts.map((draft) => {
+              if (draft.date !== dateValue) return draft;
+
+              const matchedSlot = nextSlots.find((slot) => sameDisabledSlot(slot, draft));
+              return {
+                ...draft,
+                isDisabled: Boolean(matchedSlot),
+                reason: matchedSlot ? String(matchedSlot.reason || draft.reason || "") : draft.reason,
+                error: "",
+              };
+            })
+          );
+        })
+        .catch(() => {
+          if (cancelled) return;
+
+          setDisabledSlotsByDate((prev) => ({
+            ...prev,
+            [dateValue]: [],
+          }));
+
+          setDisabledSlotDrafts((prevDrafts) =>
+            prevDrafts.map((draft) => {
+              if (draft.date !== dateValue) return draft;
+              return {
+                ...draft,
+                isDisabled: false,
+              };
+            })
+          );
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setDisabledSlotsLoadingByDate((prev) => ({
+              ...prev,
+              [dateValue]: false,
+            }));
+          }
+        });
+
+      return () => {
+        cancelled = true;
+      };
+    });
+  }, [restaurant?.id, disabledSlotDrafts.map((draft) => draft.date).join("|")]);
 
   const { visibleReservations } = useMemo(() => {
     const now = new Date(clockNow);
@@ -406,6 +473,7 @@ export default function OwnerReservations() {
     setAdjustmentLoading(true);
     setAdjustmentError("");
     setSuccess("");
+
     try {
       const saved = await saveOwnerSlotAdjustment(restaurant.id, {
         date: adjustmentDate,
@@ -431,39 +499,99 @@ export default function OwnerReservations() {
     }
   }
 
+  function updateDraft(draftId, updater) {
+    setDisabledSlotDrafts((prev) =>
+      prev.map((draft) => (draft.id === draftId ? updater(draft) : draft))
+    );
+  }
 
-  async function handleToggleDisabledSlot(event) {
+  function addDisabledSlotDraft() {
+    setDisabledSlotDrafts((prev) => [...prev, createDisabledSlotDraft()]);
+  }
+
+  function removeDisabledSlotDraft(draftId) {
+    setDisabledSlotDrafts((prev) => {
+      if (prev.length === 1) {
+        return [
+          {
+            ...createDisabledSlotDraft(),
+            id: prev[0].id,
+          },
+        ];
+      }
+      return prev.filter((draft) => draft.id !== draftId);
+    });
+  }
+
+  async function refreshDisabledSlotsForDate(dateValue) {
+    if (!restaurant?.id || !dateValue) return [];
+
+    const refreshed = await getOwnerDisabledSlots({
+      restaurantId: restaurant.id,
+      date: dateValue,
+    });
+
+    const normalized = Array.isArray(refreshed) ? refreshed : [];
+
+    setDisabledSlotsByDate((prev) => ({
+      ...prev,
+      [dateValue]: normalized,
+    }));
+
+    setDisabledSlotDrafts((prevDrafts) =>
+      prevDrafts.map((draft) => {
+        if (draft.date !== dateValue) return draft;
+        const matchedSlot = normalized.find((slot) => sameDisabledSlot(slot, draft));
+        return {
+          ...draft,
+          isDisabled: Boolean(matchedSlot),
+          reason: matchedSlot ? String(matchedSlot.reason || draft.reason || "") : draft.reason,
+          error: "",
+        };
+      })
+    );
+
+    return normalized;
+  }
+
+  async function handleToggleDisabledSlot(event, draft) {
     event.preventDefault();
     if (!restaurant?.id) return;
 
-    setAdjustmentLoading(true);
-    setAdjustmentError("");
-    setSuccess("");
+    updateDraft(draft.id, (current) => ({
+      ...current,
+      loading: true,
+      error: "",
+    }));
 
     try {
       const saved = await saveOwnerDisabledSlot(restaurant.id, {
-        date: adjustmentDate,
-        time: adjustmentTime,
-        seating_preference: adjustmentPreference,
-        reason: slotDisableReason,
-        disabled: !slotDisabled,
+        date: draft.date,
+        time: draft.time,
+        seating_preference: draft.seatingPreference,
+        reason: draft.reason,
+        disabled: !draft.isDisabled,
       });
 
       const nextDisabled = Boolean(saved?.disabled);
-      setSlotDisabled(nextDisabled);
-      setSlotDisableReason(String(saved?.reason || slotDisableReason || ""));
 
-      const refreshed = await getOwnerDisabledSlots({
-        restaurantId: restaurant.id,
-        date: adjustmentDate,
-      });
-      setDisabledSlots(Array.isArray(refreshed) ? refreshed : []);
+      updateDraft(draft.id, (current) => ({
+        ...current,
+        loading: false,
+        isDisabled: nextDisabled,
+        reason: String(saved?.reason || current.reason || ""),
+        error: "",
+      }));
+
+      await refreshDisabledSlotsForDate(draft.date);
 
       toast.success(nextDisabled ? "Time slot disabled." : "Time slot re-enabled.");
     } catch (err) {
-      setAdjustmentError(err.message || "Couldn't update the disabled state for this slot.");
-    } finally {
-      setAdjustmentLoading(false);
+      updateDraft(draft.id, (current) => ({
+        ...current,
+        loading: false,
+        error: err.message || "Couldn't update the disabled state for this slot.",
+      }));
     }
   }
 
@@ -471,6 +599,7 @@ export default function OwnerReservations() {
     setUpdatingId(reservationId);
     setError("");
     setSuccess("");
+
     try {
       const existingReservation = reservations.find((reservation) => reservation.id === reservationId) || null;
       let updatedReservation = null;
@@ -485,6 +614,7 @@ export default function OwnerReservations() {
       }
 
       await loadReservations();
+
       const messageMap = {
         accept: "Reservation accepted.",
         reject: "Reservation rejected.",
@@ -492,6 +622,7 @@ export default function OwnerReservations() {
         complete: "Reservation marked as completed.",
       };
       setSuccess(messageMap[action] || "Reservation updated.");
+
       window.dispatchEvent(
         new CustomEvent("ds:reservation-changed", {
           detail: {
@@ -638,100 +769,183 @@ export default function OwnerReservations() {
       </section>
 
       <section className="formCard slotAdjustCard">
-        <div className="slotAdjustHeader">
-          <h2 className="reservationSection__title">Disable Specific Time Slots</h2>
-          <p className="slotAdjustHint">
-            Disabled slots are greyed out for users and cannot be booked until you re-enable them.
-          </p>
+        <div className="slotAdjustHeader slotAdjustHeader--row">
+          <div>
+            <h2 className="reservationSection__title">Disable Specific Time Slots</h2>
+            <p className="slotAdjustHint">
+              Disabled slots are greyed out for users and cannot be booked until you re-enable them.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="slotDraftAddBtn"
+            onClick={addDisabledSlotDraft}
+            aria-label="Add another slot"
+            title="Add another slot"
+          >
+            +
+          </button>
         </div>
 
-        <form className="slotAdjustForm" onSubmit={handleToggleDisabledSlot}>
-          <div className="slotAdjustGrid">
-            <label className="field">
-              <span>Date</span>
-              <input
-                type="date"
-                value={adjustmentDate}
-                onChange={(e) => setAdjustmentDate(e.target.value)}
-                required
-              />
-            </label>
+        <div className="slotDraftStack">
+          {disabledSlotDrafts.map((draft, index) => {
+            const allForDate = disabledSlotsByDate[draft.date] || [];
+            const otherDisabledSlots = allForDate.filter((slot) => !sameDisabledSlot(slot, draft));
+            const isDateLoading = Boolean(disabledSlotsLoadingByDate[draft.date]);
 
-            <label className="field">
-              <span>Time</span>
-              <input
-                type="time"
-                value={adjustmentTime}
-                onChange={(e) => setAdjustmentTime(e.target.value)}
-                required
-              />
-            </label>
-
-            <label className="field">
-              <span>Seating</span>
-              <select
-                className="select"
-                value={adjustmentPreference}
-                onChange={(e) => setAdjustmentPreference(e.target.value)}
+            return (
+              <form
+                key={draft.id}
+                className="slotDraftCard"
+                onSubmit={(event) => handleToggleDisabledSlot(event, draft)}
               >
-                <option value="any">Any seating</option>
-                <option value="indoor">Indoor</option>
-                <option value="outdoor">Outdoor</option>
-              </select>
-            </label>
-
-            <label className="field">
-              <span>Reason (optional)</span>
-              <input
-                type="text"
-                maxLength={250}
-                value={slotDisableReason}
-                onChange={(e) => setSlotDisableReason(e.target.value)}
-                placeholder="Closure, private event, kitchen pause..."
-              />
-            </label>
-          </div>
-
-          <div className="slotAdjustStatus">
-            Current state: <strong>{slotDisabled ? "Disabled" : "Enabled"}</strong>
-          </div>
-
-          {disabledSlotsLoading && (
-            <div className="slotAdjustStatus">Loading disabled slots...</div>
-          )}
-
-          {disabledSlots.length > 0 && (
-            <div className="disabledSlotsPanel">
-              <div className="disabledSlotsPanel__title">Disabled on {adjustmentDate}</div>
-              <div className="disabledSlotsList">
-                {disabledSlots.map((slot) => (
-                  <div className="disabledSlotChip" key={`${slot.id || "slot"}-${slot.reservation_time}-${slot.seating_preference}`}>
-                    <span>{formatDisabledSlotLabel(slot)}</span>
-                    {slot.reason ? <span className="disabledSlotChip__reason">{slot.reason}</span> : null}
+                <div className="slotDraftCard__top">
+                  <div className="slotDraftCard__titleWrap">
+                    <div className="slotDraftCard__title">Slot #{index + 1}</div>
+                    <div className="slotDraftCard__subtitle">
+                      Configure, disable, or re-enable this slot.
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
 
-          <div className="slotAdjustActions">
-            <button
-              className="btn btn--ghost"
-              type="button"
-              onClick={() => {
-                setSlotDisabled(false);
-                setSlotDisableReason("");
-              }}
-              disabled={adjustmentLoading}
-            >
-              Clear Reason
-            </button>
+                  <button
+                    type="button"
+                    className="slotDraftRemoveBtn"
+                    onClick={() => removeDisabledSlotDraft(draft.id)}
+                    disabled={draft.loading}
+                  >
+                    Remove
+                  </button>
+                </div>
 
-            <button className="btn btn--gold" type="submit" disabled={adjustmentLoading || disabledSlotsLoading}>
-              {adjustmentLoading ? "Saving..." : slotDisabled ? "Re-enable Slot" : "Disable Slot"}
-            </button>
-          </div>
-        </form>
+                <div className="slotAdjustGrid">
+                  <label className="field">
+                    <span>Date</span>
+                    <input
+                      type="date"
+                      value={draft.date}
+                      onChange={(e) =>
+                        updateDraft(draft.id, (current) => ({
+                          ...current,
+                          date: e.target.value,
+                          error: "",
+                        }))
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Time</span>
+                    <input
+                      type="time"
+                      value={draft.time}
+                      onChange={(e) =>
+                        updateDraft(draft.id, (current) => ({
+                          ...current,
+                          time: e.target.value,
+                          error: "",
+                        }))
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Seating</span>
+                    <select
+                      className="select"
+                      value={draft.seatingPreference}
+                      onChange={(e) =>
+                        updateDraft(draft.id, (current) => ({
+                          ...current,
+                          seatingPreference: e.target.value,
+                          error: "",
+                        }))
+                      }
+                    >
+                      <option value="any">Any seating</option>
+                      <option value="indoor">Indoor</option>
+                      <option value="outdoor">Outdoor</option>
+                    </select>
+                  </label>
+
+                  <label className="field">
+                    <span>Reason (optional)</span>
+                    <input
+                      type="text"
+                      maxLength={250}
+                      value={draft.reason}
+                      onChange={(e) =>
+                        updateDraft(draft.id, (current) => ({
+                          ...current,
+                          reason: e.target.value,
+                          error: "",
+                        }))
+                      }
+                      placeholder="Closure, private event, kitchen pause..."
+                    />
+                  </label>
+                </div>
+
+                <div className="slotAdjustStatus">
+                  Current state: <strong>{draft.isDisabled ? "Disabled" : "Enabled"}</strong>
+                </div>
+
+                {isDateLoading && (
+                  <div className="slotAdjustStatus">Loading disabled slots...</div>
+                )}
+
+                {draft.error && <div className="fieldError">{draft.error}</div>}
+
+                {otherDisabledSlots.length > 0 && (
+                  <div className="disabledSlotsPanel">
+                    <div className="disabledSlotsPanel__title">
+                      Other disabled slots on {draft.date}
+                    </div>
+
+                    <div className="disabledSlotsList">
+                      {otherDisabledSlots.map((slot) => (
+                        <div
+                          className="disabledSlotChip"
+                          key={`${slot.id || "slot"}-${slot.reservation_time}-${slot.seating_preference}`}
+                        >
+                          <span>{formatDisabledSlotLabel(slot)}</span>
+                          {slot.reason ? <span className="disabledSlotChip__reason">{slot.reason}</span> : null}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="slotAdjustActions">
+                  <button
+                    className="btn btn--ghost"
+                    type="button"
+                    onClick={() =>
+                      updateDraft(draft.id, (current) => ({
+                        ...current,
+                        reason: "",
+                        error: "",
+                      }))
+                    }
+                    disabled={draft.loading}
+                  >
+                    Clear Reason
+                  </button>
+
+                  <button
+                    className="btn btn--gold"
+                    type="submit"
+                    disabled={draft.loading || isDateLoading}
+                  >
+                    {draft.loading ? "Saving..." : draft.isDisabled ? "Re-enable Slot" : "Disable Slot"}
+                  </button>
+                </div>
+              </form>
+            );
+          })}
+        </div>
       </section>
 
       <div className="ownerReservationToolbar">
@@ -821,36 +1035,15 @@ export default function OwnerReservations() {
                     min="0"
                     max="12"
                     step="1"
-                    value={partySizeFilter === "all" ? 0 : Number(partySizeFilter)}
+                    value={partySizeFilter === "all" ? "0" : String(partySizeFilter)}
                     onChange={(e) => {
-                      const nextValue = Number(e.target.value);
-
-                      if (nextValue <= 1) {
-                        setPartySizeFilter("all");
-                        return;
-                      }
-
-                      setPartySizeFilter(String(nextValue));
+                      const value = e.target.value;
+                      setPartySizeFilter(value === "0" ? "all" : value);
                     }}
                   />
-
                   <div className="ownerReservationSliderValue">
                     {formatPartySizeFilterLabel(partySizeFilter)}
                   </div>
-                </div>
-
-                <div className="ownerReservationSliderMarks">
-                  <span>All</span>
-                  <span>2</span>
-                  <span>4</span>
-                  <span>6</span>
-                  <span>8</span>
-                  <span>10</span>
-                  <span>12</span>
-                </div>
-
-                <div className="ownerReservationSliderHint">
-                  Slide to filter by an exact party size. Move it to the far left for all party sizes.
                 </div>
               </div>
             </div>
@@ -872,140 +1065,123 @@ export default function OwnerReservations() {
                 className="btn btn--gold"
                 onClick={() => setFiltersOpen(false)}
               >
-                Apply Filters
+                Apply
               </button>
             </div>
           </div>
         </>
       )}
 
-      <section className="reservationSection">
-        <h2 className="reservationSection__title">
-          {reservationView === "upcoming"
-            ? "Upcoming Reservations"
-            : reservationView === "past"
-              ? "Past Reservations"
-              : "All Reservations"}
-        </h2>
+      {visibleReservations.length === 0 ? (
+        <EmptyState
+          title="No reservations found"
+          message="There are no reservations matching the current view and filters."
+        />
+      ) : (
+        <div className="reservationCards">
+          {visibleReservations.map((reservation) => {
+            const normalizedStatus = formatOwnerReservationStatus(reservation.status);
+            const isPending = normalizedStatus === "pending";
+            const isAccepted = normalizedStatus === "accepted";
+            const isFinished = ["cancelled", "no-show", "completed", "rejected"].includes(normalizedStatus);
 
-        {visibleReservations.length === 0 ? (
-          <EmptyState
-            title="No reservations found"
-            message="Try another filter combination or switch between Upcoming, Past, and All."
-          />
-        ) : (
-          <div className="reservationList">
-            {visibleReservations.map((reservation) => {
-              const normalizedStatus = String(reservation.status || "").toLowerCase();
-              const isPastCard = reservationView === "past" || (
-                reservationView === "all" &&
-                (normalizedStatus === "cancelled" ||
-                  normalizedStatus === "rejected" ||
-                  normalizedStatus === "completed" ||
-                  normalizedStatus === "no-show" ||
-                  (toDateTimeValue(reservation)?.getTime() ?? 0) < clockNow)
-              );
-
-              const canTakeAction = normalizedStatus === "pending" && !isPastCard;
-              const canMarkOutcome = (normalizedStatus === "accepted" || normalizedStatus === "confirmed") && !isPastCard;
-
-              return (
-                <article className="reservationCard" key={reservation.id}>
-                  <div className="reservationCard__top">
-                    <div>
-                      <div className="reservationCard__name">{reservation.customer_name || "Guest"}</div>
-
-                      <div className="reservationCard__meta">
-                        Restaurant: {reservation.restaurant_name || "N/A"}
-                      </div>
-
-                      <div className="reservationCard__meta">
-                        {formatDateTime(reservation)}
-                      </div>
-
-                      <div className="reservationCard__meta">
-                        Seats: {reservation.party_size} | Confirmation: {reservation.confirmation_id}
-                      </div>
-
-                      <div className="reservationCard__meta">
-                        Customer email: {reservation.customer_email || "N/A"}
-                      </div>
+            return (
+              <article key={reservation.id} className="reservationCard">
+                <div className="reservationCard__main">
+                  <div>
+                    <div className="reservationCard__name">
+                      {reservation.customer_name || "Guest"}
                     </div>
-
-                    <div className="reservationCard__statusWrap">
-                      <span className={toStatusClass(reservation.status)}>
-                        {formatOwnerReservationStatus(reservation.status)}
-                      </span>
+                    <div className="reservationCard__meta">
+                      {formatDateTime(reservation)} • Party of {reservation.party_size}
                     </div>
+                    {reservation.seating_preference ? (
+                      <div className="reservationCard__meta">
+                        Seating: {reservation.seating_preference}
+                      </div>
+                    ) : null}
+                    {reservation.special_request ? (
+                      <div className="reservationCard__meta">
+                        Request: {reservation.special_request}
+                      </div>
+                    ) : null}
                   </div>
 
-                  {canTakeAction && (
-                    <div className="reservationCard__actions ownerReservationActions">
-                      <button
-                        className="btn btn--gold"
-                        type="button"
-                        disabled={updatingId === reservation.id}
-                        onClick={() => handleAction(reservation.id, "accept")}
-                      >
-                        {updatingId === reservation.id ? "Updating..." : "Accept"}
-                      </button>
+                  <span className={toStatusClass(reservation.status)}>
+                    {reservation.status}
+                  </span>
+                </div>
 
-                      <button
-                        className="btn btn--ghost"
-                        type="button"
-                        disabled={updatingId === reservation.id}
-                        onClick={() => setConfirmRejectReservation(reservation)}
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  )}
+                {!isFinished && (
+                  <div className="reservationCard__actions">
+                    {isPending && (
+                      <>
+                        <button
+                          className="btn btn--gold"
+                          type="button"
+                          disabled={updatingId === reservation.id}
+                          onClick={() => handleAction(reservation.id, "accept")}
+                        >
+                          {updatingId === reservation.id ? "Working..." : "Accept"}
+                        </button>
 
-                  {canMarkOutcome && (
-                    <div className="reservationCard__actions ownerReservationActions">
-                      <button
-                        className="btn btn--gold"
-                        type="button"
-                        disabled={updatingId === reservation.id}
-                        onClick={() => handleAction(reservation.id, "complete")}
-                      >
-                        Mark Completed
-                      </button>
+                        <button
+                          className="btn btn--ghost"
+                          type="button"
+                          disabled={updatingId === reservation.id}
+                          onClick={() => setConfirmRejectReservation(reservation)}
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
 
-                      <button
-                        className="btn btn--ghost"
-                        type="button"
-                        disabled={updatingId === reservation.id}
-                        onClick={() => handleAction(reservation.id, "no-show")}
-                      >
-                        Mark No-show
-                      </button>
-                    </div>
-                  )}
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
+                    {isAccepted && (
+                      <>
+                        <button
+                          className="btn btn--ghost"
+                          type="button"
+                          disabled={updatingId === reservation.id}
+                          onClick={() => handleAction(reservation.id, "complete")}
+                        >
+                          Mark completed
+                        </button>
+
+                        <button
+                          className="btn btn--ghost"
+                          type="button"
+                          disabled={updatingId === reservation.id}
+                          onClick={() => handleAction(reservation.id, "no-show")}
+                        >
+                          No-show
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      )}
 
       <ConfirmDialog
-        open={!!confirmRejectReservation}
-        title="Reject this reservation?"
+        open={Boolean(confirmRejectReservation)}
+        title="Reject reservation?"
         message={
           confirmRejectReservation
-            ? `Are you sure you want to reject ${confirmRejectReservation.customer_name || "this guest"}'s reservation for ${formatDateTime(confirmRejectReservation)}?`
+            ? `Reject reservation for ${confirmRejectReservation.customer_name || "this guest"}?`
             : ""
         }
-        confirmLabel="Reject Reservation"
-        cancelLabel="Keep Reservation"
-        busy={updatingId === confirmRejectReservation?.id}
-        busyLabel="Updating..."
+        confirmText="Reject"
+        cancelText="Cancel"
+        destructive
         onConfirm={() => {
-          if (!confirmRejectReservation) return;
-          handleAction(confirmRejectReservation.id, "reject");
+          if (confirmRejectReservation?.id) {
+            handleAction(confirmRejectReservation.id, "reject");
+          }
         }}
-        onCancel={() => setConfirmRejectReservation(null)}
+        onClose={() => setConfirmRejectReservation(null)}
       />
     </div>
   );
