@@ -10227,6 +10227,7 @@ body.dark .slotDraftRemoveBtn:hover,
   align-items: center;
   gap: 12px;
   flex-wrap: nowrap;
+  margin-left: -100px;
 }
 
 .ownerCalendarToolbar > .ownerCalendarViewToggle {
