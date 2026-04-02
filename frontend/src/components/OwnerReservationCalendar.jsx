@@ -57,21 +57,6 @@ function endOfMonth(date) {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0);
 }
 
-function startOfWeek(date) {
-  const result = new Date(date);
-  const day = result.getDay();
-  result.setDate(result.getDate() - day);
-  result.setHours(0, 0, 0, 0);
-  return result;
-}
-
-function endOfWeek(date) {
-  const result = startOfWeek(date);
-  result.setDate(result.getDate() + 6);
-  result.setHours(23, 59, 59, 999);
-  return result;
-}
-
 function sameDay(a, b) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
@@ -102,17 +87,7 @@ function getCustomerName(reservation) {
   return String(reservation?.customer_name || "Guest").trim() || "Guest";
 }
 
-function getCalendarRange(anchorDate, viewMode) {
-  if (viewMode === "week") {
-    const start = startOfWeek(anchorDate);
-    const days = Array.from({ length: 7 }, (_, index) => {
-      const date = new Date(start);
-      date.setDate(start.getDate() + index);
-      return date;
-    });
-    return { days, start, end: endOfWeek(anchorDate) };
-  }
-
+function buildMonthCells(anchorDate) {
   const monthStart = startOfMonth(anchorDate);
   const monthEnd = endOfMonth(anchorDate);
   const firstDayOfWeek = monthStart.getDay();
@@ -127,7 +102,39 @@ function getCalendarRange(anchorDate, viewMode) {
     cells.push(null);
   }
 
-  return { days: cells, start: monthStart, end: monthEnd };
+  return cells;
+}
+
+function buildMonthWeeks(anchorDate) {
+  const monthStart = startOfMonth(anchorDate);
+  const monthEnd = endOfMonth(anchorDate);
+  const firstDayOfWeek = monthStart.getDay();
+  const totalDays = monthEnd.getDate();
+
+  const cells = Array.from({ length: firstDayOfWeek + totalDays }, (_, index) => {
+    if (index < firstDayOfWeek) return null;
+    return new Date(anchorDate.getFullYear(), anchorDate.getMonth(), index - firstDayOfWeek + 1);
+  });
+
+  while (cells.length % 7 !== 0) {
+    cells.push(null);
+  }
+
+  const weeks = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    weeks.push(cells.slice(i, i + 7));
+  }
+  return weeks;
+}
+
+function formatWeekOptionLabel(weekDays, fallbackIndex) {
+  const realDays = weekDays.filter(Boolean);
+  if (realDays.length === 0) return `Week ${fallbackIndex + 1}`;
+
+  const first = realDays[0];
+  const last = realDays[realDays.length - 1];
+
+  return `${first.getDate()} - ${last.getDate()}`;
 }
 
 export default function OwnerReservationCalendar({
@@ -146,6 +153,7 @@ export default function OwnerReservationCalendar({
   const [statusFilter, setStatusFilter] = useState("all");
   const [userQuery, setUserQuery] = useState("");
   const [yearInput, setYearInput] = useState(String(today.getFullYear()));
+  const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
 
   const normalizedUserQuery = userQuery.trim().toLowerCase();
 
@@ -173,7 +181,43 @@ export default function OwnerReservationCalendar({
     );
   }, [reservationsWithMeta]);
 
-  const range = useMemo(() => getCalendarRange(anchorDate, viewMode), [anchorDate, viewMode]);
+  const monthWeeks = useMemo(() => buildMonthWeeks(anchorDate), [anchorDate]);
+
+  useEffect(() => {
+    const safeIndex = Math.min(selectedWeekIndex, Math.max(monthWeeks.length - 1, 0));
+    if (safeIndex !== selectedWeekIndex) {
+      setSelectedWeekIndex(safeIndex);
+    }
+  }, [monthWeeks, selectedWeekIndex]);
+
+  useEffect(() => {
+    setYearInput(String(anchorDate.getFullYear()));
+  }, [anchorDate]);
+
+  useEffect(() => {
+    const selectedDate = new Date(selectedDateKey);
+    if (
+      !Number.isNaN(selectedDate.getTime()) &&
+      (selectedDate.getFullYear() !== anchorDate.getFullYear() ||
+        selectedDate.getMonth() !== anchorDate.getMonth())
+    ) {
+      setSelectedDateKey(toDateKey(new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1)));
+    }
+  }, [anchorDate, selectedDateKey]);
+
+  const range = useMemo(() => {
+    if (viewMode === "week") {
+      const weekDays = monthWeeks[selectedWeekIndex] || Array(7).fill(null);
+      const realDays = weekDays.filter(Boolean);
+      const start = realDays[0] || startOfMonth(anchorDate);
+      const end = realDays[realDays.length - 1] || endOfMonth(anchorDate);
+      return { days: weekDays, start, end };
+    }
+
+    const monthStart = startOfMonth(anchorDate);
+    const monthEnd = endOfMonth(anchorDate);
+    return { days: buildMonthCells(anchorDate), start: monthStart, end: monthEnd };
+  }, [anchorDate, monthWeeks, selectedWeekIndex, viewMode]);
 
   const userFilteredReservations = useMemo(() => {
     return reservationsWithMeta.filter((reservation) => {
@@ -185,6 +229,7 @@ export default function OwnerReservationCalendar({
   const visibleRangeReservations = useMemo(() => {
     const startTime = range.start.getTime();
     const endTime = range.end.getTime();
+
     return userFilteredReservations.filter((reservation) => {
       const time = reservation.__dateValue.getTime();
       return time >= startTime && time <= endTime;
@@ -216,28 +261,31 @@ export default function OwnerReservationCalendar({
   }, [filteredReservations]);
 
   useEffect(() => {
-    setYearInput(String(anchorDate.getFullYear()));
-  }, [anchorDate]);
-
-  useEffect(() => {
-    if (reservationsByDate.has(selectedDateKey)) return;
-
-    if (reservationsByDate.size === 0) {
-      setSelectedDateKey(toDateKey(today));
+    const selectedDate = new Date(selectedDateKey);
+    if (Number.isNaN(selectedDate.getTime())) {
+      setSelectedDateKey(toDateKey(new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1)));
       return;
     }
 
-    const [firstDateKey] = [...reservationsByDate.keys()].sort();
-    if (firstDateKey) setSelectedDateKey(firstDateKey);
-  }, [reservationsByDate, selectedDateKey, today]);
+    if (
+      selectedDate.getFullYear() !== anchorDate.getFullYear() ||
+      selectedDate.getMonth() !== anchorDate.getMonth()
+    ) {
+      setSelectedDateKey(toDateKey(new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1)));
+    }
+  }, [anchorDate, selectedDateKey]);
 
   const selectedDate = useMemo(() => {
     const [year, month, day] = String(selectedDateKey).split("-").map((value) => parseInt(value, 10));
     const parsed = new Date(year, (month || 1) - 1, day || 1);
-    if (Number.isNaN(parsed.getTime())) return today;
+    if (Number.isNaN(parsed.getTime())) {
+      const fallback = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1);
+      fallback.setHours(0, 0, 0, 0);
+      return fallback;
+    }
     parsed.setHours(0, 0, 0, 0);
     return parsed;
-  }, [selectedDateKey, today]);
+  }, [selectedDateKey, anchorDate]);
 
   const selectedReservations = useMemo(() => {
     return [...(reservationsByDate.get(selectedDateKey) || [])].sort(
@@ -245,27 +293,22 @@ export default function OwnerReservationCalendar({
     );
   }, [reservationsByDate, selectedDateKey]);
 
-  function goToday() {
-    setAnchorDate(today);
-    setSelectedDateKey(toDateKey(today));
-  }
-
   function goPrevious() {
     setAnchorDate((current) => {
       const next = new Date(current);
-      if (viewMode === "week") next.setDate(next.getDate() - 7);
-      else next.setMonth(next.getMonth() - 1);
-      return next;
+      next.setMonth(next.getMonth() - 1);
+      return new Date(next.getFullYear(), next.getMonth(), 1);
     });
+    setSelectedWeekIndex(0);
   }
 
   function goNext() {
     setAnchorDate((current) => {
       const next = new Date(current);
-      if (viewMode === "week") next.setDate(next.getDate() + 7);
-      else next.setMonth(next.getMonth() + 1);
-      return next;
+      next.setMonth(next.getMonth() + 1);
+      return new Date(next.getFullYear(), next.getMonth(), 1);
     });
+    setSelectedWeekIndex(0);
   }
 
   function handleMonthChange(event) {
@@ -273,6 +316,7 @@ export default function OwnerReservationCalendar({
     if (Number.isNaN(monthIndex)) return;
 
     setAnchorDate((current) => new Date(current.getFullYear(), monthIndex, 1));
+    setSelectedWeekIndex(0);
   }
 
   function handleYearChange(event) {
@@ -290,6 +334,7 @@ export default function OwnerReservationCalendar({
     const safeYear = Math.min(Math.max(parsedYear, 1900), 3000);
     setAnchorDate((current) => new Date(safeYear, current.getMonth(), 1));
     setYearInput(String(safeYear));
+    setSelectedWeekIndex(0);
   }
 
   function handleYearKeyDown(event) {
@@ -297,6 +342,12 @@ export default function OwnerReservationCalendar({
       event.preventDefault();
       handleYearBlur();
     }
+  }
+
+  function handleWeekChange(event) {
+    const nextIndex = parseInt(event.target.value, 10);
+    if (Number.isNaN(nextIndex)) return;
+    setSelectedWeekIndex(nextIndex);
   }
 
   return (
@@ -308,15 +359,11 @@ export default function OwnerReservationCalendar({
         </div>
 
         <div className="ownerCalendarToolbar">
-          <button type="button" className="ownerCalendarControlBtn" onClick={goToday}>
-            Today
-          </button>
-
           <div className="ownerCalendarNavGroup ownerCalendarNavGroup--left">
-            <button type="button" className="ownerCalendarIconBtn" onClick={goPrevious} aria-label="Previous period">
+            <button type="button" className="ownerCalendarIconBtn" onClick={goPrevious} aria-label="Previous month">
               <FiChevronLeft />
             </button>
-            <button type="button" className="ownerCalendarIconBtn" onClick={goNext} aria-label="Next period">
+            <button type="button" className="ownerCalendarIconBtn" onClick={goNext} aria-label="Next month">
               <FiChevronRight />
             </button>
           </div>
@@ -348,6 +395,21 @@ export default function OwnerReservationCalendar({
               aria-label="Enter year"
             />
           </div>
+
+          {viewMode === "week" && (
+            <select
+              className="ownerCalendarWeekSelect"
+              value={selectedWeekIndex}
+              onChange={handleWeekChange}
+              aria-label="Select week"
+            >
+              {monthWeeks.map((weekDays, index) => (
+                <option key={`week-${index}`} value={index}>
+                  Week {index + 1} ({formatWeekOptionLabel(weekDays, index)})
+                </option>
+              ))}
+            </select>
+          )}
 
           <div className="ownerCalendarViewToggle" role="tablist" aria-label="Calendar view mode">
             <button

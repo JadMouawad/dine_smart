@@ -10833,3 +10833,31 @@ body.dark .slotDraftRemoveBtn:hover,
     width: 100%;
   }
 }
+
+.ownerCalendarWeekSelect {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  border-radius: 14px;
+  min-height: 42px;
+  padding: 0 14px;
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.ownerCalendarWeekSelect:hover,
+.ownerCalendarWeekSelect:focus {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.45);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+  outline: none;
+}
+
+[data-theme="light"] .ownerCalendarWeekSelect {
+  background: rgba(255, 255, 255, 0.92);
+  color: rgba(26, 14, 6, 0.88);
+  border-color: rgba(175, 115, 45, 0.16);
+}
