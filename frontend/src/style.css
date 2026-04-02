@@ -246,10 +246,22 @@
 [data-theme="light"] .formCard--matchHeight .field input,
 [data-theme="light"] .formCard--matchHeight .select,
 [data-theme="light"] .formCard--userProfile .field input,
-[data-theme="light"] .formCard--userProfile .select {
-  background: rgba(255, 251, 243, 0.90);
-  border-color: rgba(175, 115, 45, 0.25);
-  color: #1A0E06;
+[data-theme="light"] .select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-color: rgba(255, 251, 243, 0.90) !important;
+  border-color: rgba(175, 115, 45, 0.25) !important;
+  color: #1A0E06 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 7.5L10 12l4.5-4.5' fill='none' stroke='%23502d0f' stroke-opacity='0.72' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: calc(100% - 14px) 50% !important;
+  background-size: 14px 14px !important;
+  padding-right: 40px !important;
+}
+
+[data-theme="light"] .select::-ms-expand {
+  display: none;
 }
 [data-theme="light"] .formCard--matchHeight .field input::placeholder,
 [data-theme="light"] .formCard--userProfile .field input::placeholder {
@@ -271,9 +283,7 @@
   background-color: rgba(255, 251, 243, 0.90);
   border-color: rgba(175, 115, 45, 0.25);
   color: #1A0E06;
-  background-image:
-    linear-gradient(45deg, transparent 50%, rgba(80, 45, 15, 0.70) 50%),
-    linear-gradient(135deg, rgba(80, 45, 15, 0.70) 50%, transparent 50%);
+  background-image: none;
 }
 [data-theme="light"] .select option {
   background: #fdf8f0;
@@ -3054,33 +3064,44 @@ body {
 }
 
 .select {
-  width: 100%;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.92);
-
-  padding: 12px 12px;
-  outline: none;
-
-  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  font-size: 14px;
-
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-
-  background-image:
-    linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.85) 50%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.85) 50%, transparent 50%);
-  background-position:
-    calc(100% - 18px) 50%,
-    calc(100% - 12px) 50%;
-  background-size:
-    6px 6px,
-    6px 6px;
+  width: 100%;
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background-color: rgba(255, 255, 255, 0.06);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 7.5L10 12l4.5-4.5' fill='none' stroke='rgba(255,255,255,0.72)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
+  background-position: calc(100% - 14px) 50%;
+  background-size: 14px 14px;
+  color: rgba(255, 255, 255, 0.92);
+  padding: 0 40px 0 14px;
+  font-size: 14px;
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  outline: none;
+  cursor: pointer;
+}
+
+.select::-ms-expand {
+  display: none;
+}
+
+.select::-ms-expand {
+  display: none;
+}
+
+.ownerCalendarField .select,
+.ownerCalendarField select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+}
+
+.ownerCalendarField .select::-ms-expand,
+.ownerCalendarField select::-ms-expand {
+  display: none;
 }
 
 .select:focus {
@@ -10940,4 +10961,86 @@ body.dark .slotDraftRemoveBtn:hover,
   background: rgba(255, 255, 255, 0.92);
   color: rgba(26, 14, 6, 0.88);
   border-color: rgba(175, 115, 45, 0.16);
+}
+/* ===== FINAL FIX: owner calendar dropdown options visible in dark mode ===== */
+.ownerCalendarMonthSelect,
+.ownerCalendarWeekSelect,
+.ownerCalendarField .select,
+.ownerCalendarField select {
+  appearance: auto;
+  -webkit-appearance: auto;
+  -moz-appearance: auto;
+  color-scheme: dark;
+}
+
+/* Closed select appearance */
+.ownerCalendarMonthSelect,
+.ownerCalendarWeekSelect,
+.ownerCalendarField .select,
+.ownerCalendarField select {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+
+/* Dropdown list options in dark mode */
+.ownerCalendarMonthSelect option,
+.ownerCalendarWeekSelect option,
+.ownerCalendarField .select option,
+.ownerCalendarField select option {
+  background-color: #1b2350 !important;
+  color: #f8fafc !important;
+}
+
+/* Selected / hovered option fallback */
+.ownerCalendarMonthSelect option:checked,
+.ownerCalendarWeekSelect option:checked,
+.ownerCalendarField .select option:checked,
+.ownerCalendarField select option:checked {
+  background: #2a3775 !important;
+  color: #ffffff !important;
+}
+
+/* Optgroup support */
+.ownerCalendarMonthSelect optgroup,
+.ownerCalendarWeekSelect optgroup,
+.ownerCalendarField .select optgroup,
+.ownerCalendarField select optgroup {
+  background-color: #1b2350 !important;
+  color: #f8fafc !important;
+}
+
+/* ===== LIGHT MODE OVERRIDES ===== */
+[data-theme="light"] .ownerCalendarMonthSelect,
+[data-theme="light"] .ownerCalendarWeekSelect,
+[data-theme="light"] .ownerCalendarField .select,
+[data-theme="light"] .ownerCalendarField select {
+  color-scheme: light;
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  color: rgba(26, 14, 6, 0.88) !important;
+  border: 1px solid rgba(175, 115, 45, 0.16) !important;
+}
+
+[data-theme="light"] .ownerCalendarMonthSelect option,
+[data-theme="light"] .ownerCalendarWeekSelect option,
+[data-theme="light"] .ownerCalendarField .select option,
+[data-theme="light"] .ownerCalendarField select option {
+  background-color: #ffffff !important;
+  color: rgba(26, 14, 6, 0.92) !important;
+}
+
+[data-theme="light"] .ownerCalendarMonthSelect option:checked,
+[data-theme="light"] .ownerCalendarWeekSelect option:checked,
+[data-theme="light"] .ownerCalendarField .select option:checked,
+[data-theme="light"] .ownerCalendarField select option:checked {
+  background: #f3e8d4 !important;
+  color: rgba(26, 14, 6, 0.95) !important;
+}
+
+[data-theme="light"] .ownerCalendarMonthSelect optgroup,
+[data-theme="light"] .ownerCalendarWeekSelect optgroup,
+[data-theme="light"] .ownerCalendarField .select optgroup,
+[data-theme="light"] .ownerCalendarField select optgroup {
+  background-color: #ffffff !important;
+  color: rgba(26, 14, 6, 0.92) !important;
 }
