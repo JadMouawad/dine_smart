@@ -148,9 +148,10 @@ function formatPartySizeFilterLabel(value) {
   return value === "all" ? "All" : `${value}`;
 }
 
-function createDisabledSlotDraft() {
+function createDisabledSlotDraft(slotNumber = 1) {
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    slotNumber,
     date: getTodayDateValue(),
     time: getRoundedTimeValue(),
     seatingPreference: "any",
@@ -190,7 +191,7 @@ export default function OwnerReservations() {
   const [baseCapacity, setBaseCapacity] = useState(null);
   const [slotAvailability, setSlotAvailability] = useState(null);
 
-  const [disabledSlotDrafts, setDisabledSlotDrafts] = useState([createDisabledSlotDraft()]);
+  const [disabledSlotDrafts, setDisabledSlotDrafts] = useState([createDisabledSlotDraft(1)]);
   const [disabledSlotsByDate, setDisabledSlotsByDate] = useState({});
   const [disabledSlotsLoadingByDate, setDisabledSlotsLoadingByDate] = useState({});
 
@@ -557,17 +558,24 @@ export default function OwnerReservations() {
   }
 
   function addDisabledSlotDraft() {
-    setDisabledSlotDrafts((prev) => [createDisabledSlotDraft(), ...prev]);
-  }
+  setDisabledSlotDrafts((prev) => {
+    const nextSlotNumber =
+      prev.length > 0
+        ? Math.max(...prev.map((draft) => Number(draft.slotNumber || 0))) + 1
+        : 1;
+
+    return [createDisabledSlotDraft(nextSlotNumber), ...prev];
+  });
+}
 
   function removeDisabledSlotDraft(draftId) {
     setDisabledSlotDrafts((prev) => {
       if (prev.length === 1) {
         return [
           {
-            ...createDisabledSlotDraft(),
-            id: prev[0].id,
-          },
+  ...createDisabledSlotDraft(prev[0].slotNumber || 1),
+  id: prev[0].id,
+},
         ];
       }
       return prev.filter((draft) => draft.id !== draftId);
@@ -841,7 +849,7 @@ export default function OwnerReservations() {
               >
                 <div className="slotDraftCard__top">
                   <div className="slotDraftCard__titleWrap">
-                    <div className="slotDraftCard__title">Slot {index + 1}</div>
+                    <div className="slotDraftCard__title">Slot {draft.slotNumber}</div>
                     <div className="slotDraftCard__subtitle">
                       Configure, disable, or re-enable this slot.
                     </div>
