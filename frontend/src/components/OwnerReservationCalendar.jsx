@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { FiCalendar, FiChevronLeft, FiChevronRight, FiUsers } from "react-icons/fi";
+import { FiChevronLeft, FiChevronRight, FiUsers } from "react-icons/fi";
 
 const STATUS_ORDER = ["pending", "accepted", "rejected", "cancelled", "completed", "no-show"];
 
@@ -11,6 +11,21 @@ const STATUS_LABELS = {
   completed: "Completed",
   "no-show": "No-Show",
 };
+
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 
 function normalizeStatus(status) {
   const normalized = String(status || "").trim().toLowerCase();
@@ -100,14 +115,19 @@ function getCalendarRange(anchorDate, viewMode) {
 
   const monthStart = startOfMonth(anchorDate);
   const monthEnd = endOfMonth(anchorDate);
-  const gridStart = startOfWeek(monthStart);
-  const days = Array.from({ length: 42 }, (_, index) => {
-    const date = new Date(gridStart);
-    date.setDate(gridStart.getDate() + index);
-    return date;
+  const firstDayOfWeek = monthStart.getDay();
+  const totalDays = monthEnd.getDate();
+
+  const cells = Array.from({ length: firstDayOfWeek + totalDays }, (_, index) => {
+    if (index < firstDayOfWeek) return null;
+    return new Date(anchorDate.getFullYear(), anchorDate.getMonth(), index - firstDayOfWeek + 1);
   });
 
-  return { days, start: gridStart, end: monthEnd };
+  while (cells.length % 7 !== 0) {
+    cells.push(null);
+  }
+
+  return { days: cells, start: monthStart, end: monthEnd };
 }
 
 export default function OwnerReservationCalendar({
@@ -125,6 +145,7 @@ export default function OwnerReservationCalendar({
   const [selectedDateKey, setSelectedDateKey] = useState(toDateKey(today));
   const [statusFilter, setStatusFilter] = useState("all");
   const [userQuery, setUserQuery] = useState("");
+  const [yearInput, setYearInput] = useState(String(today.getFullYear()));
 
   const normalizedUserQuery = userQuery.trim().toLowerCase();
 
@@ -195,6 +216,10 @@ export default function OwnerReservationCalendar({
   }, [filteredReservations]);
 
   useEffect(() => {
+    setYearInput(String(anchorDate.getFullYear()));
+  }, [anchorDate]);
+
+  useEffect(() => {
     if (reservationsByDate.has(selectedDateKey)) return;
 
     if (reservationsByDate.size === 0) {
@@ -243,6 +268,37 @@ export default function OwnerReservationCalendar({
     });
   }
 
+  function handleMonthChange(event) {
+    const monthIndex = parseInt(event.target.value, 10);
+    if (Number.isNaN(monthIndex)) return;
+
+    setAnchorDate((current) => new Date(current.getFullYear(), monthIndex, 1));
+  }
+
+  function handleYearChange(event) {
+    const nextValue = event.target.value.replace(/[^\d]/g, "");
+    setYearInput(nextValue);
+  }
+
+  function handleYearBlur() {
+    const parsedYear = parseInt(yearInput, 10);
+    if (Number.isNaN(parsedYear)) {
+      setYearInput(String(anchorDate.getFullYear()));
+      return;
+    }
+
+    const safeYear = Math.min(Math.max(parsedYear, 1900), 3000);
+    setAnchorDate((current) => new Date(safeYear, current.getMonth(), 1));
+    setYearInput(String(safeYear));
+  }
+
+  function handleYearKeyDown(event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handleYearBlur();
+    }
+  }
+
   return (
     <section className="ownerCalendarCard formCard">
       <div className="ownerCalendarTopbar">
@@ -256,7 +312,7 @@ export default function OwnerReservationCalendar({
             Today
           </button>
 
-          <div className="ownerCalendarNavGroup">
+          <div className="ownerCalendarNavGroup ownerCalendarNavGroup--left">
             <button type="button" className="ownerCalendarIconBtn" onClick={goPrevious} aria-label="Previous period">
               <FiChevronLeft />
             </button>
@@ -265,7 +321,33 @@ export default function OwnerReservationCalendar({
             </button>
           </div>
 
-          <div className="ownerCalendarMonthLabel">{formatMonthLabel(anchorDate)}</div>
+          <div className="ownerCalendarMonthDisplayWrap">
+            <div className="ownerCalendarMonthLabel">{formatMonthLabel(anchorDate)}</div>
+
+            <select
+              className="ownerCalendarMonthSelect"
+              value={anchorDate.getMonth()}
+              onChange={handleMonthChange}
+              aria-label="Select month"
+            >
+              {MONTH_NAMES.map((month, index) => (
+                <option key={month} value={index}>
+                  {month}
+                </option>
+              ))}
+            </select>
+
+            <input
+              className="ownerCalendarYearInput"
+              type="text"
+              inputMode="numeric"
+              value={yearInput}
+              onChange={handleYearChange}
+              onBlur={handleYearBlur}
+              onKeyDown={handleYearKeyDown}
+              aria-label="Enter year"
+            />
+          </div>
 
           <div className="ownerCalendarViewToggle" role="tablist" aria-label="Calendar view mode">
             <button
@@ -283,17 +365,12 @@ export default function OwnerReservationCalendar({
               Month
             </button>
           </div>
-
-          <button type="button" className="ownerCalendarIconBtn" aria-hidden="true" tabIndex={-1}>
-            <FiCalendar />
-          </button>
         </div>
       </div>
 
       <div className="ownerCalendarLayout">
         <aside className="ownerCalendarSidebar ownerCalendarSidebar--left">
           <div className="ownerCalendarSidebarCard">
-            <div className="ownerCalendarSidebarTitle">Legend</div>
             <div className="ownerCalendarLegendList">
               {STATUS_ORDER.map((status) => (
                 <div className="ownerCalendarLegendItem" key={status}>
@@ -353,18 +430,21 @@ export default function OwnerReservationCalendar({
               </div>
             ))}
 
-            {range.days.map((day) => {
+            {range.days.map((day, index) => {
+              if (!day) {
+                return <div key={`empty-${index}`} className="ownerCalendarDay ownerCalendarDay--empty" />;
+              }
+
               const dayKey = toDateKey(day);
               const dayReservations = reservationsByDate.get(dayKey) || [];
               const isSelected = selectedDateKey === dayKey;
               const isToday = sameDay(day, today);
-              const isOutsideMonth = viewMode === "month" && day.getMonth() !== anchorDate.getMonth();
 
               return (
                 <button
                   key={dayKey}
                   type="button"
-                  className={`ownerCalendarDay ${isSelected ? "is-selected" : ""} ${isToday ? "is-today" : ""} ${isOutsideMonth ? "is-outside" : ""}`}
+                  className={`ownerCalendarDay ${isSelected ? "is-selected" : ""} ${isToday ? "is-today" : ""}`}
                   onClick={() => setSelectedDateKey(dayKey)}
                 >
                   <div className="ownerCalendarDay__number">{day.getDate()}</div>
