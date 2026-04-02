@@ -366,57 +366,59 @@ export default function OwnerReservationCalendar({
         </div>
 
         <div className="ownerCalendarToolbar">
-          <div className="ownerCalendarNavGroup ownerCalendarNavGroup--left">
-            <button type="button" className="ownerCalendarIconBtn" onClick={goPrevious} aria-label="Previous month">
-              <FiChevronLeft />
-            </button>
-            <button type="button" className="ownerCalendarIconBtn" onClick={goNext} aria-label="Next month">
-              <FiChevronRight />
-            </button>
-          </div>
-
           <div className="ownerCalendarMonthDisplayWrap">
-            <div className="ownerCalendarMonthLabel">{formatMonthLabel(anchorDate)}</div>
+  <div className="ownerCalendarNavGroup--left">
+    <button type="button" className="ownerCalendarIconBtn" onClick={goPrevious} aria-label="Previous month">
+      <FiChevronLeft />
+    </button>
+    <button type="button" className="ownerCalendarIconBtn" onClick={goNext} aria-label="Next month">
+      <FiChevronRight />
+    </button>
+  </div>
 
-            <select
-              className="ownerCalendarMonthSelect"
-              value={anchorDate.getMonth()}
-              onChange={handleMonthChange}
-              aria-label="Select month"
-            >
-              {MONTH_NAMES.map((month, index) => (
-                <option key={month} value={index}>
-                  {month}
-                </option>
-              ))}
-            </select>
+  <div className="ownerCalendarMonthLabel">{formatMonthLabel(anchorDate)}</div>
+</div>
 
-            <input
-              className="ownerCalendarYearInput"
-              type="text"
-              inputMode="numeric"
-              value={yearInput}
-              onChange={handleYearChange}
-              onBlur={handleYearBlur}
-              onKeyDown={handleYearKeyDown}
-              aria-label="Enter year"
-            />
-          </div>
+<div className="ownerCalendarToolbar__center">
+  <select
+    className="ownerCalendarMonthSelect"
+    value={anchorDate.getMonth()}
+    onChange={handleMonthChange}
+    aria-label="Select month"
+  >
+    {MONTH_NAMES.map((month, index) => (
+      <option key={month} value={index}>
+        {month}
+      </option>
+    ))}
+  </select>
 
-          {viewMode === "week" && (
-            <select
-              className="ownerCalendarWeekSelect"
-              value={selectedWeekIndex}
-              onChange={handleWeekChange}
-              aria-label="Select week"
-            >
-              {monthWeeks.map((weekDays, index) => (
-                <option key={`week-${index}`} value={index}>
-                  Week {index + 1} ({formatWeekOptionLabel(weekDays, index)})
-                </option>
-              ))}
-            </select>
-          )}
+  <input
+    className="ownerCalendarYearInput"
+    type="text"
+    inputMode="numeric"
+    value={yearInput}
+    onChange={handleYearChange}
+    onBlur={handleYearBlur}
+    onKeyDown={handleYearKeyDown}
+    aria-label="Enter year"
+  />
+
+  {viewMode === "week" && (
+    <select
+      className="ownerCalendarWeekSelect"
+      value={selectedWeekIndex}
+      onChange={handleWeekChange}
+      aria-label="Select week"
+    >
+      {monthWeeks.map((weekDays, index) => (
+        <option key={`week-${index}`} value={index}>
+          Week {index + 1} ({formatWeekOptionLabel(weekDays, index)})
+        </option>
+      ))}
+    </select>
+  )}
+</div>
 
           <div className="ownerCalendarViewToggle" role="tablist" aria-label="Calendar view mode">
             <button

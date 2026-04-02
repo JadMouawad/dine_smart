@@ -10189,18 +10189,59 @@ body.dark .slotDraftRemoveBtn:hover,
 }
 
 .ownerCalendarToolbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px 14px;
+  width: 100%;
+}
+
+.ownerCalendarMonthDisplayWrap {
+  grid-column: 1 / 2;
+  grid-row: 1;
+  justify-self: start;
+  display: inline-flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+
+.ownerCalendarNavGroup--left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ownerCalendarMonthLabel {
+  font-size: 17px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+  white-space: nowrap;
+}
+
+.ownerCalendarToolbar__center {
+  grid-column: 2 / 3;
+  grid-row: 1;
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+.ownerCalendarToolbar > .ownerCalendarViewToggle {
+  grid-column: 3 / 4;
+  grid-row: 1;
+  justify-self: end;
+  align-self: center;
 }
 
 .ownerCalendarControlBtn,
 .ownerCalendarIconBtn,
 .ownerCalendarViewToggle__btn,
 .ownerCalendarMonthSelect,
-.ownerCalendarYearInput {
+.ownerCalendarYearInput,
+.ownerCalendarWeekSelect {
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.92);
@@ -10234,12 +10275,14 @@ body.dark .slotDraftRemoveBtn:hover,
 }
 
 .ownerCalendarIconBtn {
-  width: 42px;
-  min-width: 42px;
+  width: 34px;
+  min-width: 34px;
+  min-height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0;
+  border-radius: 12px;
 }
 
 .ownerCalendarNavGroup {
@@ -10255,8 +10298,8 @@ body.dark .slotDraftRemoveBtn:hover,
 .ownerCalendarMonthDisplayWrap {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .ownerCalendarMonthLabel {
@@ -10826,10 +10869,25 @@ body.dark .slotDraftRemoveBtn:hover,
 }
 
 @media (max-width: 820px) {
-  .ownerCalendarTopbar,
-  .ownerCalendarToolbar {
+  .ownerCalendarTopbar {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .ownerCalendarToolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ownerCalendarMonthDisplayWrap {
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .ownerCalendarMonthDisplayWrap .ownerCalendarMonthLabel {
+    margin-right: 0;
   }
 
   .ownerCalendarSidebar--left {
@@ -10846,14 +10904,11 @@ body.dark .slotDraftRemoveBtn:hover,
     min-width: 130px;
   }
 
-  .ownerCalendarMonthDisplayWrap {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   .ownerCalendarMonthLabel,
   .ownerCalendarMonthSelect,
-  .ownerCalendarYearInput {
+  .ownerCalendarYearInput,
+  .ownerCalendarWeekSelect,
+  .ownerCalendarViewToggle {
     width: 100%;
   }
 }
