@@ -87,6 +87,13 @@ function getCustomerName(reservation) {
   return String(reservation?.customer_name || "Guest").trim() || "Guest";
 }
 
+function getSeatingPreferenceLabel(value) {
+  const normalized = String(value || "any").trim().toLowerCase();
+  if (normalized === "indoor") return "Indoor";
+  if (normalized === "outdoor") return "Outdoor";
+  return "Any";
+}
+
 function buildMonthCells(anchorDate) {
   const monthStart = startOfMonth(anchorDate);
   const monthEnd = endOfMonth(anchorDate);
@@ -536,9 +543,7 @@ export default function OwnerReservationCalendar({
               <div>
                 <div className="ownerCalendarPanelDate">{formatPanelDate(selectedDate)}</div>
               </div>
-              <div className="ownerCalendarPanelCount">
-                {selectedReservations.length} reservation{selectedReservations.length === 1 ? "" : "s"}
-              </div>
+              <div className="ownerCalendarPanelCount">{selectedReservations.length}</div>
             </div>
 
             <div className="ownerCalendarPanelList">
@@ -560,11 +565,10 @@ export default function OwnerReservationCalendar({
                           <FiUsers />
                           <span>{reservation.party_size}</span>
                         </span>
-                        <span className={`statusBadge statusBadge--${reservation.__status}`}>
-                          {STATUS_LABELS[reservation.__status] || reservation.__status}
-                        </span>
                       </div>
-                      <div className="ownerCalendarReservationCard__party">Party of {reservation.party_size}</div>
+                      <div className="ownerCalendarReservationCard__party">
+                        {getSeatingPreferenceLabel(reservation.seating_preference)}
+                      </div>
                     </div>
                   </button>
                 ))

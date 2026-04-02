@@ -10301,7 +10301,7 @@ body.dark .slotDraftRemoveBtn:hover,
 
 .ownerCalendarLayout {
   display: grid;
-  grid-template-columns: 190px minmax(0, 1fr) 290px;
+  grid-template-columns: 190px minmax(0, 1fr) 250px;
   gap: 14px;
   align-items: start;
 }
@@ -10372,6 +10372,11 @@ body.dark .slotDraftRemoveBtn:hover,
   font-size: 13px;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.92);
+}
+
+.ownerCalendarPanelCount {
+  min-width: 44px;
+  padding: 4px 12px;
 }
 
 .ownerCalendarField input {
@@ -10570,7 +10575,7 @@ body.dark .slotDraftRemoveBtn:hover,
 .ownerCalendarReservationCard__meta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 10px;
   flex-wrap: wrap;
 }
@@ -10586,6 +10591,7 @@ body.dark .slotDraftRemoveBtn:hover,
 .ownerCalendarReservationCard__party {
   color: rgba(255, 255, 255, 0.76);
   font-size: 14px;
+  font-weight: 600;
 }
 
 .ownerCalendarLegendDot--pending,
@@ -10708,6 +10714,11 @@ body.dark .slotDraftRemoveBtn:hover,
 [data-theme="light"] .ownerCalendarReservationCard {
   color: rgba(26, 14, 6, 0.9);
   border-color: rgba(175, 115, 45, 0.14);
+}
+
+[data-theme="light"] .ownerCalendarReservationCard__party,
+[data-theme="light"] .ownerCalendarReservationCard__metaGroup {
+  color: rgba(82, 52, 24, 0.88);
 }
 
 [data-theme="light"] .ownerCalendarReservationCard--pending {
