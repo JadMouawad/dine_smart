@@ -9741,3 +9741,293 @@ html[data-theme="light"] .quickFilterBtn {
 [data-theme="light"] .restaurantHeroInfoReviewCount {
   color: rgba(80, 45, 15, 0.72);
 }
+
+/* ===== Sprint 5 – PBI 2: Disable Time Slots ===== */
+
+.slotAdjustCard {
+  display: grid;
+  gap: 1rem;
+}
+
+.slotAdjustHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.slotAdjustForm {
+  display: grid;
+  gap: 1rem;
+}
+
+.slotAdjustGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.9rem;
+}
+
+.slotAdjustActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.slotAdjustStatus {
+  border: 1px solid rgba(201, 162, 39, 0.2);
+  background: rgba(201, 162, 39, 0.08);
+  color: var(--text, #1f2937);
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+}
+
+.slotAdjustHint {
+  display: inline-block;
+  margin-top: 0.45rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--muted, #6b7280);
+}
+
+.slotAdjustHint--reduce {
+  color: #b45309;
+}
+
+.disabledSlotsPanel {
+  display: grid;
+  gap: 0.7rem;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(148, 163, 184, 0.08);
+  border-radius: 18px;
+  padding: 1rem;
+}
+
+.disabledSlotsPanel__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text, #111827);
+}
+
+.disabledSlotsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.disabledSlotChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  border-radius: 999px;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid rgba(107, 114, 128, 0.28);
+  background: rgba(107, 114, 128, 0.12);
+  color: var(--text, #1f2937);
+  font-size: 0.88rem;
+  line-height: 1.2;
+}
+
+.disabledSlotChip__reason {
+  opacity: 0.78;
+  font-size: 0.82rem;
+}
+
+/* User reservation form: grid of time slots */
+.reservationTimeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.55rem;
+}
+
+.timeSlotToggleBtn {
+  margin-top: 0.8rem;
+  border: 0;
+  background: transparent;
+  color: var(--gold, #c9a227);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.timeSlotToggleBtn:hover {
+  text-decoration: underline;
+}
+
+.reservationHint {
+  margin-top: 0.65rem;
+  font-size: 0.9rem;
+  color: var(--muted, #6b7280);
+}
+
+/* Time slot button styling */
+.timeSlotBtn {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 52px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: var(--surface, #ffffff);
+  color: var(--text, #111827);
+  padding: 0.8rem 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease,
+    opacity 0.18s ease;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+.timeSlotBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.45);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.09);
+}
+
+.timeSlotBtn:disabled {
+  cursor: not-allowed;
+}
+
+.timeSlotBtn__activeBg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(135deg, rgba(201, 162, 39, 0.18), rgba(201, 162, 39, 0.08));
+}
+
+.timeSlotBtn__label {
+  position: relative;
+  z-index: 1;
+}
+
+.timeSlotBtn.is-selected {
+  border-color: rgba(201, 162, 39, 0.9);
+  box-shadow: 0 12px 28px rgba(201, 162, 39, 0.18);
+}
+
+.timeSlotBtn.is-unavailable {
+  background: rgba(148, 163, 184, 0.16);
+  border-color: rgba(148, 163, 184, 0.3);
+  color: #6b7280;
+  opacity: 0.78;
+  box-shadow: none;
+}
+
+.timeSlotBtn.is-unavailable .timeSlotBtn__label {
+  text-decoration: line-through;
+}
+
+/* Availability boxes under form */
+.reservationAvailability {
+  margin-top: 0.5rem;
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+  font-size: 0.94rem;
+  line-height: 1.45;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--text, #111827);
+}
+
+.reservationAvailability--loading {
+  opacity: 0.85;
+}
+
+.reservationAvailability--suggested {
+  border-color: rgba(201, 162, 39, 0.25);
+  background: rgba(201, 162, 39, 0.08);
+}
+
+.reservationSuggestedTimes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.7rem;
+}
+
+/* Dark mode support */
+html.dark .slotAdjustStatus,
+body.dark .slotAdjustStatus,
+[data-theme="dark"] .slotAdjustStatus {
+  background: rgba(201, 162, 39, 0.12);
+  border-color: rgba(201, 162, 39, 0.24);
+  color: #f3f4f6;
+}
+
+html.dark .disabledSlotsPanel,
+body.dark .disabledSlotsPanel,
+[data-theme="dark"] .disabledSlotsPanel {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+html.dark .disabledSlotsPanel__title,
+body.dark .disabledSlotsPanel__title,
+[data-theme="dark"] .disabledSlotsPanel__title,
+html.dark .disabledSlotChip,
+body.dark .disabledSlotChip,
+[data-theme="dark"] .disabledSlotChip {
+  color: #f3f4f6;
+}
+
+html.dark .disabledSlotChip,
+body.dark .disabledSlotChip,
+[data-theme="dark"] .disabledSlotChip {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.24);
+}
+
+html.dark .slotAdjustHint,
+body.dark .slotAdjustHint,
+[data-theme="dark"] .slotAdjustHint,
+html.dark .reservationHint,
+body.dark .reservationHint,
+[data-theme="dark"] .reservationHint {
+  color: #cbd5e1;
+}
+
+html.dark .timeSlotBtn,
+body.dark .timeSlotBtn,
+[data-theme="dark"] .timeSlotBtn {
+  background: rgba(15, 23, 42, 0.9);
+  color: #f8fafc;
+  border-color: rgba(148, 163, 184, 0.18);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22);
+}
+
+html.dark .timeSlotBtn:hover:not(:disabled),
+body.dark .timeSlotBtn:hover:not(:disabled),
+[data-theme="dark"] .timeSlotBtn:hover:not(:disabled) {
+  border-color: rgba(201, 162, 39, 0.5);
+}
+
+html.dark .timeSlotBtn.is-unavailable,
+body.dark .timeSlotBtn.is-unavailable,
+[data-theme="dark"] .timeSlotBtn.is-unavailable {
+  background: rgba(71, 85, 105, 0.38);
+  border-color: rgba(100, 116, 139, 0.28);
+  color: #94a3b8;
+  opacity: 0.82;
+  box-shadow: none;
+}
+
+html.dark .reservationAvailability,
+body.dark .reservationAvailability,
+[data-theme="dark"] .reservationAvailability {
+  background: rgba(30, 41, 59, 0.92);
+  border-color: rgba(148, 163, 184, 0.16);
+  color: #f8fafc;
+}
+
+html.dark .reservationAvailability--suggested,
+body.dark .reservationAvailability--suggested,
+[data-theme="dark"] .reservationAvailability--suggested {
+  background: rgba(201, 162, 39, 0.12);
+  border-color: rgba(201, 162, 39, 0.22);
+}

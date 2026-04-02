@@ -8,6 +8,8 @@ import {
   getOwnerSlotAdjustment,
   saveOwnerSlotAdjustment,
   getReservationAvailability,
+  getOwnerDisabledSlots,
+  saveOwnerDisabledSlot,
 } from "../../services/reservationService";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
@@ -94,6 +96,16 @@ function filterReservationsByPartySize(list, partySizeFilter) {
   });
 }
 
+
+function formatDisabledSlotLabel(slot) {
+  const timeLabel = String(slot?.reservation_time || "").slice(0, 5);
+  const seating = String(slot?.seating_preference || "any").trim().toLowerCase();
+  const seatingLabel = seating === "any"
+    ? "All seating"
+    : seating.charAt(0).toUpperCase() + seating.slice(1);
+  return `${timeLabel} • ${seatingLabel}`;
+}
+
 function formatPartySizeFilterLabel(value) {
   return value === "all" ? "All" : `${value}`;
 }
@@ -116,6 +128,10 @@ export default function OwnerReservations() {
   const [adjustmentError, setAdjustmentError] = useState("");
   const [baseCapacity, setBaseCapacity] = useState(null);
   const [slotAvailability, setSlotAvailability] = useState(null);
+  const [slotDisabled, setSlotDisabled] = useState(false);
+  const [slotDisableReason, setSlotDisableReason] = useState("");
+  const [disabledSlots, setDisabledSlots] = useState([]);
+  const [disabledSlotsLoading, setDisabledSlotsLoading] = useState(false);
 
   const [reservationView, setReservationView] = useState(() => {
     try {
@@ -234,6 +250,47 @@ export default function OwnerReservations() {
       })
       .finally(() => {
         if (!cancelled) setAdjustmentFetching(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurant?.id, adjustmentDate, adjustmentTime, adjustmentPreference]);
+
+
+  useEffect(() => {
+    if (!restaurant?.id || !adjustmentDate) return;
+    let cancelled = false;
+    setDisabledSlotsLoading(true);
+
+    getOwnerDisabledSlots({
+      restaurantId: restaurant.id,
+      date: adjustmentDate,
+    })
+      .then((data) => {
+        if (cancelled) return;
+        const nextSlots = Array.isArray(data) ? data : [];
+        setDisabledSlots(nextSlots);
+
+        const selectedSlot = nextSlots.find((slot) => {
+          const sameTime = String(slot?.reservation_time || "").slice(0, 5) === String(adjustmentTime || "").slice(0, 5);
+          const samePreference = String(slot?.seating_preference || "any").toLowerCase() === String(adjustmentPreference || "any").toLowerCase();
+          return sameTime && samePreference;
+        });
+
+        setSlotDisabled(Boolean(selectedSlot));
+        setSlotDisableReason(String(selectedSlot?.reason || ""));
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+        setDisabledSlots([]);
+        setSlotDisabled(false);
+        setSlotDisableReason("");
+      })
+      .finally(() => {
+        if (!cancelled) setDisabledSlotsLoading(false);
       });
 
     return () => {
@@ -369,6 +426,42 @@ export default function OwnerReservations() {
           ? "Couldn't save seat adjustment."
           : (err.message || "Couldn't save seat adjustment.")
       );
+    } finally {
+      setAdjustmentLoading(false);
+    }
+  }
+
+
+  async function handleToggleDisabledSlot(event) {
+    event.preventDefault();
+    if (!restaurant?.id) return;
+
+    setAdjustmentLoading(true);
+    setAdjustmentError("");
+    setSuccess("");
+
+    try {
+      const saved = await saveOwnerDisabledSlot(restaurant.id, {
+        date: adjustmentDate,
+        time: adjustmentTime,
+        seating_preference: adjustmentPreference,
+        reason: slotDisableReason,
+        disabled: !slotDisabled,
+      });
+
+      const nextDisabled = Boolean(saved?.disabled);
+      setSlotDisabled(nextDisabled);
+      setSlotDisableReason(String(saved?.reason || slotDisableReason || ""));
+
+      const refreshed = await getOwnerDisabledSlots({
+        restaurantId: restaurant.id,
+        date: adjustmentDate,
+      });
+      setDisabledSlots(Array.isArray(refreshed) ? refreshed : []);
+
+      toast.success(nextDisabled ? "Time slot disabled." : "Time slot re-enabled.");
+    } catch (err) {
+      setAdjustmentError(err.message || "Couldn't update the disabled state for this slot.");
     } finally {
       setAdjustmentLoading(false);
     }
@@ -539,6 +632,103 @@ export default function OwnerReservations() {
 
             <button className="btn btn--gold" type="submit" disabled={adjustmentLoading || adjustmentFetching}>
               {adjustmentLoading ? "Saving..." : "Save Adjustment"}
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section className="formCard slotAdjustCard">
+        <div className="slotAdjustHeader">
+          <h2 className="reservationSection__title">Disable Specific Time Slots</h2>
+          <p className="slotAdjustHint">
+            Disabled slots are greyed out for users and cannot be booked until you re-enable them.
+          </p>
+        </div>
+
+        <form className="slotAdjustForm" onSubmit={handleToggleDisabledSlot}>
+          <div className="slotAdjustGrid">
+            <label className="field">
+              <span>Date</span>
+              <input
+                type="date"
+                value={adjustmentDate}
+                onChange={(e) => setAdjustmentDate(e.target.value)}
+                required
+              />
+            </label>
+
+            <label className="field">
+              <span>Time</span>
+              <input
+                type="time"
+                value={adjustmentTime}
+                onChange={(e) => setAdjustmentTime(e.target.value)}
+                required
+              />
+            </label>
+
+            <label className="field">
+              <span>Seating</span>
+              <select
+                className="select"
+                value={adjustmentPreference}
+                onChange={(e) => setAdjustmentPreference(e.target.value)}
+              >
+                <option value="any">Any seating</option>
+                <option value="indoor">Indoor</option>
+                <option value="outdoor">Outdoor</option>
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Reason (optional)</span>
+              <input
+                type="text"
+                maxLength={250}
+                value={slotDisableReason}
+                onChange={(e) => setSlotDisableReason(e.target.value)}
+                placeholder="Closure, private event, kitchen pause..."
+              />
+            </label>
+          </div>
+
+          <div className="slotAdjustStatus">
+            Current state: <strong>{slotDisabled ? "Disabled" : "Enabled"}</strong>
+          </div>
+
+          {disabledSlotsLoading && (
+            <div className="slotAdjustStatus">Loading disabled slots...</div>
+          )}
+
+          {disabledSlots.length > 0 && (
+            <div className="disabledSlotsPanel">
+              <div className="disabledSlotsPanel__title">Disabled on {adjustmentDate}</div>
+              <div className="disabledSlotsList">
+                {disabledSlots.map((slot) => (
+                  <div className="disabledSlotChip" key={`${slot.id || "slot"}-${slot.reservation_time}-${slot.seating_preference}`}>
+                    <span>{formatDisabledSlotLabel(slot)}</span>
+                    {slot.reason ? <span className="disabledSlotChip__reason">{slot.reason}</span> : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="slotAdjustActions">
+            <button
+              className="btn btn--ghost"
+              type="button"
+              onClick={() => {
+                setSlotDisabled(false);
+                setSlotDisableReason("");
+              }}
+              disabled={adjustmentLoading}
+            >
+              Clear Reason
+            </button>
+
+            <button className="btn btn--gold" type="submit" disabled={adjustmentLoading || disabledSlotsLoading}>
+              {adjustmentLoading ? "Saving..." : slotDisabled ? "Re-enable Slot" : "Disable Slot"}
             </button>
           </div>
         </form>

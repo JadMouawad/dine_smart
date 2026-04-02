@@ -171,6 +171,56 @@ const getSuggestedTimes = async ({
   return suggestions;
 };
 
+
+const getDisabledSlotState = async ({
+  restaurantId,
+  reservationDate,
+  reservationTime,
+  seatingPreference = null,
+}) => {
+  const normalizedSeating = seatingPreference ? String(seatingPreference).trim().toLowerCase() : null;
+
+  const exactResult = await ReservationModel.getDisabledSlot(
+    db,
+    restaurantId,
+    reservationDate,
+    reservationTime,
+    normalizedSeating || "any"
+  );
+  const exactMatch = exactResult.rows[0] || null;
+  if (exactMatch) {
+    return {
+      isDisabled: true,
+      appliesTo: exactMatch.seating_preference || "any",
+      disabledSlot: exactMatch,
+    };
+  }
+
+  if (normalizedSeating) {
+    const anyResult = await ReservationModel.getDisabledSlot(
+      db,
+      restaurantId,
+      reservationDate,
+      reservationTime,
+      "any"
+    );
+    const anyMatch = anyResult.rows[0] || null;
+    if (anyMatch) {
+      return {
+        isDisabled: true,
+        appliesTo: "any",
+        disabledSlot: anyMatch,
+      };
+    }
+  }
+
+  return {
+    isDisabled: false,
+    appliesTo: null,
+    disabledSlot: null,
+  };
+};
+
 const getSlotAvailability = async ({ restaurantId, reservationDate, reservationTime, seatingPreference = null }) => {
   const restaurantResult = await ReservationModel.getRestaurantById(db, restaurantId);
   const restaurant = restaurantResult.rows[0];
@@ -256,9 +306,19 @@ const getSlotAvailability = async ({ restaurantId, reservationDate, reservationT
     availableSeatsPreference = Math.max(preferenceCapacity - bookedSeatsPreference, 0);
   }
 
+  const disabledState = await getDisabledSlotState({
+    restaurantId,
+    reservationDate,
+    reservationTime,
+    seatingPreference: normalizedSeating,
+  });
+
   return {
     success: true,
     restaurant,
+    isDisabled: disabledState.isDisabled,
+    disabledAppliesTo: disabledState.appliesTo,
+    disabledSlot: disabledState.disabledSlot,
     anyAdjustment,
     totalAdjustment,
     totalCapacity,
@@ -331,6 +391,26 @@ const createReservation = async ({
 
   if (!availability.success) {
     return availability;
+  }
+
+  if (availability.isDisabled) {
+    const suggestedTimes = await getSuggestedTimes({
+      restaurantId: parsedRestaurantId,
+      reservationDate: normalizedDate,
+      reservationTime: normalizedTime,
+      partySize: parsedPartySize,
+      restaurant: availability.restaurant,
+      totalCapacity: availability.totalCapacity,
+    });
+
+    return {
+      success: false,
+      status: 409,
+      error: "This time slot has been disabled by the restaurant",
+      availableSeats: 0,
+      suggestedTimes,
+      disabled: true,
+    };
   }
 
   if (!isWithinOperatingHours(normalizedTime, availability.restaurant.opening_time, availability.restaurant.closing_time)) {
@@ -718,6 +798,11 @@ const getAvailability = async ({ restaurantId, reservationDate, reservationTime,
     return availability;
   }
 
+  const disabledState = {
+    isDisabled: availability.isDisabled === true,
+    appliesTo: availability.disabledAppliesTo || null,
+  };
+
   const withinOperatingHours = isWithinOperatingHours(
   normalizedTime,
   availability.restaurant.opening_time,
@@ -731,6 +816,7 @@ const availableSeatsForRequest =
 
 const lowCapacityThreshold = Math.max(2, Math.floor(availability.totalCapacity * 0.2));
 const shouldSuggest =
+  disabledState.isDisabled ||
   !withinOperatingHours ||
   availableSeatsForRequest <= lowCapacityThreshold ||
   availableSeatsForRequest < parsedPartySize;
@@ -761,15 +847,169 @@ return {
     preference_capacity: availability.preferenceCapacity,
     booked_seats_preference: availability.bookedSeatsPreference,
     available_seats_preference: availability.availableSeatsPreference,
-    available_seats: availableSeatsForRequest,
-    is_fully_booked: availableSeatsForRequest <= 0,
+    available_seats: disabledState.isDisabled ? 0 : availableSeatsForRequest,
+    is_disabled: disabledState.isDisabled,
+    disabled_applies_to: disabledState.appliesTo,
+    is_fully_booked: disabledState.isDisabled ? true : availableSeatsForRequest <= 0,
     is_outside_operating_hours: !withinOperatingHours,
     can_accommodate_party:
-      withinOperatingHours && availableSeatsForRequest >= parsedPartySize,
+      !disabledState.isDisabled && withinOperatingHours && availableSeatsForRequest >= parsedPartySize,
     suggested_times: suggestedTimes,
   },
 };
 };
+
+
+const getDisabledSlotsForRestaurant = async ({
+  restaurantId,
+  reservationDate,
+}) => {
+  const parsedRestaurantId = parseInt(restaurantId, 10);
+  const normalizedDate = String(reservationDate || "").trim();
+
+  if (Number.isNaN(parsedRestaurantId)) {
+    return { success: false, status: 400, error: "Invalid restaurant ID" };
+  }
+  if (!normalizedDate || !parseDateOnly(normalizedDate)) {
+    return { success: false, status: 400, error: "Invalid reservation date" };
+  }
+
+  const restaurantResult = await ReservationModel.getRestaurantById(db, parsedRestaurantId);
+  const restaurant = restaurantResult.rows[0];
+  if (!restaurant) {
+    return { success: false, status: 404, error: "Restaurant not found" };
+  }
+
+  const disabledSlotsResult = await ReservationModel.getDisabledSlotsForDate(
+    db,
+    parsedRestaurantId,
+    normalizedDate
+  );
+
+  return {
+    success: true,
+    status: 200,
+    disabledSlots: disabledSlotsResult.rows || [],
+  };
+};
+
+const getDisabledSlotsForOwner = async ({
+  restaurantId,
+  ownerId,
+  reservationDate,
+}) => {
+  const parsedRestaurantId = parseInt(restaurantId, 10);
+  const parsedOwnerId = parseInt(ownerId, 10);
+  const normalizedDate = String(reservationDate || "").trim();
+
+  if (Number.isNaN(parsedRestaurantId)) {
+    return { success: false, status: 400, error: "Invalid restaurant ID" };
+  }
+  if (Number.isNaN(parsedOwnerId)) {
+    return { success: false, status: 400, error: "Invalid owner ID" };
+  }
+  if (!normalizedDate || !parseDateOnly(normalizedDate)) {
+    return { success: false, status: 400, error: "Invalid reservation date" };
+  }
+
+  const restaurantResult = await ReservationModel.getRestaurantById(db, parsedRestaurantId);
+  const restaurant = restaurantResult.rows[0];
+  if (!restaurant || parseInt(restaurant.owner_id, 10) !== parsedOwnerId) {
+    return { success: false, status: 404, error: "Restaurant not found" };
+  }
+
+  const disabledSlotsResult = await ReservationModel.getDisabledSlotsForDate(
+    db,
+    parsedRestaurantId,
+    normalizedDate
+  );
+
+  return {
+    success: true,
+    status: 200,
+    disabledSlots: disabledSlotsResult.rows || [],
+  };
+};
+
+const upsertDisabledSlotForOwner = async ({
+  restaurantId,
+  ownerId,
+  reservationDate,
+  reservationTime,
+  seatingPreference,
+  reason,
+  disabled,
+}) => {
+  const parsedRestaurantId = parseInt(restaurantId, 10);
+  const parsedOwnerId = parseInt(ownerId, 10);
+  const normalizedDate = String(reservationDate || "").trim();
+  const normalizedTime = normalizeTime(reservationTime);
+  const normalizedSeating = String(seatingPreference || "any").trim().toLowerCase() || "any";
+  const shouldDisable = Boolean(disabled);
+  const cleanedReason = reason == null ? null : String(reason).trim().slice(0, 250);
+
+  if (Number.isNaN(parsedRestaurantId)) {
+    return { success: false, status: 400, error: "Invalid restaurant ID" };
+  }
+  if (Number.isNaN(parsedOwnerId)) {
+    return { success: false, status: 400, error: "Invalid owner ID" };
+  }
+  if (!normalizedDate || !parseDateOnly(normalizedDate)) {
+    return { success: false, status: 400, error: "Invalid reservation date" };
+  }
+  if (!normalizedTime) {
+    return { success: false, status: 400, error: "Invalid reservation time" };
+  }
+  if (!["any", ...ALLOWED_SEATING_PREFERENCES].includes(normalizedSeating)) {
+    return { success: false, status: 400, error: "Invalid seating preference" };
+  }
+
+  const restaurantResult = await ReservationModel.getRestaurantById(db, parsedRestaurantId);
+  const restaurant = restaurantResult.rows[0];
+  if (!restaurant || parseInt(restaurant.owner_id, 10) !== parsedOwnerId) {
+    return { success: false, status: 404, error: "Restaurant not found" };
+  }
+
+  if (shouldDisable) {
+    const savedResult = await ReservationModel.upsertDisabledSlot(db, {
+      restaurantId: parsedRestaurantId,
+      reservationDate: normalizedDate,
+      reservationTime: normalizedTime,
+      seatingPreference: normalizedSeating,
+      reason: cleanedReason,
+    });
+    return {
+      success: true,
+      status: 200,
+      disabledSlot: {
+        disabled: true,
+        ...(savedResult.rows[0] || {}),
+      },
+    };
+  }
+
+  const deletedResult = await ReservationModel.deleteDisabledSlot(
+    db,
+    parsedRestaurantId,
+    normalizedDate,
+    normalizedTime,
+    normalizedSeating
+  );
+
+  return {
+    success: true,
+    status: 200,
+    disabledSlot: {
+      disabled: false,
+      restaurant_id: parsedRestaurantId,
+      reservation_date: normalizedDate,
+      reservation_time: normalizedTime,
+      seating_preference: normalizedSeating,
+      ...(deletedResult.rows[0] || {}),
+    },
+  };
+};
+
 
 const NO_SHOW_BAN_THRESHOLD = 3;
 const NO_SHOW_BAN_DAYS = 30;
@@ -837,6 +1077,9 @@ module.exports = {
   updateReservationStatusForOwner,
   getSlotAdjustmentForOwner,
   upsertSlotAdjustmentForOwner,
+  getDisabledSlotsForRestaurant,
+  getDisabledSlotsForOwner,
+  upsertDisabledSlotForOwner,
   getAvailability,
   markNoShow,
 };

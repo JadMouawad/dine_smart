@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import DatePicker from "react-datepicker";
-import { createReservation, getReservationAvailability } from "../services/reservationService";
+import { createReservation, getDisabledReservationSlots, getReservationAvailability } from "../services/reservationService";
 import { useAuth } from "../auth/AuthContext";
 
 const PARTY_SIZE_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -92,6 +92,11 @@ function isTimeSlotInPast(selectedDate, timeValue, nowMs, nextDay = false) {
   return slotDateTime.getTime() <= nowMs;
 }
 
+
+function buildDisabledSlotKey(dateValue, timeValue, seatingPreference = "any") {
+  return `${String(dateValue || "").trim()}|${String(timeValue || "").slice(0, 5)}|${String(seatingPreference || "any").trim().toLowerCase() || "any"}`;
+}
+
 function addOneDay(dateValue) {
   if (!dateValue) return dateValue;
   const d = new Date(`${dateValue}T00:00:00`);
@@ -116,6 +121,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [suggestedTimes, setSuggestedTimes] = useState([]);
   const [showAllTimes, setShowAllTimes] = useState(false);
+  const [disabledSlotKeys, setDisabledSlotKeys] = useState(() => new Set());
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   const today = useMemo(() => getDayStart(new Date()), []);
@@ -166,6 +172,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
     setAvailabilityError("");
     setSuggestedTimes([]);
     setShowAllTimes(false);
+    setDisabledSlotKeys(new Set());
   }, [isOpen]);
 
   useEffect(() => {
@@ -182,6 +189,45 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
     if (!isTimeSlotInPast(date, time, nowMs, selectedOption?.nextDay ?? false)) return;
     setTime("");
   }, [date, time, nowMs, timeOptions]);
+
+
+  useEffect(() => {
+    if (!isOpen || !restaurant?.id || !selectedDateValue) {
+      setDisabledSlotKeys(new Set());
+      return;
+    }
+
+    const nextDateValue = addOneDay(selectedDateValue);
+    let cancelled = false;
+
+    Promise.all([
+      getDisabledReservationSlots({ restaurantId: restaurant.id, date: selectedDateValue }).catch(() => []),
+      getDisabledReservationSlots({ restaurantId: restaurant.id, date: nextDateValue }).catch(() => []),
+    ])
+      .then(([sameDaySlots, nextDaySlots]) => {
+        if (cancelled) return;
+        const nextKeys = new Set();
+
+        [...(Array.isArray(sameDaySlots) ? sameDaySlots : []), ...(Array.isArray(nextDaySlots) ? nextDaySlots : [])].forEach((slot) => {
+          const dateValue = String(slot?.reservation_date || "").trim();
+          const timeValue = String(slot?.reservation_time || "").slice(0, 5);
+          const preference = String(slot?.seating_preference || "any").trim().toLowerCase() || "any";
+
+          if (!dateValue || !timeValue) return;
+
+          nextKeys.add(buildDisabledSlotKey(dateValue, timeValue, preference));
+        });
+
+        setDisabledSlotKeys(nextKeys);
+      })
+      .catch(() => {
+        if (!cancelled) setDisabledSlotKeys(new Set());
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, restaurant?.id, selectedDateValue]);
 
   useEffect(() => {
     if (!isOpen || !restaurant?.id || !selectedDateValue || !time) {
@@ -235,11 +281,13 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
     ?? (availabilityInfo ? Number(availabilityInfo.available_seats || 0) <= 0 : null);
   const slotStatusLabel = !availabilityInfo
     ? ""
-    : isFullyBooked
-      ? "Booked"
-      : canAccommodateParty
-        ? "Available"
-        : "Limited availability";
+    : availabilityInfo?.is_disabled
+      ? "Disabled by restaurant"
+      : isFullyBooked
+        ? "Booked"
+        : canAccommodateParty
+          ? "Available"
+          : "Limited availability";
   const availabilityTimeLabel = time ? toTimeLabel(time) : "";
   const preferenceLabel = seatingPreference ? seatingPreference.charAt(0).toUpperCase() + seatingPreference.slice(1) : "";
   const preferenceAvailableSeats = availabilityInfo?.available_seats_preference;
@@ -349,18 +397,26 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
             {visibleTimeOptions.map((option) => {
               const selected = time === option.value;
               const isPastSlot = selectedDateValue ? isTimeSlotInPast(date, option.value, nowMs, option.nextDay ?? false) : false;
+              const effectiveDate = option.nextDay ? addOneDay(selectedDateValue) : selectedDateValue;
+              const anyKey = buildDisabledSlotKey(effectiveDate, option.value, "any");
+              const preferenceKey = seatingPreference
+                ? buildDisabledSlotKey(effectiveDate, option.value, seatingPreference)
+                : null;
+              const isDisabledByOwner = disabledSlotKeys.has(anyKey) || (preferenceKey ? disabledSlotKeys.has(preferenceKey) : false);
               return (
                 <button
                   key={option.value}
-                  className={`timeSlotBtn ${selected ? "is-selected" : ""} ${isPastSlot ? "is-unavailable" : ""}`}
+                  className={`timeSlotBtn ${selected ? "is-selected" : ""} ${(isPastSlot || isDisabledByOwner) ? "is-unavailable" : ""}`}
                   type="button"
-                  disabled={!selectedDateValue || isBanned || isPastSlot}
+                  disabled={!selectedDateValue || isBanned || isPastSlot || isDisabledByOwner}
                   onClick={() => {
+                    if (isDisabledByOwner) return;
                     setTime(option.value);
                     setErrors((prev) => ({ ...prev, time: "" }));
                   }}
                   aria-pressed={selected}
-                  aria-label={isPastSlot ? `${option.label} unavailable` : option.label}
+                  aria-label={isDisabledByOwner ? `${option.label} disabled by restaurant` : isPastSlot ? `${option.label} unavailable` : option.label}
+                  title={isDisabledByOwner ? "Disabled by restaurant" : undefined}
                 >
                   {selected && <span className="timeSlotBtn__activeBg" />}
                   <span className="timeSlotBtn__label">{option.label}</span>
@@ -383,6 +439,9 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
           )}
           {selectedDateValue && !showAllTimes && hasMoreTimeOptions && (
             <div className="reservationHint">Showing top {DEFAULT_VISIBLE_TIME_SLOTS} available times.</div>
+          )}
+          {selectedDateValue && disabledSlotKeys.size > 0 && (
+            <div className="reservationHint">Greyed-out time slots are temporarily disabled by the restaurant.</div>
           )}
         </div>
         {errors.time && <div className="fieldError">{errors.time}</div>}
@@ -476,8 +535,8 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
         {availabilityError && <div className="fieldError">{availabilityError}</div>}
         {errors.submit && <div className="fieldError">{errors.submit}</div>}
 
-        <button className="btn btn--gold btn--xl" type="submit" disabled={submitting || isFullyBooked === true || isBanned}>
-          {submitting ? "Booking..." : (isBanned ? "BOOKING DISABLED" : (isFullyBooked ? "SLOT BOOKED" : "BOOK RESERVATION"))}
+        <button className="btn btn--gold btn--xl" type="submit" disabled={submitting || isFullyBooked === true || isBanned || availabilityInfo?.is_disabled === true}>
+          {submitting ? "Booking..." : (isBanned ? "BOOKING DISABLED" : (availabilityInfo?.is_disabled ? "SLOT DISABLED" : (isFullyBooked ? "SLOT BOOKED" : "BOOK RESERVATION")))}
         </button>
       </form>
     </>
