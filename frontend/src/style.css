@@ -10173,3 +10173,576 @@ body.dark .slotDraftRemoveBtn:hover,
 [data-theme="dark"] .slotDraftRemoveBtn:hover {
   background: rgba(148, 163, 184, 0.08);
 }
+
+/* ===== Owner reservations calendar ===== */
+.ownerCalendarCard {
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.ownerCalendarTopbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.ownerCalendarToolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.ownerCalendarControlBtn,
+.ownerCalendarIconBtn,
+.ownerCalendarViewToggle__btn {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  border-radius: 14px;
+  min-height: 42px;
+  padding: 0 14px;
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.ownerCalendarControlBtn:hover,
+.ownerCalendarIconBtn:hover,
+.ownerCalendarViewToggle__btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.45);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+}
+
+.ownerCalendarIconBtn {
+  width: 42px;
+  min-width: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.ownerCalendarNavGroup,
+.ownerCalendarViewToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ownerCalendarViewToggle {
+  padding: 4px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.ownerCalendarViewToggle__btn {
+  min-height: 36px;
+  border-radius: 12px;
+  padding: 0 18px;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.ownerCalendarViewToggle__btn.is-active {
+  background: rgba(201, 162, 39, 0.16);
+  border-color: rgba(201, 162, 39, 0.4);
+  color: #ffffff;
+}
+
+.ownerCalendarMonthLabel {
+  min-width: 150px;
+  font-size: 17px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.ownerCalendarLayout {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr) 320px;
+  gap: 14px;
+  align-items: start;
+}
+
+.ownerCalendarSidebar {
+  display: grid;
+  gap: 12px;
+}
+
+.ownerCalendarSidebarCard,
+.ownerCalendarHintBox {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.16);
+  padding: 16px;
+}
+
+.ownerCalendarSidebarTitle {
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.92);
+  margin-bottom: 12px;
+}
+
+.ownerCalendarLegendList,
+.ownerCalendarPanelList {
+  display: grid;
+  gap: 10px;
+}
+
+.ownerCalendarLegendItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ownerCalendarLegendItem__labelWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.ownerCalendarLegendDot,
+.ownerCalendarDayMarker__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.ownerCalendarLegendCount,
+.ownerCalendarPanelCount {
+  min-width: 34px;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.ownerCalendarField input {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  padding: 0 14px;
+  font-size: 14px;
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.ownerCalendarField input::placeholder {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.ownerCalendarHintBox {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.ownerCalendarHintBox__icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  border: 1px solid rgba(96, 165, 250, 0.36);
+  background: rgba(96, 165, 250, 0.16);
+  color: #bfdbfe;
+}
+
+.ownerCalendarGridWrap {
+  min-width: 0;
+}
+
+.ownerCalendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.ownerCalendarWeekday {
+  min-height: 48px;
+  padding: 14px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.ownerCalendarDay {
+  min-height: 108px;
+  border: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  padding: 10px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.94);
+  cursor: pointer;
+  transition: background 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.ownerCalendarDay:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.ownerCalendarGrid--week .ownerCalendarDay {
+  min-height: 180px;
+}
+
+.ownerCalendarDay.is-selected {
+  background: rgba(59, 130, 246, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.42);
+}
+
+.ownerCalendarDay.is-today .ownerCalendarDay__number {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ownerCalendarDay.is-outside {
+  color: rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ownerCalendarDay__number {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.ownerCalendarDay__markers {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.ownerCalendarDayMarker {
+  max-width: 64px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.ownerCalendarSidebarCard--panel {
+  min-height: 100%;
+}
+
+.ownerCalendarPanelHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.ownerCalendarPanelDate {
+  font-size: 15px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.ownerCalendarPanelEmpty {
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  padding: 16px;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.5;
+}
+
+.ownerCalendarReservationCard {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left-width: 4px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.94);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.ownerCalendarReservationCard:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.2);
+}
+
+.ownerCalendarReservationCard__time {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.ownerCalendarReservationCard__name {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.ownerCalendarReservationCard__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ownerCalendarReservationCard__metaGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+}
+
+.ownerCalendarReservationCard__party {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 14px;
+}
+
+.ownerCalendarLegendDot--pending,
+.ownerCalendarDayMarker--pending,
+.ownerCalendarReservationCard--pending {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.45);
+}
+
+.ownerCalendarLegendDot--accepted,
+.ownerCalendarDayMarker--accepted,
+.ownerCalendarReservationCard--accepted {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.42);
+}
+
+.ownerCalendarLegendDot--rejected,
+.ownerCalendarDayMarker--rejected,
+.ownerCalendarReservationCard--rejected,
+.ownerCalendarLegendDot--cancelled,
+.ownerCalendarDayMarker--cancelled,
+.ownerCalendarReservationCard--cancelled {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.42);
+}
+
+.ownerCalendarLegendDot--completed,
+.ownerCalendarDayMarker--completed,
+.ownerCalendarReservationCard--completed {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.42);
+}
+
+.ownerCalendarLegendDot--no-show,
+.ownerCalendarDayMarker--no-show,
+.ownerCalendarReservationCard--no-show {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.42);
+}
+
+.ownerCalendarLegendDot--pending,
+.ownerCalendarDayMarker--pending .ownerCalendarDayMarker__dot {
+  background: #eab308;
+}
+
+.ownerCalendarLegendDot--accepted,
+.ownerCalendarDayMarker--accepted .ownerCalendarDayMarker__dot {
+  background: #22c55e;
+}
+
+.ownerCalendarLegendDot--rejected,
+.ownerCalendarLegendDot--cancelled,
+.ownerCalendarDayMarker--rejected .ownerCalendarDayMarker__dot,
+.ownerCalendarDayMarker--cancelled .ownerCalendarDayMarker__dot {
+  background: #ef4444;
+}
+
+.ownerCalendarLegendDot--completed,
+.ownerCalendarDayMarker--completed .ownerCalendarDayMarker__dot {
+  background: #3b82f6;
+}
+
+.ownerCalendarLegendDot--no-show,
+.ownerCalendarDayMarker--no-show .ownerCalendarDayMarker__dot {
+  background: #a855f7;
+}
+
+.ownerCalendarReservationCard--pending {
+  border-left-color: #eab308;
+}
+
+.ownerCalendarReservationCard--accepted {
+  border-left-color: #22c55e;
+}
+
+.ownerCalendarReservationCard--rejected,
+.ownerCalendarReservationCard--cancelled {
+  border-left-color: #ef4444;
+}
+
+.ownerCalendarReservationCard--completed {
+  border-left-color: #3b82f6;
+}
+
+.ownerCalendarReservationCard--no-show {
+  border-left-color: #a855f7;
+}
+
+.reservationCard--focused {
+  border-color: rgba(59, 130, 246, 0.52);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.22), 0 18px 40px rgba(0, 0, 0, 0.22);
+}
+
+[data-theme="light"] .ownerCalendarControlBtn,
+[data-theme="light"] .ownerCalendarIconBtn,
+[data-theme="light"] .ownerCalendarViewToggle__btn,
+[data-theme="light"] .ownerCalendarSidebarCard,
+[data-theme="light"] .ownerCalendarHintBox,
+[data-theme="light"] .ownerCalendarGrid,
+[data-theme="light"] .ownerCalendarLegendCount,
+[data-theme="light"] .ownerCalendarPanelCount,
+[data-theme="light"] .ownerCalendarReservationCard,
+[data-theme="light"] .ownerCalendarField input {
+  background: rgba(255, 255, 255, 0.92);
+  color: rgba(26, 14, 6, 0.88);
+  border-color: rgba(175, 115, 45, 0.16);
+}
+
+[data-theme="light"] .ownerCalendarViewToggle {
+  background: rgba(175, 115, 45, 0.08);
+  border-color: rgba(175, 115, 45, 0.18);
+}
+
+[data-theme="light"] .ownerCalendarMonthLabel,
+[data-theme="light"] .ownerCalendarSidebarTitle,
+[data-theme="light"] .ownerCalendarPanelDate,
+[data-theme="light"] .ownerCalendarReservationCard__name {
+  color: rgba(26, 14, 6, 0.92);
+}
+
+[data-theme="light"] .ownerCalendarLegendItem__labelWrap,
+[data-theme="light"] .ownerCalendarReservationCard__time,
+[data-theme="light"] .ownerCalendarReservationCard__party,
+[data-theme="light"] .ownerCalendarReservationCard__metaGroup,
+[data-theme="light"] .ownerCalendarPanelEmpty,
+[data-theme="light"] .ownerCalendarHintBox,
+[data-theme="light"] .ownerCalendarWeekday,
+[data-theme="light"] .ownerCalendarDay,
+[data-theme="light"] .ownerCalendarField input::placeholder {
+  color: rgba(82, 52, 24, 0.76);
+}
+
+[data-theme="light"] .ownerCalendarWeekday {
+  background: rgba(175, 115, 45, 0.06);
+  border-bottom-color: rgba(175, 115, 45, 0.12);
+}
+
+[data-theme="light"] .ownerCalendarDay {
+  border-right-color: rgba(175, 115, 45, 0.1);
+  border-bottom-color: rgba(175, 115, 45, 0.1);
+}
+
+[data-theme="light"] .ownerCalendarDay:hover {
+  background: rgba(175, 115, 45, 0.06);
+}
+
+[data-theme="light"] .ownerCalendarDay.is-selected {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+[data-theme="light"] .ownerCalendarDay.is-outside {
+  color: rgba(140, 102, 69, 0.48);
+  background: rgba(92, 66, 43, 0.02);
+}
+
+[data-theme="light"] .ownerCalendarPanelEmpty {
+  border-color: rgba(175, 115, 45, 0.18);
+}
+
+[data-theme="light"] .reservationCard--focused {
+  border-color: rgba(59, 130, 246, 0.36);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.14), 0 12px 28px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 1280px) {
+  .ownerCalendarLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .ownerCalendarSidebar--left,
+  .ownerCalendarSidebar--right {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ownerCalendarSidebar--right {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 820px) {
+  .ownerCalendarTopbar,
+  .ownerCalendarToolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ownerCalendarSidebar--left {
+    grid-template-columns: 1fr;
+  }
+
+  .ownerCalendarGrid {
+    overflow-x: auto;
+  }
+
+  .ownerCalendarWeekday,
+  .ownerCalendarDay {
+    min-width: 130px;
+  }
+}

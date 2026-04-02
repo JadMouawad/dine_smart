@@ -13,6 +13,7 @@ import {
 } from "../../services/reservationService";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
+import OwnerReservationCalendar from "../../components/OwnerReservationCalendar.jsx";
 
 function toDateTimeValue(reservation) {
   const datePart = String(reservation.reservation_date || "").trim();
@@ -180,6 +181,7 @@ export default function OwnerReservations() {
   const [updatingId, setUpdatingId] = useState(null);
   const [confirmRejectReservation, setConfirmRejectReservation] = useState(null);
   const [clockNow, setClockNow] = useState(() => Date.now());
+  const [focusedReservationId, setFocusedReservationId] = useState(null);
 
   const [adjustmentDate, setAdjustmentDate] = useState(getTodayDateValue());
   const [adjustmentTime, setAdjustmentTime] = useState(getRoundedTimeValue());
@@ -558,65 +560,76 @@ export default function OwnerReservations() {
   }
 
   function addDisabledSlotDraft() {
-  setDisabledSlotDrafts((prev) => {
-    const nextSlotNumber =
-      prev.length > 0
-        ? Math.max(...prev.map((draft) => Number(draft.slotNumber || 0))) + 1
-        : 1;
+    setDisabledSlotDrafts((prev) => {
+      const nextSlotNumber =
+        prev.length > 0
+          ? Math.max(...prev.map((draft) => draft.slotNumber || 0)) + 1
+          : 1;
 
-    return [createDisabledSlotDraft(nextSlotNumber), ...prev];
-  });
-}
+      return [...prev, createDisabledSlotDraft(nextSlotNumber)];
+    });
+  }
 
   function removeDisabledSlotDraft(draftId) {
     setDisabledSlotDrafts((prev) => {
-      if (prev.length === 1) {
-        return [
-          {
-  ...createDisabledSlotDraft(prev[0].slotNumber || 1),
-  id: prev[0].id,
-},
-        ];
-      }
+      if (prev.length <= 1) return prev;
       return prev.filter((draft) => draft.id !== draftId);
     });
   }
 
   async function refreshDisabledSlotsForDate(dateValue) {
-    if (!restaurant?.id || !dateValue) return [];
-
-    const refreshed = await getOwnerDisabledSlots({
-      restaurantId: restaurant.id,
-      date: dateValue,
-    });
-
-    const normalized = Array.isArray(refreshed) ? refreshed : [];
-
-    setDisabledSlotsByDate((prev) => ({
-      ...prev,
-      [dateValue]: normalized,
-    }));
-
-    return normalized;
+    if (!restaurant?.id || !dateValue) return;
+    setDisabledSlotsLoadingByDate((prev) => ({ ...prev, [dateValue]: true }));
+    try {
+      const data = await getOwnerDisabledSlots({ restaurantId: restaurant.id, date: dateValue });
+      setDisabledSlotsByDate((prev) => ({
+        ...prev,
+        [dateValue]: Array.isArray(data) ? data : [],
+      }));
+    } catch {
+      setDisabledSlotsByDate((prev) => ({ ...prev, [dateValue]: [] }));
+    } finally {
+      setDisabledSlotsLoadingByDate((prev) => ({ ...prev, [dateValue]: false }));
+    }
   }
 
   async function handleToggleDisabledSlot(event, draft) {
     event.preventDefault();
     if (!restaurant?.id) return;
 
-    updateDraft(draft.id, (current) => ({
-      ...current,
-      loading: true,
-      error: "",
-    }));
+    const dateValue = String(draft?.date || "").trim();
+    const timeValue = normalizeTimeValue(draft?.time);
+    const seatingPref = normalizeSeatingValue(draft?.seatingPreference);
+
+    if (!dateValue) {
+      updateDraft(draft.id, (current) => ({ ...current, error: "Please choose a date." }));
+      return;
+    }
+
+    if (!timeValue) {
+      updateDraft(draft.id, (current) => ({ ...current, error: "Please choose a time." }));
+      return;
+    }
+
+    updateDraft(draft.id, (current) => ({ ...current, loading: true, error: "" }));
 
     try {
+      const allForDate = disabledSlotsByDate[dateValue] || [];
+      const alreadyDisabled = allForDate.some((slot) =>
+        sameDisabledSlot(slot, {
+          ...draft,
+          date: dateValue,
+          time: timeValue,
+          seatingPreference: seatingPref,
+        })
+      );
+
       const saved = await saveOwnerDisabledSlot(restaurant.id, {
-        date: draft.date,
-        time: draft.time,
-        seating_preference: draft.seatingPreference,
-        reason: draft.reason,
-        disabled: !draft.isDisabled,
+        date: dateValue,
+        time: timeValue,
+        seating_preference: seatingPref === "any" ? "any" : seatingPref,
+        reason: draft.reason || null,
+        disabled: !alreadyDisabled,
       });
 
       const nextDisabled = Boolean(saved?.disabled);
@@ -694,6 +707,26 @@ export default function OwnerReservations() {
     }
   }
 
+  function handleCalendarReservationClick(reservation) {
+    if (!reservation?.id) return;
+
+    setReservationView("all");
+    setPartySizeFilter("all");
+    setReservationSortBy("date-time");
+    setFocusedReservationId(reservation.id);
+
+    window.setTimeout(() => {
+      const element = document.getElementById(`owner-reservation-card-${reservation.id}`);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 80);
+
+    window.setTimeout(() => {
+      setFocusedReservationId((current) => (current === reservation.id ? null : current));
+    }, 2500);
+  }
+
   if (loading) {
     return (
       <div className="placeholderPage">
@@ -706,6 +739,11 @@ export default function OwnerReservations() {
   return (
     <div className="ownerTableConfigPage">
       <h1 className="ownerProfile__title">Reservations</h1>
+
+      <OwnerReservationCalendar
+        reservations={reservations}
+        onReservationClick={handleCalendarReservationClick}
+      />
       {success && <div className="inlineToast inlineToast--success">{success}</div>}
       {error && <div className="fieldError">{error}</div>}
 
@@ -835,7 +873,7 @@ export default function OwnerReservations() {
         </div>
 
         <div className="slotDraftStack">
-          {disabledSlotDrafts.map((draft, index) => {
+          {disabledSlotDrafts.map((draft) => {
             const allForDate = disabledSlotsByDate[draft.date] || [];
             const currentMatchedSlot = allForDate.find((slot) => sameDisabledSlot(slot, draft));
             const otherDisabledSlots = allForDate.filter((slot) => !sameDisabledSlot(slot, draft));
@@ -1133,7 +1171,11 @@ export default function OwnerReservations() {
             const isFinished = ["cancelled", "no-show", "completed", "rejected"].includes(normalizedStatus);
 
             return (
-              <article key={reservation.id} className="reservationCard">
+              <article
+                key={reservation.id}
+                id={`owner-reservation-card-${reservation.id}`}
+                className={`reservationCard ${focusedReservationId === reservation.id ? "reservationCard--focused" : ""}`}
+              >
                 <div className="reservationCard__main">
                   <div>
                     <div className="reservationCard__name">
