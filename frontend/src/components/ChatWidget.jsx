@@ -150,14 +150,7 @@ export default function ChatWidget({ onAction }) {
               <h2 className="chatWidget__title">Diney</h2>
               <p className="chatWidget__subtitle">Restaurant help inside DineSmart</p>
             </div>
-            <button
-              type="button"
-              className="chatWidget__iconBtn"
-              onClick={() => setOpen(false)}
-              aria-label="Close chat"
-            >
-              <FiX />
-            </button>
+            
           </header>
 
           <div className="chatWidget__messages" ref={listRef}>
