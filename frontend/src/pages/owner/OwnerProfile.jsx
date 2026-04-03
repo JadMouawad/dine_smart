@@ -444,8 +444,6 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
 
   return (
     <div className="ownerProfile">
-      <h1 className="ownerProfile__title">{existingRestaurant ? "Edit Restaurant Profile" : "Set Up Restaurant Profile"}</h1>
-
       {!existingRestaurant && initialLoadComplete && error && (
         <div className="ownerProfile__feedback ownerProfile__feedback--error">{error}</div>
       )}
