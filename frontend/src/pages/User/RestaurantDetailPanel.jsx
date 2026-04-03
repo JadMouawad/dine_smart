@@ -643,7 +643,7 @@ export default function RestaurantDetailPanel({
                           setFlagReason("");
                         }}
                       >
-                        Flag review
+                        Report
                       </button>
                     )}
                     {rev.owner_response && (
@@ -681,7 +681,7 @@ export default function RestaurantDetailPanel({
             <button className="modal__close" type="button" onClick={() => !flagBusy && setFlagReviewTarget(null)} aria-label="Close">
               X
             </button>
-            <h2 className="modal__title">Flag review</h2>
+            <h2 className="modal__title">Report review</h2>
             <p className="modal__subtitle">Tell the admin why this review should be reviewed.</p>
             <form className="form" onSubmit={handleFlagReview}>
               <label className="field">
