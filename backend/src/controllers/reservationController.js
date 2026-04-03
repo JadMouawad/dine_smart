@@ -123,6 +123,48 @@ const getAvailability = async (req, res) => {
   }
 };
 
+const joinWaitlist = async (req, res) => {
+  try {
+    const result = await reservationService.joinWaitlist({
+      userId: req.user.id,
+      restaurantId: req.body.restaurant_id,
+      reservationDate: req.body.date,
+      reservationTime: req.body.time,
+      partySize: req.body.party_size,
+    });
+
+    if (!result.success) {
+      return res.status(result.status).json({
+        message: result.error,
+        ...(result.availableSeats != null ? { available_seats: result.availableSeats } : {}),
+      });
+    }
+
+    return res.status(result.status).json(result.waitlist);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const leaveWaitlist = async (req, res) => {
+  try {
+    const result = await reservationService.leaveWaitlist({
+      userId: req.user.id,
+      restaurantId: req.body.restaurant_id,
+      reservationDate: req.body.date,
+      reservationTime: req.body.time,
+    });
+
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+
+    return res.status(result.status).json(result.waitlist);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 
 const getSlotAdjustmentForOwner = async (req, res) => {
   try {
@@ -192,4 +234,6 @@ module.exports = {
   getSlotAdjustmentForOwner,
   upsertSlotAdjustmentForOwner,
   markNoShow,
+  joinWaitlist,
+  leaveWaitlist,
 };

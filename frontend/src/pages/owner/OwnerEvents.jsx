@@ -78,12 +78,15 @@ export default function OwnerEvents() {
     setLoading(true);
     setError("");
     try {
-      const [ownedRestaurant, ownerEvents] = await Promise.all([
-        getMyRestaurant(),
-        getOwnerEvents(),
-      ]);
+      const ownedRestaurant = await getMyRestaurant();
       setRestaurant(ownedRestaurant);
-      setEvents(Array.isArray(ownerEvents) ? ownerEvents : []);
+      try {
+        const ownerEvents = await getOwnerEvents();
+        setEvents(Array.isArray(ownerEvents) ? ownerEvents : []);
+      } catch (eventsError) {
+        setEvents([]);
+        setError(eventsError.message || "Failed to load events.");
+      }
     } catch (err) {
       setError(err.message || "Failed to load events.");
     } finally {

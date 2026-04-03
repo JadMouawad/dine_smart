@@ -114,6 +114,8 @@ CREATE INDEX IF NOT EXISTS idx_reservations_user_id ON reservations(user_id);
 CREATE INDEX IF NOT EXISTS idx_reservations_restaurant_id ON reservations(restaurant_id);
 CREATE INDEX IF NOT EXISTS idx_reservations_restaurant_datetime
   ON reservations(restaurant_id, reservation_date, reservation_time);
+CREATE INDEX IF NOT EXISTS idx_waitlist_slot_pending
+  ON reservation_waitlist(restaurant_id, reservation_date, reservation_time, status);
 
 CREATE TABLE IF NOT EXISTS restaurant_table_configs (
   id SERIAL PRIMARY KEY,
@@ -139,6 +141,21 @@ CREATE TABLE IF NOT EXISTS reservation_slot_adjustments (
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT reservation_slot_adjustments_preference_check CHECK (seating_preference IN ('any', 'indoor', 'outdoor')),
   CONSTRAINT reservation_slot_adjustments_unique UNIQUE (restaurant_id, reservation_date, reservation_time, seating_preference)
+);
+
+CREATE TABLE IF NOT EXISTS reservation_waitlist (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  reservation_date DATE NOT NULL,
+  reservation_time TIME NOT NULL,
+  party_size INTEGER NOT NULL CHECK (party_size > 0),
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  notified_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT reservation_waitlist_status_check CHECK (status IN ('pending', 'notified', 'cancelled')),
+  CONSTRAINT reservation_waitlist_unique UNIQUE (user_id, restaurant_id, reservation_date, reservation_time)
 );
 
 CREATE TABLE IF NOT EXISTS events (

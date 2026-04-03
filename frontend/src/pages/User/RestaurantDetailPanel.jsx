@@ -458,7 +458,6 @@ export default function RestaurantDetailPanel({
             restaurant={currentRestaurant}
             onClose={() => {}}
             onReserved={(reservation) => {
-              toast.success("Booked successfully! 🎉");
               const date = reservation?.reservation_date || reservationSlot?.date || getCurrentSlotParams().date;
               const time = String(reservation?.reservation_time || reservationSlot?.time || getCurrentSlotParams().time).slice(0, 5);
               setReservationSlot({ date, time });

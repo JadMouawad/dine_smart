@@ -10,6 +10,7 @@ const {
   sendReservationCancellationEmail,
   sendNoShowWarningEmail,
   sendNoShowBanEmail,
+  sendWaitlistSlotAvailableEmail,
 } = require("../utils/emailSender");
 
 const MAX_PARTY_SIZE = 12;
@@ -270,6 +271,64 @@ const getSlotAvailability = async ({ restaurantId, reservationDate, reservationT
   };
 };
 
+const notifyWaitlistForSlot = async ({ restaurantId, reservationDate, reservationTime }) => {
+  const availability = await getSlotAvailability({
+    restaurantId,
+    reservationDate,
+    reservationTime,
+  });
+
+  if (!availability.success) {
+    return { success: false, status: availability.status, error: availability.error };
+  }
+
+  let availableSeats = availability.availableSeats;
+  if (availableSeats <= 0) {
+    return { success: true, notifiedCount: 0 };
+  }
+
+  const waitlistResult = await ReservationModel.getWaitlistForSlot(db, {
+    restaurantId,
+    reservationDate,
+    reservationTime,
+  });
+  const entries = waitlistResult.rows || [];
+  if (entries.length === 0) {
+    return { success: true, notifiedCount: 0 };
+  }
+
+  let notifiedCount = 0;
+  for (const entry of entries) {
+    const partySize = parseInt(entry.party_size, 10) || 1;
+    if (partySize > availableSeats) {
+      continue;
+    }
+
+    if (entry.email) {
+      try {
+        await sendWaitlistSlotAvailableEmail({
+          to: entry.email,
+          userName: entry.full_name || "Guest",
+          restaurantName: availability.restaurant?.name || "the restaurant",
+          reservationDate: formatDateForEmail(reservationDate),
+          reservationTime: formatTimeForEmail(reservationTime),
+          partySize,
+          availableSeats,
+        });
+      } catch (error) {
+        console.warn("Failed to send waitlist email:", error.message);
+      }
+    }
+
+    await ReservationModel.markWaitlistNotified(db, entry.id);
+    notifiedCount += 1;
+    availableSeats = Math.max(availableSeats - partySize, 0);
+    if (availableSeats <= 0) break;
+  }
+
+  return { success: true, notifiedCount };
+};
+
 const createReservation = async ({
   userId,
   restaurantId,
@@ -394,24 +453,17 @@ const createReservation = async ({
     return { success: false, status: 409, error: "This time slot is already booked" };
   }
 
-  const user = await UserModel.findById(db, userId);
-  if (user?.email) {
-    try {
-      await sendReservationConfirmationEmail({
-        to: user.email,
-        userName: user.full_name || "Guest",
-        restaurantName: availability.restaurant.name,
-        reservationDate: formatDateForEmail(normalizedDate),
-        reservationTime: formatTimeForEmail(normalizedTime),
-        partySize: parsedPartySize,
-        confirmationId,
-        seatingPreference: normalizedSeating,
-        specialRequest: cleanedSpecialRequest,
-      });
-    } catch (error) {
-      // Reservation should still succeed if email sending fails.
-      console.warn("Failed to send reservation confirmation email:", error.message);
-    }
+  // Confirmation email is sent after the restaurant accepts the reservation.
+
+  try {
+    await ReservationModel.cancelWaitlistEntryByUserAndSlot(db, {
+      userId,
+      restaurantId: parsedRestaurantId,
+      reservationDate: normalizedDate,
+      reservationTime: normalizedTime,
+    });
+  } catch (error) {
+    console.warn("Failed to clear waitlist entry after booking:", error.message);
   }
 
   return {
@@ -494,6 +546,16 @@ const cancelReservation = async ({ reservationId, requestingUserId, requestingUs
     }
   }
 
+  try {
+    await notifyWaitlistForSlot({
+      restaurantId: existingReservation.restaurant_id,
+      reservationDate: existingReservation.reservation_date,
+      reservationTime: existingReservation.reservation_time,
+    });
+  } catch (error) {
+    console.warn("Failed to notify waitlist after cancellation:", error.message);
+  }
+
   return { success: true, status: 200, reservation: cancelled };
 };
 
@@ -565,6 +627,63 @@ const updateReservationStatusForOwner = async ({ reservationId, ownerId, action 
   const updated = updatedResult.rows[0];
   if (!updated) {
     return { success: false, status: 409, error: "Reservation status could not be updated" };
+  }
+
+  if (nextStatus === "accepted") {
+    try {
+      const user = await UserModel.findById(db, updated.user_id);
+      let restaurantName = updated.restaurant_name;
+      let reservationDate = updated.reservation_date;
+      let reservationTime = updated.reservation_time;
+      let partySize = updated.party_size;
+      let seatingPreference = updated.seating_preference;
+      let specialRequest = updated.special_request;
+      let confirmationId = updated.confirmation_id;
+
+      if (!restaurantName || !reservationDate || !reservationTime || !partySize || !confirmationId) {
+        const [reservationResult, restaurantResult] = await Promise.all([
+          ReservationModel.getReservationById(db, updated.id),
+          ReservationModel.getRestaurantById(db, updated.restaurant_id),
+        ]);
+        const reservationRow = reservationResult.rows[0] || {};
+        const restaurantRow = restaurantResult.rows[0] || {};
+        restaurantName = restaurantName || restaurantRow.name;
+        reservationDate = reservationDate || reservationRow.reservation_date;
+        reservationTime = reservationTime || reservationRow.reservation_time;
+        partySize = partySize || reservationRow.party_size;
+        seatingPreference = seatingPreference || reservationRow.seating_preference;
+        specialRequest = specialRequest || reservationRow.special_request;
+        confirmationId = confirmationId || reservationRow.confirmation_id;
+      }
+
+      if (user?.email) {
+        await sendReservationConfirmationEmail({
+          to: user.email,
+          userName: user.full_name || "Guest",
+          restaurantName: restaurantName || "the restaurant",
+          reservationDate: formatDateForEmail(reservationDate),
+          reservationTime: formatTimeForEmail(reservationTime),
+          partySize,
+          confirmationId,
+          seatingPreference,
+          specialRequest,
+        });
+      }
+    } catch (error) {
+      console.warn("Failed to send reservation confirmation email:", error.message);
+    }
+  }
+
+  if (nextStatus === "rejected") {
+    try {
+      await notifyWaitlistForSlot({
+        restaurantId: updated.restaurant_id,
+        reservationDate: updated.reservation_date,
+        reservationTime: updated.reservation_time,
+      });
+    } catch (error) {
+      console.warn("Failed to notify waitlist after rejection:", error.message);
+    }
   }
 
   return { success: true, status: 200, reservation: updated };
@@ -771,6 +890,100 @@ return {
 };
 };
 
+const joinWaitlist = async ({ userId, restaurantId, reservationDate, reservationTime, partySize }) => {
+  const parsedRestaurantId = parseInt(restaurantId, 10);
+  const parsedPartySize = parseInt(partySize, 10);
+  const normalizedDate = String(reservationDate || "").trim();
+  const normalizedTime = normalizeTime(reservationTime);
+
+  if (Number.isNaN(parsedRestaurantId)) {
+    return { success: false, status: 400, error: "Invalid restaurant ID" };
+  }
+  if (!normalizedDate) {
+    return { success: false, status: 400, error: "Reservation date is required" };
+  }
+  if (!normalizedTime) {
+    return { success: false, status: 400, error: "Reservation time is required" };
+  }
+  if (Number.isNaN(parsedPartySize) || parsedPartySize < 1 || parsedPartySize > MAX_PARTY_SIZE) {
+    return { success: false, status: 400, error: `Party size must be between 1 and ${MAX_PARTY_SIZE}` };
+  }
+
+  const parsedDate = parseDateOnly(normalizedDate);
+  if (!parsedDate) {
+    return { success: false, status: 400, error: "Invalid reservation date" };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (parsedDate < today) {
+    return { success: false, status: 400, error: "Reservation date cannot be in the past" };
+  }
+
+  const availability = await getSlotAvailability({
+    restaurantId: parsedRestaurantId,
+    reservationDate: normalizedDate,
+    reservationTime: normalizedTime,
+  });
+
+  if (!availability.success) {
+    return availability;
+  }
+
+  if (!isWithinOperatingHours(normalizedTime, availability.restaurant.opening_time, availability.restaurant.closing_time)) {
+    return { success: false, status: 400, error: "Reservation time is outside restaurant operating hours" };
+  }
+
+  if (availability.availableSeats >= parsedPartySize) {
+    return {
+      success: false,
+      status: 409,
+      error: "Seats are available right now. Please book instead of joining the waitlist.",
+      availableSeats: availability.availableSeats,
+    };
+  }
+
+  const result = await ReservationModel.upsertWaitlistEntry(db, {
+    userId,
+    restaurantId: parsedRestaurantId,
+    reservationDate: normalizedDate,
+    reservationTime: normalizedTime,
+    partySize: parsedPartySize,
+  });
+
+  return { success: true, status: 201, waitlist: result.rows[0] };
+};
+
+const leaveWaitlist = async ({ userId, restaurantId, reservationDate, reservationTime }) => {
+  const parsedRestaurantId = parseInt(restaurantId, 10);
+  const normalizedDate = String(reservationDate || "").trim();
+  const normalizedTime = normalizeTime(reservationTime);
+
+  if (Number.isNaN(parsedRestaurantId)) {
+    return { success: false, status: 400, error: "Invalid restaurant ID" };
+  }
+  if (!normalizedDate) {
+    return { success: false, status: 400, error: "Reservation date is required" };
+  }
+  if (!normalizedTime) {
+    return { success: false, status: 400, error: "Reservation time is required" };
+  }
+
+  const result = await ReservationModel.cancelWaitlistEntryByUserAndSlot(db, {
+    userId,
+    restaurantId: parsedRestaurantId,
+    reservationDate: normalizedDate,
+    reservationTime: normalizedTime,
+  });
+
+  const cancelled = result.rows[0];
+  if (!cancelled) {
+    return { success: false, status: 404, error: "Waitlist entry not found" };
+  }
+
+  return { success: true, status: 200, waitlist: cancelled };
+};
+
 const NO_SHOW_BAN_THRESHOLD = 3;
 const NO_SHOW_BAN_DAYS = 30;
 
@@ -838,5 +1051,7 @@ module.exports = {
   getSlotAdjustmentForOwner,
   upsertSlotAdjustmentForOwner,
   getAvailability,
+  joinWaitlist,
+  leaveWaitlist,
   markNoShow,
 };
