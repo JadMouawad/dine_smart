@@ -574,15 +574,15 @@ export default function OwnerReservations() {
   }
 
   function addDisabledSlotDraft() {
-    setDisabledSlotDrafts((prev) => {
-      const nextSlotNumber =
-        prev.length > 0
-          ? Math.max(...prev.map((draft) => draft.slotNumber || 0)) + 1
-          : 1;
+  setDisabledSlotDrafts((prev) => {
+    const nextSlotNumber =
+      prev.length > 0
+        ? Math.max(...prev.map((draft) => draft.slotNumber || 0)) + 1
+        : 1;
 
-      return [...prev, createDisabledSlotDraft(nextSlotNumber)];
-    });
-  }
+    return [createDisabledSlotDraft(nextSlotNumber), ...prev];
+  });
+}
 
   function removeDisabledSlotDraft(draftId) {
     setDisabledSlotDrafts((prev) => {
@@ -1030,9 +1030,15 @@ export default function OwnerReservations() {
                     </label>
                   </div>
 
-                  <div className="slotAdjustStatus">
-                    Current state: <strong>{currentMatchedSlot ? "Disabled" : "Enabled"}</strong>
-                  </div>
+                  <div className="slotStateRow">
+  <span
+    className={`statusBadge slotStatePill ${
+      currentMatchedSlot ? "slotStatePill--disabled" : "slotStatePill--enabled"
+    }`}
+  >
+    {currentMatchedSlot ? "Disabled" : "Enabled"}
+  </span>
+</div>
 
                   {isDateLoading && (
                     <div className="slotAdjustStatus">Loading disabled slots...</div>

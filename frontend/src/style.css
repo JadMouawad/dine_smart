@@ -9795,12 +9795,40 @@ html[data-theme="light"] .quickFilterBtn {
 }
 
 .slotAdjustStatus {
-  border: 1px solid rgba(201, 162, 39, 0.2);
-  background: rgba(201, 162, 39, 0.08);
-  color: var(--text, #1f2937);
-  border-radius: 14px;
-  padding: 0.85rem 1rem;
-  font-size: 0.95rem;
+  margin-top: 0.35rem;
+  font-size: 0.92rem;
+  color: var(--muted, #6b7280);
+}
+
+.slotStateRow {
+  display: flex;
+  align-items: center;
+  margin-top: 0.35rem;
+}
+
+.slotStatePill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0.42rem 0.9rem;
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1;
+  border-radius: 999px;
+  text-transform: none;
+}
+
+.slotStatePill--enabled {
+  background: rgba(34, 197, 94, 0.18);
+  border: 1px solid rgba(34, 197, 94, 0.45);
+  color: #166534;
+}
+
+.slotStatePill--disabled {
+  background: rgba(239, 68, 68, 0.16);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #b91c1c;
 }
 
 .slotAdjustHint {
@@ -9976,9 +10004,23 @@ html[data-theme="light"] .quickFilterBtn {
 html.dark .slotAdjustStatus,
 body.dark .slotAdjustStatus,
 [data-theme="dark"] .slotAdjustStatus {
-  background: rgba(201, 162, 39, 0.12);
-  border-color: rgba(201, 162, 39, 0.24);
-  color: #f3f4f6;
+  color: #cbd5e1;
+}
+
+html.dark .slotStatePill--enabled,
+body.dark .slotStatePill--enabled,
+[data-theme="dark"] .slotStatePill--enabled {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.42);
+  color: #bbf7d0;
+}
+
+html.dark .slotStatePill--disabled,
+body.dark .slotStatePill--disabled,
+[data-theme="dark"] .slotStatePill--disabled {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.42);
+  color: #fecaca;
 }
 
 html.dark .disabledSlotsPanel,
