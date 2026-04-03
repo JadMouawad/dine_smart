@@ -169,6 +169,13 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
       })
       .catch((err) => {
         console.error("getMyRestaurant error:", err.message);
+        if (err?.status === 404) {
+          // Owner has no restaurant yet -> show create form without scary error.
+          setExistingRestaurant(null);
+          setIsEditing(true);
+          setError("");
+          return;
+        }
         setError((prev) => prev || "We couldn't refresh your restaurant profile right now.");
       })
       .finally(() => {

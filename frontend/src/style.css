@@ -2894,7 +2894,7 @@ body {
   border-radius: 20px;
   padding: 14px;
   backdrop-filter: blur(20px) saturate(160%);
--webkit-backdrop-filter: blur(20px) saturate(160%);
+ -webkit-backdrop-filter: blur(20px) saturate(160%);
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
 }
 
@@ -3173,7 +3173,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .ownerProfileGrid {
   display: grid;
   grid-template-columns: 0.95fr 1.05fr;
-  gap: 18px;
+  gap: 14px;
   align-items: start;
   min-height: 0;
   height: auto;
@@ -3210,11 +3210,11 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   display: flex;
   flex-direction: column;
 
-  padding: 24px;
+  padding: 22px;
   min-height: 0;
 
   /* makes items breathe vertically */
-  gap: 18px;
+  gap: 16px;
 }
 
 .formCard--matchHeight .field span {
@@ -3392,14 +3392,14 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   margin-top: 16px;
 }
 
-/* Make ONLY the logo preview a smaller square box */
+/* Match logo preview size with gallery preview */
 .imageCard__preview--logo {
   width: 156px;
   height: 156px;
   margin: 0 auto;
 }
 
-/* Make logo upload button match square width */
+/* Keep logo upload button aligned with card */
 .imageCard__btn--logo {
   width: auto;
   align-self: center;
