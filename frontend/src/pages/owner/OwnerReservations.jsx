@@ -67,6 +67,7 @@ function getRoundedTimeValue() {
 }
 
 const OWNER_RESERVATION_FILTERS_KEY = "ds-owner-reservation-filters";
+const OWNER_RESERVATION_SECTION_KEY = "ds-owner-reservation-section";
 
 function getReservationNameValue(reservation) {
   return String(reservation?.customer_name || "").trim().toLowerCase();
@@ -197,6 +198,15 @@ export default function OwnerReservations() {
   const [disabledSlotsByDate, setDisabledSlotsByDate] = useState({});
   const [disabledSlotsLoadingByDate, setDisabledSlotsLoadingByDate] = useState({});
 
+  const [activeSection, setActiveSection] = useState(() => {
+    try {
+      const savedSection = localStorage.getItem(OWNER_RESERVATION_SECTION_KEY);
+      return savedSection || "calendar";
+    } catch {
+      return "calendar";
+    }
+  });
+
   const [reservationView, setReservationView] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(OWNER_RESERVATION_FILTERS_KEY) || "{}");
@@ -225,6 +235,12 @@ export default function OwnerReservations() {
       return "all";
     }
   });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(OWNER_RESERVATION_SECTION_KEY, activeSection);
+    } catch {}
+  }, [activeSection]);
 
   useEffect(() => {
     localStorage.setItem(
@@ -740,518 +756,565 @@ export default function OwnerReservations() {
     <div className="ownerTableConfigPage">
       <h1 className="ownerProfile__title">Reservations</h1>
 
-      <OwnerReservationCalendar
-        reservations={reservations}
-        onReservationClick={handleCalendarReservationClick}
-      />
       {success && <div className="inlineToast inlineToast--success">{success}</div>}
       {error && <div className="fieldError">{error}</div>}
 
-      <section className="formCard slotAdjustCard">
-        <div className="slotAdjustHeader">
-          <h2 className="reservationSection__title">Adjust Available Seats</h2>
-          <p className="slotAdjustHint">
-            Use negative numbers to reserve seats for walk-ins or staffing limits.
-          </p>
-        </div>
-
-        <form className="slotAdjustForm" onSubmit={handleSaveAdjustment}>
-          <div className="slotAdjustGrid">
-            <label className="field">
-              <span>Date</span>
-              <input
-                type="date"
-                value={adjustmentDate}
-                onChange={(e) => setAdjustmentDate(e.target.value)}
-                required
-              />
-            </label>
-
-            <label className="field">
-              <span>Time</span>
-              <input
-                type="time"
-                value={adjustmentTime}
-                onChange={(e) => setAdjustmentTime(e.target.value)}
-                required
-              />
-            </label>
-
-            <label className="field">
-              <span>Seating</span>
-              <select
-                className="select"
-                value={adjustmentPreference}
-                onChange={(e) => setAdjustmentPreference(e.target.value)}
-              >
-                <option value="any">Any seating</option>
-                <option value="indoor">Indoor</option>
-                <option value="outdoor">Outdoor</option>
-              </select>
-            </label>
-
-            <label className="field">
-              <span>Seat adjustment (+ to add, − to reduce)</span>
-              <input
-                type="number"
-                step="1"
-                value={adjustmentValue}
-                min={baseCapacity != null ? -baseCapacity : undefined}
-                onChange={(e) => setAdjustmentValue(e.target.value)}
-                required
-              />
-              {(() => {
-                const delta = parseInt(adjustmentValue, 10);
-                const total = slotAvailability?.total_capacity ?? baseCapacity;
-                const booked = slotAvailability?.booked_seats ?? 0;
-                const currentlyAvailable = total != null ? Math.max(total - booked, 0) : null;
-
-                if (total == null) return null;
-
-                if (Number.isNaN(delta) || delta === 0) {
-                  return (
-                    <span className="slotAdjustHint">
-                      {total} total &nbsp;·&nbsp; {booked} booked &nbsp;·&nbsp; <strong>{currentlyAvailable} available</strong>
-                    </span>
-                  );
-                }
-
-                const afterAvailable = Math.max(currentlyAvailable + delta, 0);
-                const isOver = afterAvailable === 0 && delta < 0 && Math.abs(delta) > currentlyAvailable;
-
-                return (
-                  <span className={`slotAdjustHint ${delta < 0 ? "slotAdjustHint--reduce" : "slotAdjustHint--increase"}`}>
-                    {total} total &nbsp;·&nbsp; {booked} booked &nbsp;·&nbsp;
-                    {currentlyAvailable} → <strong>{afterAvailable} available</strong>
-                    {isOver && <span className="slotAdjustHint--reduce"> ⚠ can't reduce below 0</span>}
-                  </span>
-                );
-              })()}
-            </label>
-          </div>
-
-          {adjustmentFetching && (
-            <div className="slotAdjustStatus">Loading current adjustment...</div>
-          )}
-          {adjustmentError && <div className="fieldError">{adjustmentError}</div>}
-
-          <div className="slotAdjustActions">
-            <button
-              className="btn btn--ghost"
-              type="button"
-              onClick={() => setAdjustmentValue("0")}
-              disabled={adjustmentLoading}
-            >
-              Reset to 0
-            </button>
-
-            <button className="btn btn--gold" type="submit" disabled={adjustmentLoading || adjustmentFetching}>
-              {adjustmentLoading ? "Saving..." : "Save Adjustment"}
-            </button>
-          </div>
-        </form>
-      </section>
-
-      <section className="formCard slotAdjustCard">
-        <div className="slotAdjustHeader slotAdjustHeader--row">
-          <div>
-            <h2 className="reservationSection__title">Disable Specific Time Slots</h2>
-            <p className="slotAdjustHint">
-              Disabled slots are greyed out for users and cannot be booked until you re-enable them.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            className="slotDraftAddBtn"
-            onClick={addDisabledSlotDraft}
-            aria-label="Add another slot"
-            title="Add another slot"
-          >
-            +
-          </button>
-        </div>
-
-        <div className="slotDraftStack">
-          {disabledSlotDrafts.map((draft) => {
-            const allForDate = disabledSlotsByDate[draft.date] || [];
-            const currentMatchedSlot = allForDate.find((slot) => sameDisabledSlot(slot, draft));
-            const otherDisabledSlots = allForDate.filter((slot) => !sameDisabledSlot(slot, draft));
-            const isDateLoading = Boolean(disabledSlotsLoadingByDate[draft.date]);
-
-            return (
-              <form
-                key={draft.id}
-                className="slotDraftCard"
-                onSubmit={(event) => handleToggleDisabledSlot(event, draft)}
-              >
-                <div className="slotDraftCard__top">
-                  <div className="slotDraftCard__titleWrap">
-                    <div className="slotDraftCard__title">Slot {draft.slotNumber}</div>
-                    <div className="slotDraftCard__subtitle">
-                      Configure, disable, or re-enable this slot.
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="slotDraftRemoveBtn"
-                    onClick={() => removeDisabledSlotDraft(draft.id)}
-                    disabled={draft.loading}
-                  >
-                    Remove
-                  </button>
-                </div>
-
-                <div className="slotAdjustGrid">
-                  <label className="field">
-                    <span>Date</span>
-                    <input
-                      type="date"
-                      value={draft.date}
-                      onChange={(e) =>
-                        updateDraft(draft.id, (current) => ({
-                          ...current,
-                          date: e.target.value,
-                          error: "",
-                        }))
-                      }
-                      required
-                    />
-                  </label>
-
-                  <label className="field">
-                    <span>Time</span>
-                    <input
-                      type="time"
-                      value={normalizeTimeValue(draft.time)}
-                      onChange={(e) =>
-                        updateDraft(draft.id, (current) => ({
-                          ...current,
-                          time: e.target.value,
-                          error: "",
-                        }))
-                      }
-                      required
-                    />
-                  </label>
-
-                  <label className="field">
-                    <span>Seating</span>
-                    <select
-                      className="select"
-                      value={draft.seatingPreference}
-                      onChange={(e) =>
-                        updateDraft(draft.id, (current) => ({
-                          ...current,
-                          seatingPreference: e.target.value,
-                          error: "",
-                        }))
-                      }
-                    >
-                      <option value="any">Any seating</option>
-                      <option value="indoor">Indoor</option>
-                      <option value="outdoor">Outdoor</option>
-                    </select>
-                  </label>
-
-                  <label className="field">
-                    <span>Reason (optional)</span>
-                    <input
-                      type="text"
-                      maxLength={250}
-                      value={draft.reason}
-                      onChange={(e) =>
-                        updateDraft(draft.id, (current) => ({
-                          ...current,
-                          reason: e.target.value,
-                          error: "",
-                        }))
-                      }
-                      placeholder="Closure, private event, kitchen pause..."
-                    />
-                  </label>
-                </div>
-
-                <div className="slotAdjustStatus">
-                  Current state: <strong>{currentMatchedSlot ? "Disabled" : "Enabled"}</strong>
-                </div>
-
-                {isDateLoading && (
-                  <div className="slotAdjustStatus">Loading disabled slots...</div>
-                )}
-
-                {draft.error && <div className="fieldError">{draft.error}</div>}
-
-                {otherDisabledSlots.length > 0 && (
-                  <div className="disabledSlotsPanel">
-                    <div className="disabledSlotsPanel__title">
-                      Other disabled slots on {draft.date}
-                    </div>
-
-                    <div className="disabledSlotsList">
-                      {otherDisabledSlots.map((slot) => (
-                        <div
-                          className="disabledSlotChip"
-                          key={`${slot.id || "slot"}-${slot.reservation_time}-${slot.seating_preference}`}
-                        >
-                          <span>{formatDisabledSlotLabel(slot)}</span>
-                          {slot.reason ? <span className="disabledSlotChip__reason">{slot.reason}</span> : null}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="slotAdjustActions">
-                  <button
-                    className="btn btn--ghost"
-                    type="button"
-                    onClick={() =>
-                      updateDraft(draft.id, (current) => ({
-                        ...current,
-                        reason: "",
-                        error: "",
-                      }))
-                    }
-                    disabled={draft.loading}
-                  >
-                    Clear Reason
-                  </button>
-
-                  <button
-                    className="btn btn--gold"
-                    type="submit"
-                    disabled={draft.loading || isDateLoading}
-                  >
-                    {draft.loading ? "Saving..." : currentMatchedSlot ? "Re-enable Slot" : "Disable Slot"}
-                  </button>
-                </div>
-              </form>
-            );
-          })}
-        </div>
-      </section>
-
-      <div className="ownerReservationToolbar">
-        <div className="ownerReservationTabs">
-          <button
-            type="button"
-            className={`ownerReservationTabs__btn ${reservationView === "upcoming" ? "is-active" : ""}`}
-            onClick={() => setReservationView("upcoming")}
-          >
-            Upcoming
-          </button>
-
-          <button
-            type="button"
-            className={`ownerReservationTabs__btn ${reservationView === "past" ? "is-active" : ""}`}
-            onClick={() => setReservationView("past")}
-          >
-            Past
-          </button>
-
-          <button
-            type="button"
-            className={`ownerReservationTabs__btn ${reservationView === "all" ? "is-active" : ""}`}
-            onClick={() => setReservationView("all")}
-          >
-            All
-          </button>
-        </div>
+      <div className="ownerReservationSectionSwitcher">
+        <button
+          type="button"
+          className={`ownerReservationSectionSwitcher__btn ${activeSection === "calendar" ? "is-active" : ""}`}
+          onClick={() => setActiveSection("calendar")}
+        >
+          Calendar
+        </button>
 
         <button
           type="button"
-          className={`searchFilterBtn ${filtersOpen ? "is-active" : ""}`}
-          onClick={() => setFiltersOpen(true)}
+          className={`ownerReservationSectionSwitcher__btn ${activeSection === "seat-adjustments" ? "is-active" : ""}`}
+          onClick={() => setActiveSection("seat-adjustments")}
         >
-          ⚙ Filters
+          Seat Adjustment
+        </button>
+
+        <button
+          type="button"
+          className={`ownerReservationSectionSwitcher__btn ${activeSection === "disable-slots" ? "is-active" : ""}`}
+          onClick={() => setActiveSection("disable-slots")}
+        >
+          Disable Time Slot
+        </button>
+
+        <button
+          type="button"
+          className={`ownerReservationSectionSwitcher__btn ${activeSection === "reservations" ? "is-active" : ""}`}
+          onClick={() => setActiveSection("reservations")}
+        >
+          Reservations
         </button>
       </div>
 
-      {filtersOpen && (
-        <>
-          <div className="ownerReservationFiltersBackdrop" onClick={() => setFiltersOpen(false)} />
-
-          <div className="ownerReservationFiltersModal">
-            <div className="ownerReservationFiltersModal__head">
-              <div className="ownerReservationFiltersModal__title">Filters</div>
-              <button
-                type="button"
-                className="ownerReservationFiltersModal__close"
-                onClick={() => setFiltersOpen(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="ownerReservationFiltersModal__body">
-              <div className="ownerReservationFiltersSection">
-                <div className="ownerReservationFiltersSection__title">Sort by</div>
-
-                <label className="ownerReservationRadioRow">
-                  <input
-                    type="radio"
-                    name="ownerReservationSort"
-                    checked={reservationSortBy === "date-time"}
-                    onChange={() => setReservationSortBy("date-time")}
-                  />
-                  <span>Date & Time</span>
-                </label>
-
-                <label className="ownerReservationRadioRow">
-                  <input
-                    type="radio"
-                    name="ownerReservationSort"
-                    checked={reservationSortBy === "az"}
-                    onChange={() => setReservationSortBy("az")}
-                  />
-                  <span>A–Z</span>
-                </label>
-              </div>
-
-              <div className="ownerReservationFiltersSection">
-                <div className="ownerReservationFiltersSection__title">Party Size</div>
-
-                <div className="ownerReservationSliderRow">
-                  <input
-                    className="ownerReservationSlider"
-                    type="range"
-                    min="0"
-                    max="12"
-                    step="1"
-                    value={partySizeFilter === "all" ? "0" : String(partySizeFilter)}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setPartySizeFilter(value === "0" ? "all" : value);
-                    }}
-                  />
-                  <div className="ownerReservationSliderValue">
-                    {formatPartySizeFilterLabel(partySizeFilter)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="ownerReservationFiltersModal__footer">
-              <button
-                type="button"
-                className="btn btn--ghost"
-                onClick={() => {
-                  setReservationSortBy("date-time");
-                  setPartySizeFilter("all");
-                }}
-              >
-                Reset
-              </button>
-
-              <button
-                type="button"
-                className="btn btn--gold"
-                onClick={() => setFiltersOpen(false)}
-              >
-                Apply
-              </button>
-            </div>
-          </div>
-        </>
+      {activeSection === "calendar" && (
+        <section className="ownerReservationPanel">
+          <OwnerReservationCalendar
+            reservations={reservations}
+            onReservationClick={handleCalendarReservationClick}
+          />
+        </section>
       )}
 
-      {visibleReservations.length === 0 ? (
-        <EmptyState
-          title="No reservations found"
-          message="There are no reservations matching the current view and filters."
-        />
-      ) : (
-        <div className="reservationCards">
-          {visibleReservations.map((reservation) => {
-            const normalizedStatus = formatOwnerReservationStatus(reservation.status);
-            const isPending = normalizedStatus === "pending";
-            const isAccepted = normalizedStatus === "accepted";
-            const isFinished = ["cancelled", "no-show", "completed", "rejected"].includes(normalizedStatus);
+      {activeSection === "seat-adjustments" && (
+        <section className="formCard slotAdjustCard ownerReservationPanel">
+          <div className="slotAdjustHeader">
+            <h2 className="reservationSection__title">Adjust Available Seats</h2>
+            <p className="slotAdjustHint">
+              Use negative numbers to reserve seats for walk-ins or staffing limits.
+            </p>
+          </div>
 
-            return (
-              <article
-                key={reservation.id}
-                id={`owner-reservation-card-${reservation.id}`}
-                className={`reservationCard ${focusedReservationId === reservation.id ? "reservationCard--focused" : ""}`}
+          <form className="slotAdjustForm" onSubmit={handleSaveAdjustment}>
+            <div className="slotAdjustGrid">
+              <label className="field">
+                <span>Date</span>
+                <input
+                  type="date"
+                  value={adjustmentDate}
+                  onChange={(e) => setAdjustmentDate(e.target.value)}
+                  required
+                />
+              </label>
+
+              <label className="field">
+                <span>Time</span>
+                <input
+                  type="time"
+                  value={adjustmentTime}
+                  onChange={(e) => setAdjustmentTime(e.target.value)}
+                  required
+                />
+              </label>
+
+              <label className="field">
+                <span>Seating</span>
+                <select
+                  className="select"
+                  value={adjustmentPreference}
+                  onChange={(e) => setAdjustmentPreference(e.target.value)}
+                >
+                  <option value="any">Any seating</option>
+                  <option value="indoor">Indoor</option>
+                  <option value="outdoor">Outdoor</option>
+                </select>
+              </label>
+
+              <label className="field">
+                <span>Seat adjustment (+ to add, − to reduce)</span>
+                <input
+                  type="number"
+                  step="1"
+                  value={adjustmentValue}
+                  min={baseCapacity != null ? -baseCapacity : undefined}
+                  onChange={(e) => setAdjustmentValue(e.target.value)}
+                  required
+                />
+                {(() => {
+                  const delta = parseInt(adjustmentValue, 10);
+                  const total = slotAvailability?.total_capacity ?? baseCapacity;
+                  const booked = slotAvailability?.booked_seats ?? 0;
+                  const currentlyAvailable = total != null ? Math.max(total - booked, 0) : null;
+
+                  if (total == null) return null;
+
+                  if (Number.isNaN(delta) || delta === 0) {
+                    return (
+                      <span className="slotAdjustHint">
+                        {total} total &nbsp;·&nbsp; {booked} booked &nbsp;·&nbsp; <strong>{currentlyAvailable} available</strong>
+                      </span>
+                    );
+                  }
+
+                  const afterAvailable = Math.max(currentlyAvailable + delta, 0);
+                  const isOver = afterAvailable === 0 && delta < 0 && Math.abs(delta) > currentlyAvailable;
+
+                  return (
+                    <span className={`slotAdjustHint ${delta < 0 ? "slotAdjustHint--reduce" : "slotAdjustHint--increase"}`}>
+                      {total} total &nbsp;·&nbsp; {booked} booked &nbsp;·&nbsp;
+                      {currentlyAvailable} → <strong>{afterAvailable} available</strong>
+                      {isOver && <span className="slotAdjustHint--reduce"> ⚠ can't reduce below 0</span>}
+                    </span>
+                  );
+                })()}
+              </label>
+            </div>
+
+            {adjustmentFetching && (
+              <div className="slotAdjustStatus">Loading current adjustment...</div>
+            )}
+            {adjustmentError && <div className="fieldError">{adjustmentError}</div>}
+
+            <div className="slotAdjustActions">
+              <button
+                className="btn btn--ghost"
+                type="button"
+                onClick={() => setAdjustmentValue("0")}
+                disabled={adjustmentLoading}
               >
-                <div className="reservationCard__main">
-                  <div>
-                    <div className="reservationCard__name">
-                      {reservation.customer_name || "Guest"}
-                    </div>
-                    <div className="reservationCard__meta">
-                      {formatDateTime(reservation)} • Party of {reservation.party_size}
-                    </div>
-                    {reservation.seating_preference ? (
-                      <div className="reservationCard__meta">
-                        Seating: {reservation.seating_preference}
+                Reset to 0
+              </button>
+
+              <button className="btn btn--gold" type="submit" disabled={adjustmentLoading || adjustmentFetching}>
+                {adjustmentLoading ? "Saving..." : "Save Adjustment"}
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
+
+      {activeSection === "disable-slots" && (
+        <section className="formCard slotAdjustCard ownerReservationPanel">
+          <div className="slotAdjustHeader slotAdjustHeader--row">
+            <div>
+              <h2 className="reservationSection__title">Disable Specific Time Slots</h2>
+              <p className="slotAdjustHint">
+                Disabled slots are greyed out for users and cannot be booked until you re-enable them.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="slotDraftAddBtn"
+              onClick={addDisabledSlotDraft}
+              aria-label="Add another slot"
+              title="Add another slot"
+            >
+              +
+            </button>
+          </div>
+
+          <div className="slotDraftStack">
+            {disabledSlotDrafts.map((draft) => {
+              const allForDate = disabledSlotsByDate[draft.date] || [];
+              const currentMatchedSlot = allForDate.find((slot) => sameDisabledSlot(slot, draft));
+              const otherDisabledSlots = allForDate.filter((slot) => !sameDisabledSlot(slot, draft));
+              const isDateLoading = Boolean(disabledSlotsLoadingByDate[draft.date]);
+
+              return (
+                <form
+                  key={draft.id}
+                  className="slotDraftCard"
+                  onSubmit={(event) => handleToggleDisabledSlot(event, draft)}
+                >
+                  <div className="slotDraftCard__top">
+                    <div className="slotDraftCard__titleWrap">
+                      <div className="slotDraftCard__title">Slot {draft.slotNumber}</div>
+                      <div className="slotDraftCard__subtitle">
+                        Configure, disable, or re-enable this slot.
                       </div>
-                    ) : null}
-                    {reservation.special_request ? (
-                      <div className="reservationCard__meta">
-                        Request: {reservation.special_request}
-                      </div>
-                    ) : null}
+                    </div>
+
+                    <button
+                      type="button"
+                      className="slotDraftRemoveBtn"
+                      onClick={() => removeDisabledSlotDraft(draft.id)}
+                      disabled={draft.loading}
+                    >
+                      Remove
+                    </button>
                   </div>
 
-                  <span className={toStatusClass(reservation.status)}>
-                    {reservation.status}
-                  </span>
+                  <div className="slotAdjustGrid">
+                    <label className="field">
+                      <span>Date</span>
+                      <input
+                        type="date"
+                        value={draft.date}
+                        onChange={(e) =>
+                          updateDraft(draft.id, (current) => ({
+                            ...current,
+                            date: e.target.value,
+                            error: "",
+                          }))
+                        }
+                        required
+                      />
+                    </label>
+
+                    <label className="field">
+                      <span>Time</span>
+                      <input
+                        type="time"
+                        value={normalizeTimeValue(draft.time)}
+                        onChange={(e) =>
+                          updateDraft(draft.id, (current) => ({
+                            ...current,
+                            time: e.target.value,
+                            error: "",
+                          }))
+                        }
+                        required
+                      />
+                    </label>
+
+                    <label className="field">
+                      <span>Seating</span>
+                      <select
+                        className="select"
+                        value={draft.seatingPreference}
+                        onChange={(e) =>
+                          updateDraft(draft.id, (current) => ({
+                            ...current,
+                            seatingPreference: e.target.value,
+                            error: "",
+                          }))
+                        }
+                      >
+                        <option value="any">Any seating</option>
+                        <option value="indoor">Indoor</option>
+                        <option value="outdoor">Outdoor</option>
+                      </select>
+                    </label>
+
+                    <label className="field">
+                      <span>Reason (optional)</span>
+                      <input
+                        type="text"
+                        maxLength={250}
+                        value={draft.reason}
+                        onChange={(e) =>
+                          updateDraft(draft.id, (current) => ({
+                            ...current,
+                            reason: e.target.value,
+                            error: "",
+                          }))
+                        }
+                        placeholder="Private event, maintenance, holiday..."
+                      />
+                    </label>
+                  </div>
+
+                  <div className="slotDraftStatusRow">
+                    <span className={`statusBadge ${currentMatchedSlot ? "statusBadge--cancelled" : "statusBadge--accepted"}`}>
+                      {currentMatchedSlot ? "Disabled" : "Enabled"}
+                    </span>
+                    {isDateLoading && <span className="slotAdjustHint">Refreshing disabled slots...</span>}
+                  </div>
+
+                  {draft.error && <div className="fieldError">{draft.error}</div>}
+
+                  {currentMatchedSlot && currentMatchedSlot.reason ? (
+                    <div className="slotDraftReason">Current reason: {currentMatchedSlot.reason}</div>
+                  ) : null}
+
+                  {otherDisabledSlots.length > 0 ? (
+                    <div className="slotDraftExistingList">
+                      <div className="slotDraftExistingList__title">Other disabled slots on this date</div>
+                      <div className="slotDraftExistingList__items">
+                        {otherDisabledSlots.map((slot) => (
+                          <div
+                            key={`${slot.reservation_date}-${slot.reservation_time}-${slot.seating_preference || "any"}`}
+                            className="slotDraftExistingItem"
+                          >
+                            <span>{formatDisabledSlotLabel(slot)}</span>
+                            {slot.reason ? <span>• {slot.reason}</span> : null}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="slotAdjustActions">
+                    <button
+                      className="btn btn--ghost"
+                      type="button"
+                      onClick={() =>
+                        updateDraft(draft.id, (current) => ({
+                          ...current,
+                          reason: "",
+                          error: "",
+                        }))
+                      }
+                      disabled={draft.loading}
+                    >
+                      Clear Reason
+                    </button>
+
+                    <button
+                      className="btn btn--gold"
+                      type="submit"
+                      disabled={draft.loading || isDateLoading}
+                    >
+                      {draft.loading ? "Saving..." : currentMatchedSlot ? "Re-enable Slot" : "Disable Slot"}
+                    </button>
+                  </div>
+                </form>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {activeSection === "reservations" && (
+        <section className="ownerReservationPanel">
+          <div className="ownerReservationToolbar">
+            <div className="ownerReservationTabs">
+              <button
+                type="button"
+                className={`ownerReservationTabs__btn ${reservationView === "upcoming" ? "is-active" : ""}`}
+                onClick={() => setReservationView("upcoming")}
+              >
+                Upcoming
+              </button>
+
+              <button
+                type="button"
+                className={`ownerReservationTabs__btn ${reservationView === "past" ? "is-active" : ""}`}
+                onClick={() => setReservationView("past")}
+              >
+                Past
+              </button>
+
+              <button
+                type="button"
+                className={`ownerReservationTabs__btn ${reservationView === "all" ? "is-active" : ""}`}
+                onClick={() => setReservationView("all")}
+              >
+                All
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className={`searchFilterBtn ${filtersOpen ? "is-active" : ""}`}
+              onClick={() => setFiltersOpen(true)}
+            >
+              ⚙ Filters
+            </button>
+          </div>
+
+          {filtersOpen && (
+            <>
+              <div className="ownerReservationFiltersBackdrop" onClick={() => setFiltersOpen(false)} />
+
+              <div className="ownerReservationFiltersModal">
+                <div className="ownerReservationFiltersModal__head">
+                  <div className="ownerReservationFiltersModal__title">Filters</div>
+                  <button
+                    type="button"
+                    className="ownerReservationFiltersModal__close"
+                    onClick={() => setFiltersOpen(false)}
+                  >
+                    ✕
+                  </button>
                 </div>
 
-                {!isFinished && (
-                  <div className="reservationCard__actions">
-                    {isPending && (
-                      <>
-                        <button
-                          className="btn btn--gold"
-                          type="button"
-                          disabled={updatingId === reservation.id}
-                          onClick={() => handleAction(reservation.id, "accept")}
-                        >
-                          {updatingId === reservation.id ? "Working..." : "Accept"}
-                        </button>
+                <div className="ownerReservationFiltersModal__body">
+                  <div className="ownerReservationFiltersSection">
+                    <div className="ownerReservationFiltersSection__title">Sort by</div>
 
-                        <button
-                          className="btn btn--ghost"
-                          type="button"
-                          disabled={updatingId === reservation.id}
-                          onClick={() => setConfirmRejectReservation(reservation)}
-                        >
-                          Reject
-                        </button>
-                      </>
-                    )}
+                    <label className="ownerReservationRadioRow">
+                      <input
+                        type="radio"
+                        name="ownerReservationSort"
+                        checked={reservationSortBy === "date-time"}
+                        onChange={() => setReservationSortBy("date-time")}
+                      />
+                      <span>Date & Time</span>
+                    </label>
 
-                    {isAccepted && (
-                      <>
-                        <button
-                          className="btn btn--ghost"
-                          type="button"
-                          disabled={updatingId === reservation.id}
-                          onClick={() => handleAction(reservation.id, "complete")}
-                        >
-                          Mark completed
-                        </button>
-
-                        <button
-                          className="btn btn--ghost"
-                          type="button"
-                          disabled={updatingId === reservation.id}
-                          onClick={() => handleAction(reservation.id, "no-show")}
-                        >
-                          No-show
-                        </button>
-                      </>
-                    )}
+                    <label className="ownerReservationRadioRow">
+                      <input
+                        type="radio"
+                        name="ownerReservationSort"
+                        checked={reservationSortBy === "az"}
+                        onChange={() => setReservationSortBy("az")}
+                      />
+                      <span>A–Z</span>
+                    </label>
                   </div>
-                )}
-              </article>
-            );
-          })}
-        </div>
+
+                  <div className="ownerReservationFiltersSection">
+                    <div className="ownerReservationFiltersSection__title">Party Size</div>
+
+                    <div className="ownerReservationSliderRow">
+                      <input
+                        className="ownerReservationSlider"
+                        type="range"
+                        min="0"
+                        max="12"
+                        step="1"
+                        value={partySizeFilter === "all" ? "0" : String(partySizeFilter)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setPartySizeFilter(value === "0" ? "all" : value);
+                        }}
+                      />
+                      <div className="ownerReservationSliderValue">
+                        {formatPartySizeFilterLabel(partySizeFilter)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="ownerReservationFiltersModal__footer">
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    onClick={() => {
+                      setReservationSortBy("date-time");
+                      setPartySizeFilter("all");
+                    }}
+                  >
+                    Reset
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn--gold"
+                    onClick={() => setFiltersOpen(false)}
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {visibleReservations.length === 0 ? (
+            <EmptyState
+              title="No reservations found"
+              message="There are no reservations matching the current view and filters."
+            />
+          ) : (
+            <div className="reservationCards">
+              {visibleReservations.map((reservation) => {
+                const normalizedStatus = formatOwnerReservationStatus(reservation.status);
+                const isPending = normalizedStatus === "pending";
+                const isAccepted = normalizedStatus === "accepted";
+                const isFinished = ["cancelled", "no-show", "completed", "rejected"].includes(normalizedStatus);
+
+                return (
+                  <article
+                    key={reservation.id}
+                    id={`owner-reservation-card-${reservation.id}`}
+                    className={`reservationCard ${focusedReservationId === reservation.id ? "reservationCard--focused" : ""}`}
+                  >
+                    <div className="reservationCard__main">
+                      <div>
+                        <div className="reservationCard__name">
+                          {reservation.customer_name || "Guest"}
+                        </div>
+                        <div className="reservationCard__meta">
+                          {formatDateTime(reservation)} • Party of {reservation.party_size}
+                        </div>
+                        {reservation.seating_preference ? (
+                          <div className="reservationCard__meta">
+                            Seating: {reservation.seating_preference}
+                          </div>
+                        ) : null}
+                        {reservation.special_request ? (
+                          <div className="reservationCard__meta">
+                            Request: {reservation.special_request}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <span className={toStatusClass(reservation.status)}>
+                        {reservation.status}
+                      </span>
+                    </div>
+
+                    {!isFinished && (
+                      <div className="reservationCard__actions">
+                        {isPending && (
+                          <>
+                            <button
+                              className="btn btn--gold"
+                              type="button"
+                              disabled={updatingId === reservation.id}
+                              onClick={() => handleAction(reservation.id, "accept")}
+                            >
+                              {updatingId === reservation.id ? "Working..." : "Accept"}
+                            </button>
+
+                            <button
+                              className="btn btn--ghost"
+                              type="button"
+                              disabled={updatingId === reservation.id}
+                              onClick={() => setConfirmRejectReservation(reservation)}
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+
+                        {isAccepted && (
+                          <>
+                            <button
+                              className="btn btn--ghost"
+                              type="button"
+                              disabled={updatingId === reservation.id}
+                              onClick={() => handleAction(reservation.id, "complete")}
+                            >
+                              Mark completed
+                            </button>
+
+                            <button
+                              className="btn btn--ghost"
+                              type="button"
+                              disabled={updatingId === reservation.id}
+                              onClick={() => handleAction(reservation.id, "no-show")}
+                            >
+                              No-show
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
       )}
 
       <ConfirmDialog
