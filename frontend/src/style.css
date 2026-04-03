@@ -2150,6 +2150,8 @@ body.ds-nav-not-sticky .nav {
 .ownerArea__main--pending {
   width: min(860px, 92vw);
   padding: 24px 16px 32px;
+  display: grid;
+  gap: 18px;
 }
 
 .ownerPendingCard {
@@ -2161,6 +2163,18 @@ body.ds-nav-not-sticky .nav {
     linear-gradient(160deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.02)),
     rgba(10, 16, 58, 0.4);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  margin-bottom: 8px;
+}
+
+.ownerPendingCard__title {
+  font-size: 1.9rem;
+  line-height: 1.15;
+}
+
+.ownerPendingCard__text {
+  margin-top: 10px;
+  font-size: 1.02rem;
+  line-height: 1.55;
 }
 
 /* ========================= */
