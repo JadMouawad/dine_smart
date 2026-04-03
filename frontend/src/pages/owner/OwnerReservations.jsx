@@ -197,11 +197,9 @@ export default function OwnerReservations() {
   const [disabledSlotDrafts, setDisabledSlotDrafts] = useState([createDisabledSlotDraft(1)]);
   const [disabledSlotsByDate, setDisabledSlotsByDate] = useState({});
   const [disabledSlotsLoadingByDate, setDisabledSlotsLoadingByDate] = useState({});
-
   const [activeSection, setActiveSection] = useState(() => {
     try {
-      const savedSection = localStorage.getItem(OWNER_RESERVATION_SECTION_KEY);
-      return savedSection || "calendar";
+      return localStorage.getItem(OWNER_RESERVATION_SECTION_KEY) || "calendar";
     } catch {
       return "calendar";
     }
@@ -726,6 +724,7 @@ export default function OwnerReservations() {
   function handleCalendarReservationClick(reservation) {
     if (!reservation?.id) return;
 
+    setActiveSection("reservations");
     setReservationView("all");
     setPartySizeFilter("all");
     setReservationSortBy("date-time");
@@ -770,16 +769,16 @@ export default function OwnerReservations() {
 
         <button
           type="button"
-          className={`ownerReservationSectionSwitcher__btn ${activeSection === "seat-adjustments" ? "is-active" : ""}`}
-          onClick={() => setActiveSection("seat-adjustments")}
+          className={`ownerReservationSectionSwitcher__btn ${activeSection === "seat-adjustment" ? "is-active" : ""}`}
+          onClick={() => setActiveSection("seat-adjustment")}
         >
           Seat Adjustment
         </button>
 
         <button
           type="button"
-          className={`ownerReservationSectionSwitcher__btn ${activeSection === "disable-slots" ? "is-active" : ""}`}
-          onClick={() => setActiveSection("disable-slots")}
+          className={`ownerReservationSectionSwitcher__btn ${activeSection === "disable-slot" ? "is-active" : ""}`}
+          onClick={() => setActiveSection("disable-slot")}
         >
           Disable Time Slot
         </button>
@@ -794,15 +793,15 @@ export default function OwnerReservations() {
       </div>
 
       {activeSection === "calendar" && (
-        <section className="ownerReservationPanel">
+        <div className="ownerReservationPanel">
           <OwnerReservationCalendar
             reservations={reservations}
             onReservationClick={handleCalendarReservationClick}
           />
-        </section>
+        </div>
       )}
 
-      {activeSection === "seat-adjustments" && (
+      {activeSection === "seat-adjustment" && (
         <section className="formCard slotAdjustCard ownerReservationPanel">
           <div className="slotAdjustHeader">
             <h2 className="reservationSection__title">Adjust Available Seats</h2>
@@ -909,7 +908,7 @@ export default function OwnerReservations() {
         </section>
       )}
 
-      {activeSection === "disable-slots" && (
+      {activeSection === "disable-slot" && (
         <section className="formCard slotAdjustCard ownerReservationPanel">
           <div className="slotAdjustHeader slotAdjustHeader--row">
             <div>
@@ -1026,40 +1025,40 @@ export default function OwnerReservations() {
                             error: "",
                           }))
                         }
-                        placeholder="Private event, maintenance, holiday..."
+                        placeholder="Closure, private event, kitchen pause..."
                       />
                     </label>
                   </div>
 
-                  <div className="slotDraftStatusRow">
-                    <span className={`statusBadge ${currentMatchedSlot ? "statusBadge--cancelled" : "statusBadge--accepted"}`}>
-                      {currentMatchedSlot ? "Disabled" : "Enabled"}
-                    </span>
-                    {isDateLoading && <span className="slotAdjustHint">Refreshing disabled slots...</span>}
+                  <div className="slotAdjustStatus">
+                    Current state: <strong>{currentMatchedSlot ? "Disabled" : "Enabled"}</strong>
                   </div>
+
+                  {isDateLoading && (
+                    <div className="slotAdjustStatus">Loading disabled slots...</div>
+                  )}
 
                   {draft.error && <div className="fieldError">{draft.error}</div>}
 
-                  {currentMatchedSlot && currentMatchedSlot.reason ? (
-                    <div className="slotDraftReason">Current reason: {currentMatchedSlot.reason}</div>
-                  ) : null}
+                  {otherDisabledSlots.length > 0 && (
+                    <div className="disabledSlotsPanel">
+                      <div className="disabledSlotsPanel__title">
+                        Other disabled slots on {draft.date}
+                      </div>
 
-                  {otherDisabledSlots.length > 0 ? (
-                    <div className="slotDraftExistingList">
-                      <div className="slotDraftExistingList__title">Other disabled slots on this date</div>
-                      <div className="slotDraftExistingList__items">
+                      <div className="disabledSlotsList">
                         {otherDisabledSlots.map((slot) => (
                           <div
-                            key={`${slot.reservation_date}-${slot.reservation_time}-${slot.seating_preference || "any"}`}
-                            className="slotDraftExistingItem"
+                            className="disabledSlotChip"
+                            key={`${slot.id || "slot"}-${slot.reservation_time}-${slot.seating_preference}`}
                           >
                             <span>{formatDisabledSlotLabel(slot)}</span>
-                            {slot.reason ? <span>• {slot.reason}</span> : null}
+                            {slot.reason ? <span className="disabledSlotChip__reason">{slot.reason}</span> : null}
                           </div>
                         ))}
                       </div>
                     </div>
-                  ) : null}
+                  )}
 
                   <div className="slotAdjustActions">
                     <button
@@ -1093,7 +1092,7 @@ export default function OwnerReservations() {
       )}
 
       {activeSection === "reservations" && (
-        <section className="ownerReservationPanel">
+        <div className="ownerReservationPanel">
           <div className="ownerReservationToolbar">
             <div className="ownerReservationTabs">
               <button
@@ -1314,7 +1313,7 @@ export default function OwnerReservations() {
               })}
             </div>
           )}
-        </section>
+        </div>
       )}
 
       <ConfirmDialog
