@@ -11155,180 +11155,219 @@ body.dark .slotDraftRemoveBtn:hover,
   color: #5a3d00;
 }
 
-/* ===== Custom dropdowns reused outside search page ===== */
-.customSelect {
-  position: relative;
-  width: 100%;
+/* ===== Owner Reviews page refresh ===== */
+.ownerReviewsPage {
+  display: grid;
+  gap: 14px;
 }
 
-.customSelect__btn {
-  width: 100%;
-  height: 40px;
-  padding: 0 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(0, 0, 0, 0.14);
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
+.ownerReviewsToolbar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  white-space: nowrap;
   justify-content: space-between;
-  transition: border-color 0.15s, background 0.15s;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
-.customSelect__btn:hover {
-  background: rgba(255, 255, 255, 0.10);
-  border-color: rgba(255, 255, 255, 0.28);
+.ownerReviewsToolbar__summary {
+  display: grid;
+  gap: 4px;
 }
 
-.customSelect__arrow {
-  font-size: 11px;
-  opacity: 0.65;
+.ownerReviewsToolbar__count {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.ownerReviewsToolbar__hint {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.ownerReviewsToolbar__filterBtn {
   flex-shrink: 0;
 }
 
-.customSelect__backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 98;
+.ownerReviewsFilters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03)),
+    rgba(12, 19, 79, 0.18);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
 }
 
-.customSelect__menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  z-index: 99;
-  background: rgba(10, 18, 53, 0.99);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 14px;
-  padding: 6px;
+.ownerReviewsFilters__field {
+  min-width: 0;
+}
+
+.ownerReviewsFilters__actions {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 100%;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.50);
-  animation: sortMenuIn 0.15s ease;
+  align-items: end;
+  justify-content: flex-end;
 }
 
-.customSelect__item {
-  padding: 9px 14px;
-  border-radius: 10px;
-  border: none;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.78);
+.ownerReviewsStack {
+  display: grid;
+  gap: 16px;
+}
+
+.ownerReviewCard {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
+  padding: 16px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03)),
+    rgba(12, 19, 79, 0.18);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.14);
+}
+
+.ownerReviewCard__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.ownerReviewCard__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.ownerReviewCard__avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+}
+
+.ownerReviewCard__avatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ownerReviewCard__identityText {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.ownerReviewCard__name {
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.ownerReviewCard__date {
   font-size: 13px;
-  font-weight: 500;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s;
+  font-weight: 600;
+  color: var(--muted);
 }
 
-.customSelect__item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.95);
+.ownerReviewCard__stars {
+  color: rgba(201, 162, 39, 0.95);
+  font-weight: 900;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  padding-top: 2px;
 }
 
-.customSelect__item.is-active {
-  color: #C9A227;
-  font-weight: 700;
-  background: rgba(201, 162, 39, 0.12);
+.ownerReviewCard__comment {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.6;
 }
 
-[data-theme="light"] .customSelect__btn {
-  background: rgba(255, 251, 243, 0.90);
-  border-color: rgba(175, 115, 45, 0.22);
+.ownerReviewCard__responseField {
+  margin-top: 12px;
+}
+
+.ownerReviewCard__actions {
+  margin-top: 12px;
+}
+
+[data-theme="light"] .ownerReviewsToolbar__count {
   color: #1A0E06;
 }
 
-[data-theme="light"] .customSelect__btn:hover {
-  background: rgba(255, 248, 235, 1);
-  border-color: rgba(175, 115, 45, 0.40);
+[data-theme="light"] .ownerReviewsToolbar__hint {
+  color: rgba(80, 45, 15, 0.72);
 }
 
-[data-theme="light"] .customSelect__menu {
-  background: rgba(255, 251, 243, 0.99);
+[data-theme="light"] .ownerReviewsFilters {
+  border-color: rgba(175, 115, 45, 0.18);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 251, 243, 0.76));
+  box-shadow: 0 14px 34px rgba(150, 90, 30, 0.10);
+}
+
+[data-theme="light"] .ownerReviewCard {
+  border-color: rgba(175, 115, 45, 0.18);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 251, 243, 0.78));
+  box-shadow: 0 14px 34px rgba(150, 90, 30, 0.10);
+}
+
+[data-theme="light"] .ownerReviewCard__avatar {
   border-color: rgba(175, 115, 45, 0.22);
-  box-shadow: 0 12px 36px rgba(130, 80, 10, 0.18);
+  background: rgba(255, 244, 220, 0.80);
 }
 
-[data-theme="light"] .customSelect__item {
-  color: rgba(26, 14, 6, 0.78);
+[data-theme="light"] .ownerReviewCard__name {
+  color: rgba(26, 14, 6, 0.92);
 }
 
-[data-theme="light"] .customSelect__item:hover {
-  background: rgba(201, 162, 39, 0.08);
-  color: rgba(26, 14, 6, 0.95);
+[data-theme="light"] .ownerReviewCard__date {
+  color: rgba(80, 45, 15, 0.65);
 }
 
-[data-theme="light"] .customSelect__item.is-active {
-  color: rgba(140, 90, 10, 0.95);
-  background: rgba(201, 162, 39, 0.14);
+[data-theme="light"] .ownerReviewCard__comment {
+  color: rgba(26, 14, 6, 0.84);
 }
 
-
-/* ===== Additional custom dropdown polish ===== */
-.customSelect__btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.65;
+@media (max-width: 900px) {
+  .ownerReviewsFilters {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
-.ownerCalendarSelect {
-  min-width: 180px;
-}
+@media (max-width: 640px) {
+  .ownerReviewsToolbar {
+    align-items: stretch;
+  }
 
-.ownerCalendarSelect .customSelect__menu {
-  max-height: 260px;
-  overflow-y: auto;
-}
+  .ownerReviewsToolbar__filterBtn {
+    width: 100%;
+    justify-content: center;
+  }
 
-.reviewCard__select .customSelect__menu {
-  min-width: 140px;
-}
+  .ownerReviewsFilters {
+    grid-template-columns: 1fr;
+  }
 
-/* Make custom dropdown menus scroll like the month dropdown */
-.customSelect__menu {
-  max-height: 220px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(201, 162, 39, 0.55) rgba(255, 255, 255, 0.06);
-}
+  .ownerReviewsFilters__actions {
+    justify-content: stretch;
+  }
 
-.customSelect__menu::-webkit-scrollbar {
-  width: 8px;
-}
+  .ownerReviewsFilters__actions .btn {
+    width: 100%;
+  }
 
-.customSelect__menu::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 999px;
-}
-
-.customSelect__menu::-webkit-scrollbar-thumb {
-  background: rgba(201, 162, 39, 0.55);
-  border-radius: 999px;
-}
-
-.customSelect__menu::-webkit-scrollbar-thumb:hover {
-  background: rgba(201, 162, 39, 0.72);
-}
-
-[data-theme="light"] .customSelect__menu {
-  scrollbar-color: rgba(175, 115, 45, 0.55) rgba(175, 115, 45, 0.10);
-}
-
-[data-theme="light"] .customSelect__menu::-webkit-scrollbar-track {
-  background: rgba(175, 115, 45, 0.10);
-}
-
-[data-theme="light"] .customSelect__menu::-webkit-scrollbar-thumb {
-  background: rgba(175, 115, 45, 0.55);
-}
-
-[data-theme="light"] .customSelect__menu::-webkit-scrollbar-thumb:hover {
-  background: rgba(175, 115, 45, 0.72);
+  .ownerReviewCard__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
