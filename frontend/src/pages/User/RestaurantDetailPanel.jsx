@@ -11,6 +11,7 @@ import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import { getCurrentSlotParams, formatTimeLabel } from "../../utils/timeUtils";
 import { getCrowdMeterMeta } from "../../utils/crowdMeter";
 import { FILLED_STAR, EMPTY_STAR } from "../../constants/filters";
+import { DEFAULT_AVATAR } from "../../constants/avatar";
 
 /**
  * RestaurantDetailPanel
@@ -677,18 +678,12 @@ export default function RestaurantDetailPanel({
                 <div className="reviewCardFull" key={rev.id}>
                   <div className="reviewCardFull__left">
                     <div className="reviewCardFull__avatar">
-                      {(rev.profilePictureUrl || rev.profile_picture_url) ? (
-                        <img
-                          className="reviewCardFull__avatarImg"
-                          src={rev.profilePictureUrl || rev.profile_picture_url}
-                          alt={`${rev.user_name || rev.authorName || "User"} avatar`}
-                        />
-                      ) : (
-                        <span className="reviewCardFull__avatarFallback">
-                          {(rev.user_name || rev.authorName || "?")[0].toUpperCase()}
-                        </span>
-                      )}
-                    </div>
+  <img
+    className="reviewCardFull__avatarImg"
+    src={rev.profilePictureUrl || rev.profile_picture_url || DEFAULT_AVATAR}
+    alt={`${rev.user_name || rev.authorName || "User"} avatar`}
+  />
+</div>
                   </div>
 
                   <div className="reviewCardFull__right">
