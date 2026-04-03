@@ -66,6 +66,38 @@ function normalizeGalleryUrls(value) {
     .filter(Boolean);
 }
 
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function dataUrlToBlobUrl(dataUrl) {
+  const raw = String(dataUrl || "").trim();
+  if (!raw.startsWith("data:")) return raw;
+
+  const [meta, content] = raw.split(",", 2);
+  if (!meta || content == null) return raw;
+
+  const mimeMatch = meta.match(/^data:([^;]+)(;base64)?$/i);
+  const mimeType = mimeMatch?.[1] || "application/octet-stream";
+  const isBase64 = /;base64$/i.test(meta);
+
+  try {
+    const byteString = isBase64 ? atob(content) : decodeURIComponent(content);
+    const bytes = new Uint8Array(byteString.length);
+    for (let index = 0; index < byteString.length; index += 1) {
+      bytes[index] = byteString.charCodeAt(index);
+    }
+    return URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+  } catch {
+    return raw;
+  }
+}
+
 export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
   const { theme, toggleTheme } = useTheme();
   const [restaurantName, setRestaurantName] = useState("");
@@ -92,6 +124,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
   const [existingRestaurant, setExistingRestaurant] = useState(null);
   const [isEditing, setIsEditing] = useState(true);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [documentPreviewUrls, setDocumentPreviewUrls] = useState({});
 
   // Mapbox controlled view state
   const [viewState, setViewState] = useState({
@@ -185,6 +218,30 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
       reader.onerror = () => reject(new Error("Failed to read file."));
       reader.readAsDataURL(file);
     });
+  }
+
+  useEffect(() => {
+    return () => {
+      Object.values(documentPreviewUrls).forEach((url) => {
+        if (String(url || "").startsWith("blob:")) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [documentPreviewUrls]);
+
+  function getPreviewHref(sourceUrl, key) {
+    const safeUrl = String(sourceUrl || "").trim();
+    if (!safeUrl) return "";
+    if (!safeUrl.startsWith("data:")) return safeUrl;
+
+    if (documentPreviewUrls[key]) return documentPreviewUrls[key];
+
+    const blobUrl = dataUrlToBlobUrl(safeUrl);
+    if (blobUrl !== safeUrl) {
+      setDocumentPreviewUrls((prev) => ({ ...prev, [key]: blobUrl }));
+    }
+    return blobUrl;
   }
 
   async function onPickLogo(event) {
@@ -485,7 +542,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
               <span className="ownerProfileViewLabel">Business license</span>
               <span className="ownerProfileViewValue">
                 {businessLicenseUrl ? (
-                  <a href={businessLicenseUrl} target="_blank" rel="noreferrer">
+                  <a href={getPreviewHref(businessLicenseUrl, "business-license")} target="_blank" rel="noreferrer">
                     {businessLicenseName || "View file"}
                   </a>
                 ) : "Not uploaded"}
@@ -495,7 +552,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
               <span className="ownerProfileViewLabel">Health certificate</span>
               <span className="ownerProfileViewValue">
                 {healthCertificateUrl ? (
-                  <a href={healthCertificateUrl} target="_blank" rel="noreferrer">
+                  <a href={getPreviewHref(healthCertificateUrl, "health-certificate")} target="_blank" rel="noreferrer">
                     {healthCertificateName || "View file"}
                   </a>
                 ) : "Not uploaded"}
@@ -596,7 +653,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                     <div className="documentCard">
                       <div className="documentCard__name">{businessLicenseName}</div>
                       {businessLicenseUrl && (
-                        <a className="documentCard__link" href={businessLicenseUrl} target="_blank" rel="noreferrer">
+                        <a className="documentCard__link" href={getPreviewHref(businessLicenseUrl, "business-license")} target="_blank" rel="noreferrer">
                           Preview file
                         </a>
                       )}
@@ -620,7 +677,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                     <div className="documentCard">
                       <div className="documentCard__name">{healthCertificateName}</div>
                       {healthCertificateUrl && (
-                        <a className="documentCard__link" href={healthCertificateUrl} target="_blank" rel="noreferrer">
+                        <a className="documentCard__link" href={getPreviewHref(healthCertificateUrl, "health-certificate")} target="_blank" rel="noreferrer">
                           Preview file
                         </a>
                       )}
