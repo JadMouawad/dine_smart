@@ -57,6 +57,7 @@ export default function RestaurantDetailPanel({
   const [reviewError, setReviewError] = useState("");
   const [reviewSuccess, setReviewSuccess] = useState("");
   const [reviewPosting, setReviewPosting] = useState(false);
+  const [reviewRatingDropdownOpen, setReviewRatingDropdownOpen] = useState(false);
   const [deleteReviewTarget, setDeleteReviewTarget] = useState(null);
   const [deleteReviewBusy, setDeleteReviewBusy] = useState(false);
 
@@ -300,6 +301,7 @@ export default function RestaurantDetailPanel({
 
       setReviewComment("");
       setReviewRating(5);
+      setReviewRatingDropdownOpen(false);
 
       if (response?.flagged) {
         setReviewSuccess(response?.message || "Your review was flagged for moderation.");
@@ -627,18 +629,45 @@ export default function RestaurantDetailPanel({
             <div className="reviewCard__title">Add a review</div>
             <div className="reviewComposer">
               <div className="reviewComposer__top">
-                <select
-                  className="select reviewCard__select"
-                  value={reviewRating}
-                  onChange={(e) => setReviewRating(Number(e.target.value))}
-                  disabled={reviewPosting}
-                >
-                  <option value="5">5 {FILLED_STAR}</option>
-                  <option value="4">4 {FILLED_STAR}</option>
-                  <option value="3">3 {FILLED_STAR}</option>
-                  <option value="2">2 {FILLED_STAR}</option>
-                  <option value="1">1 {FILLED_STAR}</option>
-                </select>
+                <div className="customSelect reviewCard__select">
+                  <button
+                    type="button"
+                    className="customSelect__btn"
+                    onClick={() => {
+                      if (reviewPosting) return;
+                      setReviewRatingDropdownOpen((open) => !open);
+                    }}
+                    aria-haspopup="listbox"
+                    aria-expanded={reviewRatingDropdownOpen}
+                    disabled={reviewPosting}
+                  >
+                    {reviewRating} {FILLED_STAR}
+                    <span className="customSelect__arrow">▾</span>
+                  </button>
+
+                  {reviewRatingDropdownOpen && !reviewPosting && (
+                    <>
+                      <div className="customSelect__backdrop" onClick={() => setReviewRatingDropdownOpen(false)} />
+                      <div className="customSelect__menu" role="listbox">
+                        {[5, 4, 3, 2, 1].map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            role="option"
+                            aria-selected={reviewRating === value}
+                            className={`customSelect__item${reviewRating === value ? " is-active" : ""}`}
+                            onClick={() => {
+                              setReviewRating(value);
+                              setReviewRatingDropdownOpen(false);
+                            }}
+                          >
+                            {value} {FILLED_STAR}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
 
                 <button
                   className="btn btn--gold reviewComposer__post"

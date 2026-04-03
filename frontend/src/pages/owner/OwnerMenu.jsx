@@ -71,6 +71,9 @@ export default function OwnerMenu() {
   const [itemDesc, setItemDesc] = useState("");
   const [itemImageDataUrl, setItemImageDataUrl] = useState("");
 
+  const [itemSectionDropdownOpen, setItemSectionDropdownOpen] = useState(false);
+  const [itemCurrencyDropdownOpen, setItemCurrencyDropdownOpen] = useState(false);
+
   const [openSectionMenuId, setOpenSectionMenuId] = useState(null);
 
   // ✅ Edit/Rename section states
@@ -127,6 +130,8 @@ export default function OwnerMenu() {
   function closeAllMenus() {
     setOpenSectionMenuId(null);
     setOpenItemMenuId(null);
+    setItemSectionDropdownOpen(false);
+    setItemCurrencyDropdownOpen(false);
   }
 
   function openAddSection() {
@@ -210,6 +215,8 @@ export default function OwnerMenu() {
     setItemDesc(item.description);
     setItemImageDataUrl("");
     setEditingItemImageUrl(item.imagePreviewUrl || "");
+    setItemSectionDropdownOpen(false);
+    setItemCurrencyDropdownOpen(false);
 
     setItemModalOpen(true);
     setItemStep(2);
@@ -225,6 +232,8 @@ export default function OwnerMenu() {
     setItemDesc("");
     setItemImageDataUrl("");
     setEditingItemImageUrl("");
+    setItemSectionDropdownOpen(false);
+    setItemCurrencyDropdownOpen(false);
     setItemModalOpen(true);
   }
 
@@ -251,6 +260,7 @@ export default function OwnerMenu() {
   function goToItemDetails(e) {
     e.preventDefault();
     if (!selectedSectionId) return;
+    setItemSectionDropdownOpen(false);
     setItemStep(2);
   }
 
@@ -327,6 +337,8 @@ export default function OwnerMenu() {
     setEditingItemId(null);
     setEditingItemImageUrl("");
     setItemImageDataUrl("");
+    setItemSectionDropdownOpen(false);
+    setItemCurrencyDropdownOpen(false);
   }
 
   if (menuLoading) {
@@ -545,7 +557,7 @@ export default function OwnerMenu() {
       {sectionModalOpen && (
         <div className="modal is-open" role="dialog" aria-modal="true">
           <div className="modal__backdrop" onClick={closeAddSection} />
-          <div className="modal__panel" role="document">
+          <div className="modal__panel" role="document" onClick={(e) => e.stopPropagation()}>
             <button
               className="modal__close"
               type="button"
@@ -595,7 +607,7 @@ export default function OwnerMenu() {
       {itemModalOpen && (
         <div className="modal is-open" role="dialog" aria-modal="true">
           <div className="modal__backdrop" onClick={closeItemModalAndReset} />
-          <div className="modal__panel" role="document">
+          <div className="modal__panel" role="document" onClick={(e) => e.stopPropagation()}>
             <button
               className="modal__close"
               type="button"
@@ -615,21 +627,45 @@ export default function OwnerMenu() {
                 <form className="form" onSubmit={goToItemDetails}>
                   <label className="field">
                     <span>Section</span>
-                    <select
-                      className="select"
-                      value={selectedSectionId}
-                      onChange={(e) => setSelectedSectionId(e.target.value)}
-                      required
-                    >
-                      <option value="" disabled>
-                        Select a section
-                      </option>
-                      {sections.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="customSelect" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        className="customSelect__btn"
+                        onClick={(e) => { e.stopPropagation(); setItemSectionDropdownOpen((open) => !open); setItemCurrencyDropdownOpen(false); }}
+                        aria-haspopup="listbox"
+                        aria-expanded={itemSectionDropdownOpen}
+                      >
+                        {sections.find((section) => section.id === selectedSectionId)?.name || "Select a section"}
+                        <span className="customSelect__arrow">▾</span>
+                      </button>
+
+                      {itemSectionDropdownOpen && (
+                        <>
+                          <div
+                            className="customSelect__backdrop"
+                            onClick={(e) => { e.stopPropagation(); setItemSectionDropdownOpen(false); }}
+                          />
+                          <div className="customSelect__menu" role="listbox">
+                            {sections.map((section) => (
+                              <button
+                                key={section.id}
+                                type="button"
+                                role="option"
+                                aria-selected={selectedSectionId === section.id}
+                                className={`customSelect__item${selectedSectionId === section.id ? " is-active" : ""}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedSectionId(section.id);
+                                  setItemSectionDropdownOpen(false);
+                                }}
+                              >
+                                {section.name}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </label>
 
                   <div className="menuModalHelper">
@@ -688,18 +724,45 @@ export default function OwnerMenu() {
 
                     <label className="field">
                       <span>Currency</span>
-                      <select
-                        className="select"
-                        value={itemCurrency}
-                        onChange={(e) => setItemCurrency(e.target.value)}
-                        required
-                      >
-                        {CURRENCIES.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="customSelect" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          className="customSelect__btn"
+                          onClick={(e) => { e.stopPropagation(); setItemCurrencyDropdownOpen((open) => !open); setItemSectionDropdownOpen(false); }}
+                          aria-haspopup="listbox"
+                          aria-expanded={itemCurrencyDropdownOpen}
+                        >
+                          {itemCurrency}
+                          <span className="customSelect__arrow">▾</span>
+                        </button>
+
+                        {itemCurrencyDropdownOpen && (
+                          <>
+                            <div
+                              className="customSelect__backdrop"
+                              onClick={(e) => { e.stopPropagation(); setItemCurrencyDropdownOpen(false); }}
+                            />
+                            <div className="customSelect__menu" role="listbox">
+                              {CURRENCIES.map((currency) => (
+                                <button
+                                  key={currency}
+                                  type="button"
+                                  role="option"
+                                  aria-selected={itemCurrency === currency}
+                                  className={`customSelect__item${itemCurrency === currency ? " is-active" : ""}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setItemCurrency(currency);
+                                    setItemCurrencyDropdownOpen(false);
+                                  }}
+                                >
+                                  {currency}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </label>
                   </div>
 

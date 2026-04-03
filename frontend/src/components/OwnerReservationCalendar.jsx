@@ -161,6 +161,9 @@ export default function OwnerReservationCalendar({
   const [userQuery, setUserQuery] = useState("");
   const [yearInput, setYearInput] = useState(String(today.getFullYear()));
   const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
+  const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
+  const [weekDropdownOpen, setWeekDropdownOpen] = useState(false);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
 
   const normalizedUserQuery = userQuery.trim().toLowerCase();
 
@@ -318,12 +321,13 @@ export default function OwnerReservationCalendar({
     setSelectedWeekIndex(0);
   }
 
-  function handleMonthChange(event) {
-    const monthIndex = parseInt(event.target.value, 10);
-    if (Number.isNaN(monthIndex)) return;
+  function handleMonthChange(monthIndex) {
+    const parsedMonthIndex = parseInt(monthIndex, 10);
+    if (Number.isNaN(parsedMonthIndex)) return;
 
-    setAnchorDate((current) => new Date(current.getFullYear(), monthIndex, 1));
+    setAnchorDate((current) => new Date(current.getFullYear(), parsedMonthIndex, 1));
     setSelectedWeekIndex(0);
+    setMonthDropdownOpen(false);
   }
 
   function handleYearChange(event) {
@@ -351,10 +355,11 @@ export default function OwnerReservationCalendar({
     }
   }
 
-  function handleWeekChange(event) {
-    const nextIndex = parseInt(event.target.value, 10);
+  function handleWeekChange(weekIndex) {
+    const nextIndex = parseInt(weekIndex, 10);
     if (Number.isNaN(nextIndex)) return;
     setSelectedWeekIndex(nextIndex);
+    setWeekDropdownOpen(false);
   }
 
   return (
@@ -380,18 +385,43 @@ export default function OwnerReservationCalendar({
 </div>
 
 <div className="ownerCalendarToolbar__center">
-  <select
-    className="ownerCalendarMonthSelect"
-    value={anchorDate.getMonth()}
-    onChange={handleMonthChange}
-    aria-label="Select month"
-  >
-    {MONTH_NAMES.map((month, index) => (
-      <option key={month} value={index}>
-        {month}
-      </option>
-    ))}
-  </select>
+  <div className="customSelect ownerCalendarSelect">
+    <button
+      type="button"
+      className="customSelect__btn ownerCalendarMonthSelect"
+      onClick={() => {
+        setMonthDropdownOpen((open) => !open);
+        setWeekDropdownOpen(false);
+        setStatusDropdownOpen(false);
+      }}
+      aria-haspopup="listbox"
+      aria-expanded={monthDropdownOpen}
+      aria-label="Select month"
+    >
+      {MONTH_NAMES[anchorDate.getMonth()]}
+      <span className="customSelect__arrow">▾</span>
+    </button>
+
+    {monthDropdownOpen && (
+      <>
+        <div className="customSelect__backdrop" onClick={() => setMonthDropdownOpen(false)} />
+        <div className="customSelect__menu" role="listbox">
+          {MONTH_NAMES.map((month, index) => (
+            <button
+              key={month}
+              type="button"
+              role="option"
+              aria-selected={anchorDate.getMonth() === index}
+              className={`customSelect__item${anchorDate.getMonth() === index ? " is-active" : ""}`}
+              onClick={() => handleMonthChange(index)}
+            >
+              {month}
+            </button>
+          ))}
+        </div>
+      </>
+    )}
+  </div>
 
   <input
     className="ownerCalendarYearInput"
@@ -405,18 +435,43 @@ export default function OwnerReservationCalendar({
   />
 
   {viewMode === "week" && (
-    <select
-      className="ownerCalendarWeekSelect"
-      value={selectedWeekIndex}
-      onChange={handleWeekChange}
-      aria-label="Select week"
-    >
-      {monthWeeks.map((weekDays, index) => (
-        <option key={`week-${index}`} value={index}>
-          Week {index + 1} ({formatWeekOptionLabel(weekDays, index)})
-        </option>
-      ))}
-    </select>
+    <div className="customSelect ownerCalendarSelect">
+      <button
+        type="button"
+        className="customSelect__btn ownerCalendarWeekSelect"
+        onClick={() => {
+          setWeekDropdownOpen((open) => !open);
+          setMonthDropdownOpen(false);
+          setStatusDropdownOpen(false);
+        }}
+        aria-haspopup="listbox"
+        aria-expanded={weekDropdownOpen}
+        aria-label="Select week"
+      >
+        {`Week ${selectedWeekIndex + 1} (${formatWeekOptionLabel(monthWeeks[selectedWeekIndex] || [], selectedWeekIndex)})`}
+        <span className="customSelect__arrow">▾</span>
+      </button>
+
+      {weekDropdownOpen && (
+        <>
+          <div className="customSelect__backdrop" onClick={() => setWeekDropdownOpen(false)} />
+          <div className="customSelect__menu" role="listbox">
+            {monthWeeks.map((weekDays, index) => (
+              <button
+                key={`week-${index}`}
+                type="button"
+                role="option"
+                aria-selected={selectedWeekIndex === index}
+                className={`customSelect__item${selectedWeekIndex === index ? " is-active" : ""}`}
+                onClick={() => handleWeekChange(index)}
+              >
+                {`Week ${index + 1} (${formatWeekOptionLabel(weekDays, index)})`}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   )}
 </div>
 
@@ -460,14 +515,57 @@ export default function OwnerReservationCalendar({
 
             <label className="field ownerCalendarField">
               <span>Status</span>
-              <select className="select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                <option value="all">All Statuses</option>
-                {STATUS_ORDER.map((status) => (
-                  <option key={status} value={status}>
-                    {STATUS_LABELS[status]}
-                  </option>
-                ))}
-              </select>
+              <div className="customSelect">
+                <button
+                  type="button"
+                  className="customSelect__btn"
+                  onClick={() => {
+                    setStatusDropdownOpen((open) => !open);
+                    setMonthDropdownOpen(false);
+                    setWeekDropdownOpen(false);
+                  }}
+                  aria-haspopup="listbox"
+                  aria-expanded={statusDropdownOpen}
+                >
+                  {statusFilter === "all" ? "All Statuses" : STATUS_LABELS[statusFilter]}
+                  <span className="customSelect__arrow">▾</span>
+                </button>
+
+                {statusDropdownOpen && (
+                  <>
+                    <div className="customSelect__backdrop" onClick={() => setStatusDropdownOpen(false)} />
+                    <div className="customSelect__menu" role="listbox">
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={statusFilter === "all"}
+                        className={`customSelect__item${statusFilter === "all" ? " is-active" : ""}`}
+                        onClick={() => {
+                          setStatusFilter("all");
+                          setStatusDropdownOpen(false);
+                        }}
+                      >
+                        All Statuses
+                      </button>
+                      {STATUS_ORDER.map((status) => (
+                        <button
+                          key={status}
+                          type="button"
+                          role="option"
+                          aria-selected={statusFilter === status}
+                          className={`customSelect__item${statusFilter === status ? " is-active" : ""}`}
+                          onClick={() => {
+                            setStatusFilter(status);
+                            setStatusDropdownOpen(false);
+                          }}
+                        >
+                          {STATUS_LABELS[status]}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             </label>
 
             <label className="field ownerCalendarField">

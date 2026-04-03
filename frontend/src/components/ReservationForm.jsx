@@ -123,6 +123,8 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
   const [showAllTimes, setShowAllTimes] = useState(false);
   const [disabledSlotKeys, setDisabledSlotKeys] = useState(() => new Set());
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [partySizeDropdownOpen, setPartySizeDropdownOpen] = useState(false);
+  const [seatingDropdownOpen, setSeatingDropdownOpen] = useState(false);
 
   const today = useMemo(() => getDayStart(new Date()), []);
   const selectedDateValue = useMemo(() => toDateValue(date), [date]);
@@ -173,6 +175,8 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
     setSuggestedTimes([]);
     setShowAllTimes(false);
     setDisabledSlotKeys(new Set());
+    setPartySizeDropdownOpen(false);
+    setSeatingDropdownOpen(false);
   }, [isOpen]);
 
   useEffect(() => {
@@ -448,25 +452,91 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
 
         <label className="field">
           <span>Party Size</span>
-          <select className="select" value={partySize} onChange={(e) => setPartySize(e.target.value)} disabled={isBanned} required>
-            {PARTY_SIZE_OPTIONS.map((size) => (
-              <option key={size} value={size}>
-                {size} {size === 1 ? "guest" : "guests"}
-              </option>
-            ))}
-          </select>
+          <div className="customSelect">
+            <button
+              type="button"
+              className="customSelect__btn"
+              onClick={() => {
+                if (isBanned) return;
+                setPartySizeDropdownOpen((open) => !open);
+                setSeatingDropdownOpen(false);
+              }}
+              aria-haspopup="listbox"
+              aria-expanded={partySizeDropdownOpen}
+              disabled={isBanned}
+            >
+              {Number(partySize)} {Number(partySize) === 1 ? "guest" : "guests"}
+              <span className="customSelect__arrow">▾</span>
+            </button>
+
+            {partySizeDropdownOpen && !isBanned && (
+              <>
+                <div className="customSelect__backdrop" onClick={() => setPartySizeDropdownOpen(false)} />
+                <div className="customSelect__menu" role="listbox">
+                  {PARTY_SIZE_OPTIONS.map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      role="option"
+                      aria-selected={String(size) === String(partySize)}
+                      className={`customSelect__item${String(size) === String(partySize) ? " is-active" : ""}`}
+                      onClick={() => {
+                        setPartySize(String(size));
+                        setPartySizeDropdownOpen(false);
+                      }}
+                    >
+                      {size} {size === 1 ? "guest" : "guests"}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </label>
         {errors.partySize && <div className="fieldError">{errors.partySize}</div>}
 
         <label className="field">
           <span>Seating Preference (Optional)</span>
-          <select className="select" value={seatingPreference} onChange={(e) => setSeatingPreference(e.target.value)} disabled={isBanned}>
-            {SEATING_OPTIONS.map((option) => (
-              <option key={option.value || "any"} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className="customSelect">
+            <button
+              type="button"
+              className="customSelect__btn"
+              onClick={() => {
+                if (isBanned) return;
+                setSeatingDropdownOpen((open) => !open);
+                setPartySizeDropdownOpen(false);
+              }}
+              aria-haspopup="listbox"
+              aria-expanded={seatingDropdownOpen}
+              disabled={isBanned}
+            >
+              {SEATING_OPTIONS.find((option) => option.value === seatingPreference)?.label || "No preference"}
+              <span className="customSelect__arrow">▾</span>
+            </button>
+
+            {seatingDropdownOpen && !isBanned && (
+              <>
+                <div className="customSelect__backdrop" onClick={() => setSeatingDropdownOpen(false)} />
+                <div className="customSelect__menu" role="listbox">
+                  {SEATING_OPTIONS.map((option) => (
+                    <button
+                      key={option.value || "any"}
+                      type="button"
+                      role="option"
+                      aria-selected={option.value === seatingPreference}
+                      className={`customSelect__item${option.value === seatingPreference ? " is-active" : ""}`}
+                      onClick={() => {
+                        setSeatingPreference(option.value);
+                        setSeatingDropdownOpen(false);
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </label>
 
         <label className="field">

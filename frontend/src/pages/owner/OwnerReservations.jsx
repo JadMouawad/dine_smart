@@ -164,6 +164,13 @@ function createDisabledSlotDraft(slotNumber = 1) {
   };
 }
 
+const SEATING_OPTIONS = [
+  { value: "any", label: "Any seating" },
+  { value: "indoor", label: "Indoor" },
+  { value: "outdoor", label: "Outdoor" },
+];
+
+
 function sameDisabledSlot(slot, draft) {
   return (
     String(slot?.reservation_date || "") === String(draft?.date || draft?.reservation_date || "") &&
@@ -197,6 +204,8 @@ export default function OwnerReservations() {
   const [disabledSlotDrafts, setDisabledSlotDrafts] = useState([createDisabledSlotDraft(1)]);
   const [disabledSlotsByDate, setDisabledSlotsByDate] = useState({});
   const [disabledSlotsLoadingByDate, setDisabledSlotsLoadingByDate] = useState({});
+  const [adjustmentSeatingOpen, setAdjustmentSeatingOpen] = useState(false);
+  const [openDraftSeatingId, setOpenDraftSeatingId] = useState(null);
   const [activeSection, setActiveSection] = useState(() => {
     try {
       return localStorage.getItem(OWNER_RESERVATION_SECTION_KEY) || "calendar";
@@ -238,6 +247,11 @@ export default function OwnerReservations() {
     try {
       localStorage.setItem(OWNER_RESERVATION_SECTION_KEY, activeSection);
     } catch {}
+  }, [activeSection]);
+
+  useEffect(() => {
+    setAdjustmentSeatingOpen(false);
+    setOpenDraftSeatingId(null);
   }, [activeSection]);
 
   useEffect(() => {
@@ -834,15 +848,44 @@ export default function OwnerReservations() {
 
               <label className="field">
                 <span>Seating</span>
-                <select
-                  className="select"
-                  value={adjustmentPreference}
-                  onChange={(e) => setAdjustmentPreference(e.target.value)}
-                >
-                  <option value="any">Any seating</option>
-                  <option value="indoor">Indoor</option>
-                  <option value="outdoor">Outdoor</option>
-                </select>
+                <div className="customSelect">
+                  <button
+                    type="button"
+                    className="customSelect__btn"
+                    onClick={() => setAdjustmentSeatingOpen((open) => !open)}
+                    aria-haspopup="listbox"
+                    aria-expanded={adjustmentSeatingOpen}
+                  >
+                    {SEATING_OPTIONS.find((option) => option.value === adjustmentPreference)?.label || "Any seating"}
+                    <span className="customSelect__arrow">▾</span>
+                  </button>
+
+                  {adjustmentSeatingOpen && (
+                    <>
+                      <div
+                        className="customSelect__backdrop"
+                        onClick={() => setAdjustmentSeatingOpen(false)}
+                      />
+                      <div className="customSelect__menu" role="listbox">
+                        {SEATING_OPTIONS.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            role="option"
+                            aria-selected={adjustmentPreference === option.value}
+                            className={`customSelect__item${adjustmentPreference === option.value ? " is-active" : ""}`}
+                            onClick={() => {
+                              setAdjustmentPreference(option.value);
+                              setAdjustmentSeatingOpen(false);
+                            }}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               </label>
 
               <label className="field">
@@ -995,21 +1038,50 @@ export default function OwnerReservations() {
 
                     <label className="field">
                       <span>Seating</span>
-                      <select
-                        className="select"
-                        value={draft.seatingPreference}
-                        onChange={(e) =>
-                          updateDraft(draft.id, (current) => ({
-                            ...current,
-                            seatingPreference: e.target.value,
-                            error: "",
-                          }))
-                        }
-                      >
-                        <option value="any">Any seating</option>
-                        <option value="indoor">Indoor</option>
-                        <option value="outdoor">Outdoor</option>
-                      </select>
+                      <div className="customSelect">
+                        <button
+                          type="button"
+                          className="customSelect__btn"
+                          onClick={() =>
+                            setOpenDraftSeatingId((current) => (current === draft.id ? null : draft.id))
+                          }
+                          aria-haspopup="listbox"
+                          aria-expanded={openDraftSeatingId === draft.id}
+                        >
+                          {SEATING_OPTIONS.find((option) => option.value === draft.seatingPreference)?.label || "Any seating"}
+                          <span className="customSelect__arrow">▾</span>
+                        </button>
+
+                        {openDraftSeatingId === draft.id && (
+                          <>
+                            <div
+                              className="customSelect__backdrop"
+                              onClick={() => setOpenDraftSeatingId(null)}
+                            />
+                            <div className="customSelect__menu" role="listbox">
+                              {SEATING_OPTIONS.map((option) => (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  role="option"
+                                  aria-selected={draft.seatingPreference === option.value}
+                                  className={`customSelect__item${draft.seatingPreference === option.value ? " is-active" : ""}`}
+                                  onClick={() => {
+                                    updateDraft(draft.id, (current) => ({
+                                      ...current,
+                                      seatingPreference: option.value,
+                                      error: "",
+                                    }));
+                                    setOpenDraftSeatingId(null);
+                                  }}
+                                >
+                                  {option.label}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </label>
 
                     <label className="field">
