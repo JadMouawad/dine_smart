@@ -697,7 +697,7 @@ export default function RestaurantDetailPanel({
                 />
               </label>
               <button className="btn btn--gold btn--xl" type="submit" disabled={flagBusy}>
-                {flagBusy ? "Submitting..." : "Submit Flag"}
+                {flagBusy ? "Submitting..." : "Submit Report"}
               </button>
             </form>
           </div>
