@@ -141,6 +141,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
       });
   }, []);
 
+
   const logoPreviewUrl = useMemo(
     () => logoDataUrl || existingRestaurant?.logo_url || existingRestaurant?.logoUrl || "",
     [logoDataUrl, existingRestaurant]
@@ -341,6 +342,16 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     setError("");
     setSuccess("");
     setIsEditing(true);
+  }
+
+  if (!initialLoadComplete) {
+    return (
+      <div className="ownerProfile">
+        <div className="formCard ownerProfileViewCard">
+          <div className="formCard__title">Loading restaurant profile...</div>
+        </div>
+      </div>
+    );
   }
 
   return (
