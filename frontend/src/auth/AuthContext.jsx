@@ -4,6 +4,8 @@ import { useTheme } from "./ThemeContext";
 
 const AuthContext = createContext(null);
 const TOKEN_KEY = "token";
+const LAST_ACTIVE_KEY = "last_active_at";
+const SESSION_MAX_AWAY_MS = 3 * 60 * 60 * 1000; // 3 hours away from the site
 
 function readStoredToken() {
   const localToken = localStorage.getItem(TOKEN_KEY);
@@ -21,12 +23,21 @@ function readStoredToken() {
 
 function persistToken(token) {
   localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(LAST_ACTIVE_KEY, String(Date.now()));
   sessionStorage.removeItem(TOKEN_KEY);
 }
 
 function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(LAST_ACTIVE_KEY);
   sessionStorage.removeItem(TOKEN_KEY);
+}
+
+function isSessionExpiredByAwayTime() {
+  const lastActiveRaw = localStorage.getItem(LAST_ACTIVE_KEY);
+  const lastActive = lastActiveRaw ? Number(lastActiveRaw) : NaN;
+  if (!Number.isFinite(lastActive)) return true; // no activity -> force login
+  return Date.now() - lastActive > SESSION_MAX_AWAY_MS;
 }
 
 export function AuthProvider({ children }) {
@@ -37,6 +48,13 @@ export function AuthProvider({ children }) {
 
   async function restoreSession() {
     if (!token) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+    if (isSessionExpiredByAwayTime()) {
+      clearToken();
+      setToken(null);
       setUser(null);
       setLoading(false);
       return;
@@ -59,6 +77,57 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     setLoading(true);
     restoreSession();
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const markActive = () => {
+      localStorage.setItem(LAST_ACTIVE_KEY, String(Date.now()));
+    };
+
+    const handleFocus = () => {
+      // If user returns after being away too long, log them out.
+      if (isSessionExpiredByAwayTime()) {
+        clearToken();
+        setToken(null);
+        setUser(null);
+        return;
+      }
+      markActive();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        markActive();
+      } else {
+        handleFocus();
+      }
+    };
+
+    const handleActivity = () => {
+      if (document.visibilityState !== "visible") return;
+      markActive();
+    };
+
+    // Initial activity mark
+    markActive();
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("mousemove", handleActivity, { passive: true });
+    window.addEventListener("keydown", handleActivity, { passive: true });
+    window.addEventListener("scroll", handleActivity, { passive: true });
+    window.addEventListener("touchstart", handleActivity, { passive: true });
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("mousemove", handleActivity);
+      window.removeEventListener("keydown", handleActivity);
+      window.removeEventListener("scroll", handleActivity);
+      window.removeEventListener("touchstart", handleActivity);
+    };
   }, [token]);
 
   useEffect(() => {

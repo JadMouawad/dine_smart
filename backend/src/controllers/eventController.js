@@ -68,6 +68,68 @@ const getRestaurantPublicEvents = async (req, res) => {
   }
 };
 
+const getOwnerEventAttendees = async (req, res) => {
+  try {
+    const result = await eventService.getOwnerEventAttendees({
+      ownerId: req.user.id,
+      eventId: req.params.id,
+    });
+    if (!result.success) return res.status(result.status).json({ message: result.error });
+    return res.status(result.status).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const joinEvent = async (req, res) => {
+  try {
+    const result = await eventService.joinEvent({
+      userId: req.user.id,
+      eventId: req.params.id,
+      payload: req.body || {},
+    });
+    if (!result.success) return res.status(result.status).json({ message: result.error });
+    return res.status(result.status).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const saveEvent = async (req, res) => {
+  try {
+    const result = await eventService.saveEvent({
+      userId: req.user.id,
+      eventId: req.params.id,
+    });
+    if (!result.success) return res.status(result.status).json({ message: result.error });
+    return res.status(result.status).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const unsaveEvent = async (req, res) => {
+  try {
+    const result = await eventService.unsaveEvent({
+      userId: req.user.id,
+      eventId: req.params.id,
+    });
+    if (!result.success) return res.status(result.status).json({ message: result.error });
+    return res.status(result.status).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const getSavedEvents = async (req, res) => {
+  try {
+    const result = await eventService.getSavedEvents({ userId: req.user.id });
+    return res.status(result.status).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createOwnerEvent,
   getOwnerEvents,
@@ -75,4 +137,9 @@ module.exports = {
   deleteOwnerEvent,
   getPublicEvents,
   getRestaurantPublicEvents,
+  getOwnerEventAttendees,
+  joinEvent,
+  saveEvent,
+  unsaveEvent,
+  getSavedEvents,
 };

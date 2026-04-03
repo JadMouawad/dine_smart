@@ -40,6 +40,14 @@ router.get(
   eventController.getOwnerEvents
 );
 
+router.get(
+  "/events/:id/attendees",
+  authenticateToken,
+  authorizeRoles("owner"),
+  requireApprovedRestaurant,
+  eventController.getOwnerEventAttendees
+);
+
 router.put(
   "/events/:id",
   authenticateToken,

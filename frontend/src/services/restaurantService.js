@@ -155,6 +155,10 @@ export async function getOwnerEvents() {
   return apiRequest("/owner/events", { method: "GET" });
 }
 
+export async function getOwnerEventAttendees(eventId) {
+  return apiRequest(`/owner/events/${eventId}/attendees`, { method: "GET" });
+}
+
 export async function updateOwnerEvent(eventId, data) {
   return apiRequest(`/owner/events/${eventId}`, {
     method: "PUT",
