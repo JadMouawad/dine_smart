@@ -11371,3 +11371,73 @@ body.dark .slotDraftRemoveBtn:hover,
     align-items: flex-start;
   }
 }
+
+/* Owner Reviews custom dropdowns */
+.ownerReviewsFilters__customSelect {
+  width: 100%;
+}
+
+.ownerReviewsFilters__customSelect .customSelect__btn {
+  width: 100%;
+}
+
+.ownerReviewsFilters__customSelect .customSelect__menu {
+  width: 100%;
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 60;
+}
+
+.ownerReviewsFilters__customSelect .customSelect__item {
+  width: 100%;
+}
+
+.ownerReviewsFilters__dropdown {
+  width: 100%;
+}
+
+.ownerReviewsFilters__dropdown .sortDropdown__btn {
+  width: 100%;
+}
+
+.ownerReviewsFilters__menu {
+  max-height: 220px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201, 162, 39, 0.55) rgba(255, 255, 255, 0.06);
+}
+
+.ownerReviewsFilters__menu::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ownerReviewsFilters__menu::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+}
+
+.ownerReviewsFilters__menu::-webkit-scrollbar-thumb {
+  background: rgba(201, 162, 39, 0.55);
+  border-radius: 999px;
+}
+
+.ownerReviewsFilters__menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 162, 39, 0.72);
+}
+
+[data-theme="light"] .ownerReviewsFilters__menu {
+  scrollbar-color: rgba(175, 115, 45, 0.55) rgba(175, 115, 45, 0.10);
+}
+
+[data-theme="light"] .ownerReviewsFilters__menu::-webkit-scrollbar-track {
+  background: rgba(175, 115, 45, 0.10);
+}
+
+[data-theme="light"] .ownerReviewsFilters__menu::-webkit-scrollbar-thumb {
+  background: rgba(175, 115, 45, 0.55);
+}
+
+[data-theme="light"] .ownerReviewsFilters__menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(175, 115, 45, 0.72);
+}

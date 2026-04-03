@@ -1,5 +1,4 @@
-
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getReviewsByRestaurantId, respondToReviewAsOwner } from "../../services/reviewService";
 import { getMyRestaurant } from "../../services/restaurantService";
 import { DEFAULT_AVATAR } from "../../constants/avatar";
@@ -18,6 +17,20 @@ function getReviewUserName(review) {
   return String(review.user_name || review.authorName || "Guest").trim() || "Guest";
 }
 
+function useClickOutside(ref, handler, enabled = true) {
+  useEffect(() => {
+    if (!enabled) return;
+
+    function listener(event) {
+      if (!ref.current || ref.current.contains(event.target)) return;
+      handler();
+    }
+
+    document.addEventListener("mousedown", listener);
+    return () => document.removeEventListener("mousedown", listener);
+  }, [ref, handler, enabled]);
+}
+
 export default function OwnerReviews() {
   const [restaurant, setRestaurant] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -32,6 +45,15 @@ export default function OwnerReviews() {
   const [filterUser, setFilterUser] = useState("");
   const [filterDate, setFilterDate] = useState("");
   const [filterStars, setFilterStars] = useState("all");
+
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [starsDropdownOpen, setStarsDropdownOpen] = useState(false);
+
+  const userDropdownRef = useRef(null);
+  const starsDropdownRef = useRef(null);
+
+  useClickOutside(userDropdownRef, () => setUserDropdownOpen(false), userDropdownOpen);
+  useClickOutside(starsDropdownRef, () => setStarsDropdownOpen(false), starsDropdownOpen);
 
   async function loadReviews() {
     setLoading(true);
@@ -75,6 +97,18 @@ export default function OwnerReviews() {
     );
   }, [reviews]);
 
+  const starOptions = useMemo(
+    () => [
+      { value: "all", label: "All ratings" },
+      { value: "5", label: "5 stars" },
+      { value: "4", label: "4 stars" },
+      { value: "3", label: "3 stars" },
+      { value: "2", label: "2 stars" },
+      { value: "1", label: "1 star" },
+    ],
+    []
+  );
+
   const filteredReviews = useMemo(() => {
     return reviews.filter((review) => {
       const userName = getReviewUserName(review);
@@ -101,6 +135,8 @@ export default function OwnerReviews() {
     setFilterUser("");
     setFilterDate("");
     setFilterStars("all");
+    setUserDropdownOpen(false);
+    setStarsDropdownOpen(false);
   }
 
   async function saveResponse(reviewId) {
@@ -202,14 +238,50 @@ export default function OwnerReviews() {
         <div id="owner-reviews-filters" className="ownerReviewsFilters">
           <label className="field ownerReviewsFilters__field">
             <span>User</span>
-            <select className="select" value={filterUser} onChange={(event) => setFilterUser(event.target.value)}>
-              <option value="">All users</option>
-              {userOptions.map((userName) => (
-                <option key={userName} value={userName}>
-                  {userName}
-                </option>
-              ))}
-            </select>
+            <div className="sortDropdown ownerReviewsFilters__dropdown" ref={userDropdownRef}>
+              <button
+                type="button"
+                className="sortDropdown__btn"
+                onClick={() => {
+                  setStarsDropdownOpen(false);
+                  setUserDropdownOpen((prev) => !prev);
+                }}
+                aria-haspopup="listbox"
+                aria-expanded={userDropdownOpen}
+              >
+                <span>{filterUser || "All users"}</span>
+                <span className={`sortDropdown__caret${userDropdownOpen ? " is-open" : ""}`}>⌄</span>
+              </button>
+
+              {userDropdownOpen && (
+                <div className="sortDropdown__menu ownerReviewsFilters__menu" role="listbox">
+                  <button
+                    type="button"
+                    className={`sortDropdown__item${filterUser === "" ? " is-active" : ""}`}
+                    onClick={() => {
+                      setFilterUser("");
+                      setUserDropdownOpen(false);
+                    }}
+                  >
+                    All users
+                  </button>
+
+                  {userOptions.map((userName) => (
+                    <button
+                      key={userName}
+                      type="button"
+                      className={`sortDropdown__item${filterUser === userName ? " is-active" : ""}`}
+                      onClick={() => {
+                        setFilterUser(userName);
+                        setUserDropdownOpen(false);
+                      }}
+                    >
+                      {userName}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </label>
 
           <label className="field ownerReviewsFilters__field">
@@ -219,14 +291,39 @@ export default function OwnerReviews() {
 
           <label className="field ownerReviewsFilters__field">
             <span>Stars</span>
-            <select className="select" value={filterStars} onChange={(event) => setFilterStars(event.target.value)}>
-              <option value="all">All ratings</option>
-              <option value="5">5 stars</option>
-              <option value="4">4 stars</option>
-              <option value="3">3 stars</option>
-              <option value="2">2 stars</option>
-              <option value="1">1 star</option>
-            </select>
+            <div className="sortDropdown ownerReviewsFilters__dropdown" ref={starsDropdownRef}>
+              <button
+                type="button"
+                className="sortDropdown__btn"
+                onClick={() => {
+                  setUserDropdownOpen(false);
+                  setStarsDropdownOpen((prev) => !prev);
+                }}
+                aria-haspopup="listbox"
+                aria-expanded={starsDropdownOpen}
+              >
+                <span>{starOptions.find((option) => option.value === filterStars)?.label || "All ratings"}</span>
+                <span className={`sortDropdown__caret${starsDropdownOpen ? " is-open" : ""}`}>⌄</span>
+              </button>
+
+              {starsDropdownOpen && (
+                <div className="sortDropdown__menu ownerReviewsFilters__menu" role="listbox">
+                  {starOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`sortDropdown__item${filterStars === option.value ? " is-active" : ""}`}
+                      onClick={() => {
+                        setFilterStars(option.value);
+                        setStarsDropdownOpen(false);
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </label>
 
           <div className="ownerReviewsFilters__actions">
