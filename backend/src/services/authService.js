@@ -14,11 +14,13 @@ const { OAuth2Client } = require("google-auth-library");
 const pool = require("../config/db");
 const User = require("../models/User");
 const emailVerificationService = require("./emailVerificationService");
+const { sendPasswordResetEmail } = require("../utils/emailSender");
 
 const SALT_ROUNDS = 10;
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 const JWT_EXPIRES_IN = "7d";
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
 
 if (!GOOGLE_CLIENT_ID) {
   console.warn("WARNING: GOOGLE_CLIENT_ID is not set. Google OAuth will not work.");
@@ -215,6 +217,111 @@ const findUserByPhone = async (phone) => {
   return await User.findByPhone(pool, phone);
 };
 
+const buildPasswordResetLink = (token) => {
+  const baseUrl = (process.env.FRONTEND_BASE_URL || "http://localhost:5173").replace(/\/+$/, "");
+  return `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
+};
+
+const requestPasswordReset = async (email) => {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!normalizedEmail) {
+    throw new Error("Email is required");
+  }
+
+  const user = await User.findByEmail(pool, normalizedEmail);
+  if (!user || user.provider === "google") {
+    return {
+      success: true,
+      message: "If an account with that email exists, a reset link has been sent.",
+    };
+  }
+
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+  const expiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_MS);
+
+  await pool.query(
+    `DELETE FROM password_reset_tokens WHERE user_id = $1 OR expires_at <= NOW()`,
+    [user.id]
+  );
+
+  await pool.query(
+    `
+      INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+      VALUES ($1, $2, $3)
+    `,
+    [user.id, tokenHash, expiresAt.toISOString()]
+  );
+
+  try {
+    await sendPasswordResetEmail(
+      user.email,
+      buildPasswordResetLink(rawToken),
+      user.full_name || "User"
+    );
+  } catch (error) {
+    console.warn("Failed to send password reset email:", error.message);
+  }
+
+  return {
+    success: true,
+    message: "If an account with that email exists, a reset link has been sent.",
+  };
+};
+
+const resetPassword = async ({ token, newPassword }) => {
+  const rawToken = String(token || "").trim();
+  const password = String(newPassword || "");
+
+  if (!rawToken) throw new Error("Reset token is required");
+  if (password.length < 6) throw new Error("Password must be at least 6 characters");
+
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+  const tokenResult = await pool.query(
+    `
+      SELECT id, user_id
+      FROM password_reset_tokens
+      WHERE token_hash = $1
+        AND used_at IS NULL
+        AND expires_at > NOW()
+      ORDER BY created_at DESC
+      LIMIT 1
+    `,
+    [tokenHash]
+  );
+
+  const resetRecord = tokenResult.rows[0];
+  if (!resetRecord) {
+    throw new Error("This reset link is invalid or has expired.");
+  }
+
+  const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `UPDATE users SET password = $1, provider = 'local', updated_at = NOW() WHERE id = $2`,
+      [hashedPassword, resetRecord.user_id]
+    );
+    await client.query(
+      `UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1`,
+      [resetRecord.id]
+    );
+    await client.query(
+      `DELETE FROM password_reset_tokens WHERE user_id = $1 AND id <> $2`,
+      [resetRecord.user_id, resetRecord.id]
+    );
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+
+  return { success: true, message: "Password reset successful." };
+};
+
 /**
  * Verify JWT token
  */
@@ -243,5 +350,7 @@ module.exports = {
   googleAuthUser,
   verifyToken,
   generateTokenForUser,
-  findUserByPhone
+  findUserByPhone,
+  requestPasswordReset,
+  resetPassword,
 };

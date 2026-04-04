@@ -151,10 +151,33 @@ const googleSignIn = async (req, res) => {
   }
 };
 
+const requestPasswordReset = async (req, res) => {
+  try {
+    const result = await authService.requestPasswordReset(req.body.email);
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const result = await authService.resetPassword({
+      token: req.body.token,
+      newPassword: req.body.password,
+    });
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+};
+
 module.exports = {
   register,
   login,
   logout,
   googleSignIn,
-  phoneExists
+  phoneExists,
+  requestPasswordReset,
+  resetPassword,
 };

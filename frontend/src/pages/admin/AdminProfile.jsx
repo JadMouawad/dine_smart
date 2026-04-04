@@ -4,6 +4,7 @@ import { getProfile, updateProfile } from "../../services/profileService.js";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useTheme } from "../../auth/ThemeContext.jsx";
 import ThemedSelect from "../../components/ThemedSelect.jsx";
+import { COUNTRY_OPTIONS, splitPhoneNumber } from "../../constants/countries.js";
 
 const DEFAULT_AVATAR =
   "data:image/svg+xml;utf8," +
@@ -29,7 +30,7 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [countryCode, setCountryCode] = useState("+961");
+  const [countryCode, setCountryCode] = useState(COUNTRY_OPTIONS[0].code);
   const [accountProvider, setAccountProvider] = useState(() =>
     String(user?.provider || "local").toLowerCase()
   );
@@ -48,7 +49,9 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
       .then((profile) => {
         setFullName(profile.fullName ?? profile.full_name ?? user.name ?? user.fullName ?? "");
         setEmail(profile.email ?? user.email ?? "");
-        setPhone(profile.phone ?? "");
+        const phoneParts = splitPhoneNumber(profile.phone ?? "");
+        setCountryCode(phoneParts.countryCode);
+        setPhone(phoneParts.localNumber);
         setAccountProvider(String(profile.provider ?? user.provider ?? "local").toLowerCase());
         setProfilePictureUrl(profile.profilePictureUrl ?? profile.profile_picture_url ?? "");
       })
@@ -205,6 +208,13 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
                 fullWidth={false}
                 ariaLabel="Select country code"
               />
+              <select className="select phoneRow__code" value={countryCode} onChange={(e) => setCountryCode(e.target.value)}>
+                {COUNTRY_OPTIONS.map((country) => (
+                  <option key={country.code} value={country.code}>
+                    {country.displayLabel}
+                  </option>
+                ))}
+              </select>
               <input
                 className="phoneRow__number"
                 type="tel"

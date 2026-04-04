@@ -531,6 +531,41 @@ export default function OwnerReservations() {
     return { visibleReservations: visible };
   }, [reservations, clockNow, reservationSortBy, partySizeFilter, reservationView]);
 
+  const reservationCharts = useMemo(() => {
+    const byDay = new Map();
+    const byHour = new Map();
+
+    reservations.forEach((reservation) => {
+      const dateLabel = String(reservation.reservation_date || "");
+      const timeValue = String(reservation.reservation_time || "").slice(0, 2);
+      const hourKey = `${timeValue || "00"}:00`;
+
+      byDay.set(dateLabel, (byDay.get(dateLabel) || 0) + 1);
+      byHour.set(hourKey, (byHour.get(hourKey) || 0) + 1);
+    });
+
+    const dayData = [...byDay.entries()]
+      .sort((left, right) => left[0].localeCompare(right[0]))
+      .slice(-7)
+      .map(([label, value]) => ({
+        label,
+        shortLabel: label ? new Date(`${label}T00:00:00`).toLocaleDateString([], { month: "short", day: "numeric" }) : "Unknown",
+        value,
+      }));
+
+    const hourData = [...byHour.entries()]
+      .sort((left, right) => left[0].localeCompare(right[0]))
+      .map(([label, value]) => ({
+        label,
+        shortLabel: label,
+        value,
+      }));
+
+    const peakHour = hourData.reduce((best, item) => (item.value > (best?.value || 0) ? item : best), null);
+
+    return { dayData, hourData, peakHour };
+  }, [reservations]);
+
   async function handleSaveAdjustment(event) {
     event.preventDefault();
     if (!restaurant?.id) return;
@@ -813,6 +848,77 @@ export default function OwnerReservations() {
             reservations={reservations}
             onReservationClick={handleCalendarReservationClick}
           />
+      <section className="formCard reservationChartCard">
+        <div className="slotAdjustHeader">
+          <h2 className="reservationSection__title">Reservation Charts</h2>
+          <p className="slotAdjustHint">
+            Track recent reservation volume and spot your busiest hours quickly.
+          </p>
+        </div>
+        <div className="reservationChartsGrid">
+          <div className="reservationChartPanel">
+            <div className="reservationChartPanel__title">Last 7 days</div>
+            {reservationCharts.dayData.length ? (
+              <div className="reservationBarChart">
+                {reservationCharts.dayData.map((item) => {
+                  const max = Math.max(...reservationCharts.dayData.map((entry) => entry.value), 1);
+                  const height = Math.max(14, Math.round((item.value / max) * 100));
+                  return (
+                    <div className="reservationBarChart__item" key={item.label}>
+                      <div className="reservationBarChart__value">{item.value}</div>
+                      <div className="reservationBarChart__barWrap">
+                        <div className="reservationBarChart__bar" style={{ height: `${height}%` }} />
+                      </div>
+                      <div className="reservationBarChart__label">{item.shortLabel}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="profileEmpty">No reservation data yet.</div>
+            )}
+          </div>
+
+          <div className="reservationChartPanel">
+            <div className="reservationChartPanel__title">Peak hours</div>
+            {reservationCharts.hourData.length ? (
+              <>
+                <div className="reservationPeakBadge">
+                  Peak hour: {reservationCharts.peakHour?.shortLabel || "N/A"} ({reservationCharts.peakHour?.value || 0} reservations)
+                </div>
+                <div className="reservationHourList">
+                  {reservationCharts.hourData.map((item) => {
+                    const max = Math.max(...reservationCharts.hourData.map((entry) => entry.value), 1);
+                    const width = Math.max(8, Math.round((item.value / max) * 100));
+                    const isPeak = item.label === reservationCharts.peakHour?.label;
+                    return (
+                      <div className="reservationHourRow" key={item.label}>
+                        <div className="reservationHourRow__label">{item.shortLabel}</div>
+                        <div className="reservationHourRow__track">
+                          <div
+                            className={`reservationHourRow__fill ${isPeak ? "is-peak" : ""}`}
+                            style={{ width: `${width}%` }}
+                          />
+                        </div>
+                        <div className="reservationHourRow__value">{item.value}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="profileEmpty">Peak hours will appear once reservations are added.</div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="formCard slotAdjustCard">
+        <div className="slotAdjustHeader">
+          <h2 className="reservationSection__title">Adjust Available Seats</h2>
+          <p className="slotAdjustHint">
+            Use negative numbers to reserve seats for walk-ins or staffing limits.
+          </p>
         </div>
       )}
 

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { FiArrowLeft, FiClock, FiMapPin, FiStar, FiTrash2 } from "react-icons/fi";
 import { useAuth } from "../../auth/AuthContext.jsx";
-import { getReviewsByRestaurantId, createReview, deleteReview } from "../../services/reviewService";
+import { getReviewsByRestaurantId, createReview, deleteReview, flagReview } from "../../services/reviewService";
 import { getRestaurantById } from "../../services/restaurantService";
 import { getReservationAvailability } from "../../services/reservationService";
 import ReservationForm from "../../components/ReservationForm.jsx";
@@ -61,6 +61,9 @@ export default function RestaurantDetailPanel({
   const [reviewRatingDropdownOpen, setReviewRatingDropdownOpen] = useState(false);
   const [deleteReviewTarget, setDeleteReviewTarget] = useState(null);
   const [deleteReviewBusy, setDeleteReviewBusy] = useState(false);
+  const [flagReviewTarget, setFlagReviewTarget] = useState(null);
+  const [flagReason, setFlagReason] = useState("");
+  const [flagBusy, setFlagBusy] = useState(false);
 
   const [detailsTab, setDetailsTab] = useState("menu");
   const [reservationInlineOpen, setReservationInlineOpen] = useState(false);
@@ -364,6 +367,29 @@ export default function RestaurantDetailPanel({
     }
   }
 
+  async function handleFlagReview(event) {
+    event.preventDefault();
+    if (!flagReviewTarget) return;
+    const reason = flagReason.trim();
+    if (!reason) {
+      toast.error("Please provide a reason.");
+      return;
+    }
+
+    setFlagBusy(true);
+    try {
+      await flagReview(flagReviewTarget.id, reason);
+      toast.success("Review flagged for admin review.");
+      setFlagReviewTarget(null);
+      setFlagReason("");
+    } catch (err) {
+      toast.error(err.message || "Failed to flag review.");
+    } finally {
+      setFlagBusy(false);
+    }
+  }
+
+  // ── Render ────────────────────────────────────────────────
   return (
     <div className="userSearchPage">
       <header className="restaurantPageHeader">
@@ -717,6 +743,18 @@ export default function RestaurantDetailPanel({
                       </button>
                     )}
 
+                    {user?.id && Number(rev.user_id) !== Number(user.id) && (
+                      <button
+                        className="btn btn--ghost reviewCardFull__flag"
+                        type="button"
+                        onClick={() => {
+                          setFlagReviewTarget(rev);
+                          setFlagReason("");
+                        }}
+                      >
+                        Report
+                      </button>
+                    )}
                     {rev.owner_response && (
                       <div className="ownerResponseBlock">
                         <div className="ownerResponseBlock__label">Restaurant response</div>
@@ -744,6 +782,36 @@ export default function RestaurantDetailPanel({
         onConfirm={handleDeleteReview}
         onCancel={() => { if (!deleteReviewBusy) setDeleteReviewTarget(null); }}
       />
+
+      {flagReviewTarget && (
+        <div className="modal is-open" role="dialog" aria-modal="true">
+          <div className="modal__backdrop" onClick={() => !flagBusy && setFlagReviewTarget(null)} />
+          <div className="modal__panel" role="document">
+            <button className="modal__close" type="button" onClick={() => !flagBusy && setFlagReviewTarget(null)} aria-label="Close">
+              X
+            </button>
+            <h2 className="modal__title">Report review</h2>
+            <p className="modal__subtitle">Tell the admin why this review should be reviewed.</p>
+            <form className="form" onSubmit={handleFlagReview}>
+              <label className="field">
+                <span>Reason</span>
+                <textarea
+                  className="textarea"
+                  rows={4}
+                  maxLength={500}
+                  value={flagReason}
+                  onChange={(event) => setFlagReason(event.target.value)}
+                  placeholder="Spam, harassment, false information, or other issue"
+                  required
+                />
+              </label>
+              <button className="btn btn--gold btn--xl" type="submit" disabled={flagBusy}>
+                {flagBusy ? "Submitting..." : "Submit Report"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,0 +1,47 @@
+const FLAG_TYPES = {
+  PROFANITY: "PROFANITY",
+  HARASSMENT: "HARASSMENT",
+  SPAM: "SPAM",
+  FAKE_REVIEW: "FAKE_REVIEW",
+  MISLEADING: "MISLEADING",
+  INAPPROPRIATE_CONTENT: "INAPPROPRIATE_CONTENT",
+};
+
+const SOURCE_TYPES = {
+  USER_REPORT: "USER_REPORT",
+  SYSTEM_AI: "SYSTEM_AI",
+  SYSTEM_RULE: "SYSTEM_RULE",
+};
+
+const SUGGESTED_ACTIONS = {
+  REQUIRES_REVIEW: "REQUIRES_REVIEW",
+  SOFT_FLAG: "SOFT_FLAG",
+  INFORMATION_ONLY: "INFORMATION_ONLY",
+};
+
+const SEVERITY = {
+  HIGH: "HIGH",
+  MEDIUM: "MEDIUM",
+  LOW: "LOW",
+};
+
+const DEFAULT_THRESHOLDS = {
+  HIGH: 90,
+  MEDIUM: 50,
+  perType: {
+    PROFANITY: { review: 85, soft: 45 },
+    HARASSMENT: { review: 80, soft: 45 },
+    SPAM: { review: 75, soft: 40 },
+    FAKE_REVIEW: { review: 82, soft: 55 },
+    MISLEADING: { review: 88, soft: 50 },
+    INAPPROPRIATE_CONTENT: { review: 80, soft: 45 },
+  },
+};
+
+module.exports = {
+  FLAG_TYPES,
+  SOURCE_TYPES,
+  SUGGESTED_ACTIONS,
+  SEVERITY,
+  DEFAULT_THRESHOLDS,
+};

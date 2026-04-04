@@ -62,6 +62,10 @@ const createRestaurant = async (data) => {
   const includeLogo = restaurantColumns.has("logo_url");
   const includeCover = restaurantColumns.has("cover_url");
   const includeGallery = restaurantColumns.has("gallery_urls");
+  const includeBusinessLicenseUrl = restaurantColumns.has("business_license_url");
+  const includeBusinessLicenseName = restaurantColumns.has("business_license_name");
+  const includeHealthCertificateUrl = restaurantColumns.has("health_certificate_url");
+  const includeHealthCertificateName = restaurantColumns.has("health_certificate_name");
 
   const columns = [
     "name",
@@ -77,6 +81,10 @@ const createRestaurant = async (data) => {
     ...(includeLogo ? ["logo_url"] : []),
     ...(includeCover ? ["cover_url"] : []),
     ...(includeGallery ? ["gallery_urls"] : []),
+    ...(includeBusinessLicenseUrl ? ["business_license_url"] : []),
+    ...(includeBusinessLicenseName ? ["business_license_name"] : []),
+    ...(includeHealthCertificateUrl ? ["health_certificate_url"] : []),
+    ...(includeHealthCertificateName ? ["health_certificate_name"] : []),
     "owner_id",
     "is_verified",
     "approval_status",
@@ -96,6 +104,10 @@ const createRestaurant = async (data) => {
     ...(includeLogo ? [logoValue] : []),
     ...(includeCover ? [coverValue] : []),
     ...(includeGallery ? [galleryUrlsValue] : []),
+    ...(includeBusinessLicenseUrl ? [data.business_license_url || null] : []),
+    ...(includeBusinessLicenseName ? [data.business_license_name || null] : []),
+    ...(includeHealthCertificateUrl ? [data.health_certificate_url || null] : []),
+    ...(includeHealthCertificateName ? [data.health_certificate_name || null] : []),
     ownerId,
     false,
     "pending",
@@ -239,6 +251,10 @@ const updateRestaurant = async (id, data) => {
     "logo_url",
     "cover_url",
     "gallery_urls",
+    "business_license_url",
+    "business_license_name",
+    "health_certificate_url",
+    "health_certificate_name",
   ]);
 
   const fields = [];

@@ -227,40 +227,86 @@ const getFlaggedReviews = async () => {
   return adminRepository.getFlaggedReviews();
 };
 
-const dismissFlaggedReview = async ({ flagId, adminId, adminNotes }) => {
+const VALID_REVIEW_ACTIONS = new Set(["APPROVE_PUBLISH", "REQUIRE_CHANGES", "DELETE", "DISMISS"]);
+
+const moderateFlaggedReview = async ({ flagId, adminId, action, adminNotes, resolutionLabel }) => {
   const parsedFlagId = parsePositiveInt(flagId, null);
   if (!parsedFlagId) return { success: false, status: 400, error: "Invalid flagged review ID" };
 
-  const dismissed = await adminRepository.dismissFlaggedReview(parsedFlagId, adminNotes);
-  if (!dismissed) return { success: false, status: 404, error: "Flagged review not found" };
+  const normalizedAction = String(action || "").trim().toUpperCase();
+  if (!VALID_REVIEW_ACTIONS.has(normalizedAction)) {
+    return {
+      success: false,
+      status: 400,
+      error: "action must be one of APPROVE_PUBLISH, REQUIRE_CHANGES, DELETE, DISMISS",
+    };
+  }
+
+  const applied = await adminRepository.applyModerationActionByFlagId({
+    flagId: parsedFlagId,
+    action: normalizedAction,
+    adminNotes,
+    resolutionLabel: resolutionLabel || null,
+  });
+  if (!applied) return { success: false, status: 404, error: "Flagged review not found" };
 
   await adminRepository.insertAuditLog({
     adminId,
-    action: "flagged_review_dismissed",
+    action: `flagged_review_${normalizedAction.toLowerCase()}`,
     entityType: "flagged_review",
-    entityId: dismissed.id,
-    details: { review_id: dismissed.review_id },
+    entityId: applied.id || parsedFlagId,
+    details: { review_id: applied.review_id, moderator_action: normalizedAction },
   });
 
-  return { success: true, data: dismissed };
+  return { success: true, data: applied };
+};
+
+const bulkModerateFlaggedReviews = async ({ flagIds, adminId, action, adminNotes, resolutionLabel }) => {
+  const normalizedAction = String(action || "").trim().toUpperCase();
+  if (!VALID_REVIEW_ACTIONS.has(normalizedAction)) {
+    return {
+      success: false,
+      status: 400,
+      error: "action must be one of APPROVE_PUBLISH, REQUIRE_CHANGES, DELETE, DISMISS",
+    };
+  }
+  if (!Array.isArray(flagIds) || flagIds.length === 0) {
+    return { success: false, status: 400, error: "flag_ids is required and must be a non-empty array" };
+  }
+
+  const results = await adminRepository.bulkApplyModerationAction({
+    flagIds,
+    action: normalizedAction,
+    adminNotes,
+    resolutionLabel: resolutionLabel || null,
+  });
+
+  await adminRepository.insertAuditLog({
+    adminId,
+    action: `flagged_review_bulk_${normalizedAction.toLowerCase()}`,
+    entityType: "flagged_review",
+    details: { count: results.length, moderator_action: normalizedAction },
+  });
+
+  return { success: true, data: { count: results.length, items: results } };
+};
+
+const dismissFlaggedReview = async ({ flagId, adminId, adminNotes }) => {
+  return moderateFlaggedReview({
+    flagId,
+    adminId,
+    action: "DISMISS",
+    adminNotes,
+    resolutionLabel: "FALSE_POSITIVE",
+  });
 };
 
 const deleteFlaggedReview = async ({ flagId, adminId }) => {
-  const parsedFlagId = parsePositiveInt(flagId, null);
-  if (!parsedFlagId) return { success: false, status: 400, error: "Invalid flagged review ID" };
-
-  const deleted = await adminRepository.deleteReviewByFlagId(parsedFlagId);
-  if (!deleted) return { success: false, status: 404, error: "Flagged review not found" };
-
-  await adminRepository.insertAuditLog({
+  return moderateFlaggedReview({
+    flagId,
     adminId,
-    action: "flagged_review_deleted",
-    entityType: "review",
-    entityId: deleted.review_id,
-    details: { flag_id: deleted.flag_id, restaurant_id: deleted.restaurant_id },
+    action: "DELETE",
   });
-
-  return { success: true, data: deleted };
 };
 
 module.exports = {
@@ -277,6 +323,8 @@ module.exports = {
   suspendUser,
   deleteUser,
   getFlaggedReviews,
+  moderateFlaggedReview,
+  bulkModerateFlaggedReviews,
   dismissFlaggedReview,
   deleteFlaggedReview,
 };

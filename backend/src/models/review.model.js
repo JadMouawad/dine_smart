@@ -28,6 +28,7 @@ async function getReviewsByRestaurant(db, restaurantId) {
         FROM flagged_reviews fr
         WHERE fr.review_id = r.id
           AND fr.status = 'pending'
+          AND COALESCE(fr.suggested_action, 'REQUIRES_REVIEW') = 'REQUIRES_REVIEW'
       )
     ORDER BY r.created_at DESC;
   `;
@@ -81,20 +82,35 @@ async function getAverageRating(db, restaurantId) {
         FROM flagged_reviews fr
         WHERE fr.review_id = reviews.id
           AND fr.status = 'pending'
+          AND COALESCE(fr.suggested_action, 'REQUIRES_REVIEW') = 'REQUIRES_REVIEW'
       );
   `;
   return db.query(query, [restaurantId]);
 }
 
 async function hasUserFlaggedReview(db, reviewId, userId) {
-  const query = `
+  const primaryQuery = `
     SELECT id
     FROM flagged_reviews
     WHERE review_id = $1
       AND user_id = $2
+      AND source_type = 'USER_REPORT'
     LIMIT 1;
   `;
-  return db.query(query, [reviewId, userId]);
+
+  try {
+    return await db.query(primaryQuery, [reviewId, userId]);
+  } catch (error) {
+    if (error.code !== "42703") throw error;
+    const legacyQuery = `
+      SELECT id
+      FROM flagged_reviews
+      WHERE review_id = $1
+        AND user_id = $2
+      LIMIT 1;
+    `;
+    return db.query(legacyQuery, [reviewId, userId]);
+  }
 }
 
 async function createFlaggedReview(db, { reviewId, userId, reason }) {

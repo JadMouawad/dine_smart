@@ -16,6 +16,7 @@ const COUNTRY_OPTIONS = [
   { label: "Saudi Arabia", code: "+966", flag: "🇸🇦" },
   { label: "Germany", code: "+49", flag: "🇩🇪" },
 ];
+import { COUNTRY_OPTIONS } from "../constants/countries.js";
 
 export default function AuthModal({
   isOpen,
@@ -379,6 +380,13 @@ export default function AuthModal({
                     fullWidth={false}
                     ariaLabel="Select country code"
                   />
+                  >
+                    {COUNTRY_OPTIONS.map((country) => (
+                      <option key={country.code} value={country.code}>
+                        {country.displayLabel}
+                      </option>
+                    ))}
+                  </select>
                   <input
                     className="phoneRow__number"
                     type="tel"
@@ -501,6 +509,21 @@ export default function AuthModal({
                 {copy.switchAction}
               </button>
             </p>
+            {mode === "login" && (
+              <p className="fineprint">
+                <button
+                  className="link"
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    navigate("/reset-password");
+                  }}
+                  disabled={loading}
+                >
+                  Forgot your password?
+                </button>
+              </p>
+            )}
           </form>
         )}
       </motion.div>

@@ -5,7 +5,19 @@ const User = require("../models/User");
  * Get profile by user ID
  */
 const getById = async (userId) => {
-  return await User.findById(pool, userId);
+  const result = await pool.query(
+    `
+      SELECT
+        u.id, u.full_name, u.email, u.role_id, u.is_verified, u.provider, u.is_suspended, u.suspended_at,
+        u.no_show_count, u.banned_until, u.phone, u.latitude, u.longitude, u.profile_picture_url, u.theme_preference,
+        u.created_at, u.updated_at, r.name AS role
+      FROM users u
+      LEFT JOIN roles r ON u.role_id = r.id
+      WHERE u.id = $1
+    `,
+    [userId]
+  );
+  return result.rows[0] || null;
 };
 
 /**
@@ -25,7 +37,7 @@ const updateById = async (userId, data) => {
   if (data.password !== undefined) updates.password = data.password;
 
   if (Object.keys(updates).length === 0) {
-    return await User.findById(pool, userId);
+    return await getById(userId);
   }
 
   const fields = Object.keys(updates).map((k, i) => `${k} = $${i + 1}`);
@@ -37,7 +49,7 @@ const updateById = async (userId, data) => {
     WHERE id = $${values.length}
   `;
   await pool.query(query, values);
-  return await User.findById(pool, userId);
+  return await getById(userId);
 };
 
 const getReservationCountByUserId = async (userId) => {
@@ -71,6 +83,7 @@ const getReviewsByUserId = async (userId) => {
           FROM flagged_reviews fr
           WHERE fr.review_id = rv.id
             AND fr.status = 'pending'
+            AND COALESCE(fr.suggested_action, 'REQUIRES_REVIEW') = 'REQUIRES_REVIEW'
         )
       ORDER BY rv.created_at DESC
     `,

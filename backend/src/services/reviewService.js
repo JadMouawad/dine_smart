@@ -4,40 +4,11 @@
 const db = require("../config/db");
 const ReviewModel = require("../models/review.model");
 const RestaurantModel = require("../models/restaurant.model");
+const moderationModel = require("../models/moderation.model");
 const restaurantRepository = require("../repositories/restaurantRepository");
+const moderationService = require("./moderation/moderationService");
 
 const RECOMMENT_MAX_LENGTH = 500;
-const DEFAULT_BAD_WORDS = [
-  "fuck",
-  "shit",
-  "bitch",
-  "asshole",
-  "bastard",
-  "dick",
-  "piss",
-  "cunt",
-  "slut",
-  "whore",
-];
-
-const badWords = String(process.env.BAD_WORDS || "")
-  .split(",")
-  .map((word) => word.trim())
-  .filter(Boolean);
-
-const PROFANITY_LIST = badWords.length ? badWords : DEFAULT_BAD_WORDS;
-
-const containsProfanity = (text) => {
-  if (!text) return false;
-  const normalized = String(text)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-
-  if (!normalized) return false;
-  const tokens = new Set(normalized.split(/\s+/).filter(Boolean));
-  return PROFANITY_LIST.some((word) => tokens.has(word.toLowerCase()));
-};
 
 const updateRestaurantAverageRating = async (restaurantId) => {
   const avgResult = await ReviewModel.getAverageRating(db, restaurantId);
@@ -69,26 +40,27 @@ const createReview = async (restaurantId, userId, { rating, comment }) => {
   });
 
   const review = result.rows[0];
-  if (commentStr && containsProfanity(commentStr)) {
-    try {
-      await ReviewModel.createFlaggedReview(db, {
-        reviewId: review.id,
-        userId,
-        reason: "Auto-flagged: profanity detected",
-      });
-    } catch (error) {
-      if (error.code !== "23505") {
-        throw error;
-      }
+  if (commentStr) {
+    const moderation = await moderationService.moderateReviewComment({
+      reviewId: review.id,
+      restaurantId,
+      reviewUserId: userId,
+      rating,
+      comment: commentStr,
+      mode: "create",
+    });
+
+    if (moderation.flagged) {
+      await updateRestaurantAverageRating(restaurantId);
+      return {
+        success: true,
+        status: 202,
+        flagged: true,
+        review,
+        moderation: moderation.signals,
+        message: "Your review was flagged for moderation and will not be visible until approved.",
+      };
     }
-    await updateRestaurantAverageRating(restaurantId);
-    return {
-      success: true,
-      status: 202,
-      flagged: true,
-      review,
-      message: "Your review was flagged for moderation and will not be visible until approved.",
-    };
   }
 
   await updateRestaurantAverageRating(restaurantId);
@@ -121,20 +93,36 @@ const updateReview = async (reviewId, userId, { rating, comment }) => {
 
   const result = await ReviewModel.updateReview(db, reviewId, userId, { rating, comment: commentStr || null });
   const restaurantId = reviewResult.rows[0].restaurant_id;
-  if (commentStr && containsProfanity(commentStr)) {
-    try {
-      await ReviewModel.createFlaggedReview(db, {
-        reviewId,
-        userId,
-        reason: "Auto-flagged: profanity detected",
-      });
-    } catch (error) {
-      if (error.code !== "23505") {
-        throw error;
-      }
-    }
+  let moderation = null;
+
+  if (commentStr) {
+    moderation = await moderationService.moderateReviewComment({
+      reviewId,
+      restaurantId,
+      reviewUserId: userId,
+      rating,
+      comment: commentStr,
+      mode: "update",
+    });
+  } else {
+    await moderationModel.resolvePendingSystemFlagsForReview(
+      db,
+      reviewId,
+      "System flags cleared after comment was removed"
+    );
   }
+
   await updateRestaurantAverageRating(restaurantId);
+  if (moderation?.flagged) {
+    return {
+      success: true,
+      status: 202,
+      flagged: true,
+      review: result.rows[0],
+      moderation: moderation.signals,
+      message: "Your updated review was flagged for moderation and is pending admin review.",
+    };
+  }
   return { success: true, review: result.rows[0] };
 };
 
@@ -187,10 +175,18 @@ const flagReview = async ({ reviewId, userId, reason }) => {
   }
 
   try {
-    const created = await ReviewModel.createFlaggedReview(db, {
+    const created = await moderationModel.createFlaggedReview(db, {
       reviewId: parsedReviewId,
       userId,
       reason: cleanReason,
+      sourceType: "USER_REPORT",
+      flagType: "INAPPROPRIATE_CONTENT",
+      confidence: null,
+      severity: null,
+      snippet: cleanReason,
+      suggestedAction: "REQUIRES_REVIEW",
+      moderationMetadata: { reported_by_user: true },
+      status: "pending",
     });
     return { success: true, status: 201, data: created.rows[0] };
   } catch (error) {
