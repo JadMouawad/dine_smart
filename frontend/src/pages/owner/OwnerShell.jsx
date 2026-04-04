@@ -65,12 +65,13 @@ export default function OwnerShell() {
       <div className="ownerArea ownerArea--pending">
         <main className="ownerArea__main ownerArea__main--pending">
           <div className="formCard formCard--userProfile ownerPendingCard">
-            <div className="formCard__title">Approval Pending</div>
-            <p className="userProfileFormHint" style={{ marginTop: 6 }}>
-              Your restaurant is awaiting admin approval. Once approved, you can edit your profile,
-              upload your logo, and access menu, events, table configuration, reviews, and reservations.
+            <div className="formCard__title ownerPendingCard__title">Approval Pending</div>
+            <p className="userProfileFormHint ownerPendingCard__text">
+              Your restaurant is awaiting admin approval. You can still update your profile and upload your business
+              license here while the rest of the owner tools stay locked.
             </p>
           </div>
+          <OwnerProfile onLogoPreviewChange={setRestaurantLogoUrl} onSaved={fetchApprovalStatus} />
         </main>
       </div>
     );
@@ -81,8 +82,8 @@ export default function OwnerShell() {
       <div className="ownerArea ownerArea--pending">
         <main className="ownerArea__main ownerArea__main--pending">
           <div className="formCard formCard--userProfile ownerPendingCard">
-            <div className="formCard__title" style={{ color: "#e53e3e" }}>Restaurant Rejected</div>
-            <p className="userProfileFormHint" style={{ marginTop: 6 }}>
+            <div className="formCard__title ownerPendingCard__title" style={{ color: "#e53e3e" }}>Restaurant Rejected</div>
+            <p className="userProfileFormHint ownerPendingCard__text">
               Your restaurant application has been rejected by the admin. Please contact support for more information.
             </p>
           </div>

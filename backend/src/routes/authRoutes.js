@@ -14,6 +14,8 @@ router.get("/phone-exists", authController.phoneExists);
 
 // Login route
 router.post("/login", authController.login);
+router.post("/forgot-password", authController.requestPasswordReset);
+router.post("/reset-password", authController.resetPassword);
 
 // Google OAuth route
 router.post("/google", authController.googleSignIn);

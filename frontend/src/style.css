@@ -2150,6 +2150,8 @@ body.ds-nav-not-sticky .nav {
 .ownerArea__main--pending {
   width: min(860px, 92vw);
   padding: 24px 16px 32px;
+  display: grid;
+  gap: 18px;
 }
 
 .ownerPendingCard {
@@ -2161,6 +2163,18 @@ body.ds-nav-not-sticky .nav {
     linear-gradient(160deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.02)),
     rgba(10, 16, 58, 0.4);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  margin-bottom: 8px;
+}
+
+.ownerPendingCard__title {
+  font-size: 1.9rem;
+  line-height: 1.15;
+}
+
+.ownerPendingCard__text {
+  margin-top: 10px;
+  font-size: 1.02rem;
+  line-height: 1.55;
 }
 
 /* ========================= */
@@ -2877,7 +2891,7 @@ body {
     rgba(255, 255, 255, 0.03)
   ),
   rgba(12, 19, 79, 0.22);
-  border-radius: 22px;
+  border-radius: 20px;
   padding: 14px;
   backdrop-filter: blur(20px) saturate(160%);
  -webkit-backdrop-filter: blur(20px) saturate(160%);
@@ -2889,7 +2903,7 @@ body {
   border: 1px dashed rgba(255, 255, 255, 0.18);
   background: rgba(0, 0, 0, 0.14);
   overflow: hidden;
-  margin-bottom: 12px;
+  margin-bottom: 0;
 
   position: relative;
   min-height: 0;
@@ -3014,6 +3028,7 @@ body {
   width: 100%;
   position: relative;
   overflow: hidden;
+  min-height: 42px;
 }
 
 .imageCard__input {
@@ -3166,27 +3181,28 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 .ownerProfileGrid__media {
   display: grid;
-  grid-template-rows: 1fr 1fr;
+  grid-auto-rows: min-content;
   gap: 14px;
-  height: 100%;
+  height: auto;
   min-height: 0;
 }
 
 .imageCard--equal {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto auto auto;
+  gap: 12px;
   min-height: 0;
 }
 
 .imageCard__title {
   font-weight: 800;
-  margin-bottom: 10px;
+  margin-bottom: 0;
   color: rgba(255, 255, 255, 0.92);
 }
 
 .imageCard__preview--equal {
-  height: 100%;
-  min-height: 0;
+  min-height: 150px;
+  height: auto;
 }
 
 .formCard--matchHeight {
@@ -3241,12 +3257,12 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 .ownerFilterChip {
   position: relative;
-  min-height: 44px;
+  min-height: 40px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(7, 13, 46, 0.68);
   color: rgba(255, 255, 255, 0.92);
-  padding: 10px 14px;
+  padding: 8px 13px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3378,16 +3394,16 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 /* Match logo preview size with gallery preview */
 .imageCard__preview--logo {
-  width: 100%;
-  height: 100%;
-  margin: 0 0 12px;
+  width: 156px;
+  height: 156px;
+  margin: 0 auto;
 }
 
 /* Keep logo upload button aligned with card */
 .imageCard__btn--logo {
-  width: 100%;
-  align-self: stretch;
-  padding: 10px 18px;
+  width: auto;
+  align-self: center;
+  padding: 9px 18px;
 }
 
 .imageCard__formats {
@@ -3399,7 +3415,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 .formCard--matchHeight .field {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -3427,7 +3443,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  height: 60px;
+  height: 54px;
   padding: 0 14px;
   line-height: normal;
   font-size: 16px;
@@ -4210,13 +4226,45 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 .phoneRow {
   display: grid;
-  grid-template-columns: 130px 1fr;
+  grid-template-columns: 170px 1fr;
   gap: 12px;
   align-items: center;
 }
 
+.ownerProfileGrid__media .documentCard {
+  margin-top: 0;
+  min-height: 58px;
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.ownerProfileGrid__media .documentCard__name {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.ownerProfileGrid__media .imageCard__preview--equal:has(.documentCard) {
+  min-height: 78px;
+}
+
 .phoneRow__code {
   height: 44px;
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI", sans-serif;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-left: 14px;
+  padding-right: 26px;
+  line-height: 1.15;
+  background-position:
+    calc(100% - 16px) calc(50% + 1px),
+    calc(100% - 10px) calc(50% + 1px);
+  background-size:
+    6px 6px,
+    6px 6px;
+}
+
+.phoneRow__code option {
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI", sans-serif;
 }
 
 .phoneRow__number {
@@ -9248,4 +9296,225 @@ html[data-theme="light"] .quickFilterBtn {
 }
 [data-theme="light"] .ownerProfileGrid__media .imageCard__removeBtn:hover {
   background: rgba(255, 248, 235, 0.98);
+}
+
+.resetPasswordPage {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+}
+
+.resetPasswordCard {
+  width: min(100%, 460px);
+  background: rgba(14, 20, 32, 0.92);
+  border: 1px solid rgba(201, 162, 39, 0.22);
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+}
+
+.resetPasswordCard__title {
+  margin: 0;
+  font-size: 32px;
+}
+
+.resetPasswordCard__subtitle {
+  margin: 10px 0 20px;
+  color: rgba(245, 239, 224, 0.76);
+}
+
+.resetPasswordCard__back {
+  margin-top: 14px;
+  width: 100%;
+}
+
+[data-theme="light"] .resetPasswordPage {
+  background:
+    radial-gradient(circle at top, rgba(223, 186, 118, 0.2), transparent 38%),
+    linear-gradient(180deg, #fffdf8 0%, #f7efe1 100%);
+}
+
+[data-theme="light"] .resetPasswordCard {
+  background: rgba(255, 252, 245, 0.96);
+  border: 1px solid rgba(175, 115, 45, 0.22);
+  box-shadow: 0 24px 60px rgba(140, 95, 32, 0.16);
+}
+
+[data-theme="light"] .resetPasswordCard__title {
+  color: rgba(80, 45, 15, 0.96);
+}
+
+[data-theme="light"] .resetPasswordCard__subtitle {
+  color: rgba(110, 68, 28, 0.78);
+}
+
+[data-theme="light"] .resetPasswordCard .field span {
+  color: rgba(96, 58, 21, 0.86);
+}
+
+[data-theme="light"] .resetPasswordCard .field input {
+  border-color: rgba(175, 115, 45, 0.22);
+  background: rgba(255, 255, 255, 0.96);
+  color: rgba(65, 38, 14, 0.96);
+}
+
+[data-theme="light"] .resetPasswordCard .field input::placeholder {
+  color: rgba(145, 109, 72, 0.68);
+}
+
+[data-theme="light"] .resetPasswordCard__back.btn--ghost {
+  border-color: rgba(175, 115, 45, 0.2);
+  background: rgba(255, 248, 235, 0.85);
+  color: rgba(80, 45, 15, 0.92);
+}
+
+[data-theme="light"] .resetPasswordCard__back.btn--ghost:hover {
+  background: rgba(255, 243, 220, 0.96);
+}
+
+.profileDocumentCard,
+.documentCard {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(201, 162, 39, 0.16);
+}
+
+.profileDocumentCard__name,
+.documentCard__name {
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.profileDocumentCard__link,
+.documentCard__link {
+  color: #d7b45d;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.reviewCardFull__flag {
+  margin-top: 10px;
+}
+
+.reservationChartCard {
+  margin-bottom: 20px;
+}
+
+.reservationChartsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.reservationChartPanel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.reservationChartPanel__title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.reservationBarChart {
+  min-height: 220px;
+  display: flex;
+  align-items: end;
+  gap: 14px;
+}
+
+.reservationBarChart__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.reservationBarChart__value {
+  font-size: 13px;
+  color: rgba(245, 239, 224, 0.78);
+}
+
+.reservationBarChart__barWrap {
+  height: 150px;
+  width: 100%;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+}
+
+.reservationBarChart__bar {
+  width: min(46px, 100%);
+  border-radius: 14px 14px 8px 8px;
+  background: linear-gradient(180deg, #d8bb67 0%, #9c7432 100%);
+  box-shadow: 0 12px 30px rgba(201, 162, 39, 0.22);
+}
+
+.reservationBarChart__label {
+  font-size: 12px;
+  text-align: center;
+  color: rgba(245, 239, 224, 0.7);
+}
+
+.reservationPeakBadge {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(216, 187, 103, 0.12);
+  color: #f1d58a;
+  font-weight: 600;
+}
+
+.reservationHourList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reservationHourRow {
+  display: grid;
+  grid-template-columns: 60px 1fr 34px;
+  align-items: center;
+  gap: 10px;
+}
+
+.reservationHourRow__label,
+.reservationHourRow__value {
+  font-size: 13px;
+  color: rgba(245, 239, 224, 0.8);
+}
+
+.reservationHourRow__track {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.reservationHourRow__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(153, 113, 45, 0.92), rgba(216, 187, 103, 0.96));
+}
+
+.reservationHourRow__fill.is-peak {
+  background: linear-gradient(90deg, #ffb454, #ffd978);
+}
+
+@media (max-width: 900px) {
+  .reservationChartsGrid {
+    grid-template-columns: 1fr;
+  }
 }

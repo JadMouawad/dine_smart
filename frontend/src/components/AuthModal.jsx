@@ -5,16 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useAuth } from "../auth/AuthContext";
 import { phoneExists } from "../services/authService";
-
-const COUNTRY_OPTIONS = [
-  { label: "Lebanon", code: "+961", flag: "🇱🇧" },
-  { label: "United States", code: "+1", flag: "🇺🇸" },
-  { label: "France", code: "+33", flag: "🇫🇷" },
-  { label: "United Kingdom", code: "+44", flag: "🇬🇧" },
-  { label: "United Arab Emirates", code: "+971", flag: "🇦🇪" },
-  { label: "Saudi Arabia", code: "+966", flag: "🇸🇦" },
-  { label: "Germany", code: "+49", flag: "🇩🇪" },
-];
+import { COUNTRY_OPTIONS } from "../constants/countries.js";
 
 export default function AuthModal({
   isOpen,
@@ -372,7 +363,7 @@ export default function AuthModal({
                   >
                     {COUNTRY_OPTIONS.map((country) => (
                       <option key={country.code} value={country.code}>
-                        {country.flag} {country.label} {country.code}
+                        {country.displayLabel}
                       </option>
                     ))}
                   </select>
@@ -498,6 +489,21 @@ export default function AuthModal({
                 {copy.switchAction}
               </button>
             </p>
+            {mode === "login" && (
+              <p className="fineprint">
+                <button
+                  className="link"
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    navigate("/reset-password");
+                  }}
+                  disabled={loading}
+                >
+                  Forgot your password?
+                </button>
+              </p>
+            )}
           </form>
         )}
       </motion.div>

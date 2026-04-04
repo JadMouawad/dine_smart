@@ -18,6 +18,7 @@ const AdminShell = lazy(() => import("./pages/admin/AdminShell.jsx"));
 const AdminAccessPage = lazy(() => import("./pages/admin/AdminAccessPage.jsx"));
 const UserSearch = lazy(() => import("./pages/User/UserSearch.jsx"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail.jsx"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage.jsx"));
 
 import AdminRoute from "./routes/AdminRoute.jsx";
 
@@ -146,6 +147,7 @@ export default function App() {
 
           {/* Email verification */}
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Owner area */}
           <Route path="/owner/profile" element={<OwnerShell />} />

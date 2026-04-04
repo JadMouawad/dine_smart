@@ -51,6 +51,40 @@ const sendVerificationEmail = async (to, verificationLink, userName = "User") =>
   await transporter.sendMail(mailOptions);
 };
 
+const sendPasswordResetEmail = async (to, resetLink, userName = "User") => {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Reset your password - DineSmart</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2>Reset your password</h2>
+      <p>Hi ${userName},</p>
+      <p>We received a request to reset your DineSmart password.</p>
+      <p style="margin: 24px 0;">
+        <a href="${resetLink}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a>
+      </p>
+      <p>Or copy and paste this link into your browser:</p>
+      <p style="word-break: break-all; color: #666;">${resetLink}</p>
+      <p>This link will expire in 1 hour. If you didn't request this reset, you can safely ignore this email.</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+      <p style="font-size: 12px; color: #888;">DineSmart - Account security</p>
+    </body>
+    </html>
+  `;
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    to,
+    subject: "Reset your DineSmart password",
+    html,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
 const sendReservationConfirmationEmail = async ({
   to,
   userName = "Guest",
@@ -277,6 +311,7 @@ const sendRestaurantApprovalEmail = async ({
 
 module.exports = {
   sendVerificationEmail,
+  sendPasswordResetEmail,
   sendReservationConfirmationEmail,
   sendReservationCancellationEmail,
   sendNoShowWarningEmail,
