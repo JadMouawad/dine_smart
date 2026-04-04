@@ -1,3 +1,4 @@
+const db = require("../config/db");
 const eventRepository = require("../repositories/eventRepository");
 
 const parsePositiveInt = (value) => {
@@ -179,9 +180,13 @@ const updateOwnerEvent = async ({ ownerId, eventId, payload }) => {
   if (payload.description != null) updates.description = String(payload.description).trim() || null;
   if (payload.image_url != null) updates.image_url = String(payload.image_url).trim() || null;
   if (payload.max_attendees != null) {
-    const parsedMax = parsePositiveInt(payload.max_attendees);
-    if (!parsedMax) return { success: false, status: 400, error: "max_attendees must be a positive number" };
-    updates.max_attendees = parsedMax;
+    if (payload.max_attendees === "") {
+      updates.max_attendees = null;
+    } else {
+      const parsedMax = parsePositiveInt(payload.max_attendees);
+      if (!parsedMax) return { success: false, status: 400, error: "max_attendees must be a positive number" };
+      updates.max_attendees = parsedMax;
+    }
   }
   if (payload.is_free != null) {
     const parsed = parseBoolean(payload.is_free, null);
@@ -288,33 +293,130 @@ const joinEvent = async ({ userId, eventId, payload }) => {
   const parsedEventId = parsePositiveInt(eventId);
   if (!parsedEventId) return { success: false, status: 400, error: "Invalid event ID" };
 
-  const event = await eventRepository.getPublicEventById(parsedEventId);
-  if (!event) return { success: false, status: 404, error: "Event not found" };
-
   const attendeesCount = parseAttendeeCount(payload.attendees_count ?? payload.attendees);
   const seatingPreference = parseSeatingPreference(payload.seating_preference ?? payload.seating);
   const notes = payload.notes != null ? String(payload.notes).trim().slice(0, 500) : null;
 
-  const capacity = await eventRepository.getEventCapacitySummary({ eventId: parsedEventId });
-  if (capacity?.max_attendees) {
-    const existingAttendee = await eventRepository.getEventAttendeeByUser({ eventId: parsedEventId, userId });
-    const currentBooked = Number(capacity.booked || 0);
-    const existingCount = existingAttendee?.attendees_count ? Number(existingAttendee.attendees_count) : 0;
-    const proposedTotal = currentBooked - existingCount + attendeesCount;
-    if (proposedTotal > capacity.max_attendees) {
-      return { success: false, status: 409, error: "Event is at full capacity" };
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock($1)", [parsedEventId]);
+
+    const event = await eventRepository.getPublicEventById(parsedEventId, client);
+    if (!event) {
+      await client.query("ROLLBACK");
+      return { success: false, status: 404, error: "Event not found" };
+    }
+
+    const existingAttendee = await eventRepository.getEventAttendeeByUser({ eventId: parsedEventId, userId }, client);
+    if (existingAttendee && String(existingAttendee.status || "").toLowerCase() === "confirmed") {
+      await client.query("ROLLBACK");
+      return { success: false, status: 409, error: "You have already reserved this event." };
+    }
+
+    const upcoming = await eventRepository.getUserUpcomingEventReservations({ userId }, client);
+    const toDateTime = (dateValue, timeValue, fallbackTime) => {
+      const datePart = String(dateValue || "").trim();
+      const timePart = timeValue ? String(timeValue).slice(0, 8) : fallbackTime;
+      const stamp = new Date(`${datePart}T${timePart || fallbackTime}`);
+      return Number.isNaN(stamp.getTime()) ? null : stamp;
+    };
+    const newStart = toDateTime(event.start_date, event.start_time, "00:00:00");
+    const newEnd = toDateTime(event.end_date, event.end_time, "23:59:59");
+
+    if (newStart && newEnd) {
+      for (const existing of upcoming) {
+        if (existing.event_id === parsedEventId) continue;
+        const existingStart = toDateTime(existing.start_date, existing.start_time, "00:00:00");
+        const existingEnd = toDateTime(existing.end_date, existing.end_time, "23:59:59");
+        if (!existingStart || !existingEnd) continue;
+        if (newStart < existingEnd && newEnd > existingStart) {
+          await client.query("ROLLBACK");
+          return {
+            success: false,
+            status: 409,
+            error: "You already have a reservation for another event at this time.",
+          };
+        }
+      }
+    }
+
+    const capacity = await eventRepository.getEventCapacitySummary({ eventId: parsedEventId }, client);
+    if (capacity?.max_attendees) {
+      const currentBooked = Number(capacity.booked || 0);
+      const proposedTotal = currentBooked + attendeesCount;
+      if (proposedTotal > capacity.max_attendees) {
+        await client.query("ROLLBACK");
+        return { success: false, status: 409, error: "Event is at full capacity" };
+      }
+    }
+
+    const saved = existingAttendee
+      ? await eventRepository.upsertEventAttendee({
+          eventId: parsedEventId,
+          userId,
+          attendeesCount,
+          seatingPreference,
+          notes,
+        }, client)
+      : await eventRepository.createEventAttendee({
+          eventId: parsedEventId,
+          userId,
+          attendeesCount,
+          seatingPreference,
+          notes,
+        }, client);
+
+    await client.query("COMMIT");
+    return { success: true, status: 200, data: saved };
+  } catch (error) {
+    try { await client.query("ROLLBACK"); } catch {}
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+const getUserEventReservations = async ({ userId }) => {
+  const reservations = await eventRepository.getUserEventReservations({ userId });
+  return { success: true, status: 200, data: reservations };
+};
+
+const cancelUserEventReservation = async ({ userId, eventId }) => {
+  const parsedEventId = parsePositiveInt(eventId);
+  if (!parsedEventId) return { success: false, status: 400, error: "Invalid event ID" };
+
+  const updated = await eventRepository.cancelEventAttendeeByUser({ eventId: parsedEventId, userId });
+  if (!updated) {
+    return { success: false, status: 404, error: "Event reservation not found" };
+  }
+  return { success: true, status: 200, data: updated };
+};
+
+const getOwnerEventReservations = async ({ ownerId }) => {
+  const reservations = await eventRepository.getOwnerEventReservations({ ownerId });
+  return { success: true, status: 200, data: reservations };
+};
+
+const deleteOwnerEventReservation = async ({ ownerId, reservationId }) => {
+  const parsedReservationId = parsePositiveInt(reservationId);
+  if (!parsedReservationId) return { success: false, status: 400, error: "Invalid reservation ID" };
+
+  const existing = await eventRepository.getOwnerEventReservationById({ ownerId, reservationId: parsedReservationId });
+  if (!existing) return { success: false, status: 404, error: "Reservation not found" };
+
+  const endDate = existing.end_date || existing.start_date;
+  const endTime = existing.end_time || "23:59:59";
+  const endStamp = new Date(`${endDate}T${String(endTime).slice(0, 8)}`);
+  if (!Number.isNaN(endStamp.getTime())) {
+    if (endStamp > new Date()) {
+      return { success: false, status: 409, error: "Only past reservations can be deleted" };
     }
   }
 
-  const saved = await eventRepository.upsertEventAttendee({
-    eventId: parsedEventId,
-    userId,
-    attendeesCount,
-    seatingPreference,
-    notes,
-  });
-
-  return { success: true, status: 200, data: saved };
+  const removed = await eventRepository.deleteEventReservationById({ reservationId: parsedReservationId });
+  if (!removed) return { success: false, status: 409, error: "Reservation could not be deleted" };
+  return { success: true, status: 200, data: removed };
 };
 
 const saveEvent = async ({ userId, eventId }) => {
@@ -353,4 +455,8 @@ module.exports = {
   saveEvent,
   unsaveEvent,
   getSavedEvents,
+  getUserEventReservations,
+  cancelUserEventReservation,
+  getOwnerEventReservations,
+  deleteOwnerEventReservation,
 };

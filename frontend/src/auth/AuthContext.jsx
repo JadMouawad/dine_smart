@@ -1,10 +1,12 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { loginUser, registerUser, getCurrentUser, googleAuth } from "../services/authService";
+import { updateProfile } from "../services/profileService";
 import { useTheme } from "./ThemeContext";
 
 const AuthContext = createContext(null);
 const TOKEN_KEY = "token";
 const LAST_ACTIVE_KEY = "last_active_at";
+const PRE_AUTH_THEME_KEY = "ds_theme_pre_auth";
 const SESSION_MAX_AWAY_MS = 3 * 60 * 60 * 1000; // 3 hours away from the site
 
 function readStoredToken() {
@@ -44,7 +46,15 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => readStoredToken());
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { applyThemeFromDB } = useTheme();
+  const { applyThemeFromDB, theme } = useTheme();
+
+  function hasPreAuthTheme() {
+    return localStorage.getItem(PRE_AUTH_THEME_KEY) === "1";
+  }
+
+  function clearPreAuthTheme() {
+    localStorage.removeItem(PRE_AUTH_THEME_KEY);
+  }
 
   async function restoreSession() {
     if (!token) {
@@ -64,7 +74,12 @@ export function AuthProvider({ children }) {
       const me = await getCurrentUser();
       const userData = me.user ?? me;
       setUser(userData);
-      if (userData.themePreference) applyThemeFromDB(userData.themePreference);
+      if (hasPreAuthTheme()) {
+        try { await updateProfile({ themePreference: theme }); } catch { /* silent */ }
+        clearPreAuthTheme();
+      } else if (userData.themePreference) {
+        applyThemeFromDB(userData.themePreference);
+      }
     } catch {
       clearToken();
       setToken(null);
@@ -150,7 +165,12 @@ export function AuthProvider({ children }) {
     persistToken(newToken);
     setToken(newToken);
     setUser(data.user ?? null);
-    if (data.user?.themePreference) applyThemeFromDB(data.user.themePreference);
+    if (hasPreAuthTheme()) {
+      try { await updateProfile({ themePreference: theme }); } catch { /* silent */ }
+      clearPreAuthTheme();
+    } else if (data.user?.themePreference) {
+      applyThemeFromDB(data.user.themePreference);
+    }
     return data;
   }
 
@@ -185,7 +205,12 @@ export function AuthProvider({ children }) {
     persistToken(newToken);
     setToken(newToken);
     setUser(data.user ?? null);
-    if (data.user?.themePreference) applyThemeFromDB(data.user.themePreference);
+    if (hasPreAuthTheme()) {
+      try { await updateProfile({ themePreference: theme }); } catch { /* silent */ }
+      clearPreAuthTheme();
+    } else if (data.user?.themePreference) {
+      applyThemeFromDB(data.user.themePreference);
+    }
     return data;
   }
 

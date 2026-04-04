@@ -48,6 +48,22 @@ router.get(
   eventController.getOwnerEventAttendees
 );
 
+router.get(
+  "/event-reservations",
+  authenticateToken,
+  authorizeRoles("owner"),
+  requireApprovedRestaurant,
+  eventController.getOwnerEventReservations
+);
+
+router.delete(
+  "/event-reservations/:id",
+  authenticateToken,
+  authorizeRoles("owner"),
+  requireApprovedRestaurant,
+  eventController.deleteOwnerEventReservation
+);
+
 router.put(
   "/events/:id",
   authenticateToken,
@@ -86,6 +102,14 @@ router.patch(
   authorizeRoles("owner"),
   requireApprovedRestaurant,
   reservationController.updateReservationStatusForOwner
+);
+
+router.delete(
+  "/reservations/:id",
+  authenticateToken,
+  authorizeRoles("owner"),
+  requireApprovedRestaurant,
+  reservationController.deleteReservationForOwner
 );
 
 router.patch(

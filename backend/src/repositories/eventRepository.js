@@ -75,6 +75,7 @@ const getOwnerEvents = async (ownerId) => {
         FROM event_attendees ea
         WHERE ea.event_id = e.id
           AND ea.status = 'confirmed'
+          AND ea.status = 'confirmed'
       ) att ON true
       WHERE r.owner_id = $1
       ORDER BY e.start_date DESC, e.created_at DESC
@@ -350,6 +351,7 @@ const getPublicEvents = async ({ latitude = null, longitude = null, distanceRadi
         SELECT COALESCE(SUM(attendees_count), 0)::int AS going_count
         FROM event_attendees ea
         WHERE ea.event_id = e.id
+          AND ea.status = 'confirmed'
       ) att ON true
       WHERE ${conditions.join(" AND ")}
       ORDER BY e.start_date ASC, e.created_at DESC
@@ -388,6 +390,7 @@ const getPublicEventsByRestaurantId = async (restaurantId) => {
         SELECT COALESCE(SUM(attendees_count), 0)::int AS going_count
         FROM event_attendees ea
         WHERE ea.event_id = e.id
+          AND ea.status = 'confirmed'
       ) att ON true
       WHERE e.restaurant_id = $1
         AND r.is_verified = true
@@ -400,8 +403,8 @@ const getPublicEventsByRestaurantId = async (restaurantId) => {
   return result.rows;
 };
 
-const getPublicEventById = async (eventId) => {
-  const result = await pool.query(
+const getPublicEventById = async (eventId, db = pool) => {
+  const result = await db.query(
     `
       SELECT
         e.id,
@@ -429,6 +432,7 @@ const getPublicEventById = async (eventId) => {
         SELECT COALESCE(SUM(attendees_count), 0)::int AS going_count
         FROM event_attendees ea
         WHERE ea.event_id = e.id
+          AND ea.status = 'confirmed'
       ) att ON true
       WHERE e.id = $1
         AND r.is_verified = true
@@ -442,8 +446,8 @@ const getPublicEventById = async (eventId) => {
   return result.rows[0] || null;
 };
 
-const getEventCapacitySummary = async ({ eventId }) => {
-  const result = await pool.query(
+const getEventCapacitySummary = async ({ eventId }, db = pool) => {
+  const result = await db.query(
     `
       SELECT
         e.id,
@@ -459,8 +463,8 @@ const getEventCapacitySummary = async ({ eventId }) => {
   return result.rows[0] || null;
 };
 
-const getEventAttendeeByUser = async ({ eventId, userId }) => {
-  const result = await pool.query(
+const getEventAttendeeByUser = async ({ eventId, userId }, db = pool) => {
+  const result = await db.query(
     `
       SELECT id, attendees_count, status
       FROM event_attendees
@@ -472,8 +476,8 @@ const getEventAttendeeByUser = async ({ eventId, userId }) => {
   return result.rows[0] || null;
 };
 
-const getOwnerEventAttendees = async ({ ownerId, eventId }) => {
-  const result = await pool.query(
+const getOwnerEventAttendees = async ({ ownerId, eventId }, db = pool) => {
+  const result = await db.query(
     `
       SELECT
         ea.id,
@@ -498,8 +502,8 @@ const getOwnerEventAttendees = async ({ ownerId, eventId }) => {
   return result.rows;
 };
 
-const upsertEventAttendee = async ({ eventId, userId, attendeesCount, seatingPreference, notes }) => {
-  const result = await pool.query(
+const upsertEventAttendee = async ({ eventId, userId, attendeesCount, seatingPreference, notes }, db = pool) => {
+  const result = await db.query(
     `
       INSERT INTO event_attendees (
         event_id,
@@ -520,6 +524,161 @@ const upsertEventAttendee = async ({ eventId, userId, attendeesCount, seatingPre
       RETURNING id, event_id, user_id, attendees_count, seating_preference, notes, created_at, updated_at
     `,
     [eventId, userId, attendeesCount, seatingPreference, notes]
+  );
+  return result.rows[0] || null;
+};
+
+const createEventAttendee = async ({ eventId, userId, attendeesCount, seatingPreference, notes }, db = pool) => {
+  const result = await db.query(
+    `
+      INSERT INTO event_attendees (
+        event_id,
+        user_id,
+        attendees_count,
+        seating_preference,
+        notes,
+        status
+      )
+      VALUES ($1, $2, $3, $4, $5, 'confirmed')
+      RETURNING id, event_id, user_id, attendees_count, seating_preference, notes, status, created_at, updated_at
+    `,
+    [eventId, userId, attendeesCount, seatingPreference, notes]
+  );
+  return result.rows[0] || null;
+};
+
+const cancelEventAttendeeByUser = async ({ eventId, userId }, db = pool) => {
+  const result = await db.query(
+    `
+      UPDATE event_attendees
+      SET status = 'cancelled', updated_at = NOW()
+      WHERE event_id = $1 AND user_id = $2 AND status = 'confirmed'
+      RETURNING id, event_id, user_id, attendees_count, status, created_at, updated_at
+    `,
+    [eventId, userId]
+  );
+  return result.rows[0] || null;
+};
+
+const getUserEventReservations = async ({ userId }, db = pool) => {
+  const result = await db.query(
+    `
+      SELECT
+        ea.id,
+        ea.event_id,
+        ea.user_id,
+        ea.attendees_count,
+        ea.status,
+        ea.created_at,
+        e.title AS event_title,
+        e.start_date,
+        e.end_date,
+        e.start_time,
+        e.end_time,
+        r.name AS restaurant_name
+      FROM event_attendees ea
+      JOIN events e ON e.id = ea.event_id
+      JOIN restaurants r ON r.id = e.restaurant_id
+      WHERE ea.user_id = $1
+      ORDER BY e.start_date DESC, e.start_time DESC, ea.created_at DESC
+    `,
+    [userId]
+  );
+  return result.rows;
+};
+
+const getUserUpcomingEventReservations = async ({ userId }, db = pool) => {
+  const result = await db.query(
+    `
+      SELECT
+        ea.id,
+        ea.event_id,
+        ea.user_id,
+        ea.attendees_count,
+        ea.status,
+        e.title AS event_title,
+        e.start_date,
+        e.end_date,
+        e.start_time,
+        e.end_time
+      FROM event_attendees ea
+      JOIN events e ON e.id = ea.event_id
+      WHERE ea.user_id = $1
+        AND ea.status = 'confirmed'
+        AND e.end_date >= CURRENT_DATE
+      ORDER BY e.start_date ASC, e.start_time ASC, ea.created_at ASC
+    `,
+    [userId]
+  );
+  return result.rows;
+};
+
+const getOwnerEventReservations = async ({ ownerId }, db = pool) => {
+  const result = await db.query(
+    `
+      SELECT
+        ea.id,
+        ea.event_id,
+        ea.user_id,
+        ea.attendees_count,
+        ea.status,
+        ea.created_at,
+        u.full_name AS user_name,
+        u.email AS user_email,
+        e.title AS event_title,
+        e.start_date,
+        e.end_date,
+        e.start_time,
+        e.end_time,
+        r.name AS restaurant_name
+      FROM event_attendees ea
+      JOIN events e ON e.id = ea.event_id
+      JOIN restaurants r ON r.id = e.restaurant_id
+      JOIN users u ON u.id = ea.user_id
+      WHERE r.owner_id = $1
+      ORDER BY e.start_date DESC, e.start_time DESC, ea.created_at DESC
+    `,
+    [ownerId]
+  );
+  return result.rows;
+};
+
+const getOwnerEventReservationById = async ({ ownerId, reservationId }, db = pool) => {
+  const result = await db.query(
+    `
+      SELECT
+        ea.id,
+        ea.event_id,
+        ea.user_id,
+        ea.attendees_count,
+        ea.status,
+        ea.created_at,
+        e.title AS event_title,
+        e.start_date,
+        e.end_date,
+        e.start_time,
+        e.end_time,
+        r.name AS restaurant_name
+      FROM event_attendees ea
+      JOIN events e ON e.id = ea.event_id
+      JOIN restaurants r ON r.id = e.restaurant_id
+      WHERE ea.id = $1
+        AND r.owner_id = $2
+      LIMIT 1
+    `,
+    [reservationId, ownerId]
+  );
+  return result.rows[0] || null;
+};
+
+const deleteEventReservationById = async ({ reservationId }, db = pool) => {
+  const result = await db.query(
+    `
+      DELETE FROM event_attendees
+      WHERE id = $1
+      RETURNING id
+    `,
+    [reservationId]
   );
   return result.rows[0] || null;
 };
@@ -597,6 +756,13 @@ module.exports = {
   getEventAttendeeByUser,
   getOwnerEventAttendees,
   upsertEventAttendee,
+  createEventAttendee,
+  cancelEventAttendeeByUser,
+  getUserEventReservations,
+  getUserUpcomingEventReservations,
+  getOwnerEventReservations,
+  getOwnerEventReservationById,
+  deleteEventReservationById,
   saveEventForUser,
   removeSavedEventForUser,
   getSavedEventsByUser,

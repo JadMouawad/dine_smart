@@ -24,3 +24,11 @@ export function getSavedEvents() {
     method: "GET",
   });
 }
+
+export function getUserEventReservations() {
+  return apiRequest("/events/reservations", { method: "GET" });
+}
+
+export function cancelUserEventReservation(eventId) {
+  return apiRequest(`/events/${eventId}/reservations`, { method: "DELETE" });
+}

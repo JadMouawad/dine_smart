@@ -3050,6 +3050,10 @@ body {
   gap: 12px;
 }
 
+.ownerEventTwoCols {
+  align-items: start;
+}
+
 .select {
   width: 100%;
   border-radius: 12px;
@@ -5723,6 +5727,11 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   margin-top: 12px;
 }
 
+.reservationCard__actions--right {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .statusBadge {
   text-transform: capitalize;
   border-radius: 999px;
@@ -6816,6 +6825,22 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   padding: 0 12px;
   color: rgba(255, 255, 255, 0.92);
 }
+
+.ownerEventMaxToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+}
+
+.ownerEventMaxToggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: #c9a227;
+}
+
 
 .ownerEventFormActions {
   display: flex;
@@ -8301,6 +8326,10 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.eventModal__actions--inline {
+  justify-content: center;
 }
 
 .eventFormRow {

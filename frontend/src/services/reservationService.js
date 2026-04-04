@@ -84,6 +84,12 @@ export async function markOwnerReservationNoShow(reservationId) {
   });
 }
 
+export async function deleteOwnerReservation(reservationId) {
+  return apiRequest(`/owner/reservations/${reservationId}`, {
+    method: "DELETE",
+  });
+}
+
 export async function getOwnerSlotAdjustment({ restaurantId, date, time, seatingPreference }) {
   const params = new URLSearchParams();
   params.set("date", date);

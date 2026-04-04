@@ -286,12 +286,11 @@ function JoinEventModal({ event, onClose, onConfirm }) {
   );
 }
 
-function EventSuccessModal({ event, onClose }) {
+function EventSuccessModal({ event, onClose, onViewBooking }) {
   if (!event) return null;
   const startDate = toDateObject(event.start_date || event.event_date || event.startDate);
   const endDate = toDateObject(event.end_date || event.endDate);
   const googleUrl = buildGoogleCalendarUrl(event, startDate, endDate);
-  const icsUrl = buildIcsDataUrl(event, startDate, endDate);
   return (
     <div className="eventModalOverlay" role="dialog" aria-modal="true">
       <div className="eventModal eventModal--compact">
@@ -300,11 +299,18 @@ function EventSuccessModal({ event, onClose }) {
           <div className="eventSuccessIcon">✓</div>
           <div className="eventModal__title">You’re in!</div>
           <div className="eventModal__subtitle">{event.title} • {event.restaurant_name}</div>
-          <div className="eventModal__actions">
+          <div className="eventModal__actions eventModal__actions--inline">
             <a className="btn btn--gold" href={googleUrl} target="_blank" rel="noreferrer">Add to Google Calendar</a>
-            <a className="btn btn--ghost" href={icsUrl} download={`${event.title || "event"}.ics`}>Download iCal</a>
-            <button className="btn btn--ghost" type="button">View Booking</button>
-            <button className="btn btn--ghost" type="button">Cancel</button>
+            <button
+              className="btn btn--ghost"
+              type="button"
+              onClick={() => {
+                onClose?.();
+                onViewBooking?.();
+              }}
+            >
+              View Booking
+            </button>
           </div>
         </div>
       </div>
@@ -357,7 +363,7 @@ function sanitizeIcs(value) {
   return String(value).replace(/\n/g, "\\n").replace(/,/g, "\\,");
 }
 
-export default function UserDiscover({ onOpenRestaurant }) {
+export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
   const { user } = useAuth();
   const [feed, setFeed] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -414,30 +420,31 @@ export default function UserDiscover({ onOpenRestaurant }) {
     );
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
+  async function loadDiscoverFeed() {
     setLoading(true);
     setError("");
-
-    getDiscoverFeed({
-      latitude: effectiveLatitude,
-      longitude: effectiveLongitude,
-      distanceRadius: 25,
-      limit: 8,
-    })
-      .then((data) => {
-        if (!cancelled) setFeed(data);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err.message || "Failed to load discover feed.");
-          setFeed(null);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+    try {
+      const data = await getDiscoverFeed({
+        latitude: effectiveLatitude,
+        longitude: effectiveLongitude,
+        distanceRadius: 25,
+        limit: 8,
       });
+      setFeed(data);
+    } catch (err) {
+      setError(err.message || "Failed to load discover feed.");
+      setFeed(null);
+    } finally {
+      setLoading(false);
+    }
+  }
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (cancelled) return;
+      await loadDiscoverFeed();
+    })();
     return () => {
       cancelled = true;
     };
@@ -464,33 +471,6 @@ export default function UserDiscover({ onOpenRestaurant }) {
   return (
     <div className="userSearchPage">
       <h1 className="userSearchPage__title">Discover</h1>
-
-      <SectionRestaurants
-        title="Near You"
-        badge="New Restaurant"
-        restaurants={feed?.near_you}
-        onOpenRestaurant={onOpenRestaurant}
-      />
-
-      <SectionRestaurants
-        title="Popular Right Now"
-        badge="Popular Right Now"
-        restaurants={feed?.popular_right_now}
-        onOpenRestaurant={onOpenRestaurant}
-      />
-
-      <SectionRestaurants
-        title="Matches Preferences"
-        badge="Recommended For You"
-        restaurants={feed?.matches_preferences}
-        onOpenRestaurant={onOpenRestaurant}
-      />
-
-      <SectionRestaurants
-        title="Highly Rated"
-        restaurants={feed?.highly_rated}
-        onOpenRestaurant={onOpenRestaurant}
-      />
 
       <section className="discoverEventsWrap">
         <div className="discoverEventsHeader">
@@ -615,6 +595,7 @@ export default function UserDiscover({ onOpenRestaurant }) {
               await joinEvent(activeEvent?.id, payload);
               setJoinOpen(false);
               setSuccessOpen(true);
+              await loadDiscoverFeed();
               toast.success("You're booked!");
             } catch (err) {
               toast.error(err.message || "Failed to join event");
@@ -626,6 +607,7 @@ export default function UserDiscover({ onOpenRestaurant }) {
         <EventSuccessModal
           event={activeEvent}
           onClose={() => setSuccessOpen(false)}
+          onViewBooking={onViewBooking}
         />
       )}
     </div>

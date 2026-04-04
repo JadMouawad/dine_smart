@@ -123,6 +123,23 @@ const getAvailability = async (req, res) => {
   }
 };
 
+const deleteReservationForOwner = async (req, res) => {
+  try {
+    const result = await reservationService.deleteReservationForOwner({
+      reservationId: req.params.id,
+      ownerId: req.user.id,
+    });
+
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+
+    return res.status(200).json(result.reservation);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 const joinWaitlist = async (req, res) => {
   try {
     const result = await reservationService.joinWaitlist({
@@ -230,6 +247,7 @@ module.exports = {
   getReservationsForOwner,
   cancelReservation,
   updateReservationStatusForOwner,
+  deleteReservationForOwner,
   getAvailability,
   getSlotAdjustmentForOwner,
   upsertSlotAdjustmentForOwner,

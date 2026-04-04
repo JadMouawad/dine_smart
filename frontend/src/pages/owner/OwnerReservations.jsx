@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { getMyRestaurant, getOwnerRestaurantTableConfig } from "../../services/restaurantService";
+import { getMyRestaurant, getOwnerRestaurantTableConfig, getOwnerEventReservations, deleteOwnerEventReservation } from "../../services/restaurantService";
 import {
   getOwnerReservations,
   updateOwnerReservationStatus,
   markOwnerReservationNoShow,
+  deleteOwnerReservation,
   getOwnerSlotAdjustment,
   saveOwnerSlotAdjustment,
   getReservationAvailability,
@@ -66,11 +67,16 @@ function getRoundedTimeValue() {
 export default function OwnerReservations() {
   const [restaurant, setRestaurant] = useState(null);
   const [reservations, setReservations] = useState([]);
+  const [eventReservations, setEventReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [updatingId, setUpdatingId] = useState(null);
   const [confirmRejectReservation, setConfirmRejectReservation] = useState(null);
+  const [confirmDeleteReservation, setConfirmDeleteReservation] = useState(null);
+  const [deletingReservationId, setDeletingReservationId] = useState(null);
+  const [confirmDeleteEventReservation, setConfirmDeleteEventReservation] = useState(null);
+  const [deletingEventReservationId, setDeletingEventReservationId] = useState(null);
   const [clockNow, setClockNow] = useState(() => Date.now());
   const [adjustmentDate, setAdjustmentDate] = useState(getTodayDateValue());
   const [adjustmentTime, setAdjustmentTime] = useState(getRoundedTimeValue());
@@ -87,9 +93,12 @@ export default function OwnerReservations() {
     try {
       const data = await getOwnerReservations();
       setReservations(Array.isArray(data) ? data : []);
+      const eventData = await getOwnerEventReservations();
+      setEventReservations(Array.isArray(eventData) ? eventData : []);
     } catch (err) {
       setError(err.message || "We couldn't load reservations. Please refresh and try again.");
       setReservations([]);
+      setEventReservations([]);
     } finally {
       setLoading(false);
     }
@@ -237,6 +246,55 @@ export default function OwnerReservations() {
     return { upcomingReservations: upcoming, pastReservations: past };
   }, [reservations, clockNow]);
 
+  function toEventDateTime(reservation, useEnd = false) {
+    const datePart = String(useEnd ? (reservation.end_date || reservation.start_date || "") : (reservation.start_date || reservation.end_date || "")).trim();
+    const timePartRaw = useEnd ? reservation.end_time : reservation.start_time;
+    const timePart = String(timePartRaw || (useEnd ? "23:59:59" : "00:00:00")).slice(0, 8);
+    const parsed = new Date(`${datePart}T${timePart}`);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+    return null;
+  }
+
+  function formatEventDateTime(reservation) {
+    const start = toEventDateTime(reservation, false);
+    if (!start) return "Date/time unavailable";
+    return `${start.toLocaleDateString()} at ${start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  }
+
+  const { upcomingEventReservations, pastEventReservations } = useMemo(() => {
+    const now = new Date(clockNow);
+    const upcoming = [];
+    const past = [];
+    eventReservations.forEach((reservation) => {
+      const end = toEventDateTime(reservation, true);
+      const isPast = end ? end < now : false;
+      if (isPast) {
+        past.push(reservation);
+      } else {
+        upcoming.push(reservation);
+      }
+    });
+    upcoming.sort((a, b) => (toEventDateTime(a, false)?.getTime() ?? Number.MAX_SAFE_INTEGER) - (toEventDateTime(b, false)?.getTime() ?? Number.MAX_SAFE_INTEGER));
+    past.sort((a, b) => (toEventDateTime(b, true)?.getTime() ?? 0) - (toEventDateTime(a, true)?.getTime() ?? 0));
+    return { upcomingEventReservations: upcoming, pastEventReservations: past };
+  }, [eventReservations, clockNow]);
+
+  async function handleDeleteEventReservation(reservationId) {
+    setError("");
+    setSuccess("");
+    setDeletingEventReservationId(reservationId);
+    try {
+      await deleteOwnerEventReservation(reservationId);
+      setEventReservations((prev) => prev.filter((item) => item.id !== reservationId));
+      setSuccess("Event reservation deleted.");
+      setConfirmDeleteEventReservation(null);
+    } catch (err) {
+      setError(err.message || "Failed to delete event reservation.");
+    } finally {
+      setDeletingEventReservationId(null);
+    }
+  }
+
   async function handleSaveAdjustment(event) {
     event.preventDefault();
     if (!restaurant?.id) return;
@@ -335,6 +393,24 @@ export default function OwnerReservations() {
     } finally {
       setUpdatingId(null);
       setConfirmRejectReservation(null);
+    }
+  }
+
+  async function handleDeleteReservation(reservationId) {
+    setError("");
+    setSuccess("");
+    setDeletingReservationId(reservationId);
+    try {
+      await deleteOwnerReservation(reservationId);
+      setReservations((prev) => prev.filter((reservation) => reservation.id !== reservationId));
+      setSuccess("Reservation deleted.");
+      setConfirmDeleteReservation(null);
+      return true;
+    } catch (err) {
+      setError(err.message || "Failed to delete reservation.");
+      return false;
+    } finally {
+      setDeletingReservationId(null);
     }
   }
 
@@ -561,6 +637,16 @@ export default function OwnerReservations() {
                 <div className="reservationCard__meta">
                   Customer email: {reservation.customer_email || "N/A"}
                 </div>
+                <div className="reservationCard__actions reservationCard__actions--right">
+                  <button
+                    className="btn btn--ghost"
+                    type="button"
+                    disabled={deletingReservationId === reservation.id}
+                    onClick={() => setConfirmDeleteReservation(reservation)}
+                  >
+                    {deletingReservationId === reservation.id ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
                 {canMarkOutcome && (
                   <div className="reservationCard__actions ownerReservationActions">
                     <button
@@ -588,6 +674,71 @@ export default function OwnerReservations() {
         )}
       </section>
 
+      <section className="reservationSection">
+        <h2 className="reservationSection__title">Event Reservations</h2>
+        {upcomingEventReservations.length === 0 && pastEventReservations.length === 0 ? (
+          <EmptyState
+            title="No event reservations"
+            message="Event bookings will appear here once guests reserve your events."
+          />
+        ) : (
+          <>
+            {upcomingEventReservations.length > 0 && (
+              <div className="reservationList">
+                {upcomingEventReservations.map((reservation) => (
+                  <article className="reservationCard" key={`event-up-${reservation.id}`}>
+                    <div className="reservationCard__top">
+                      <div className="reservationCard__name">{reservation.event_title || "Event"}</div>
+                      <span className="statusBadge statusBadge--confirmed">Event</span>
+                    </div>
+                    <div className="reservationCard__meta">
+                      Guest: {reservation.user_name || "Guest"} • {reservation.attendees_count || 1} attendee(s)
+                    </div>
+                    <div className="reservationCard__meta">
+                      {formatEventDateTime(reservation)}
+                    </div>
+                    <div className="reservationCard__meta">
+                      Restaurant: {reservation.restaurant_name || "N/A"}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+            {pastEventReservations.length > 0 && (
+              <div className="reservationList">
+                {pastEventReservations.map((reservation) => (
+                  <article className="reservationCard" key={`event-past-${reservation.id}`}>
+                    <div className="reservationCard__top">
+                      <div className="reservationCard__name">{reservation.event_title || "Event"}</div>
+                      <span className="statusBadge statusBadge--completed">Past</span>
+                    </div>
+                    <div className="reservationCard__meta">
+                      Guest: {reservation.user_name || "Guest"} • {reservation.attendees_count || 1} attendee(s)
+                    </div>
+                    <div className="reservationCard__meta">
+                      {formatEventDateTime(reservation)}
+                    </div>
+                    <div className="reservationCard__meta">
+                      Restaurant: {reservation.restaurant_name || "N/A"}
+                    </div>
+                    <div className="reservationCard__actions reservationCard__actions--right">
+                      <button
+                        className="btn btn--ghost"
+                        type="button"
+                        onClick={() => setConfirmDeleteEventReservation(reservation)}
+                        disabled={deletingEventReservationId === reservation.id}
+                      >
+                        {deletingEventReservationId === reservation.id ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </section>
+
       <ConfirmDialog
         open={!!confirmRejectReservation}
         title="Reject this reservation?"
@@ -605,6 +756,53 @@ export default function OwnerReservations() {
           handleAction(confirmRejectReservation.id, "reject");
         }}
         onCancel={() => setConfirmRejectReservation(null)}
+      />
+
+      <ConfirmDialog
+        open={!!confirmDeleteReservation}
+        title="Are you sure you want to delete this reservation?"
+        message={
+          confirmDeleteReservation
+            ? `${confirmDeleteReservation.customer_name || "Guest"} • ${formatDateTime(confirmDeleteReservation)}`
+            : ""
+        }
+        confirmLabel="Confirm"
+        cancelLabel="Cancel"
+        busy={deletingReservationId === confirmDeleteReservation?.id}
+        busyLabel="Deleting..."
+        onConfirm={async () => {
+          if (!confirmDeleteReservation) return;
+          const success = await handleDeleteReservation(confirmDeleteReservation.id);
+          if (success) {
+            setConfirmDeleteReservation(null);
+          }
+        }}
+        onCancel={() => {
+          if (deletingReservationId === confirmDeleteReservation?.id) return;
+          setConfirmDeleteReservation(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!confirmDeleteEventReservation}
+        title="Are you sure you want to delete this reservation?"
+        message={
+          confirmDeleteEventReservation
+            ? `${confirmDeleteEventReservation.event_title || "Event"} • ${formatEventDateTime(confirmDeleteEventReservation)}`
+            : ""
+        }
+        confirmLabel="Confirm"
+        cancelLabel="Cancel"
+        busy={deletingEventReservationId === confirmDeleteEventReservation?.id}
+        busyLabel="Deleting..."
+        onConfirm={() => {
+          if (!confirmDeleteEventReservation) return;
+          handleDeleteEventReservation(confirmDeleteEventReservation.id);
+        }}
+        onCancel={() => {
+          if (deletingEventReservationId === confirmDeleteEventReservation?.id) return;
+          setConfirmDeleteEventReservation(null);
+        }}
       />
     </div>
   );

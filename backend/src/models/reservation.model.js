@@ -106,6 +106,18 @@ async function getUserReservations(db, userId) {
   return db.query(query, [userId]);
 }
 
+async function getMostRecentReservationByUser(db, userId) {
+  const query = `
+    SELECT id, user_id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time,
+           party_size, status, created_at
+    FROM reservations
+    WHERE user_id = $1
+    ORDER BY created_at DESC
+    LIMIT 1;
+  `;
+  return db.query(query, [userId]);
+}
+
 async function getActiveUserReservationsForDate(db, userId, reservationDate) {
   const query = `
     SELECT r.id, r.restaurant_id, r.reservation_time::text AS reservation_time, r.status
@@ -181,6 +193,19 @@ async function updateOwnerReservationStatus(db, { reservationId, ownerId, status
     JOIN users u ON u.id = updated.user_id;
   `;
   return db.query(query, [reservationId, ownerId, status]);
+}
+
+async function deleteOwnerReservationById(db, { reservationId, ownerId }) {
+  const query = `
+    DELETE FROM reservations r
+    USING restaurants rest
+    WHERE r.id = $1
+      AND r.restaurant_id = rest.id
+      AND rest.owner_id = $2
+    RETURNING r.id, r.user_id, r.restaurant_id, r.reservation_date::text AS reservation_date, r.reservation_time::text AS reservation_time,
+              r.party_size, r.seating_preference, r.special_request, r.status, r.confirmation_id, r.created_at, r.updated_at;
+  `;
+  return db.query(query, [reservationId, ownerId]);
 }
 
 async function getReservationsForSlot(db, restaurantId, reservationDate, reservationTime) {
@@ -342,11 +367,13 @@ module.exports = {
   createReservation,
   getReservationById,
   getUserReservations,
+  getMostRecentReservationByUser,
   getActiveUserReservationsForDate,
   cancelReservation,
   getOwnerReservations,
   getOwnerReservationById,
   updateOwnerReservationStatus,
+  deleteOwnerReservationById,
   getReservationsForSlot,
   getSlotAdjustments,
   getSlotAdjustment,

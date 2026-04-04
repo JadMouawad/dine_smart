@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { cancelReservation, getReservationsByUserId } from "../../services/reservationService.js";
+import { getUserEventReservations, cancelUserEventReservation } from "../../services/eventService.js";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
 import { formatReservationDate, formatReservationTime, toReservationSortTimestamp, toReservationDateTime } from "../../utils/dateUtils";
@@ -24,11 +25,14 @@ function formatStatusLabel(status) {
 export default function UserReservations() {
   const { user } = useAuth();
   const [reservations, setReservations] = useState([]);
+  const [eventReservations, setEventReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [cancellingId, setCancellingId] = useState(null);
   const [confirmReservation, setConfirmReservation] = useState(null);
+  const [confirmEventReservation, setConfirmEventReservation] = useState(null);
+  const [cancellingEventId, setCancellingEventId] = useState(null);
   const [clockNow, setClockNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -36,8 +40,14 @@ export default function UserReservations() {
 
     setLoading(true);
     setError("");
-    getReservationsByUserId(user.id)
-      .then((data) => setReservations(Array.isArray(data) ? data : []))
+    Promise.all([getReservationsByUserId(user.id), getUserEventReservations()])
+      .then(([tableData, eventData]) => {
+        setReservations(Array.isArray(tableData) ? tableData : []);
+        const filteredEvents = Array.isArray(eventData)
+          ? eventData.filter((item) => String(item.status || "").toLowerCase() !== "cancelled")
+          : [];
+        setEventReservations(filteredEvents);
+      })
       .catch((err) => setError(err.message || "We couldn't load your reservations. Please refresh and try again."))
       .finally(() => setLoading(false));
   }, [user?.id]);
@@ -76,6 +86,35 @@ export default function UserReservations() {
     return grouped;
   }, [reservations, clockNow]);
 
+  function toEventDateTime(reservation, useEnd = false) {
+    const datePart = String(useEnd ? (reservation.end_date || reservation.start_date || "") : (reservation.start_date || reservation.end_date || "")).trim();
+    const timePartRaw = useEnd ? reservation.end_time : reservation.start_time;
+    const timePart = String(timePartRaw || (useEnd ? "23:59:59" : "00:00:00")).slice(0, 8);
+    const parsed = new Date(`${datePart}T${timePart}`);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+    return null;
+  }
+
+  function formatEventDateTime(reservation) {
+    const start = toEventDateTime(reservation, false);
+    if (!start) return "Date/time unavailable";
+    return `${start.toLocaleDateString()} at ${start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  }
+
+  const { upcomingEvents, pastEvents } = useMemo(() => {
+    const now = new Date(clockNow);
+    const grouped = { upcomingEvents: [], pastEvents: [] };
+    eventReservations.forEach((reservation) => {
+      const end = toEventDateTime(reservation, true);
+      const isPast = end ? end < now : false;
+      if (isPast) grouped.pastEvents.push(reservation);
+      else grouped.upcomingEvents.push(reservation);
+    });
+    grouped.upcomingEvents.sort((a, b) => (toEventDateTime(a, false)?.getTime() ?? Number.MAX_SAFE_INTEGER) - (toEventDateTime(b, false)?.getTime() ?? Number.MAX_SAFE_INTEGER));
+    grouped.pastEvents.sort((a, b) => (toEventDateTime(b, true)?.getTime() ?? 0) - (toEventDateTime(a, true)?.getTime() ?? 0));
+    return grouped;
+  }, [eventReservations, clockNow]);
+
   async function onCancelReservation(reservationId) {
     setMessage("");
     setError("");
@@ -106,6 +145,22 @@ export default function UserReservations() {
       setError(err.message || "We couldn't cancel that reservation. Please try again.");
     } finally {
       setCancellingId(null);
+    }
+  }
+
+  async function onCancelEventReservation(eventId) {
+    setMessage("");
+    setError("");
+    setCancellingEventId(eventId);
+    try {
+      await cancelUserEventReservation(eventId);
+      setEventReservations((prev) => prev.filter((reservation) => reservation.event_id !== eventId));
+      setConfirmEventReservation(null);
+      setMessage("Event reservation cancelled.");
+    } catch (err) {
+      setError(err.message || "We couldn't cancel that event reservation. Please try again.");
+    } finally {
+      setCancellingEventId(null);
     }
   }
 
@@ -190,6 +245,71 @@ export default function UserReservations() {
         )}
       </section>
 
+      <section className="reservationSection">
+        <h2 className="reservationSection__title">Event Reservations</h2>
+        {upcomingEvents.length === 0 && pastEvents.length === 0 ? (
+          <EmptyState
+            title="No event reservations"
+            message="Event bookings will appear here once you reserve an event."
+          />
+        ) : (
+          <>
+            {upcomingEvents.length > 0 && (
+              <div className="reservationList">
+                {upcomingEvents.map((reservation) => (
+                  <article className="reservationCard" key={`event-up-${reservation.id}`}>
+                    <div className="reservationCard__top">
+                      <div className="reservationCard__name">{reservation.event_title || "Event"}</div>
+                      <span className="statusBadge statusBadge--confirmed">Event</span>
+                    </div>
+                    <div className="reservationCard__meta">
+                      Restaurant: {reservation.restaurant_name || "N/A"}
+                    </div>
+                    <div className="reservationCard__meta">
+                      {formatEventDateTime(reservation)}
+                    </div>
+                    <div className="reservationCard__meta">
+                      Attendees: {reservation.attendees_count || 1}
+                    </div>
+                    <div className="reservationCard__actions">
+                      <button
+                        className="btn btn--ghost"
+                        type="button"
+                        disabled={cancellingEventId === reservation.event_id}
+                        onClick={() => setConfirmEventReservation(reservation)}
+                      >
+                        {cancellingEventId === reservation.event_id ? "Cancelling..." : "Cancel Reservation"}
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+            {pastEvents.length > 0 && (
+              <div className="reservationList">
+                {pastEvents.map((reservation) => (
+                  <article className="reservationCard" key={`event-past-${reservation.id}`}>
+                    <div className="reservationCard__top">
+                      <div className="reservationCard__name">{reservation.event_title || "Event"}</div>
+                      <span className="statusBadge statusBadge--completed">Past</span>
+                    </div>
+                    <div className="reservationCard__meta">
+                      Restaurant: {reservation.restaurant_name || "N/A"}
+                    </div>
+                    <div className="reservationCard__meta">
+                      {formatEventDateTime(reservation)}
+                    </div>
+                    <div className="reservationCard__meta">
+                      Attendees: {reservation.attendees_count || 1}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </section>
+
       <ConfirmDialog
         open={!!confirmReservation}
         title="Are you sure you want to cancel the reservation?"
@@ -209,6 +329,28 @@ export default function UserReservations() {
         onCancel={() => {
           if (cancellingId === confirmReservation?.id) return;
           setConfirmReservation(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!confirmEventReservation}
+        title="Are you sure you want to cancel this reservation?"
+        message={
+          confirmEventReservation
+            ? `${confirmEventReservation.event_title || "Event"} • ${formatEventDateTime(confirmEventReservation)}`
+            : ""
+        }
+        confirmLabel="Confirm"
+        cancelLabel="Cancel"
+        busy={cancellingEventId === confirmEventReservation?.event_id}
+        busyLabel="Cancelling..."
+        onConfirm={() => {
+          if (!confirmEventReservation) return;
+          onCancelEventReservation(confirmEventReservation.event_id);
+        }}
+        onCancel={() => {
+          if (cancellingEventId === confirmEventReservation?.event_id) return;
+          setConfirmEventReservation(null);
         }}
       />
     </div>

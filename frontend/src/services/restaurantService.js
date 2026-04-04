@@ -159,6 +159,14 @@ export async function getOwnerEventAttendees(eventId) {
   return apiRequest(`/owner/events/${eventId}/attendees`, { method: "GET" });
 }
 
+export async function getOwnerEventReservations() {
+  return apiRequest("/owner/event-reservations", { method: "GET" });
+}
+
+export async function deleteOwnerEventReservation(reservationId) {
+  return apiRequest(`/owner/event-reservations/${reservationId}`, { method: "DELETE" });
+}
+
 export async function updateOwnerEvent(eventId, data) {
   return apiRequest(`/owner/events/${eventId}`, {
     method: "PUT",

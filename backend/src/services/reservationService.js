@@ -348,6 +348,22 @@ const createReservation = async ({
     return { success: false, status: 400, error: "Invalid restaurant ID" };
   }
 
+  const lastReservationResult = await ReservationModel.getMostRecentReservationByUser(db, userId);
+  const lastReservation = lastReservationResult.rows[0];
+  if (lastReservation?.created_at) {
+    const lastTime = new Date(lastReservation.created_at);
+    const now = new Date();
+    const diffMs = now.getTime() - lastTime.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    if (diffHours < 2) {
+      return {
+        success: false,
+        status: 429,
+        error: "You can book only once every 2 hours. Please try again later.",
+      };
+    }
+  }
+
   if (!normalizedDate) {
     return { success: false, status: 400, error: "Reservation date is required" };
   }
@@ -687,6 +703,48 @@ const updateReservationStatusForOwner = async ({ reservationId, ownerId, action 
   }
 
   return { success: true, status: 200, reservation: updated };
+};
+
+const deleteReservationForOwner = async ({ reservationId, ownerId }) => {
+  const parsedReservationId = parseInt(reservationId, 10);
+  const parsedOwnerId = parseInt(ownerId, 10);
+  if (Number.isNaN(parsedReservationId)) {
+    return { success: false, status: 400, error: "Invalid reservation ID" };
+  }
+  if (Number.isNaN(parsedOwnerId)) {
+    return { success: false, status: 400, error: "Invalid owner ID" };
+  }
+
+  const existingResult = await ReservationModel.getOwnerReservationById(db, {
+    reservationId: parsedReservationId,
+    ownerId: parsedOwnerId,
+  });
+  const existing = existingResult.rows[0];
+  if (!existing) {
+    return { success: false, status: 404, error: "Reservation not found" };
+  }
+
+  const normalizedStatus = String(existing.status || "").toLowerCase();
+  const isTerminal = ["cancelled", "completed", "no-show", "rejected"].includes(normalizedStatus);
+  if (!isTerminal) {
+    const datePart = String(existing.reservation_date || "").trim();
+    const timePart = String(existing.reservation_time || "00:00:00").slice(0, 8);
+    const endStamp = new Date(`${datePart}T${timePart}`);
+    if (!Number.isNaN(endStamp.getTime()) && endStamp > new Date()) {
+      return { success: false, status: 409, error: "Only past reservations can be deleted" };
+    }
+  }
+
+  const deletedResult = await ReservationModel.deleteOwnerReservationById(db, {
+    reservationId: parsedReservationId,
+    ownerId: parsedOwnerId,
+  });
+  const deleted = deletedResult.rows[0];
+  if (!deleted) {
+    return { success: false, status: 409, error: "Reservation could not be deleted" };
+  }
+
+  return { success: true, status: 200, reservation: deleted };
 };
 
 const getSlotAdjustmentForOwner = async ({
@@ -1048,6 +1106,7 @@ module.exports = {
   getReservationsForOwner,
   cancelReservation,
   updateReservationStatusForOwner,
+  deleteReservationForOwner,
   getSlotAdjustmentForOwner,
   upsertSlotAdjustmentForOwner,
   getAvailability,

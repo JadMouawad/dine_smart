@@ -350,6 +350,7 @@ const getUpcomingEventsNearby = async ({ latitude = null, longitude = null, radi
         SELECT COALESCE(SUM(attendees_count), 0)::int AS going_count
         FROM event_attendees ea
         WHERE ea.event_id = e.id
+          AND ea.status = 'confirmed'
       ) att ON true
       WHERE r.is_verified = true
         AND r.approval_status = 'approved'

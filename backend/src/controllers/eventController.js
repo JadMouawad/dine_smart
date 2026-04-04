@@ -95,6 +95,60 @@ const joinEvent = async (req, res) => {
   }
 };
 
+const getUserEventReservations = async (req, res) => {
+  try {
+    const result = await eventService.getUserEventReservations({ userId: req.user.id });
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+    return res.status(200).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const cancelUserEventReservation = async (req, res) => {
+  try {
+    const result = await eventService.cancelUserEventReservation({
+      userId: req.user.id,
+      eventId: req.params.id,
+    });
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+    return res.status(200).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const getOwnerEventReservations = async (req, res) => {
+  try {
+    const result = await eventService.getOwnerEventReservations({ ownerId: req.user.id });
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+    return res.status(200).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const deleteOwnerEventReservation = async (req, res) => {
+  try {
+    const result = await eventService.deleteOwnerEventReservation({
+      ownerId: req.user.id,
+      reservationId: req.params.id,
+    });
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+    return res.status(200).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 const saveEvent = async (req, res) => {
   try {
     const result = await eventService.saveEvent({
@@ -142,4 +196,8 @@ module.exports = {
   saveEvent,
   unsaveEvent,
   getSavedEvents,
+  getUserEventReservations,
+  cancelUserEventReservation,
+  getOwnerEventReservations,
+  deleteOwnerEventReservation,
 };

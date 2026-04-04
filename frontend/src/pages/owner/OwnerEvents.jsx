@@ -19,6 +19,7 @@ const initialForm = {
   start_time: "",
   end_time: "",
   max_attendees: "",
+  max_attendees_unlimited: false,
   is_free: true,
   price: "",
   tags: [],
@@ -109,6 +110,7 @@ export default function OwnerEvents() {
       start_time: event.start_time ? String(event.start_time).slice(0, 5) : "",
       end_time: event.end_time ? String(event.end_time).slice(0, 5) : "",
       max_attendees: event.max_attendees ?? "",
+      max_attendees_unlimited: event.max_attendees == null,
       is_free: event.is_free !== false,
       price: event.price ?? "",
       tags: Array.isArray(event.tags) ? event.tags : [],
@@ -158,14 +160,18 @@ export default function OwnerEvents() {
     setError("");
     setSuccess("");
     try {
+      const payload = {
+        ...form,
+        max_attendees: form.max_attendees_unlimited ? "" : form.max_attendees,
+      };
       if (editingEventId) {
-        const updated = await updateOwnerEvent(editingEventId, form);
+        const updated = await updateOwnerEvent(editingEventId, payload);
         setEvents((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
         setSuccess("Event updated.");
       } else {
         const created = await createOwnerEvent({
           restaurant_id: restaurant.id,
-          ...form,
+          ...payload,
         });
         setEvents((prev) => [created, ...prev]);
         setSuccess("Event created.");
@@ -332,9 +338,22 @@ export default function OwnerEvents() {
               min="1"
               step="1"
               value={form.max_attendees}
-              onChange={(e) => setForm((prev) => ({ ...prev, max_attendees: e.target.value }))}
-              placeholder="e.g. 30"
+              onChange={(e) => setForm((prev) => ({ ...prev, max_attendees: e.target.value, max_attendees_unlimited: false }))}
+              placeholder={form.max_attendees_unlimited ? "∞" : "e.g. 30"}
+              disabled={form.max_attendees_unlimited}
             />
+            <label className="ownerEventMaxToggle">
+              <input
+                type="checkbox"
+                checked={form.max_attendees_unlimited}
+                onChange={(e) => setForm((prev) => ({
+                  ...prev,
+                  max_attendees_unlimited: e.target.checked,
+                  max_attendees: e.target.checked ? "" : prev.max_attendees,
+                }))}
+              />
+              Unlimited (∞)
+            </label>
           </label>
           <label className="field ownerEventPricingField">
             <span>Pricing</span>
