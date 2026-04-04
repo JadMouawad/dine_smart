@@ -3,6 +3,7 @@ import { useAuth } from "../../auth/AuthContext.jsx";
 import { getProfile, updateProfile } from "../../services/profileService.js";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useTheme } from "../../auth/ThemeContext.jsx";
+import ThemedSelect from "../../components/ThemedSelect.jsx";
 
 const DEFAULT_AVATAR =
   "data:image/svg+xml;utf8," +
@@ -186,15 +187,24 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
           <label className="field">
             <span>Phone number</span>
             <div className="phoneRow">
-              <select className="select phoneRow__code" value={countryCode} onChange={(e) => setCountryCode(e.target.value)}>
-                <option value="+961">+961</option>
-                <option value="+1">+1</option>
-                <option value="+33">+33</option>
-                <option value="+44">+44</option>
-                <option value="+49">+49</option>
-                <option value="+971">+971</option>
-                <option value="+966">+966</option>
-              </select>
+              <ThemedSelect
+                className="phoneRow__codeDropdown"
+                buttonClassName="phoneRow__codeDropdownBtn"
+                menuClassName="phoneRow__codeDropdownMenu"
+                value={countryCode}
+                onChange={setCountryCode}
+                options={[
+                  { value: "+961", label: "+961" },
+                  { value: "+1", label: "+1" },
+                  { value: "+33", label: "+33" },
+                  { value: "+44", label: "+44" },
+                  { value: "+49", label: "+49" },
+                  { value: "+971", label: "+971" },
+                  { value: "+966", label: "+966" },
+                ]}
+                fullWidth={false}
+                ariaLabel="Select country code"
+              />
               <input
                 className="phoneRow__number"
                 type="tel"

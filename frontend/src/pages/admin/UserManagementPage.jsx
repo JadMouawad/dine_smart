@@ -6,6 +6,7 @@ import {
   suspendAdminUser,
 } from "../../services/adminService";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
+import ThemedSelect from "../../components/ThemedSelect.jsx";
 
 const PAGE_SIZE = 10;
 
@@ -144,31 +145,35 @@ export default function UserManagementPage() {
             setSearch(e.target.value);
           }}
         />
-        <select
-          className="select"
+        <ThemedSelect
           value={role}
-          onChange={(e) => {
+          onChange={(nextRole) => {
             setPagination((prev) => ({ ...prev, page: 1 }));
-            setRole(e.target.value);
+            setRole(nextRole);
           }}
-        >
-          <option value="">All roles</option>
-          <option value="user">User</option>
-          <option value="owner">Owner</option>
-          <option value="admin">Admin</option>
-        </select>
-        <select
-          className="select"
+          options={[
+            { value: "", label: "All roles" },
+            { value: "user", label: "User" },
+            { value: "owner", label: "Owner" },
+            { value: "admin", label: "Admin" },
+          ]}
+          placeholder="All roles"
+          ariaLabel="Filter by role"
+        />
+        <ThemedSelect
           value={suspended}
-          onChange={(e) => {
+          onChange={(nextStatus) => {
             setPagination((prev) => ({ ...prev, page: 1 }));
-            setSuspended(e.target.value);
+            setSuspended(nextStatus);
           }}
-        >
-          <option value="">All status</option>
-          <option value="false">Active</option>
-          <option value="true">Suspended</option>
-        </select>
+          options={[
+            { value: "", label: "All status" },
+            { value: "false", label: "Active" },
+            { value: "true", label: "Suspended" },
+          ]}
+          placeholder="All status"
+          ariaLabel="Filter by status"
+        />
       </div>
 
       <div className="adminUsersLayout">

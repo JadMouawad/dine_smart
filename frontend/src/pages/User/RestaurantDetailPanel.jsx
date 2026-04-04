@@ -12,6 +12,7 @@ import { getCurrentSlotParams, formatTimeLabel } from "../../utils/timeUtils";
 import { getCrowdMeterMeta } from "../../utils/crowdMeter";
 import { FILLED_STAR, EMPTY_STAR } from "../../constants/filters";
 import { DEFAULT_AVATAR } from "../../constants/avatar";
+import ThemedSelect from "../../components/ThemedSelect.jsx";
 
 /**
  * RestaurantDetailPanel
@@ -629,45 +630,20 @@ export default function RestaurantDetailPanel({
             <div className="reviewCard__title">Add a review</div>
             <div className="reviewComposer">
               <div className="reviewComposer__top">
-                <div className="customSelect reviewCard__select">
-                  <button
-                    type="button"
-                    className="customSelect__btn"
-                    onClick={() => {
-                      if (reviewPosting) return;
-                      setReviewRatingDropdownOpen((open) => !open);
-                    }}
-                    aria-haspopup="listbox"
-                    aria-expanded={reviewRatingDropdownOpen}
-                    disabled={reviewPosting}
-                  >
-                    {reviewRating} {FILLED_STAR}
-                    <span className="customSelect__arrow">▾</span>
-                  </button>
-
-                  {reviewRatingDropdownOpen && !reviewPosting && (
-                    <>
-                      <div className="customSelect__backdrop" onClick={() => setReviewRatingDropdownOpen(false)} />
-                      <div className="customSelect__menu" role="listbox">
-                        {[5, 4, 3, 2, 1].map((value) => (
-                          <button
-                            key={value}
-                            type="button"
-                            role="option"
-                            aria-selected={reviewRating === value}
-                            className={`customSelect__item${reviewRating === value ? " is-active" : ""}`}
-                            onClick={() => {
-                              setReviewRating(value);
-                              setReviewRatingDropdownOpen(false);
-                            }}
-                          >
-                            {value} {FILLED_STAR}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
+                <ThemedSelect
+                  className="reviewCard__select"
+                  value={reviewRating}
+                  onChange={(nextValue) => {
+                    setReviewRating(Number(nextValue));
+                    setReviewRatingDropdownOpen(false);
+                  }}
+                  disabled={reviewPosting}
+                  options={[5, 4, 3, 2, 1].map((value) => ({
+                    value,
+                    label: `${value} ${FILLED_STAR}`,
+                  }))}
+                  ariaLabel="Select review rating"
+                />
 
                 <button
                   className="btn btn--gold reviewComposer__post"

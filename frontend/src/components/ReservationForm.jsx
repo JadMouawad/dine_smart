@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import DatePicker from "react-datepicker";
 import { createReservation, getDisabledReservationSlots, getReservationAvailability } from "../services/reservationService";
 import { useAuth } from "../auth/AuthContext";
+import ThemedSelect from "./ThemedSelect.jsx";
 
 const PARTY_SIZE_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
 const SEATING_OPTIONS = [
@@ -452,91 +453,29 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
 
         <label className="field">
           <span>Party Size</span>
-          <div className="customSelect">
-            <button
-              type="button"
-              className="customSelect__btn"
-              onClick={() => {
-                if (isBanned) return;
-                setPartySizeDropdownOpen((open) => !open);
-                setSeatingDropdownOpen(false);
-              }}
-              aria-haspopup="listbox"
-              aria-expanded={partySizeDropdownOpen}
-              disabled={isBanned}
-            >
-              {Number(partySize)} {Number(partySize) === 1 ? "guest" : "guests"}
-              <span className="customSelect__arrow">▾</span>
-            </button>
-
-            {partySizeDropdownOpen && !isBanned && (
-              <>
-                <div className="customSelect__backdrop" onClick={() => setPartySizeDropdownOpen(false)} />
-                <div className="customSelect__menu" role="listbox">
-                  {PARTY_SIZE_OPTIONS.map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      role="option"
-                      aria-selected={String(size) === String(partySize)}
-                      className={`customSelect__item${String(size) === String(partySize) ? " is-active" : ""}`}
-                      onClick={() => {
-                        setPartySize(String(size));
-                        setPartySizeDropdownOpen(false);
-                      }}
-                    >
-                      {size} {size === 1 ? "guest" : "guests"}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+          <ThemedSelect
+            value={String(partySize)}
+            onChange={(nextValue) => setPartySize(String(nextValue))}
+            disabled={isBanned}
+            options={PARTY_SIZE_OPTIONS.map((size) => ({
+              value: String(size),
+              label: `${size} ${size === 1 ? "guest" : "guests"}`,
+            }))}
+            ariaLabel="Select party size"
+          />
         </label>
         {errors.partySize && <div className="fieldError">{errors.partySize}</div>}
 
         <label className="field">
           <span>Seating Preference (Optional)</span>
-          <div className="customSelect">
-            <button
-              type="button"
-              className="customSelect__btn"
-              onClick={() => {
-                if (isBanned) return;
-                setSeatingDropdownOpen((open) => !open);
-                setPartySizeDropdownOpen(false);
-              }}
-              aria-haspopup="listbox"
-              aria-expanded={seatingDropdownOpen}
-              disabled={isBanned}
-            >
-              {SEATING_OPTIONS.find((option) => option.value === seatingPreference)?.label || "No preference"}
-              <span className="customSelect__arrow">▾</span>
-            </button>
-
-            {seatingDropdownOpen && !isBanned && (
-              <>
-                <div className="customSelect__backdrop" onClick={() => setSeatingDropdownOpen(false)} />
-                <div className="customSelect__menu" role="listbox">
-                  {SEATING_OPTIONS.map((option) => (
-                    <button
-                      key={option.value || "any"}
-                      type="button"
-                      role="option"
-                      aria-selected={option.value === seatingPreference}
-                      className={`customSelect__item${option.value === seatingPreference ? " is-active" : ""}`}
-                      onClick={() => {
-                        setSeatingPreference(option.value);
-                        setSeatingDropdownOpen(false);
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+          <ThemedSelect
+            value={seatingPreference}
+            onChange={setSeatingPreference}
+            disabled={isBanned}
+            options={SEATING_OPTIONS}
+            placeholder="No preference"
+            ariaLabel="Select seating preference"
+          />
         </label>
 
         <label className="field">

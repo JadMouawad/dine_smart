@@ -11,6 +11,7 @@ import RestaurantDetailPanel from "./RestaurantDetailPanel.jsx";
 import { getTodayDateValue, isOpenNow } from "../../utils/timeUtils";
 import { getCrowdMeterMeta } from "../../utils/crowdMeter";
 import { CUISINES, DIETARY_OPTIONS, PRICE_OPTIONS, PRICE_LABELS, DIETARY_LABELS, FILLED_STAR } from "../../constants/filters";
+import ThemedSelect from "../../components/ThemedSelect.jsx";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const DEFAULT_BEIRUT_GEO = { latitude: 33.8938, longitude: 35.5018 };
@@ -686,40 +687,17 @@ export default function UserSearch({
         <p className="searchResultsHeader__count">{filteredRestaurants.length} restaurants found</p>
         <div className="searchSortControl">
           <span>Sort by</span>
-          <div className="sortDropdown">
-            <button
-              type="button"
-              className="sortDropdown__btn"
-              onClick={() => setSortOpen((v) => !v)}
-              aria-haspopup="listbox"
-              aria-expanded={sortOpen}
-            >
-              {sortOptions.find((o) => o.value === filters.sortBy)?.label || "Top Rated"}
-              <span className="sortDropdown__arrow">▾</span>
-            </button>
-            {sortOpen && (
-              <>
-                <div className="sortDropdown__backdrop" onClick={() => setSortOpen(false)} />
-                <div className="sortDropdown__menu" role="listbox">
-                  {sortOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      role="option"
-                      aria-selected={filters.sortBy === option.value}
-                      className={`sortDropdown__item${filters.sortBy === option.value ? " is-active" : ""}`}
-                      onClick={() => {
-                        updateFilters((prev) => ({ ...prev, sortBy: option.value }));
-                        setSortOpen(false);
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+          <ThemedSelect
+            value={filters.sortBy}
+            onChange={(nextValue) => {
+              updateFilters((prev) => ({ ...prev, sortBy: nextValue }));
+              setSortOpen(false);
+            }}
+            options={sortOptions}
+            placeholder="Top Rated"
+            ariaLabel="Sort restaurants"
+            fullWidth={false}
+          />
         </div>
       </div>
 

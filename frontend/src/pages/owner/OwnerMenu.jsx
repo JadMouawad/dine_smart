@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getMyRestaurant, updateMyRestaurant } from "../../services/restaurantService";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
+import ThemedSelect from "../../components/ThemedSelect.jsx";
 
 const CURRENCIES = ["USD", "LBP", "EUR"];
 
@@ -626,46 +627,16 @@ export default function OwnerMenu() {
 
                 <form className="form" onSubmit={goToItemDetails}>
                   <label className="field">
-                    <span>Section</span>
-                    <div className="customSelect" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        className="customSelect__btn"
-                        onClick={(e) => { e.stopPropagation(); setItemSectionDropdownOpen((open) => !open); setItemCurrencyDropdownOpen(false); }}
-                        aria-haspopup="listbox"
-                        aria-expanded={itemSectionDropdownOpen}
-                      >
-                        {sections.find((section) => section.id === selectedSectionId)?.name || "Select a section"}
-                        <span className="customSelect__arrow">▾</span>
-                      </button>
-
-                      {itemSectionDropdownOpen && (
-                        <>
-                          <div
-                            className="customSelect__backdrop"
-                            onClick={(e) => { e.stopPropagation(); setItemSectionDropdownOpen(false); }}
-                          />
-                          <div className="customSelect__menu" role="listbox">
-                            {sections.map((section) => (
-                              <button
-                                key={section.id}
-                                type="button"
-                                role="option"
-                                aria-selected={selectedSectionId === section.id}
-                                className={`customSelect__item${selectedSectionId === section.id ? " is-active" : ""}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedSectionId(section.id);
-                                  setItemSectionDropdownOpen(false);
-                                }}
-                              >
-                                {section.name}
-                              </button>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
+                    <span>Section</span>                    <ThemedSelect
+                      value={selectedSectionId}
+                      onChange={setSelectedSectionId}
+                      options={sections.map((section) => ({
+                        value: section.id,
+                        label: section.name,
+                      }))}
+                      placeholder="Select a section"
+                      ariaLabel="Select section"
+                    />
                   </label>
 
                   <div className="menuModalHelper">
@@ -723,46 +694,15 @@ export default function OwnerMenu() {
                     </label>
 
                     <label className="field">
-                      <span>Currency</span>
-                      <div className="customSelect" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          className="customSelect__btn"
-                          onClick={(e) => { e.stopPropagation(); setItemCurrencyDropdownOpen((open) => !open); setItemSectionDropdownOpen(false); }}
-                          aria-haspopup="listbox"
-                          aria-expanded={itemCurrencyDropdownOpen}
-                        >
-                          {itemCurrency}
-                          <span className="customSelect__arrow">▾</span>
-                        </button>
-
-                        {itemCurrencyDropdownOpen && (
-                          <>
-                            <div
-                              className="customSelect__backdrop"
-                              onClick={(e) => { e.stopPropagation(); setItemCurrencyDropdownOpen(false); }}
-                            />
-                            <div className="customSelect__menu" role="listbox">
-                              {CURRENCIES.map((currency) => (
-                                <button
-                                  key={currency}
-                                  type="button"
-                                  role="option"
-                                  aria-selected={itemCurrency === currency}
-                                  className={`customSelect__item${itemCurrency === currency ? " is-active" : ""}`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setItemCurrency(currency);
-                                    setItemCurrencyDropdownOpen(false);
-                                  }}
-                                >
-                                  {currency}
-                                </button>
-                              ))}
-                            </div>
-                          </>
-                        )}
-                      </div>
+                      <span>Currency</span>                      <ThemedSelect
+                        value={itemCurrency}
+                        onChange={setItemCurrency}
+                        options={CURRENCIES.map((currency) => ({
+                          value: currency,
+                          label: currency,
+                        }))}
+                        ariaLabel="Select currency"
+                      />
                     </label>
                   </div>
 

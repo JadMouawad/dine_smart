@@ -14,6 +14,7 @@ import {
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
 import OwnerReservationCalendar from "../../components/OwnerReservationCalendar.jsx";
+import ThemedSelect from "../../components/ThemedSelect.jsx";
 
 function toDateTimeValue(reservation) {
   const datePart = String(reservation.reservation_date || "").trim();
@@ -848,44 +849,13 @@ export default function OwnerReservations() {
 
               <label className="field">
                 <span>Seating</span>
-                <div className="customSelect">
-                  <button
-                    type="button"
-                    className="customSelect__btn"
-                    onClick={() => setAdjustmentSeatingOpen((open) => !open)}
-                    aria-haspopup="listbox"
-                    aria-expanded={adjustmentSeatingOpen}
-                  >
-                    {SEATING_OPTIONS.find((option) => option.value === adjustmentPreference)?.label || "Any seating"}
-                    <span className="customSelect__arrow">▾</span>
-                  </button>
-
-                  {adjustmentSeatingOpen && (
-                    <>
-                      <div
-                        className="customSelect__backdrop"
-                        onClick={() => setAdjustmentSeatingOpen(false)}
-                      />
-                      <div className="customSelect__menu" role="listbox">
-                        {SEATING_OPTIONS.map((option) => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            role="option"
-                            aria-selected={adjustmentPreference === option.value}
-                            className={`customSelect__item${adjustmentPreference === option.value ? " is-active" : ""}`}
-                            onClick={() => {
-                              setAdjustmentPreference(option.value);
-                              setAdjustmentSeatingOpen(false);
-                            }}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
+                <ThemedSelect
+                  value={adjustmentPreference}
+                  onChange={setAdjustmentPreference}
+                  options={SEATING_OPTIONS}
+                  placeholder="Any seating"
+                  ariaLabel="Select seating"
+                />
               </label>
 
               <label className="field">
@@ -1038,50 +1008,20 @@ export default function OwnerReservations() {
 
                     <label className="field">
                       <span>Seating</span>
-                      <div className="customSelect">
-                        <button
-                          type="button"
-                          className="customSelect__btn"
-                          onClick={() =>
-                            setOpenDraftSeatingId((current) => (current === draft.id ? null : draft.id))
-                          }
-                          aria-haspopup="listbox"
-                          aria-expanded={openDraftSeatingId === draft.id}
-                        >
-                          {SEATING_OPTIONS.find((option) => option.value === draft.seatingPreference)?.label || "Any seating"}
-                          <span className="customSelect__arrow">▾</span>
-                        </button>
-
-                        {openDraftSeatingId === draft.id && (
-                          <>
-                            <div
-                              className="customSelect__backdrop"
-                              onClick={() => setOpenDraftSeatingId(null)}
-                            />
-                            <div className="customSelect__menu" role="listbox">
-                              {SEATING_OPTIONS.map((option) => (
-                                <button
-                                  key={option.value}
-                                  type="button"
-                                  role="option"
-                                  aria-selected={draft.seatingPreference === option.value}
-                                  className={`customSelect__item${draft.seatingPreference === option.value ? " is-active" : ""}`}
-                                  onClick={() => {
-                                    updateDraft(draft.id, (current) => ({
-                                      ...current,
-                                      seatingPreference: option.value,
-                                      error: "",
-                                    }));
-                                    setOpenDraftSeatingId(null);
-                                  }}
-                                >
-                                  {option.label}
-                                </button>
-                              ))}
-                            </div>
-                          </>
-                        )}
-                      </div>
+                      <ThemedSelect
+                        value={draft.seatingPreference}
+                        onChange={(nextValue) => {
+                          updateDraft(draft.id, (current) => ({
+                            ...current,
+                            seatingPreference: nextValue,
+                            error: "",
+                          }));
+                          setOpenDraftSeatingId(null);
+                        }}
+                        options={SEATING_OPTIONS}
+                        placeholder="Any seating"
+                        ariaLabel="Select seating"
+                      />
                     </label>
 
                     <label className="field">

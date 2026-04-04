@@ -3,6 +3,7 @@ import Map, { Marker, NavigationControl } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { createRestaurant, getMyRestaurant, updateMyRestaurant } from "../../services/restaurantService";
 import { useTheme } from "../../auth/ThemeContext.jsx";
+import ThemedSelect from "../../components/ThemedSelect.jsx";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -553,12 +554,13 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
 
               <label className="field">
                 <span>Cuisine type</span>
-                <select className="select" value={cuisineType} onChange={(event) => setCuisineType(event.target.value)} required>
-                  <option value="" disabled>Select cuisine type</option>
-                  {CUISINES.map((cuisine) => (
-                    <option key={cuisine} value={cuisine}>{cuisine}</option>
-                  ))}
-                </select>
+                <ThemedSelect
+                  value={cuisineType}
+                  onChange={setCuisineType}
+                  options={CUISINES.map((cuisine) => ({ value: cuisine, label: cuisine }))}
+                  placeholder="Select cuisine type"
+                  ariaLabel="Select cuisine type"
+                />
               </label>
 
               <div className="ownerProfileFilterGroup">

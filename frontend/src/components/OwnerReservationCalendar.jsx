@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { FiChevronLeft, FiChevronRight, FiUsers } from "react-icons/fi";
+import ThemedSelect from "./ThemedSelect.jsx";
 
 const STATUS_ORDER = ["pending", "accepted", "rejected", "cancelled", "completed", "no-show"];
 
@@ -385,43 +386,15 @@ export default function OwnerReservationCalendar({
 </div>
 
 <div className="ownerCalendarToolbar__center">
-  <div className="customSelect ownerCalendarSelect">
-    <button
-      type="button"
-      className="customSelect__btn ownerCalendarMonthSelect"
-      onClick={() => {
-        setMonthDropdownOpen((open) => !open);
-        setWeekDropdownOpen(false);
-        setStatusDropdownOpen(false);
-      }}
-      aria-haspopup="listbox"
-      aria-expanded={monthDropdownOpen}
-      aria-label="Select month"
-    >
-      {MONTH_NAMES[anchorDate.getMonth()]}
-      <span className="customSelect__arrow">▾</span>
-    </button>
-
-    {monthDropdownOpen && (
-      <>
-        <div className="customSelect__backdrop" onClick={() => setMonthDropdownOpen(false)} />
-        <div className="customSelect__menu" role="listbox">
-          {MONTH_NAMES.map((month, index) => (
-            <button
-              key={month}
-              type="button"
-              role="option"
-              aria-selected={anchorDate.getMonth() === index}
-              className={`customSelect__item${anchorDate.getMonth() === index ? " is-active" : ""}`}
-              onClick={() => handleMonthChange(index)}
-            >
-              {month}
-            </button>
-          ))}
-        </div>
-      </>
-    )}
-  </div>
+  <ThemedSelect
+    className="ownerCalendarSelect"
+    buttonClassName="ownerCalendarMonthSelect"
+    value={anchorDate.getMonth()}
+    onChange={(nextMonth) => handleMonthChange(Number(nextMonth))}
+    options={MONTH_NAMES.map((month, index) => ({ value: index, label: month }))}
+    ariaLabel="Select month"
+    fullWidth={false}
+  />
 
   <input
     className="ownerCalendarYearInput"
@@ -435,43 +408,18 @@ export default function OwnerReservationCalendar({
   />
 
   {viewMode === "week" && (
-    <div className="customSelect ownerCalendarSelect">
-      <button
-        type="button"
-        className="customSelect__btn ownerCalendarWeekSelect"
-        onClick={() => {
-          setWeekDropdownOpen((open) => !open);
-          setMonthDropdownOpen(false);
-          setStatusDropdownOpen(false);
-        }}
-        aria-haspopup="listbox"
-        aria-expanded={weekDropdownOpen}
-        aria-label="Select week"
-      >
-        {`Week ${selectedWeekIndex + 1} (${formatWeekOptionLabel(monthWeeks[selectedWeekIndex] || [], selectedWeekIndex)})`}
-        <span className="customSelect__arrow">▾</span>
-      </button>
-
-      {weekDropdownOpen && (
-        <>
-          <div className="customSelect__backdrop" onClick={() => setWeekDropdownOpen(false)} />
-          <div className="customSelect__menu" role="listbox">
-            {monthWeeks.map((weekDays, index) => (
-              <button
-                key={`week-${index}`}
-                type="button"
-                role="option"
-                aria-selected={selectedWeekIndex === index}
-                className={`customSelect__item${selectedWeekIndex === index ? " is-active" : ""}`}
-                onClick={() => handleWeekChange(index)}
-              >
-                {`Week ${index + 1} (${formatWeekOptionLabel(weekDays, index)})`}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
+    <ThemedSelect
+      className="ownerCalendarSelect"
+      buttonClassName="ownerCalendarWeekSelect"
+      value={selectedWeekIndex}
+      onChange={(nextWeek) => handleWeekChange(Number(nextWeek))}
+      options={monthWeeks.map((weekDays, index) => ({
+        value: index,
+        label: `Week ${index + 1} (${formatWeekOptionLabel(weekDays, index)})`,
+      }))}
+      ariaLabel="Select week"
+      fullWidth={false}
+    />
   )}
 </div>
 
@@ -515,57 +463,19 @@ export default function OwnerReservationCalendar({
 
             <label className="field ownerCalendarField">
               <span>Status</span>
-              <div className="customSelect">
-                <button
-                  type="button"
-                  className="customSelect__btn"
-                  onClick={() => {
-                    setStatusDropdownOpen((open) => !open);
-                    setMonthDropdownOpen(false);
-                    setWeekDropdownOpen(false);
-                  }}
-                  aria-haspopup="listbox"
-                  aria-expanded={statusDropdownOpen}
-                >
-                  {statusFilter === "all" ? "All Statuses" : STATUS_LABELS[statusFilter]}
-                  <span className="customSelect__arrow">▾</span>
-                </button>
-
-                {statusDropdownOpen && (
-                  <>
-                    <div className="customSelect__backdrop" onClick={() => setStatusDropdownOpen(false)} />
-                    <div className="customSelect__menu" role="listbox">
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={statusFilter === "all"}
-                        className={`customSelect__item${statusFilter === "all" ? " is-active" : ""}`}
-                        onClick={() => {
-                          setStatusFilter("all");
-                          setStatusDropdownOpen(false);
-                        }}
-                      >
-                        All Statuses
-                      </button>
-                      {STATUS_ORDER.map((status) => (
-                        <button
-                          key={status}
-                          type="button"
-                          role="option"
-                          aria-selected={statusFilter === status}
-                          className={`customSelect__item${statusFilter === status ? " is-active" : ""}`}
-                          onClick={() => {
-                            setStatusFilter(status);
-                            setStatusDropdownOpen(false);
-                          }}
-                        >
-                          {STATUS_LABELS[status]}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
+              <ThemedSelect
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={[
+                  { value: "all", label: "All Statuses" },
+                  ...STATUS_ORDER.map((status) => ({
+                    value: status,
+                    label: STATUS_LABELS[status],
+                  })),
+                ]}
+                placeholder="All Statuses"
+                ariaLabel="Filter reservations by status"
+              />
             </label>
 
             <label className="field ownerCalendarField">
