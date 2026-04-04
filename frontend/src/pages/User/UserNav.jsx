@@ -4,7 +4,7 @@ import { DEFAULT_AVATAR } from "../../constants/avatar";
 
 const NAV_TABS = [
   { id: "search", label: "🔍 Search" },
-  { id: "discover", label: "✨ Discover" },
+  { id: "discover", label: "✨ Events" },
   { id: "explore", label: "🗺 Explore" },
   { id: "reservations", label: "📅 Reservations" },
   { id: "profile", label: "👤 Profile" },
@@ -120,7 +120,7 @@ export default function UserNav({
                 onChange("discover");
               }}
             >
-              Discover
+              Events
               {unseenEventCount > 0 && (
                 <span className="adminNavBadge">{unseenEventCount}</span>
               )}
