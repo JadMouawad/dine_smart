@@ -71,6 +71,7 @@ const getReviewsByUserId = async (userId) => {
           FROM flagged_reviews fr
           WHERE fr.review_id = rv.id
             AND fr.status = 'pending'
+            AND COALESCE(fr.suggested_action, 'REQUIRES_REVIEW') = 'REQUIRES_REVIEW'
         )
       ORDER BY rv.created_at DESC
     `,

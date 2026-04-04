@@ -285,6 +285,15 @@ const getFlaggedReviews = async () => {
       fr.review_id,
       fr.user_id AS flagger_user_id,
       fr.reason,
+      fr.source_type,
+      fr.flag_type,
+      fr.confidence,
+      fr.severity,
+      fr.snippet,
+      fr.suggested_action,
+      fr.moderator_action,
+      fr.resolution_label,
+      fr.moderation_metadata,
       fr.status,
       fr.admin_notes,
       fr.created_at,
@@ -295,32 +304,103 @@ const getFlaggedReviews = async () => {
       reviewer.full_name AS reviewer_name,
       rest.id AS restaurant_id,
       rest.name AS restaurant_name,
-      flagger.full_name AS flagger_name
+      COALESCE(flagger.full_name, 'System') AS flagger_name,
+      CASE
+        WHEN fr.source_type = 'USER_REPORT' THEN 'user'
+        WHEN fr.source_type IN ('SYSTEM_AI', 'SYSTEM_RULE') THEN 'system'
+        ELSE 'unknown'
+      END AS flagged_by
     FROM flagged_reviews fr
     JOIN reviews rv ON rv.id = fr.review_id
     JOIN users reviewer ON reviewer.id = rv.user_id
-    JOIN users flagger ON flagger.id = fr.user_id
+    LEFT JOIN users flagger ON flagger.id = fr.user_id
     JOIN restaurants rest ON rest.id = rv.restaurant_id
     ORDER BY
       CASE WHEN fr.status = 'pending' THEN 0 ELSE 1 END,
+      COALESCE(fr.confidence, 0) DESC,
       fr.created_at DESC
   `);
   return result.rows;
 };
 
-const dismissFlaggedReview = async (flagId, adminNotes) => {
+const applyModerationActionByFlagId = async ({ flagId, action, adminNotes, resolutionLabel = null }) => {
+  const normalizedAction = String(action || "").toUpperCase();
+
+  if (normalizedAction === "DELETE") {
+    const deleted = await deleteReviewByFlagId(flagId);
+    if (!deleted) return null;
+    return {
+      action: normalizedAction,
+      status: "resolved",
+      moderator_action: normalizedAction,
+      ...deleted,
+    };
+  }
+
+  let status = "resolved";
+  if (normalizedAction === "DISMISS") {
+    status = "dismissed";
+  }
+
   const result = await pool.query(
     `
       UPDATE flagged_reviews
-      SET status = 'dismissed',
-          admin_notes = COALESCE($2, admin_notes),
-          resolved_at = NOW()
+      SET status = $2,
+          moderator_action = $3,
+          resolution_label = COALESCE($4, resolution_label),
+          admin_notes = COALESCE($5, admin_notes),
+          resolved_at = NOW(),
+          updated_at = NOW()
       WHERE id = $1
-      RETURNING id, review_id, status, admin_notes, resolved_at
+      RETURNING id, review_id, status, moderator_action, resolution_label, admin_notes, resolved_at
     `,
-    [flagId, adminNotes || null]
+    [flagId, status, normalizedAction, resolutionLabel, adminNotes || null]
   );
+
   return result.rows[0] || null;
+};
+
+const bulkApplyModerationAction = async ({ flagIds, action, adminNotes, resolutionLabel = null }) => {
+  if (!Array.isArray(flagIds) || flagIds.length === 0) {
+    return [];
+  }
+
+  const uniqueIds = Array.from(new Set(flagIds.map((id) => parseInt(id, 10)).filter((id) => id > 0)));
+  if (uniqueIds.length === 0) return [];
+
+  if (String(action || "").toUpperCase() === "DELETE") {
+    const deleted = [];
+    for (const flagId of uniqueIds) {
+      // eslint-disable-next-line no-await-in-loop
+      const result = await applyModerationActionByFlagId({ flagId, action: "DELETE", adminNotes, resolutionLabel });
+      if (result) deleted.push(result);
+    }
+    return deleted;
+  }
+
+  const normalizedAction = String(action || "").toUpperCase();
+  let status = "resolved";
+  if (normalizedAction === "DISMISS") status = "dismissed";
+
+  const result = await pool.query(
+    `
+      UPDATE flagged_reviews
+      SET status = $2,
+          moderator_action = $3,
+          resolution_label = COALESCE($4, resolution_label),
+          admin_notes = COALESCE($5, admin_notes),
+          resolved_at = NOW(),
+          updated_at = NOW()
+      WHERE id = ANY($1::int[])
+      RETURNING id, review_id, status, moderator_action, resolution_label, admin_notes, resolved_at
+    `,
+    [uniqueIds, status, normalizedAction, resolutionLabel, adminNotes || null]
+  );
+  return result.rows;
+};
+
+const dismissFlaggedReview = async (flagId, adminNotes) => {
+  return applyModerationActionByFlagId({ flagId, action: "DISMISS", adminNotes, resolutionLabel: "FALSE_POSITIVE" });
 };
 
 const deleteReviewByFlagId = async (flagId) => {
@@ -369,6 +449,8 @@ module.exports = {
   suspendUser,
   deleteUserAndOwnedData,
   getFlaggedReviews,
+  applyModerationActionByFlagId,
+  bulkApplyModerationAction,
   dismissFlaggedReview,
   deleteReviewByFlagId,
   insertAuditLog,

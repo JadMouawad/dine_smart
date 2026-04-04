@@ -22,6 +22,8 @@ router.put("/users/:id/suspend", adminController.suspendUser);
 router.delete("/users/:id", adminController.deleteUser);
 
 router.get("/flagged-reviews", adminController.getFlaggedReviews);
+router.put("/flagged-reviews/bulk-action", adminController.bulkModerateFlaggedReviews);
+router.put("/flagged-reviews/:id/action", adminController.moderateFlaggedReview);
 router.put("/flagged-reviews/:id/dismiss", adminController.dismissFlaggedReview);
 router.delete("/flagged-reviews/:id", adminController.deleteFlaggedReview);
 

@@ -139,6 +139,38 @@ const getFlaggedReviews = async (req, res) => {
   }
 };
 
+const moderateFlaggedReview = async (req, res) => {
+  try {
+    const result = await adminService.moderateFlaggedReview({
+      flagId: req.params.id,
+      adminId: req.user.id,
+      action: req.body.action,
+      adminNotes: req.body.admin_notes,
+      resolutionLabel: req.body.resolution_label,
+    });
+    if (!result.success) return res.status(result.status).json({ message: result.error });
+    return res.status(200).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const bulkModerateFlaggedReviews = async (req, res) => {
+  try {
+    const result = await adminService.bulkModerateFlaggedReviews({
+      flagIds: req.body.flag_ids,
+      adminId: req.user.id,
+      action: req.body.action,
+      adminNotes: req.body.admin_notes,
+      resolutionLabel: req.body.resolution_label,
+    });
+    if (!result.success) return res.status(result.status).json({ message: result.error });
+    return res.status(200).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 const dismissFlaggedReview = async (req, res) => {
   try {
     const result = await adminService.dismissFlaggedReview({
@@ -180,6 +212,8 @@ module.exports = {
   suspendUser,
   deleteUser,
   getFlaggedReviews,
+  moderateFlaggedReview,
+  bulkModerateFlaggedReviews,
   dismissFlaggedReview,
   deleteFlaggedReview,
 };

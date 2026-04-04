@@ -159,14 +159,61 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE TABLE IF NOT EXISTS flagged_reviews (
   id SERIAL PRIMARY KEY,
   review_id INTEGER NOT NULL REFERENCES reviews(id) ON DELETE CASCADE,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
   reason VARCHAR(500) NOT NULL,
+  source_type VARCHAR(20) NOT NULL DEFAULT 'USER_REPORT',
+  flag_type VARCHAR(40),
+  confidence SMALLINT,
+  severity VARCHAR(20),
+  snippet TEXT,
+  suggested_action VARCHAR(30) DEFAULT 'REQUIRES_REVIEW',
+  moderation_metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  moderator_action VARCHAR(30),
+  resolution_label VARCHAR(30),
   status VARCHAR(20) DEFAULT 'pending',
   admin_notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
   resolved_at TIMESTAMPTZ,
   CONSTRAINT flagged_reviews_status_check CHECK (status IN ('pending', 'resolved', 'dismissed')),
-  CONSTRAINT flagged_reviews_review_user_unique UNIQUE (review_id, user_id)
+  CONSTRAINT flagged_reviews_source_type_check CHECK (source_type IN ('USER_REPORT', 'SYSTEM_AI', 'SYSTEM_RULE')),
+  CONSTRAINT flagged_reviews_flag_type_check CHECK (
+    flag_type IS NULL OR
+    flag_type IN ('PROFANITY', 'HARASSMENT', 'SPAM', 'FAKE_REVIEW', 'MISLEADING', 'INAPPROPRIATE_CONTENT')
+  ),
+  CONSTRAINT flagged_reviews_confidence_check CHECK (confidence IS NULL OR (confidence >= 0 AND confidence <= 100)),
+  CONSTRAINT flagged_reviews_severity_check CHECK (severity IS NULL OR severity IN ('HIGH', 'MEDIUM', 'LOW')),
+  CONSTRAINT flagged_reviews_suggested_action_check CHECK (
+    suggested_action IS NULL OR
+    suggested_action IN ('REQUIRES_REVIEW', 'SOFT_FLAG', 'INFORMATION_ONLY')
+  ),
+  CONSTRAINT flagged_reviews_moderator_action_check CHECK (
+    moderator_action IS NULL OR
+    moderator_action IN ('APPROVE_PUBLISH', 'REQUIRE_CHANGES', 'DELETE', 'DISMISS')
+  ),
+  CONSTRAINT flagged_reviews_resolution_label_check CHECK (
+    resolution_label IS NULL OR
+    resolution_label IN ('TRUE_POSITIVE', 'FALSE_POSITIVE')
+  )
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_flagged_reviews_review_user_report_unique
+  ON flagged_reviews(review_id, user_id)
+  WHERE source_type = 'USER_REPORT' AND user_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_flagged_reviews_pending_action
+  ON flagged_reviews(status, suggested_action, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_flagged_reviews_source_type
+  ON flagged_reviews(source_type);
+
+CREATE TABLE IF NOT EXISTS restaurant_moderation_policies (
+  restaurant_id INTEGER PRIMARY KEY REFERENCES restaurants(id) ON DELETE CASCADE,
+  ai_enabled BOOLEAN NOT NULL DEFAULT true,
+  fallback_to_rules BOOLEAN NOT NULL DEFAULT true,
+  policy_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS saved_searches (
