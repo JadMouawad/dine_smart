@@ -553,29 +553,6 @@ const createReservation = async ({
     await UserModel.clearBan(db, user.id);
   }
 
-  if (availability.isDisabled) {
-    const suggestedTimes = await getSuggestedTimes({
-      restaurantId: parsedRestaurantId,
-      reservationDate: normalizedDate,
-      reservationTime: normalizedTime,
-      partySize: parsedPartySize,
-      restaurant: availability.restaurant,
-      totalCapacity: availability.totalCapacity,
-    });
-
-    return {
-      success: false,
-      status: 409,
-      error: "This time slot has been disabled by the restaurant",
-      availableSeats: 0,
-      suggestedTimes,
-      disabled: true,
-    };
-  }
-
-  if (!isWithinOperatingHours(normalizedTime, availability.restaurant.opening_time, availability.restaurant.closing_time)) {
-    return { success: false, status: 400, error: "Reservation time is outside restaurant operating hours" };
-  }
   if (user.no_show_count >= NO_SHOW_BAN_THRESHOLD && !user.banned_until) {
     const banUntil = addOneMonth();
     await UserModel.setBannedUntil(db, user.id, banUntil);
@@ -674,6 +651,25 @@ const createReservation = async ({
 
     if (!availability.success) {
       return availability;
+    }
+
+    if (availability.isDisabled) {
+      const suggestedTimes = await getSuggestedTimes({
+        restaurantId: parsedRestaurantId,
+        reservationDate: normalizedDate,
+        reservationTime: normalizedTime,
+        partySize: parsedPartySize,
+        restaurant: availability.restaurant,
+        totalCapacity: availability.totalCapacity,
+      });
+      return {
+        success: false,
+        status: 409,
+        error: "This time slot has been disabled by the restaurant",
+        availableSeats: 0,
+        suggestedTimes,
+        disabled: true,
+      };
     }
 
     if (!isWithinOperatingHours(normalizedTime, availability.restaurant.opening_time, availability.restaurant.closing_time)) {
