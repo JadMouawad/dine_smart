@@ -1,173 +1,126 @@
+"use strict";
+
 const chatRepository = require("../repositories/chatRepository");
 const restaurantRepository = require("../repositories/restaurantRepository");
+const { runAgentChat } = require("./githubModelsService");
 
-const MODEL_PROVIDER = "local-rules-engine";
-const MODEL_NAME = "dinesmart-assistant-mvp-v1";
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const MODEL_PROVIDER_AI = "github-models";
+const MODEL_NAME_AI = "openai/gpt-4o";
+const MODEL_PROVIDER_HEURISTIC = "local-rules-engine";
+const MODEL_NAME_HEURISTIC = "dinesmart-assistant-mvp-v1";
 const MAX_RESULTS = 5;
 
 const KNOWN_CUISINES = [
-  "American",
-  "Middle Eastern",
-  "French",
-  "Mexican",
-  "Chinese",
-  "Japanese",
-  "Italian",
-  "Indian",
-  "International",
+  "American", "Middle Eastern", "French", "Mexican",
+  "Chinese", "Japanese", "Italian", "Indian", "International",
 ];
-
 const KNOWN_DIETARY = ["Vegetarian", "Vegan", "Halal", "GF"];
+// Only block the most extreme content as a last-resort fallback guard.
+// GPT-4o handles the vast majority of safety — keeping this list minimal
+// prevents false positives on legitimate queries.
 const UNSAFE_PATTERNS = [
-  /hate/i,
-  /violent/i,
-  /self[-\s]?harm/i,
-  /suicide/i,
-  /kill/i,
+  /\bsuicide\b/i,
+  /\bself[-\s]harm\b/i,
   /explicit sexual/i,
-  /terror/i,
-  /drugs?/i,
+  /\bterror(ist|ism)?\b/i,
 ];
 
-const normalizeText = (value) => String(value || "").trim();
+// ─── Heuristic helpers ────────────────────────────────────────────────────────
 
-const parseNumber = (value, fallback = null) => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+const normalizeText = (v) => String(v || "").trim();
+const parseNumber = (v, fallback = null) => { const n = Number(v); return Number.isFinite(n) ? n : fallback; };
+const toArray = (v) => {
+  if (!v) return [];
+  if (Array.isArray(v)) return v.filter(Boolean).map((x) => String(x).trim());
+  return String(v).split(",").map((x) => x.trim()).filter(Boolean);
 };
+const includesAny = (text, patterns) => patterns.some((p) => p.test(text));
 
-const toArray = (value) => {
-  if (!value) return [];
-  if (Array.isArray(value)) return value.filter(Boolean).map((item) => String(item).trim());
-  return String(value)
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
+const detectCuisineFilters = (msg) => {
+  const lower = msg.toLowerCase();
+  return KNOWN_CUISINES.filter((c) => lower.includes(c.toLowerCase()));
 };
-
-const includesAny = (text, patterns) => patterns.some((pattern) => pattern.test(text));
-
-const detectCuisineFilters = (message) => {
-  const lower = message.toLowerCase();
-  return KNOWN_CUISINES.filter((cuisine) => lower.includes(cuisine.toLowerCase()));
-};
-
-const detectDietaryFilters = (message) => {
-  const lower = message.toLowerCase();
-  return KNOWN_DIETARY.filter((diet) => {
-    if (diet === "GF") return /gluten[-\s]?free|\bgf\b/i.test(lower);
-    return lower.includes(diet.toLowerCase());
+const detectDietaryFilters = (msg) => {
+  const lower = msg.toLowerCase();
+  return KNOWN_DIETARY.filter((d) => {
+    if (d === "GF") return /gluten[-\s]?free|\bgf\b/i.test(lower);
+    return lower.includes(d.toLowerCase());
   });
 };
-
-const detectPriceFilters = (message) => {
-  const lower = message.toLowerCase();
-  const values = [];
-  if (/cheap|budget|affordable|low[-\s]?cost/i.test(lower)) values.push("$");
-  if (/moderate|mid[-\s]?range|casual/i.test(lower)) values.push("$$");
-  if (/premium|fancy|upscale/i.test(lower)) values.push("$$$");
-  if (/luxury|fine dining|high[-\s]?end/i.test(lower)) values.push("$$$$");
-  return [...new Set(values)];
+const detectPriceFilters = (msg) => {
+  const lower = msg.toLowerCase();
+  const v = [];
+  if (/cheap|budget|affordable|low[-\s]?cost/i.test(lower)) v.push("$");
+  if (/moderate|mid[-\s]?range|casual/i.test(lower)) v.push("$$");
+  if (/premium|fancy|upscale/i.test(lower)) v.push("$$$");
+  if (/luxury|fine dining|high[-\s]?end/i.test(lower)) v.push("$$$$");
+  return [...new Set(v)];
 };
-
-const detectDistanceRadius = (message, explicitRadius) => {
-  if (parseNumber(explicitRadius, null) != null) return parseNumber(explicitRadius, null);
-  const match = String(message).match(/(within|under|inside)\s+(\d{1,3})\s*(km|kilometers?)/i);
-  if (!match) return null;
-  return parseNumber(match[2], null);
+const detectDistanceRadius = (msg, explicit) => {
+  if (parseNumber(explicit, null) != null) return parseNumber(explicit, null);
+  const m = String(msg).match(/(within|under|inside)\s+(\d{1,3})\s*(km|kilometers?)/i);
+  return m ? parseNumber(m[2], null) : null;
 };
-
-const inferIntent = (message) => {
-  const lower = message.toLowerCase();
-  if (/book|reserve|reservation/i.test(lower)) return "booking";
-  if (/find|show|recommend|suggest|looking for|search/i.test(lower)) return "discovery";
+const inferIntent = (msg) => {
+  if (/book|reserve|reservation/i.test(msg)) return "booking";
+  if (/find|show|recommend|suggest|looking for|search/i.test(msg)) return "discovery";
   return "general";
 };
-
-const isVagueMessage = (message, filters) => {
-  if (message.length < 6) return true;
-  const hasConcreteSignal =
+const isVagueMessage = (msg, filters) => {
+  if (msg.length < 6) return true;
+  return !(
     filters.cuisines.length > 0 ||
     filters.dietarySupport.length > 0 ||
     filters.priceRanges.length > 0 ||
     filters.query.length >= 3 ||
     filters.distanceRadius != null ||
     filters.partySize != null ||
-    /restaurant|food|dinner|lunch|breakfast|date|brunch|cafe|café|sushi|pizza|burger/i.test(message);
-
-  return !hasConcreteSignal;
+    /restaurant|food|dinner|lunch|breakfast|date|brunch|cafe|café|sushi|pizza|burger/i.test(msg)
+  );
 };
 
-const sanitizeRestaurant = (restaurant) => ({
-  id: restaurant.id,
-  name: restaurant.name,
-  cuisine: restaurant.cuisine,
-  rating: restaurant.rating,
-  price_range: restaurant.price_range,
-  address: restaurant.address,
-  dietary_support: restaurant.dietary_support,
-  distance_km: restaurant.distance_km,
-  description: restaurant.description,
-  opening_time: restaurant.opening_time,
-  closing_time: restaurant.closing_time,
-});
-
-const buildPromptContext = ({ message, explicitFilters, inferredFilters, userContext }) => ({
-  system_goal: "Recommend restaurants and guide bookings with safe, relevant, concise help.",
-  user_message: message,
-  explicit_filters: explicitFilters,
-  inferred_filters: inferredFilters,
-  user_profile: userContext
-    ? {
-        user_id: userContext.profile.id,
-        full_name: userContext.profile.full_name,
-        latitude: userContext.profile.latitude,
-        longitude: userContext.profile.longitude,
-        reservation_count: userContext.reservationCount,
-        recent_review_count: userContext.recentReviews.length,
-      }
-    : null,
-  instructions: [
-    "Ask a clarifying question when the request is too vague.",
-    "Use available filters such as cuisine, price, diet, and distance.",
-    "Avoid unsafe, irrelevant, or non-restaurant guidance.",
-    "Offer actionable next steps when useful.",
-  ],
+const sanitizeRestaurant = (r) => ({
+  id: r.id, name: r.name, cuisine: r.cuisine, rating: r.rating,
+  price_range: r.price_range, address: r.address, dietary_support: r.dietary_support,
+  distance_km: r.distance_km, description: r.description,
+  opening_time: r.opening_time, closing_time: r.closing_time,
 });
 
 const mergeFilters = ({ message, filters = {}, userContext }) => {
-  const normalizedMessage = normalizeText(message);
+  const msg = normalizeText(message);
   const explicitCuisines = toArray(filters.cuisine || filters.cuisines);
   const explicitPrices = toArray(filters.price_range || filters.priceRange || filters.priceRanges);
   const explicitDietary = toArray(filters.dietary_support || filters.dietarySupport);
 
   const merged = {
-    query: normalizeText(filters.query || normalizedMessage),
-    cuisines: explicitCuisines.length ? explicitCuisines : detectCuisineFilters(normalizedMessage),
-    priceRanges: explicitPrices.length ? explicitPrices : detectPriceFilters(normalizedMessage),
-    dietarySupport: explicitDietary.length ? explicitDietary : detectDietaryFilters(normalizedMessage),
+    query: normalizeText(filters.query || msg),
+    cuisines: explicitCuisines.length ? explicitCuisines : detectCuisineFilters(msg),
+    priceRanges: explicitPrices.length ? explicitPrices : detectPriceFilters(msg),
+    dietarySupport: explicitDietary.length ? explicitDietary : detectDietaryFilters(msg),
     minRating: parseNumber(filters.minRating, null),
     openNow: filters.openNow === true,
     availabilityDate: normalizeText(filters.availabilityDate || filters.date || "") || null,
     availabilityTime: normalizeText(filters.availabilityTime || filters.time || "") || null,
-    distanceRadius: detectDistanceRadius(normalizedMessage, filters.distanceRadius),
+    distanceRadius: detectDistanceRadius(msg, filters.distanceRadius),
     partySize: parseNumber(filters.partySize, null),
     latitude: parseNumber(filters.latitude, parseNumber(userContext?.profile?.latitude, null)),
     longitude: parseNumber(filters.longitude, parseNumber(userContext?.profile?.longitude, null)),
     sortBy: normalizeText(filters.sortBy || "rating") || "rating",
   };
-
   if (merged.distanceRadius != null && (merged.latitude == null || merged.longitude == null)) {
     merged.distanceRadius = null;
   }
-
   return merged;
 };
+
+// ─── Heuristic response builders ─────────────────────────────────────────────
 
 const buildClarifyingResponse = (userName) => {
   const greeting = userName ? `${userName}, ` : "";
   return {
-    message: `${greeting}I can help, but I need a bit more detail first. Tell me at least one preference such as cuisine, budget, dietary needs, distance, or whether you want booking help.`,
+    message: `${greeting}I can help, but I need a bit more detail. Tell me at least one preference — cuisine, budget, dietary needs, distance, or if you want booking help.`,
     restaurants: [],
     suggestions: [
       "Try: Find me Italian places under $$",
@@ -180,19 +133,19 @@ const buildClarifyingResponse = (userName) => {
 };
 
 const buildUnsafeResponse = () => ({
-  message: "I can only help with safe, relevant restaurant discovery and booking support inside DineSmart.",
+  message: "I can only help with safe, relevant restaurant discovery and booking inside DineSmart.",
   restaurants: [],
   suggestions: [
     "Ask for restaurant recommendations",
-    "Ask for cuisine or dietary-based suggestions",
-    "Ask for booking help for a specific date and time",
+    "Ask about a specific restaurant",
+    "Ask for booking help",
   ],
   requires_clarification: false,
   intent: "guardrail",
 });
 
 const buildNoResultsResponse = (filters) => ({
-  message: "I couldn't find a strong match with the current filters. Try widening your budget, cuisine, distance, or timing filters and I’ll search again.",
+  message: "I couldn't find a strong match with those filters. Try widening your budget, cuisine, or timing and I'll search again.",
   restaurants: [],
   suggestions: [
     filters.cuisines.length ? "Remove the cuisine filter" : "Add a cuisine preference",
@@ -204,7 +157,7 @@ const buildNoResultsResponse = (filters) => ({
 });
 
 const buildRecommendationMessage = ({ userContext, restaurants, filters, intent }) => {
-  const firstName = userContext?.profile?.full_name ? userContext.profile.full_name.split(" ")[0] : "";
+  const firstName = userContext?.profile?.full_name?.split(" ")[0] || "";
   const intro = firstName ? `${firstName}, here are some good matches` : "Here are some good matches";
 
   const filterBits = [];
@@ -212,150 +165,150 @@ const buildRecommendationMessage = ({ userContext, restaurants, filters, intent 
   if (filters.dietarySupport.length) filterBits.push(filters.dietarySupport.join(", "));
   if (filters.priceRanges.length) filterBits.push(`budget ${filters.priceRanges.join("/")}`);
   if (filters.distanceRadius != null) filterBits.push(`within ${filters.distanceRadius} km`);
-  const suffix = filterBits.length ? ` for ${filterBits.join(" • ")}` : "";
+  const suffix = filterBits.length ? ` for ${filterBits.join(" · ")}` : "";
 
-  const lines = restaurants.slice(0, 3).map((restaurant, index) => {
-    const reasons = [restaurant.cuisine || "Cuisine not listed"];
-    if (restaurant.price_range) reasons.push(restaurant.price_range);
-    if (restaurant.rating != null) reasons.push(`rating ${restaurant.rating}`);
-    if (restaurant.distance_km != null) reasons.push(`${restaurant.distance_km} km away`);
-    return `${index + 1}. ${restaurant.name} — ${reasons.join(" • ")}`;
+  const lines = restaurants.slice(0, 3).map((r, i) => {
+    const reasons = [r.cuisine || "Cuisine not listed"];
+    if (r.price_range) reasons.push(r.price_range);
+    if (r.rating != null) reasons.push(`⭐ ${r.rating}`);
+    if (r.distance_km != null) reasons.push(`${r.distance_km} km away`);
+    return `${i + 1}. ${r.name} — ${reasons.join(" · ")}`;
   });
 
-  const action = intent === "booking"
-    ? "If one looks right, I can help you move toward booking details next."
-    : "You can refine the search more if you want something more specific.";
+  const action =
+    intent === "booking"
+      ? "If one looks right, I can help you book a table next."
+      : "Want me to narrow the search or book at one of these?";
 
   return `${intro}${suffix}:\n${lines.join("\n")}\n${action}`;
 };
 
 const buildActionSuggestions = (intent, restaurants) => {
-  const base = restaurants.slice(0, 3).map((restaurant) => `Open ${restaurant.name}`);
-  if (intent === "booking") {
-    return [...base, "Pick a date, time, and party size for booking"];
-  }
-  return [...base, "Refine by price, diet, or distance"];
+  const base = restaurants.slice(0, 3).map((r) => `Book at ${r.name}`);
+  return intent === "booking"
+    ? [...base, "Pick a date, time, and party size"]
+    : [...base, "Refine by price, diet, or distance"];
 };
 
-const getChatResponse = async ({ userId, message, filters = {} }) => {
+// ─── Main entry point ─────────────────────────────────────────────────────────
+
+/**
+ * getChatResponse — routes to GPT-4o agent first, falls back to heuristic engine.
+ *
+ * @param {object} params
+ * @param {number} params.userId
+ * @param {string} params.message
+ * @param {object} params.filters         - Optional explicit filters from the frontend
+ * @param {object|null} params.location   - { latitude, longitude } from the user's browser
+ * @param {Array}  params.history         - Recent turns [{ role, content }] for context
+ */
+const getChatResponse = async ({ userId, message, filters = {}, location = null, history = [] }) => {
   const startedAt = Date.now();
   const safeMessage = normalizeText(message);
+
   const fallback = {
     message: "Sorry, something went wrong while preparing recommendations. Please try again in a moment.",
     restaurants: [],
     suggestions: ["Try again", "Change the filters", "Search with a simpler request"],
     requires_clarification: false,
     intent: "fallback",
-    metadata: {
-      model_provider: MODEL_PROVIDER,
-      model_name: MODEL_NAME,
-    },
+    metadata: { model_provider: MODEL_PROVIDER_HEURISTIC, model_name: MODEL_NAME_HEURISTIC },
   };
 
   try {
-    if (!safeMessage) {
-      const response = buildClarifyingResponse("");
-      await chatRepository.createConversationLog({
-        userId,
-        userMessage: safeMessage || "",
-        assistantResponse: response.message,
-        latencyMs: Date.now() - startedAt,
-        modelProvider: MODEL_PROVIDER,
-        modelName: MODEL_NAME,
-        requestContext: { reason: "empty_message" },
-        responseMetadata: { intent: response.intent, restaurant_count: 0 },
-      });
-      return {
-        ...response,
-        metadata: { model_provider: MODEL_PROVIDER, model_name: MODEL_NAME },
-      };
-    }
-
-    const userContext = await chatRepository.getUserContext(userId);
-    const mergedFilters = mergeFilters({ message: safeMessage, filters, userContext });
-    const promptContext = buildPromptContext({
-      message: safeMessage,
-      explicitFilters: filters,
-      inferredFilters: mergedFilters,
-      userContext,
-    });
-    const intent = inferIntent(safeMessage);
-
+    // ── Safety guard ──────────────────────────────────────────────────────────
     if (includesAny(safeMessage, UNSAFE_PATTERNS)) {
       const response = buildUnsafeResponse();
       await chatRepository.createConversationLog({
-        userId,
-        userMessage: safeMessage,
-        assistantResponse: response.message,
-        latencyMs: Date.now() - startedAt,
-        modelProvider: MODEL_PROVIDER,
-        modelName: MODEL_NAME,
-        requestContext: { ...promptContext, blocked: true },
+        userId, userMessage: safeMessage, assistantResponse: response.message,
+        latencyMs: Date.now() - startedAt, modelProvider: MODEL_PROVIDER_HEURISTIC,
+        modelName: MODEL_NAME_HEURISTIC, requestContext: { blocked: true },
         responseMetadata: { intent: response.intent, restaurant_count: 0 },
       });
-      return {
-        ...response,
-        metadata: { model_provider: MODEL_PROVIDER, model_name: MODEL_NAME },
-      };
+      return { ...response, metadata: { model_provider: MODEL_PROVIDER_HEURISTIC, model_name: MODEL_NAME_HEURISTIC } };
     }
+
+    // ── Empty message guard ───────────────────────────────────────────────────
+    if (!safeMessage) {
+      const userContext = await chatRepository.getUserContext(userId).catch(() => null);
+      const response = buildClarifyingResponse(userContext?.profile?.full_name?.split(" ")[0] || "");
+      await chatRepository.createConversationLog({
+        userId, userMessage: "", assistantResponse: response.message,
+        latencyMs: Date.now() - startedAt, modelProvider: MODEL_PROVIDER_HEURISTIC,
+        modelName: MODEL_NAME_HEURISTIC, requestContext: { reason: "empty_message" },
+        responseMetadata: { intent: response.intent, restaurant_count: 0 },
+      });
+      return { ...response, metadata: { model_provider: MODEL_PROVIDER_HEURISTIC, model_name: MODEL_NAME_HEURISTIC } };
+    }
+
+    // ── GPT-4o Agent ──────────────────────────────────────────────────────────
+    const userContext = await chatRepository.getUserContext(userId).catch(() => null);
+
+    const userLocation =
+      location?.latitude != null && location?.longitude != null
+        ? location
+        : userContext?.profile?.latitude != null
+          ? { latitude: userContext.profile.latitude, longitude: userContext.profile.longitude }
+          : null;
+
+    const agentResponse = await runAgentChat({
+      message: safeMessage,
+      userId,
+      userContext,
+      userLocation,
+      history,
+    });
+
+    if (agentResponse) {
+      // Log and return GPT response
+      await chatRepository.createConversationLog({
+        userId, userMessage: safeMessage, assistantResponse: agentResponse.message,
+        latencyMs: Date.now() - startedAt, modelProvider: MODEL_PROVIDER_AI,
+        modelName: MODEL_NAME_AI,
+        requestContext: { tool_rounds: agentResponse.metadata?.tool_rounds ?? 0 },
+        responseMetadata: {
+          intent: agentResponse.intent,
+          restaurant_count: agentResponse.restaurants?.length ?? 0,
+          reservation_id: agentResponse.reservation?.confirmation_id ?? null,
+        },
+      }).catch((logErr) => console.warn("[Diney] Log write failed:", logErr.message));
+
+      return agentResponse;
+    }
+
+    // ── Heuristic fallback ────────────────────────────────────────────────────
+    console.warn("[Diney] Agent unavailable — using heuristic fallback");
+
+    const mergedFilters = mergeFilters({ message: safeMessage, filters, userContext });
 
     if (isVagueMessage(safeMessage, mergedFilters)) {
       const response = buildClarifyingResponse(userContext?.profile?.full_name?.split(" ")[0] || "");
       await chatRepository.createConversationLog({
-        userId,
-        userMessage: safeMessage,
-        assistantResponse: response.message,
-        latencyMs: Date.now() - startedAt,
-        modelProvider: MODEL_PROVIDER,
-        modelName: MODEL_NAME,
-        requestContext: { ...promptContext, vague: true },
+        userId, userMessage: safeMessage, assistantResponse: response.message,
+        latencyMs: Date.now() - startedAt, modelProvider: MODEL_PROVIDER_HEURISTIC,
+        modelName: MODEL_NAME_HEURISTIC, requestContext: { vague: true, fallback: true },
         responseMetadata: { intent: response.intent, restaurant_count: 0 },
       });
-      return {
-        ...response,
-        metadata: { model_provider: MODEL_PROVIDER, model_name: MODEL_NAME },
-      };
+      return { ...response, metadata: { model_provider: MODEL_PROVIDER_HEURISTIC, model_name: MODEL_NAME_HEURISTIC } };
     }
 
+    const intent = inferIntent(safeMessage);
     const restaurants = await restaurantRepository.searchRestaurants(
-      mergedFilters.query,
-      mergedFilters.cuisines,
-      {
-        minRating: mergedFilters.minRating,
-        priceRanges: mergedFilters.priceRanges,
-        verifiedOnly: true,
-        dietarySupport: mergedFilters.dietarySupport,
-        openNow: mergedFilters.openNow,
-        availabilityDate: mergedFilters.availabilityDate,
-        availabilityTime: mergedFilters.availabilityTime,
-        latitude: mergedFilters.latitude,
-        longitude: mergedFilters.longitude,
-        distanceRadius: mergedFilters.distanceRadius,
+      mergedFilters.query, mergedFilters.cuisines, {
+        minRating: mergedFilters.minRating, priceRanges: mergedFilters.priceRanges,
+        verifiedOnly: true, dietarySupport: mergedFilters.dietarySupport,
+        openNow: mergedFilters.openNow, availabilityDate: mergedFilters.availabilityDate,
+        availabilityTime: mergedFilters.availabilityTime, latitude: mergedFilters.latitude,
+        longitude: mergedFilters.longitude, distanceRadius: mergedFilters.distanceRadius,
         sortBy: mergedFilters.sortBy,
       }
     );
 
     const topRestaurants = restaurants.slice(0, MAX_RESULTS).map(sanitizeRestaurant);
-    const enrichedPromptContext = {
-      ...promptContext,
-      candidate_restaurants: topRestaurants.map((restaurant) => ({
-        id: restaurant.id,
-        name: restaurant.name,
-        cuisine: restaurant.cuisine,
-        rating: restaurant.rating,
-        price_range: restaurant.price_range,
-        dietary_support: restaurant.dietary_support,
-        distance_km: restaurant.distance_km,
-      })),
-    };
+
     const response = topRestaurants.length
       ? {
-          message: buildRecommendationMessage({
-            userContext,
-            restaurants: topRestaurants,
-            filters: mergedFilters,
-            intent,
-          }),
+          message: buildRecommendationMessage({ userContext, restaurants: topRestaurants, filters: mergedFilters, intent }),
           restaurants: topRestaurants,
           suggestions: buildActionSuggestions(intent, topRestaurants),
           requires_clarification: false,
@@ -364,52 +317,34 @@ const getChatResponse = async ({ userId, message, filters = {} }) => {
       : buildNoResultsResponse(mergedFilters);
 
     await chatRepository.createConversationLog({
-      userId,
-      userMessage: safeMessage,
-      assistantResponse: response.message,
-      latencyMs: Date.now() - startedAt,
-      modelProvider: MODEL_PROVIDER,
-      modelName: MODEL_NAME,
-      requestContext: enrichedPromptContext,
+      userId, userMessage: safeMessage, assistantResponse: response.message,
+      latencyMs: Date.now() - startedAt, modelProvider: MODEL_PROVIDER_HEURISTIC,
+      modelName: MODEL_NAME_HEURISTIC, requestContext: { fallback: true },
       responseMetadata: {
         intent: response.intent,
         restaurant_count: topRestaurants.length,
-        restaurant_ids: topRestaurants.map((restaurant) => restaurant.id),
+        restaurant_ids: topRestaurants.map((r) => r.id),
       },
-    });
+    }).catch((logErr) => console.warn("[Diney] Log write failed:", logErr.message));
 
     return {
       ...response,
-      metadata: {
-        model_provider: MODEL_PROVIDER,
-        model_name: MODEL_NAME,
-      },
+      metadata: { model_provider: MODEL_PROVIDER_HEURISTIC, model_name: MODEL_NAME_HEURISTIC },
     };
   } catch (error) {
+    console.error("[Diney] getChatResponse error:", error.message);
     try {
       await chatRepository.createConversationLog({
-        userId,
-        userMessage: safeMessage,
-        assistantResponse: fallback.message,
-        latencyMs: Date.now() - startedAt,
-        modelProvider: MODEL_PROVIDER,
-        modelName: MODEL_NAME,
-        requestContext: { error: true, message: error.message },
+        userId, userMessage: safeMessage, assistantResponse: fallback.message,
+        latencyMs: Date.now() - startedAt, modelProvider: MODEL_PROVIDER_HEURISTIC,
+        modelName: MODEL_NAME_HEURISTIC, requestContext: { error: true, message: error.message },
         responseMetadata: { intent: fallback.intent, restaurant_count: 0 },
       });
-    } catch (logError) {
-      console.error("Failed to log AI fallback response:", logError.message);
-    }
-
+    } catch (_) { /* ignore log failures */ }
     return fallback;
   }
 };
 
-const getRecentConversationLogs = async (limit = 20) => {
-  return chatRepository.getRecentConversationLogs(limit);
-};
+const getRecentConversationLogs = async (limit = 20) => chatRepository.getRecentConversationLogs(limit);
 
-module.exports = {
-  getChatResponse,
-  getRecentConversationLogs,
-};
+module.exports = { getChatResponse, getRecentConversationLogs };
