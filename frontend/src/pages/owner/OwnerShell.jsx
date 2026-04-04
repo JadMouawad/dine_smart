@@ -156,10 +156,6 @@ export default function OwnerShell() {
       <div className="ownerArea ownerArea--pending">
         <main className="ownerArea__main ownerArea__main--pending">
           <div className="formCard formCard--userProfile ownerPendingCard">
-            <div className="formCard__title" style={{ color: "#e53e3e" }}>
-              Restaurant Rejected
-            </div>
-            <p className="userProfileFormHint" style={{ marginTop: 6 }}>
             <div className="formCard__title ownerPendingCard__title" style={{ color: "#e53e3e" }}>Restaurant Rejected</div>
             <p className="userProfileFormHint ownerPendingCard__text">
               Your restaurant application has been rejected by the admin. Please contact support for more information.

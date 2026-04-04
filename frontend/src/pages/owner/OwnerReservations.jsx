@@ -848,6 +848,9 @@ export default function OwnerReservations() {
             reservations={reservations}
             onReservationClick={handleCalendarReservationClick}
           />
+        </div>
+      )}
+
       <section className="formCard reservationChartCard">
         <div className="slotAdjustHeader">
           <h2 className="reservationSection__title">Reservation Charts</h2>
@@ -912,15 +915,6 @@ export default function OwnerReservations() {
           </div>
         </div>
       </section>
-
-      <section className="formCard slotAdjustCard">
-        <div className="slotAdjustHeader">
-          <h2 className="reservationSection__title">Adjust Available Seats</h2>
-          <p className="slotAdjustHint">
-            Use negative numbers to reserve seats for walk-ins or staffing limits.
-          </p>
-        </div>
-      )}
 
       {activeSection === "seat-adjustment" && (
         <section className="formCard slotAdjustCard ownerReservationPanel">
