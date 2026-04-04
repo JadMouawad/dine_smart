@@ -3170,13 +3170,25 @@ body {
   }
 }
 
-input[type="time"] {
-  color: rgba(255, 255, 255, 0.92);
+input[type="time"],
+input[type="date"] {
+  color: inherit;
 }
 
-input[type="time"]::-webkit-calendar-picker-indicator {
+/* Dark mode: make the icons white */
+[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator,
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
+  opacity: 0.95;
+  cursor: pointer;
+}
+
+/* Light mode: keep the icons black */
+[data-theme="light"] input[type="time"]::-webkit-calendar-picker-indicator,
+[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: none;
   opacity: 0.9;
+  cursor: pointer;
 }
 
 .ownerProfileGrid {
