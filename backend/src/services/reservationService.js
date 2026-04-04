@@ -252,8 +252,6 @@ const getSuggestedTimes = async ({
   return suggestions;
 };
 
-<<<<<<< HEAD
-
 const getDisabledSlotState = async ({
   restaurantId,
   reservationDate,
@@ -303,9 +301,6 @@ const getDisabledSlotState = async ({
   };
 };
 
-const getSlotAvailability = async ({ restaurantId, reservationDate, reservationTime, seatingPreference = null }) => {
-  const restaurantResult = await ReservationModel.getRestaurantById(db, restaurantId);
-=======
 const getSlotAvailability = async ({
   restaurantId,
   reservationDate,
@@ -319,7 +314,6 @@ const getSlotAvailability = async ({
   const restaurantResult = restaurantOverride
     ? { rows: [restaurantOverride] }
     : await ReservationModel.getRestaurantById(dbClient, restaurantId);
->>>>>>> origin/main
   const restaurant = restaurantResult.rows[0];
   if (!restaurant) {
     return { success: false, status: 404, error: "Restaurant not found" };
@@ -405,14 +399,13 @@ const getSlotAvailability = async ({
     availableSeatsPreference = Math.max(preferenceCapacity - bookedSeatsPreference, 0);
   }
 
-<<<<<<< HEAD
   const disabledState = await getDisabledSlotState({
     restaurantId,
     reservationDate,
     reservationTime,
     seatingPreference: normalizedSeating,
   });
-=======
+
   let canFitTables = true;
   if (hasTableConfig) {
     const slotReservationsResult = await ReservationModel.getReservationsForSlot(
@@ -443,7 +436,6 @@ const getSlotAvailability = async ({
   const canAccommodateParty = requestedPartySize == null
     ? availableSeatsForRequest > 0
     : (availableSeatsForRequest >= requestedPartySize && canFitTables);
->>>>>>> origin/main
 
   return {
     success: true,
@@ -557,7 +549,9 @@ const createReservation = async ({
   if (!user) {
     return { success: false, status: 404, error: "User not found" };
   }
-<<<<<<< HEAD
+  if (user.banned_until && !isBanActive(user.banned_until)) {
+    await UserModel.clearBan(db, user.id);
+  }
 
   if (availability.isDisabled) {
     const suggestedTimes = await getSuggestedTimes({
@@ -581,10 +575,6 @@ const createReservation = async ({
 
   if (!isWithinOperatingHours(normalizedTime, availability.restaurant.opening_time, availability.restaurant.closing_time)) {
     return { success: false, status: 400, error: "Reservation time is outside restaurant operating hours" };
-=======
-  if (user.banned_until && !isBanActive(user.banned_until)) {
-    await UserModel.clearBan(db, user.id);
->>>>>>> origin/main
   }
   if (user.no_show_count >= NO_SHOW_BAN_THRESHOLD && !user.banned_until) {
     const banUntil = addOneMonth();
@@ -1166,12 +1156,8 @@ return {
     is_fully_booked: disabledState.isDisabled ? true : availableSeatsForRequest <= 0,
     is_outside_operating_hours: !withinOperatingHours,
     can_accommodate_party:
-<<<<<<< HEAD
-      !disabledState.isDisabled && withinOperatingHours && availableSeatsForRequest >= parsedPartySize,
-=======
-      withinOperatingHours && availability.canAccommodateParty,
+      !disabledState.isDisabled && withinOperatingHours && availability.canAccommodateParty,
     table_constraint_ok: availability.canFitTables,
->>>>>>> origin/main
     suggested_times: suggestedTimes,
   },
 };
