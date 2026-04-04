@@ -76,7 +76,7 @@ function buildTimeOptions(openingTime, closingTime) {
   const options = [];
   for (let minute = start; minute <= end && options.length < 48; minute += SLOT_STEP_MINUTES) {
     const nextDay = minute >= (24 * 60);
-    const label = toLabel(minute) + (nextDay ? " +1" : "");
+    const label = toLabel(minute);
     options.push({ value: toTimeValue(minute), label, nextDay });
   }
   return options;
