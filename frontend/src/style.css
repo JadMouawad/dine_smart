@@ -3656,6 +3656,20 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .adminFilters {
   grid-template-columns: 2fr 1fr 1fr;
   align-items: center;
+  position: relative;
+  z-index: 200;
+  overflow: visible;
+}
+
+.adminFilters .sortDropdown,
+.adminFilters .themedSelect {
+  position: relative;
+  z-index: 210;
+}
+
+.adminFilters .sortDropdown__menu,
+.adminFilters .themedSelect__menu {
+  z-index: 9999;
 }
 
 .adminUsersLayout {
@@ -3664,11 +3678,21 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   grid-template-columns: 1.3fr 0.9fr;
   gap: 12px;
   align-items: start;
+  position: relative;
+  z-index: 1;
 }
 
 .adminUsersTableCard {
   overflow: hidden;
   padding: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.adminUserDetailsCard {
+  gap: 10px;
+  position: relative;
+  z-index: 1;
 }
 
 .adminTable {
