@@ -10,6 +10,7 @@ import DiscoverCarousel from "./components/DiscoverCarousel.jsx";
 import MobileMenu from "./components/MobileMenu.jsx";
 import AuthModal from "./components/AuthModal.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
+import LandingHighlights from "./components/LandingHighlights.jsx";
 
 // Code-split heavy areas — only loaded when the user navigates there
 const OwnerShell = lazy(() => import("./pages/owner/OwnerShell.jsx"));
@@ -84,11 +85,12 @@ function AppContent() {
             onGoHero={() => goToSection("full", "hero")}
           />
 
-          {landingView === "full" && (
+                    {landingView === "full" && (
             <>
               <section id="hero">
                 <Hero onGettingStarted={() => openModal("signup")} />
               </section>
+
               <section id="discover">
                 <DiscoverCarousel
                   onSelectCuisine={(cuisineLabel) => {
@@ -98,6 +100,12 @@ function AppContent() {
                   }}
                 />
               </section>
+
+              <LandingHighlights
+                onBookNow={() => openModal("signup")}
+                onAskDiney={() => openModal("signup")}
+                onExploreMap={() => openModal("signup")}
+              />
             </>
           )}
 
