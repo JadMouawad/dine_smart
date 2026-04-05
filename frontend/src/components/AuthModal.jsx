@@ -43,6 +43,8 @@ export default function AuthModal({
   const [adminSignupKey, setAdminSignupKey] = useState("");
   const [signupSuccess, setSignupSuccess] = useState(false);
 
+  const isRestaurantSignup = mode === "signup" && (forceRole === "owner" || accountType === "restaurant");
+
   const copy = useMemo(() => {
     if (mode === "signup") {
       return {
@@ -184,6 +186,7 @@ export default function AuthModal({
     setError("Continuing without location. Explore map will default to Beirut.");
   };
 
+
   if (!isOpen) return null;
 
   return (
@@ -260,7 +263,6 @@ export default function AuthModal({
                     if (!normalizedPhone) throw new Error("Phone number is required");
                     if (normalizedPhone.length < 7) throw new Error("Please enter a valid phone number");
                   }
-
                   if (password !== confirmPassword) {
                     throw new Error("Password and confirm password do not match");
                   }
@@ -307,7 +309,10 @@ export default function AuthModal({
                   onClose();
 
                   if (userRole === "admin") navigate("/admin/dashboard");
-                  else if (userRole === "owner") navigate("/owner/profile");
+                  else if (userRole === "owner") {
+                    const onboarding = localStorage.getItem("owner_onboarding") === "1";
+                    navigate(onboarding ? "/owner/profile?onboarding=1" : "/owner/profile");
+                  }
                   else navigate("/user/profile");
                 }
               } catch (err) {
@@ -441,7 +446,7 @@ export default function AuthModal({
               </label>
             )}
 
-            {mode === "signup" && forceRole !== "admin" && (
+            {mode === "signup" && forceRole !== "admin" && !isRestaurantSignup && (
               <>
                 <button
                   type="button"

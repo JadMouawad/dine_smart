@@ -1,5 +1,6 @@
 const db = require("../config/db");
 const eventRepository = require("../repositories/eventRepository");
+const subscriptionService = require("./subscriptionService");
 
 const parsePositiveInt = (value) => {
   const parsed = parseInt(value, 10);
@@ -154,6 +155,28 @@ const createOwnerEvent = async ({ ownerId, payload }) => {
     locationOverride,
     isActive: parseBoolean(payload.is_active, true),
   });
+
+  try {
+    const restaurantName = ownershipCheck.restaurant.name || "Restaurant";
+    const timeLabel = created.start_time && created.end_time
+      ? `${String(created.start_time).slice(0, 5)} – ${String(created.end_time).slice(0, 5)}`
+      : created.start_time
+        ? String(created.start_time).slice(0, 5)
+        : "Time to be announced";
+    const dateLabel = created.start_date && created.end_date
+      ? `${created.start_date} → ${created.end_date}`
+      : created.start_date || "Date to be announced";
+    await subscriptionService.sendSubscriptionUpdateOnce({
+      updateType: "events",
+      subject: `New event at ${restaurantName}: ${created.title}`,
+      message: `${created.title} is coming up at ${restaurantName}.\nDate: ${dateLabel}\nTime: ${timeLabel}`,
+      entityType: "event",
+      entityId: created.id,
+      fingerprint: `created:${created.id}`,
+    });
+  } catch (error) {
+    console.warn("Failed to send event subscription update:", error.message);
+  }
 
   return { success: true, status: 201, data: created };
 };

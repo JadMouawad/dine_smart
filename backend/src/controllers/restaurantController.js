@@ -1,5 +1,8 @@
 // src/controllers/restaurantController.js
+const crypto = require("crypto");
 const restaurantService = require("../services/restaurantService");
+const subscriptionService = require("../services/subscriptionService");
+const { extractMenuItems, normalizeMenuSections } = require("../utils/menuUtils");
 
 const createRestaurant = async (req, res) => {
   try {
@@ -52,9 +55,78 @@ const updateMyRestaurant = async (req, res) => {
       });
     }
 
+    const incomingMenu = req.body.menu_sections ?? req.body.menu;
+    const hasMenuUpdate = incomingMenu !== undefined;
+    const previousMenu = normalizeMenuSections(restaurant.menu_sections || restaurant.menu || []);
+
     const updated = await restaurantService.updateRestaurant(restaurant.id, {
       ...req.body,
     });
+
+    if (hasMenuUpdate) {
+      const updatedMenu = normalizeMenuSections(updated.menu_sections || incomingMenu || []);
+      const menuPayload = JSON.stringify(updatedMenu);
+      const menuFingerprint = crypto.createHash("sha256").update(menuPayload).digest("hex");
+      const restaurantName = updated.name || restaurant.name || "Restaurant";
+
+      try {
+        await subscriptionService.sendSubscriptionUpdateOnce({
+          updateType: "news",
+          subject: `${restaurantName} updated its menu`,
+          message: `${restaurantName} just refreshed its menu. Explore new dishes and favorites today.`,
+          entityType: "restaurant_menu",
+          entityId: updated.id,
+          fingerprint: menuFingerprint,
+        });
+      } catch (error) {
+        console.warn("Failed to send menu update subscription update:", error.message);
+      }
+
+      const previousItems = extractMenuItems(previousMenu);
+      const updatedItems = extractMenuItems(updatedMenu);
+      const previousMap = new Map(previousItems.map((item) => [item.key, item]));
+      const reductions = [];
+      updatedItems.forEach((item) => {
+        const before = previousMap.get(item.key);
+        if (!before || before.price == null || item.price == null) return;
+        if (item.currency !== before.currency) return;
+        if (item.price < before.price) {
+          reductions.push({
+            name: item.name,
+            oldPrice: before.price,
+            newPrice: item.price,
+            currency: item.currency,
+          });
+        }
+      });
+
+      if (reductions.length) {
+        const sorted = reductions
+          .sort((a, b) => (a.newPrice - a.oldPrice) - (b.newPrice - b.oldPrice))
+          .slice(0, 3);
+        const lines = sorted.map(
+          (item) => `${item.name}: ${item.oldPrice} → ${item.newPrice} ${item.currency}`
+        );
+        const offerFingerprint = crypto
+          .createHash("sha256")
+          .update(JSON.stringify(reductions))
+          .digest("hex");
+
+        try {
+          await subscriptionService.sendSubscriptionUpdateOnce({
+            updateType: "offers",
+            subject: `${restaurantName} just dropped prices`,
+            message: `Good news! ${restaurantName} reduced prices on ${reductions.length} item(s).\n${lines.join("\n")}`,
+            entityType: "restaurant_offer",
+            entityId: updated.id,
+            fingerprint: offerFingerprint,
+          });
+        } catch (error) {
+          console.warn("Failed to send offer subscription update:", error.message);
+        }
+      }
+    }
+
     res.json(updated);
   } catch (err) {
     res.status(500).json({ message: err.message });

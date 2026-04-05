@@ -101,6 +101,19 @@ const approveRestaurant = async ({ restaurantId, adminId }) => {
     }
   }
 
+  try {
+    await subscriptionService.sendSubscriptionUpdateOnce({
+      updateType: "news",
+      subject: `New restaurant on DineSmart: ${updated.name}`,
+      message: `Say hello to ${updated.name}! Check out their menu and reserve your table now.`,
+      entityType: "restaurant",
+      entityId: updated.id,
+      fingerprint: `approved:${updated.id}`,
+    });
+  } catch (error) {
+    console.warn("Failed to send restaurant launch subscription update:", error.message);
+  }
+
   return { success: true, data: updated };
 };
 

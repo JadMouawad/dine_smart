@@ -214,6 +214,19 @@ export function AuthProvider({ children }) {
     return data;
   }
 
+  async function acceptSession({ token: newToken, user: userData }) {
+    if (!newToken) throw new Error("No token provided");
+    persistToken(newToken);
+    setToken(newToken);
+    setUser(userData ?? null);
+    if (hasPreAuthTheme()) {
+      try { await updateProfile({ themePreference: theme }); } catch { /* silent */ }
+      clearPreAuthTheme();
+    } else if (userData?.themePreference) {
+      applyThemeFromDB(userData.themePreference);
+    }
+  }
+
   function logout() {
     clearToken();
     setToken(null);
@@ -232,7 +245,7 @@ export function AuthProvider({ children }) {
   }
 
   const value = useMemo(
-    () => ({ user, loading, login, register, googleLogin, logout, refreshUser }),
+    () => ({ user, loading, login, register, googleLogin, acceptSession, logout, refreshUser }),
     [user, loading]
   );
 

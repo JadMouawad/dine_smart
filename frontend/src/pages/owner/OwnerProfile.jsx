@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Map, { Marker, NavigationControl } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { useSearchParams } from "react-router-dom";
 import { createRestaurant, getMyRestaurant, updateMyRestaurant } from "../../services/restaurantService";
 import { useTheme } from "../../auth/ThemeContext.jsx";
 
@@ -87,6 +88,10 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
   const [existingRestaurant, setExistingRestaurant] = useState(null);
   const [isEditing, setIsEditing] = useState(true);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [searchParams] = useSearchParams();
+  const onboardingParam = searchParams.get("onboarding") === "1" || searchParams.get("edit") === "1";
+  const onboardingFlag = typeof window !== "undefined" && localStorage.getItem("owner_onboarding") === "1";
+  const forceEdit = onboardingParam || onboardingFlag;
 
   // Mapbox controlled view state
   const [viewState, setViewState] = useState({
@@ -99,7 +104,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     getMyRestaurant()
       .then((restaurant) => {
         setExistingRestaurant(restaurant);
-        setIsEditing(false);
+        setIsEditing(forceEdit);
         setRestaurantName(restaurant.name || "");
         setCuisineType(restaurant.cuisine || "");
 
@@ -139,7 +144,12 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
       .finally(() => {
         setInitialLoadComplete(true);
       });
-  }, []);
+  }, [forceEdit]);
+
+  useEffect(() => {
+    if (!forceEdit) return;
+    localStorage.removeItem("owner_onboarding");
+  }, [forceEdit]);
 
 
   const logoPreviewUrl = useMemo(
