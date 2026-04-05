@@ -8,6 +8,7 @@ export default function OwnerNav({
   onLogout,
   isApproved = true,
   unseenReservationCount = 0,
+  unseenReviewCount = 0,
 }) {
   const [pillScrolled, setPillScrolled] = useState(false);
 
@@ -92,6 +93,9 @@ export default function OwnerNav({
             }}
           >
             Reviews
+            {unseenReviewCount > 0 && (
+              <span className="adminNavBadge">{unseenReviewCount}</span>
+            )}
           </a>
 
           <a
