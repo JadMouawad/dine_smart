@@ -41,6 +41,17 @@ const updateProfile = async (userId, data) => {
   } else {
     delete updates.password;
   }
+  if (updates.isSubscribed !== undefined) {
+    const normalized = String(updates.isSubscribed).trim().toLowerCase();
+    updates.isSubscribed = normalized === "true" || updates.isSubscribed === true;
+  }
+  if (updates.subscriptionPreferences !== undefined) {
+    if (Array.isArray(updates.subscriptionPreferences)) {
+      updates.subscriptionPreferences = updates.subscriptionPreferences.map((item) => String(item).trim()).filter(Boolean);
+    } else if (updates.subscriptionPreferences == null) {
+      updates.subscriptionPreferences = [];
+    }
+  }
   return await profileRepository.updateById(userId, updates);
 };
 

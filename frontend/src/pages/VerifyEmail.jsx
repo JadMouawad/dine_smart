@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { acceptSession } = useAuth();
   const [status, setStatus] = useState("verifying");
   const [message, setMessage] = useState("");
   const hasVerified = useRef(false);
@@ -21,31 +23,42 @@ export default function VerifyEmail() {
       return;
     }
 
-    fetch(`${API_BASE}/auth/verify-email?token=${encodeURIComponent(token)}`, { method: "GET" })
-      .then((res) => res.json())
-      .then((data) => {
+    const verify = async () => {
+      try {
+        const response = await fetch(
+          `${API_BASE}/auth/verify-email?token=${encodeURIComponent(token)}`,
+          { method: "GET" }
+        );
+        const data = await response.json();
         if (data.message && data.message.toLowerCase().includes("verified")) {
           if (data.token) {
-            localStorage.setItem("token", data.token);
+            await acceptSession({ token: data.token, user: data.user });
           }
           const role = data.user?.role;
           const redirect =
             role === "admin"
               ? "/admin/dashboard"
               : role === "owner"
-                ? "/owner/profile"
+                ? "/owner/profile?onboarding=1"
                 : "/user/profile";
-          window.location.href = redirect;
-        } else {
-          setStatus("error");
-          setMessage(data.message || "Verification failed.");
+          if (role === "owner") {
+            localStorage.setItem("owner_onboarding", "1");
+          }
+          setStatus("success");
+          setMessage("Redirecting you now...");
+          navigate(redirect, { replace: true });
+          return;
         }
-      })
-      .catch(() => {
+        setStatus("error");
+        setMessage(data.message || "Verification failed.");
+      } catch {
         setStatus("error");
         setMessage("Something went wrong. Please try again.");
-      });
-  }, [searchParams]);
+      }
+    };
+
+    verify();
+  }, [searchParams, navigate]);
 
   return (
     <div className="verifyEmail">

@@ -25,8 +25,32 @@ CREATE TABLE IF NOT EXISTS users (
   latitude NUMERIC(9, 6),
   longitude NUMERIC(9, 6),
   profile_picture_url TEXT,
+  is_subscribed BOOLEAN NOT NULL DEFAULT false,
+  subscription_preferences TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS restaurant_updates (
+  id SERIAL PRIMARY KEY,
+  restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  update_type VARCHAR(20) NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT restaurant_updates_type_check CHECK (update_type IN ('news', 'offers'))
+);
+
+CREATE TABLE IF NOT EXISTS subscription_notifications (
+  id SERIAL PRIMARY KEY,
+  update_type VARCHAR(20) NOT NULL,
+  entity_type VARCHAR(50) NOT NULL,
+  entity_id INTEGER NOT NULL,
+  fingerprint TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT subscription_notifications_type_check CHECK (update_type IN ('news', 'offers', 'events')),
+  CONSTRAINT subscription_notifications_unique UNIQUE (update_type, entity_type, entity_id, fingerprint)
 );
 
 CREATE TABLE IF NOT EXISTS email_verification_tokens (
@@ -130,6 +154,8 @@ CREATE INDEX IF NOT EXISTS idx_reservations_user_id ON reservations(user_id);
 CREATE INDEX IF NOT EXISTS idx_reservations_restaurant_id ON reservations(restaurant_id);
 CREATE INDEX IF NOT EXISTS idx_reservations_restaurant_datetime
   ON reservations(restaurant_id, reservation_date, reservation_time);
+CREATE INDEX IF NOT EXISTS idx_waitlist_slot_pending
+  ON reservation_waitlist(restaurant_id, reservation_date, reservation_time, status);
 
 CREATE TABLE IF NOT EXISTS restaurant_table_configs (
   id SERIAL PRIMARY KEY,
@@ -157,6 +183,21 @@ CREATE TABLE IF NOT EXISTS reservation_slot_adjustments (
   CONSTRAINT reservation_slot_adjustments_unique UNIQUE (restaurant_id, reservation_date, reservation_time, seating_preference)
 );
 
+CREATE TABLE IF NOT EXISTS reservation_waitlist (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  reservation_date DATE NOT NULL,
+  reservation_time TIME NOT NULL,
+  party_size INTEGER NOT NULL CHECK (party_size > 0),
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  notified_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT reservation_waitlist_status_check CHECK (status IN ('pending', 'notified', 'cancelled')),
+  CONSTRAINT reservation_waitlist_unique UNIQUE (user_id, restaurant_id, reservation_date, reservation_time)
+);
+
 CREATE TABLE IF NOT EXISTS events (
   id SERIAL PRIMARY KEY,
   restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
@@ -166,10 +207,39 @@ CREATE TABLE IF NOT EXISTS events (
   event_date DATE NOT NULL,
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
+  start_time TIME,
+  end_time TIME,
+  max_attendees INTEGER,
+  is_free BOOLEAN NOT NULL DEFAULT true,
+  price NUMERIC(10,2),
+  tags TEXT[] NOT NULL DEFAULT ARRAY[]::text[],
+  location_override TEXT,
   is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT events_date_range_check CHECK (start_date <= end_date)
+);
+
+CREATE TABLE IF NOT EXISTS event_attendees (
+  id SERIAL PRIMARY KEY,
+  event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  attendees_count INTEGER NOT NULL DEFAULT 1,
+  seating_preference VARCHAR(20) NOT NULL DEFAULT 'any',
+  notes TEXT,
+  status VARCHAR(20) NOT NULL DEFAULT 'confirmed',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT event_attendees_seating_check CHECK (seating_preference IN ('any', 'indoor', 'outdoor')),
+  CONSTRAINT event_attendees_status_check CHECK (status IN ('confirmed', 'cancelled')),
+  CONSTRAINT event_attendees_unique UNIQUE (event_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS saved_events (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (user_id, event_id)
 );
 
 CREATE TABLE IF NOT EXISTS flagged_reviews (
@@ -263,6 +333,11 @@ CREATE INDEX IF NOT EXISTS idx_restaurants_geo ON restaurants(latitude, longitud
 CREATE INDEX IF NOT EXISTS idx_restaurants_price_range ON restaurants(price_range);
 CREATE INDEX IF NOT EXISTS idx_restaurants_dietary_support ON restaurants USING GIN(dietary_support);
 CREATE INDEX IF NOT EXISTS idx_events_restaurant_dates ON events(restaurant_id, is_active, start_date, end_date);
+CREATE INDEX IF NOT EXISTS idx_events_dates ON events(start_date, end_date);
+CREATE INDEX IF NOT EXISTS idx_event_attendees_event_id ON event_attendees(event_id);
+CREATE INDEX IF NOT EXISTS idx_event_attendees_user_id ON event_attendees(user_id);
+CREATE INDEX IF NOT EXISTS idx_saved_events_user_id ON saved_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_saved_events_event_id ON saved_events(event_id);
 CREATE INDEX IF NOT EXISTS idx_saved_searches_user_id ON saved_searches(user_id);
 CREATE INDEX IF NOT EXISTS idx_saved_searches_created_at ON saved_searches(created_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_unique ON users(phone)

@@ -198,6 +198,21 @@ const deleteFlaggedReview = async (req, res) => {
   }
 };
 
+const sendSubscriptionUpdate = async (req, res) => {
+  try {
+    const result = await adminService.sendSubscriptionUpdate({
+      adminId: req.user.id,
+      updateType: req.body.update_type,
+      subject: req.body.subject,
+      message: req.body.message,
+    });
+    if (!result.success) return res.status(result.status).json({ message: result.error });
+    return res.status(result.status).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getStats,
   getRecentAiLogs,
@@ -216,5 +231,6 @@ module.exports = {
   bulkModerateFlaggedReviews,
   dismissFlaggedReview,
   deleteFlaggedReview,
+  sendSubscriptionUpdate,
 };
 

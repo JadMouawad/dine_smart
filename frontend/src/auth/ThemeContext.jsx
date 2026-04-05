@@ -3,6 +3,7 @@ import { updateProfile } from "../services/profileService";
 
 const ThemeContext = createContext(null);
 const STORAGE_KEY = "ds_theme";
+const PRE_AUTH_THEME_KEY = "ds_theme_pre_auth";
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
@@ -23,6 +24,9 @@ export function ThemeProvider({ children }) {
     // Persist to DB if the user is logged in
     if (localStorage.getItem("token")) {
       try { await updateProfile({ themePreference: next }); } catch { /* silent */ }
+      localStorage.removeItem(PRE_AUTH_THEME_KEY);
+    } else {
+      localStorage.setItem(PRE_AUTH_THEME_KEY, "1");
     }
   }
 

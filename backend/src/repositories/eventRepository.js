@@ -57,11 +57,26 @@ const getOwnerEvents = async (ownerId) => {
         e.image_url,
         e.start_date,
         e.end_date,
+        e.start_time,
+        e.end_time,
+        e.max_attendees,
+        e.is_free,
+        e.price,
+        e.tags,
+        e.location_override,
+        COALESCE(att.going_count, 0) AS going_count,
         e.is_active,
         e.created_at,
         e.updated_at
       FROM events e
       JOIN restaurants r ON r.id = e.restaurant_id
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(attendees_count), 0)::int AS going_count
+        FROM event_attendees ea
+        WHERE ea.event_id = e.id
+          AND ea.status = 'confirmed'
+          AND ea.status = 'confirmed'
+      ) att ON true
       WHERE r.owner_id = $1
       ORDER BY e.start_date DESC, e.created_at DESC
     `,
@@ -85,6 +100,13 @@ const getOwnerEventById = async ({ ownerId, eventId }) => {
         e.image_url,
         e.start_date,
         e.end_date,
+        e.start_time,
+        e.end_time,
+        e.max_attendees,
+        e.is_free,
+        e.price,
+        e.tags,
+        e.location_override,
         e.is_active,
         e.created_at,
         e.updated_at
@@ -106,6 +128,13 @@ const createOwnerEvent = async ({
   imageUrl,
   startDate,
   endDate,
+  startTime,
+  endTime,
+  maxAttendees,
+  isFree,
+  price,
+  tags,
+  locationOverride,
   isActive = true,
 }) => {
   const result = await pool.query(
@@ -118,9 +147,16 @@ const createOwnerEvent = async ({
         event_date,
         start_date,
         end_date,
+        start_time,
+        end_time,
+        max_attendees,
+        is_free,
+        price,
+        tags,
+        location_override,
         is_active
       )
-      VALUES ($1, $2, $3, $4, $5, $5, $6, $7)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING
         id,
         restaurant_id,
@@ -129,11 +165,34 @@ const createOwnerEvent = async ({
         image_url,
         start_date,
         end_date,
+        start_time,
+        end_time,
+        max_attendees,
+        is_free,
+        price,
+        tags,
+        location_override,
         is_active,
         created_at,
         updated_at
     `,
-    [restaurantId, title, description, imageUrl, startDate, endDate, isActive]
+    [
+      restaurantId,
+      title,
+      description,
+      imageUrl,
+      startDate, // event_date
+      startDate, // start_date
+      endDate,   // end_date
+      startTime,
+      endTime,
+      maxAttendees,
+      isFree,
+      price,
+      tags,
+      locationOverride,
+      isActive,
+    ]
   );
   return result.rows[0] || null;
 };
@@ -149,6 +208,13 @@ const updateOwnerEvent = async ({ ownerId, eventId, updates }) => {
     image_url: "image_url",
     start_date: "start_date",
     end_date: "end_date",
+    start_time: "start_time",
+    end_time: "end_time",
+    max_attendees: "max_attendees",
+    is_free: "is_free",
+    price: "price",
+    tags: "tags",
+    location_override: "location_override",
     is_active: "is_active",
   };
 
@@ -187,6 +253,13 @@ const updateOwnerEvent = async ({ ownerId, eventId, updates }) => {
         e.image_url,
         e.start_date,
         e.end_date,
+        e.start_time,
+        e.end_time,
+        e.max_attendees,
+        e.is_free,
+        e.price,
+        e.tags,
+        e.location_override,
         e.is_active,
         e.created_at,
         e.updated_at
@@ -262,10 +335,24 @@ const getPublicEvents = async ({ latitude = null, longitude = null, distanceRadi
         e.image_url,
         e.start_date,
         e.end_date,
+        e.start_time,
+        e.end_time,
+        e.max_attendees,
+        e.is_free,
+        e.price,
+        e.tags,
+        e.location_override,
         e.is_active,
+        COALESCE(att.going_count, 0) AS going_count,
         ${distanceSql.sql}
       FROM events e
       JOIN restaurants r ON r.id = e.restaurant_id
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(attendees_count), 0)::int AS going_count
+        FROM event_attendees ea
+        WHERE ea.event_id = e.id
+          AND ea.status = 'confirmed'
+      ) att ON true
       WHERE ${conditions.join(" AND ")}
       ORDER BY e.start_date ASC, e.created_at DESC
       LIMIT ${limitParam}
@@ -286,11 +373,25 @@ const getPublicEventsByRestaurantId = async (restaurantId) => {
         e.image_url,
         e.start_date,
         e.end_date,
+        e.start_time,
+        e.end_time,
+        e.max_attendees,
+        e.is_free,
+        e.price,
+        e.tags,
+        e.location_override,
         e.is_active,
+        COALESCE(att.going_count, 0) AS going_count,
         e.created_at,
         e.updated_at
       FROM events e
       JOIN restaurants r ON r.id = e.restaurant_id
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(attendees_count), 0)::int AS going_count
+        FROM event_attendees ea
+        WHERE ea.event_id = e.id
+          AND ea.status = 'confirmed'
+      ) att ON true
       WHERE e.restaurant_id = $1
         AND r.is_verified = true
         AND r.approval_status = 'approved'
@@ -298,6 +399,349 @@ const getPublicEventsByRestaurantId = async (restaurantId) => {
       ORDER BY e.start_date ASC, e.created_at DESC
     `,
     [restaurantId]
+  );
+  return result.rows;
+};
+
+const getPublicEventById = async (eventId, db = pool) => {
+  const result = await db.query(
+    `
+      SELECT
+        e.id,
+        e.restaurant_id,
+        r.name AS restaurant_name,
+        r.latitude,
+        r.longitude,
+        e.title,
+        e.description,
+        e.image_url,
+        e.start_date,
+        e.end_date,
+        e.start_time,
+        e.end_time,
+        e.max_attendees,
+        e.is_free,
+        e.price,
+        e.tags,
+        e.location_override,
+        e.is_active,
+        COALESCE(att.going_count, 0) AS going_count
+      FROM events e
+      JOIN restaurants r ON r.id = e.restaurant_id
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(attendees_count), 0)::int AS going_count
+        FROM event_attendees ea
+        WHERE ea.event_id = e.id
+          AND ea.status = 'confirmed'
+      ) att ON true
+      WHERE e.id = $1
+        AND r.is_verified = true
+        AND r.approval_status = 'approved'
+        AND e.is_active = true
+        AND e.end_date >= CURRENT_DATE
+      LIMIT 1
+    `,
+    [eventId]
+  );
+  return result.rows[0] || null;
+};
+
+const getEventCapacitySummary = async ({ eventId }, db = pool) => {
+  const result = await db.query(
+    `
+      SELECT
+        e.id,
+        e.max_attendees,
+        COALESCE(SUM(CASE WHEN ea.status = 'confirmed' THEN ea.attendees_count ELSE 0 END), 0)::int AS booked
+      FROM events e
+      LEFT JOIN event_attendees ea ON ea.event_id = e.id
+      WHERE e.id = $1
+      GROUP BY e.id
+    `,
+    [eventId]
+  );
+  return result.rows[0] || null;
+};
+
+const getEventAttendeeByUser = async ({ eventId, userId }, db = pool) => {
+  const result = await db.query(
+    `
+      SELECT id, attendees_count, status
+      FROM event_attendees
+      WHERE event_id = $1 AND user_id = $2
+      LIMIT 1
+    `,
+    [eventId, userId]
+  );
+  return result.rows[0] || null;
+};
+
+const getOwnerEventAttendees = async ({ ownerId, eventId }, db = pool) => {
+  const result = await db.query(
+    `
+      SELECT
+        ea.id,
+        ea.event_id,
+        ea.user_id,
+        u.full_name,
+        u.email,
+        u.phone,
+        ea.attendees_count,
+        ea.status,
+        ea.created_at
+      FROM event_attendees ea
+      JOIN events e ON e.id = ea.event_id
+      JOIN restaurants r ON r.id = e.restaurant_id
+      JOIN users u ON u.id = ea.user_id
+      WHERE e.id = $1
+        AND r.owner_id = $2
+      ORDER BY ea.created_at DESC
+    `,
+    [eventId, ownerId]
+  );
+  return result.rows;
+};
+
+const upsertEventAttendee = async ({ eventId, userId, attendeesCount, seatingPreference, notes }, db = pool) => {
+  const result = await db.query(
+    `
+      INSERT INTO event_attendees (
+        event_id,
+        user_id,
+        attendees_count,
+        seating_preference,
+        notes,
+        status
+      )
+      VALUES ($1, $2, $3, $4, $5, 'confirmed')
+      ON CONFLICT (event_id, user_id)
+      DO UPDATE SET
+        attendees_count = EXCLUDED.attendees_count,
+        seating_preference = EXCLUDED.seating_preference,
+        notes = EXCLUDED.notes,
+        status = 'confirmed',
+        updated_at = NOW()
+      RETURNING id, event_id, user_id, attendees_count, seating_preference, notes, created_at, updated_at
+    `,
+    [eventId, userId, attendeesCount, seatingPreference, notes]
+  );
+  return result.rows[0] || null;
+};
+
+const createEventAttendee = async ({ eventId, userId, attendeesCount, seatingPreference, notes }, db = pool) => {
+  const result = await db.query(
+    `
+      INSERT INTO event_attendees (
+        event_id,
+        user_id,
+        attendees_count,
+        seating_preference,
+        notes,
+        status
+      )
+      VALUES ($1, $2, $3, $4, $5, 'confirmed')
+      RETURNING id, event_id, user_id, attendees_count, seating_preference, notes, status, created_at, updated_at
+    `,
+    [eventId, userId, attendeesCount, seatingPreference, notes]
+  );
+  return result.rows[0] || null;
+};
+
+const cancelEventAttendeeByUser = async ({ eventId, userId }, db = pool) => {
+  const result = await db.query(
+    `
+      UPDATE event_attendees
+      SET status = 'cancelled', updated_at = NOW()
+      WHERE event_id = $1 AND user_id = $2 AND status = 'confirmed'
+      RETURNING id, event_id, user_id, attendees_count, status, created_at, updated_at
+    `,
+    [eventId, userId]
+  );
+  return result.rows[0] || null;
+};
+
+const getUserEventReservations = async ({ userId }, db = pool) => {
+  const result = await db.query(
+    `
+      SELECT
+        ea.id,
+        ea.event_id,
+        ea.user_id,
+        ea.attendees_count,
+        ea.status,
+        ea.created_at,
+        e.title AS event_title,
+        e.event_date,
+        e.start_date,
+        e.end_date,
+        e.start_time,
+        e.end_time,
+        r.name AS restaurant_name
+      FROM event_attendees ea
+      JOIN events e ON e.id = ea.event_id
+      JOIN restaurants r ON r.id = e.restaurant_id
+      WHERE ea.user_id = $1
+      ORDER BY e.start_date DESC, e.start_time DESC, ea.created_at DESC
+    `,
+    [userId]
+  );
+  return result.rows;
+};
+
+const getUserUpcomingEventReservations = async ({ userId }, db = pool) => {
+  const result = await db.query(
+    `
+      SELECT
+        ea.id,
+        ea.event_id,
+        ea.user_id,
+        ea.attendees_count,
+        ea.status,
+        e.title AS event_title,
+        e.event_date,
+        e.start_date,
+        e.end_date,
+        e.start_time,
+        e.end_time
+      FROM event_attendees ea
+      JOIN events e ON e.id = ea.event_id
+      WHERE ea.user_id = $1
+        AND ea.status = 'confirmed'
+        AND e.end_date >= CURRENT_DATE
+      ORDER BY e.start_date ASC, e.start_time ASC, ea.created_at ASC
+    `,
+    [userId]
+  );
+  return result.rows;
+};
+
+const getOwnerEventReservations = async ({ ownerId }, db = pool) => {
+  const result = await db.query(
+    `
+      SELECT
+        ea.id,
+        ea.event_id,
+        ea.user_id,
+        ea.attendees_count,
+        ea.status,
+        ea.created_at,
+        u.full_name AS user_name,
+        u.email AS user_email,
+        e.title AS event_title,
+        e.event_date,
+        e.start_date,
+        e.end_date,
+        e.start_time,
+        e.end_time,
+        r.name AS restaurant_name
+      FROM event_attendees ea
+      JOIN events e ON e.id = ea.event_id
+      JOIN restaurants r ON r.id = e.restaurant_id
+      JOIN users u ON u.id = ea.user_id
+      WHERE r.owner_id = $1
+      ORDER BY e.start_date DESC, e.start_time DESC, ea.created_at DESC
+    `,
+    [ownerId]
+  );
+  return result.rows;
+};
+
+const getOwnerEventReservationById = async ({ ownerId, reservationId }, db = pool) => {
+  const result = await db.query(
+    `
+      SELECT
+        ea.id,
+        ea.event_id,
+        ea.user_id,
+        ea.attendees_count,
+        ea.status,
+        ea.created_at,
+        e.title AS event_title,
+        e.event_date,
+        e.start_date,
+        e.end_date,
+        e.start_time,
+        e.end_time,
+        r.name AS restaurant_name
+      FROM event_attendees ea
+      JOIN events e ON e.id = ea.event_id
+      JOIN restaurants r ON r.id = e.restaurant_id
+      WHERE ea.id = $1
+        AND r.owner_id = $2
+      LIMIT 1
+    `,
+    [reservationId, ownerId]
+  );
+  return result.rows[0] || null;
+};
+
+const deleteEventReservationById = async ({ reservationId }, db = pool) => {
+  const result = await db.query(
+    `
+      DELETE FROM event_attendees
+      WHERE id = $1
+      RETURNING id
+    `,
+    [reservationId]
+  );
+  return result.rows[0] || null;
+};
+
+const saveEventForUser = async ({ eventId, userId }) => {
+  await pool.query(
+    `
+      INSERT INTO saved_events (user_id, event_id)
+      VALUES ($1, $2)
+      ON CONFLICT (user_id, event_id) DO NOTHING
+    `,
+    [userId, eventId]
+  );
+  return true;
+};
+
+const removeSavedEventForUser = async ({ eventId, userId }) => {
+  const result = await pool.query(
+    `
+      DELETE FROM saved_events
+      WHERE user_id = $1 AND event_id = $2
+      RETURNING event_id
+    `,
+    [userId, eventId]
+  );
+  return result.rowCount > 0;
+};
+
+const getSavedEventsByUser = async ({ userId }) => {
+  const result = await pool.query(
+    `
+      SELECT
+        e.id,
+        e.restaurant_id,
+        r.name AS restaurant_name,
+        r.latitude,
+        r.longitude,
+        e.title,
+        e.description,
+        e.image_url,
+        e.start_date,
+        e.end_date,
+        e.is_active,
+        COALESCE(att.going_count, 0) AS going_count,
+        se.created_at AS saved_at
+      FROM saved_events se
+      JOIN events e ON e.id = se.event_id
+      JOIN restaurants r ON r.id = e.restaurant_id
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(attendees_count), 0)::int AS going_count
+        FROM event_attendees ea
+        WHERE ea.event_id = e.id
+      ) att ON true
+      WHERE se.user_id = $1
+        AND r.is_verified = true
+        AND r.approval_status = 'approved'
+      ORDER BY se.created_at DESC
+    `,
+    [userId]
   );
   return result.rows;
 };
@@ -311,4 +755,19 @@ module.exports = {
   deleteOwnerEvent,
   getPublicEvents,
   getPublicEventsByRestaurantId,
+  getPublicEventById,
+  getEventCapacitySummary,
+  getEventAttendeeByUser,
+  getOwnerEventAttendees,
+  upsertEventAttendee,
+  createEventAttendee,
+  cancelEventAttendeeByUser,
+  getUserEventReservations,
+  getUserUpcomingEventReservations,
+  getOwnerEventReservations,
+  getOwnerEventReservationById,
+  deleteEventReservationById,
+  saveEventForUser,
+  removeSavedEventForUser,
+  getSavedEventsByUser,
 };

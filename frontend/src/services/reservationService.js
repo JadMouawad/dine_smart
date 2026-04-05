@@ -53,6 +53,29 @@ export async function getReservationAvailability({ restaurantId, date, time, par
   });
 }
 
+export async function joinWaitlist({ restaurantId, date, time, partySize }) {
+  return apiRequest("/reservations/waitlist", {
+    method: "POST",
+    body: JSON.stringify({
+      restaurant_id: restaurantId,
+      date,
+      time,
+      party_size: partySize,
+    }),
+  });
+}
+
+export async function leaveWaitlist({ restaurantId, date, time }) {
+  return apiRequest("/reservations/waitlist", {
+    method: "DELETE",
+    body: JSON.stringify({
+      restaurant_id: restaurantId,
+      date,
+      time,
+    }),
+  });
+}
+
 
 export async function getOwnerReservations() {
   return apiRequest("/owner/reservations", { method: "GET" });
@@ -68,6 +91,12 @@ export async function updateOwnerReservationStatus(reservationId, action) {
 export async function markOwnerReservationNoShow(reservationId) {
   return apiRequest(`/owner/reservations/${reservationId}/no-show`, {
     method: "PATCH",
+  });
+}
+
+export async function deleteOwnerReservation(reservationId) {
+  return apiRequest(`/owner/reservations/${reservationId}`, {
+    method: "DELETE",
   });
 }
 

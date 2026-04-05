@@ -31,6 +31,9 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
   const [reservationCount, setReservationCount] = useState(0);
   const [loyaltyBadge, setLoyaltyBadge] = useState("Newcomer");
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [subscriptionPreferences, setSubscriptionPreferences] = useState([]);
+  const [subscriptionSnapshot, setSubscriptionSnapshot] = useState({ isSubscribed: false, preferences: [] });
   const [savedLocation, setSavedLocation] = useState({ latitude: null, longitude: null });
   const [locationStatus, setLocationStatus] = useState("idle"); // idle | detecting | granted | denied
   const [profileLoading, setProfileLoading] = useState(true);
@@ -62,6 +65,10 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
         }
         setReservationCount(Number(profile.reservationCount ?? 0));
         setLoyaltyBadge(profile.loyaltyBadge ?? "Newcomer");
+        const prefArray = Array.isArray(profile.subscriptionPreferences) ? profile.subscriptionPreferences : [];
+        setIsSubscribed(Boolean(profile.isSubscribed));
+        setSubscriptionPreferences(prefArray);
+        setSubscriptionSnapshot({ isSubscribed: Boolean(profile.isSubscribed), preferences: prefArray });
         setMyReviews(
           Array.isArray(profile.myReviews)
             ? profile.myReviews.map((review) => ({
@@ -81,6 +88,9 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
         setAccountProvider(String(user.provider ?? "local").toLowerCase());
         setMyReviews([]);
         setProfilePictureUrl("");
+        setIsSubscribed(false);
+        setSubscriptionPreferences([]);
+        setSubscriptionSnapshot({ isSubscribed: false, preferences: [] });
       })
       .finally(() => setProfileLoading(false));
   }, [user?.id]);
@@ -152,6 +162,8 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       email: email.trim(),
       phone: phone.trim() ? `${countryCode}${phone.trim()}` : "",
       profilePictureUrl: profilePictureDataUrl || profilePictureUrl || "",
+      isSubscribed,
+      subscriptionPreferences,
     };
     if (!isGoogleAccount && newPassword.trim()) payload.password = newPassword.trim();
     if (savedLocation.latitude != null && savedLocation.longitude != null) {
@@ -163,7 +175,12 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       const savedAvatar = updated?.profilePictureUrl ?? payload.profilePictureUrl;
       setProfilePictureUrl(savedAvatar);
       setProfilePictureDataUrl("");
-      toast.success("Profile saved successfully.");
+      if (subscriptionSnapshot.isSubscribed !== isSubscribed) {
+        toast.success(isSubscribed ? "You have successfully subscribed to updates." : "You have unsubscribed from updates.");
+      } else {
+        toast.success("Profile saved successfully.");
+      }
+      setSubscriptionSnapshot({ isSubscribed, preferences: subscriptionPreferences });
       setNewPassword("");
       setConfirmNewPassword("");
       setShowNewPassword(false);
@@ -173,6 +190,18 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
     } catch (err) {
       toast.error(err.message || "Failed to save profile.");
     }
+  }
+
+  const subscriptionOptions = [
+    { key: "news", label: "News" },
+    { key: "offers", label: "Offers" },
+    { key: "events", label: "Events" },
+  ];
+
+  function toggleSubscriptionPreference(key) {
+    setSubscriptionPreferences((prev) => (
+      prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]
+    ));
   }
 
   if (profileLoading) {
@@ -362,6 +391,50 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
               {theme === "dark" ? "Light mode" : "Dark mode"}
             </button>
           </div>
+
+          <div className="formCard__divider" />
+
+          <section className="updatesSubscription">
+            <div className="updatesSubscription__header">
+              <div>
+                <div className="updatesSubscription__title">Updates Subscription</div>
+                <p className="updatesSubscription__desc">
+                  Get news, special offers, and event updates from DineSmart.
+                </p>
+              </div>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={isSubscribed}
+                  onChange={(e) => setIsSubscribed(e.target.checked)}
+                  aria-label={isSubscribed ? "Subscription on" : "Subscription off"}
+                />
+                <span className="switch__track">
+                  <span className="switch__thumb" />
+                </span>
+              </label>
+            </div>
+
+            <div className={`updatesPrefs${!isSubscribed ? " updatesPrefs--disabled" : ""}`}>
+              <div className="updatesPrefs__title">Choose what you want to receive</div>
+              <div className="updatesPrefs__grid">
+                {subscriptionOptions.map((option) => (
+                  <label
+                    key={option.key}
+                    className={`prefChip${subscriptionPreferences.includes(option.key) ? " prefChip--active" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={subscriptionPreferences.includes(option.key)}
+                      onChange={() => toggleSubscriptionPreference(option.key)}
+                      disabled={!isSubscribed}
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </section>
 
           <div className="formCard__actions">
             <button className="btn btn--gold btn--xl" type="submit">

@@ -580,7 +580,6 @@ export default function RestaurantDetailPanel({
             restaurant={currentRestaurant}
             onClose={() => {}}
             onReserved={(reservation) => {
-              toast.success("Booked successfully! 🎉");
               const date = reservation?.reservation_date || reservationSlot?.date || getCurrentSlotParams().date;
               const time = String(reservation?.reservation_time || reservationSlot?.time || getCurrentSlotParams().time).slice(0, 5);
               setReservationSlot({ date, time });
@@ -708,13 +707,13 @@ export default function RestaurantDetailPanel({
               {reviews.map((rev) => (
                 <div className="reviewCardFull" key={rev.id}>
                   <div className="reviewCardFull__left">
-                    <div className="reviewCardFull__avatar">
-  <img
-    className="reviewCardFull__avatarImg"
-    src={rev.profilePictureUrl || rev.profile_picture_url || DEFAULT_AVATAR}
-    alt={`${rev.user_name || rev.authorName || "User"} avatar`}
-  />
-</div>
+                    <div className={`reviewCardFull__avatar ${!(rev.profilePictureUrl || rev.profile_picture_url) ? "reviewCardFull__avatar--fallback" : ""}`}>
+                      <img
+                        className="reviewCardFull__avatarImg"
+                        src={rev.profilePictureUrl || rev.profile_picture_url || DEFAULT_AVATAR}
+                        alt={`${rev.user_name || rev.authorName || "User"} avatar`}
+                      />
+                    </div>
                   </div>
 
                   <div className="reviewCardFull__right">

@@ -106,6 +106,18 @@ async function getUserReservations(db, userId) {
   return db.query(query, [userId]);
 }
 
+async function getMostRecentReservationByUser(db, userId) {
+  const query = `
+    SELECT id, user_id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time,
+           party_size, status, created_at
+    FROM reservations
+    WHERE user_id = $1
+    ORDER BY created_at DESC
+    LIMIT 1;
+  `;
+  return db.query(query, [userId]);
+}
+
 async function getActiveUserReservationsForDate(db, userId, reservationDate) {
   const query = `
     SELECT r.id, r.restaurant_id, r.reservation_time::text AS reservation_time, r.status
@@ -183,6 +195,19 @@ async function updateOwnerReservationStatus(db, { reservationId, ownerId, status
   return db.query(query, [reservationId, ownerId, status]);
 }
 
+async function deleteOwnerReservationById(db, { reservationId, ownerId }) {
+  const query = `
+    DELETE FROM reservations r
+    USING restaurants rest
+    WHERE r.id = $1
+      AND r.restaurant_id = rest.id
+      AND rest.owner_id = $2
+    RETURNING r.id, r.user_id, r.restaurant_id, r.reservation_date::text AS reservation_date, r.reservation_time::text AS reservation_time,
+              r.party_size, r.seating_preference, r.special_request, r.status, r.confirmation_id, r.created_at, r.updated_at;
+  `;
+  return db.query(query, [reservationId, ownerId]);
+}
+
 async function getReservationsForSlot(db, restaurantId, reservationDate, reservationTime) {
   const query = `
     SELECT party_size, seating_preference
@@ -252,6 +277,87 @@ async function upsertSlotAdjustment(db, data) {
   ]);
 }
 
+async function upsertWaitlistEntry(db, data) {
+  const {
+    userId,
+    restaurantId,
+    reservationDate,
+    reservationTime,
+    partySize,
+  } = data;
+
+  const query = `
+    INSERT INTO reservation_waitlist (
+      user_id,
+      restaurant_id,
+      reservation_date,
+      reservation_time,
+      party_size,
+      status
+    )
+    VALUES ($1, $2, $3, $4, $5, 'pending')
+    ON CONFLICT (user_id, restaurant_id, reservation_date, reservation_time)
+    DO UPDATE SET party_size = EXCLUDED.party_size, status = 'pending', notified_at = NULL, updated_at = NOW()
+    RETURNING id, user_id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time,
+              party_size, status, notified_at, created_at, updated_at;
+  `;
+
+  return db.query(query, [
+    userId,
+    restaurantId,
+    reservationDate,
+    reservationTime,
+    partySize,
+  ]);
+}
+
+async function getWaitlistForSlot(db, data) {
+  const { restaurantId, reservationDate, reservationTime } = data;
+  const query = `
+    SELECT wl.id, wl.user_id, wl.restaurant_id, wl.reservation_date::text AS reservation_date,
+           wl.reservation_time::text AS reservation_time, wl.party_size, wl.status, wl.created_at,
+           u.full_name, u.email
+    FROM reservation_waitlist wl
+    JOIN users u ON u.id = wl.user_id
+    WHERE wl.restaurant_id = $1
+      AND wl.reservation_date = $2
+      AND wl.reservation_time = $3
+      AND wl.status = 'pending'
+    ORDER BY wl.created_at ASC;
+  `;
+
+  return db.query(query, [restaurantId, reservationDate, reservationTime]);
+}
+
+async function markWaitlistNotified(db, waitlistId) {
+  const query = `
+    UPDATE reservation_waitlist
+    SET status = 'notified', notified_at = NOW(), updated_at = NOW()
+    WHERE id = $1
+    RETURNING id, user_id, restaurant_id, reservation_date::text AS reservation_date,
+              reservation_time::text AS reservation_time, party_size, status, notified_at, created_at, updated_at;
+  `;
+  return db.query(query, [waitlistId]);
+}
+
+async function cancelWaitlistEntry(db, data) {
+  const { userId, restaurantId, reservationDate, reservationTime } = data;
+  const query = `
+    UPDATE reservation_waitlist
+    SET status = 'cancelled', updated_at = NOW()
+    WHERE user_id = $1
+      AND restaurant_id = $2
+      AND reservation_date = $3
+      AND reservation_time = $4
+    RETURNING id, user_id, restaurant_id, reservation_date::text AS reservation_date,
+              reservation_time::text AS reservation_time, party_size, status, notified_at, created_at, updated_at;
+  `;
+  return db.query(query, [userId, restaurantId, reservationDate, reservationTime]);
+}
+
+async function cancelWaitlistEntryByUserAndSlot(db, data) {
+  return cancelWaitlistEntry(db, data);
+}
 
 async function getDisabledSlotsForDate(db, restaurantId, reservationDate) {
   const query = `
@@ -333,15 +439,22 @@ module.exports = {
   createReservation,
   getReservationById,
   getUserReservations,
+  getMostRecentReservationByUser,
   getActiveUserReservationsForDate,
   cancelReservation,
   getOwnerReservations,
   getOwnerReservationById,
   updateOwnerReservationStatus,
+  deleteOwnerReservationById,
   getReservationsForSlot,
   getSlotAdjustments,
   getSlotAdjustment,
   upsertSlotAdjustment,
+  upsertWaitlistEntry,
+  getWaitlistForSlot,
+  markWaitlistNotified,
+  cancelWaitlistEntry,
+  cancelWaitlistEntryByUserAndSlot,
   getDisabledSlotsForDate,
   getDisabledSlot,
   upsertDisabledSlot,

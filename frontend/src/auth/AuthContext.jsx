@@ -1,9 +1,13 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { loginUser, registerUser, getCurrentUser, googleAuth } from "../services/authService";
+import { updateProfile } from "../services/profileService";
 import { useTheme } from "./ThemeContext";
 
 const AuthContext = createContext(null);
 const TOKEN_KEY = "token";
+const LAST_ACTIVE_KEY = "last_active_at";
+const PRE_AUTH_THEME_KEY = "ds_theme_pre_auth";
+const SESSION_MAX_AWAY_MS = 3 * 60 * 60 * 1000; // 3 hours away from the site
 
 function readStoredToken() {
   const localToken = localStorage.getItem(TOKEN_KEY);
@@ -21,22 +25,46 @@ function readStoredToken() {
 
 function persistToken(token) {
   localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(LAST_ACTIVE_KEY, String(Date.now()));
   sessionStorage.removeItem(TOKEN_KEY);
 }
 
 function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(LAST_ACTIVE_KEY);
   sessionStorage.removeItem(TOKEN_KEY);
+}
+
+function isSessionExpiredByAwayTime() {
+  const lastActiveRaw = localStorage.getItem(LAST_ACTIVE_KEY);
+  const lastActive = lastActiveRaw ? Number(lastActiveRaw) : NaN;
+  if (!Number.isFinite(lastActive)) return true; // no activity -> force login
+  return Date.now() - lastActive > SESSION_MAX_AWAY_MS;
 }
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => readStoredToken());
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { applyThemeFromDB } = useTheme();
+  const { applyThemeFromDB, theme } = useTheme();
+
+  function hasPreAuthTheme() {
+    return localStorage.getItem(PRE_AUTH_THEME_KEY) === "1";
+  }
+
+  function clearPreAuthTheme() {
+    localStorage.removeItem(PRE_AUTH_THEME_KEY);
+  }
 
   async function restoreSession() {
     if (!token) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+    if (isSessionExpiredByAwayTime()) {
+      clearToken();
+      setToken(null);
       setUser(null);
       setLoading(false);
       return;
@@ -46,7 +74,12 @@ export function AuthProvider({ children }) {
       const me = await getCurrentUser();
       const userData = me.user ?? me;
       setUser(userData);
-      if (userData.themePreference) applyThemeFromDB(userData.themePreference);
+      if (hasPreAuthTheme()) {
+        try { await updateProfile({ themePreference: theme }); } catch { /* silent */ }
+        clearPreAuthTheme();
+      } else if (userData.themePreference) {
+        applyThemeFromDB(userData.themePreference);
+      }
     } catch {
       clearToken();
       setToken(null);
@@ -59,6 +92,57 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     setLoading(true);
     restoreSession();
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const markActive = () => {
+      localStorage.setItem(LAST_ACTIVE_KEY, String(Date.now()));
+    };
+
+    const handleFocus = () => {
+      // If user returns after being away too long, log them out.
+      if (isSessionExpiredByAwayTime()) {
+        clearToken();
+        setToken(null);
+        setUser(null);
+        return;
+      }
+      markActive();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        markActive();
+      } else {
+        handleFocus();
+      }
+    };
+
+    const handleActivity = () => {
+      if (document.visibilityState !== "visible") return;
+      markActive();
+    };
+
+    // Initial activity mark
+    markActive();
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("mousemove", handleActivity, { passive: true });
+    window.addEventListener("keydown", handleActivity, { passive: true });
+    window.addEventListener("scroll", handleActivity, { passive: true });
+    window.addEventListener("touchstart", handleActivity, { passive: true });
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("mousemove", handleActivity);
+      window.removeEventListener("keydown", handleActivity);
+      window.removeEventListener("scroll", handleActivity);
+      window.removeEventListener("touchstart", handleActivity);
+    };
   }, [token]);
 
   useEffect(() => {
@@ -81,7 +165,12 @@ export function AuthProvider({ children }) {
     persistToken(newToken);
     setToken(newToken);
     setUser(data.user ?? null);
-    if (data.user?.themePreference) applyThemeFromDB(data.user.themePreference);
+    if (hasPreAuthTheme()) {
+      try { await updateProfile({ themePreference: theme }); } catch { /* silent */ }
+      clearPreAuthTheme();
+    } else if (data.user?.themePreference) {
+      applyThemeFromDB(data.user.themePreference);
+    }
     return data;
   }
 
@@ -116,8 +205,26 @@ export function AuthProvider({ children }) {
     persistToken(newToken);
     setToken(newToken);
     setUser(data.user ?? null);
-    if (data.user?.themePreference) applyThemeFromDB(data.user.themePreference);
+    if (hasPreAuthTheme()) {
+      try { await updateProfile({ themePreference: theme }); } catch { /* silent */ }
+      clearPreAuthTheme();
+    } else if (data.user?.themePreference) {
+      applyThemeFromDB(data.user.themePreference);
+    }
     return data;
+  }
+
+  async function acceptSession({ token: newToken, user: userData }) {
+    if (!newToken) throw new Error("No token provided");
+    persistToken(newToken);
+    setToken(newToken);
+    setUser(userData ?? null);
+    if (hasPreAuthTheme()) {
+      try { await updateProfile({ themePreference: theme }); } catch { /* silent */ }
+      clearPreAuthTheme();
+    } else if (userData?.themePreference) {
+      applyThemeFromDB(userData.themePreference);
+    }
   }
 
   function logout() {
@@ -138,7 +245,7 @@ export function AuthProvider({ children }) {
   }
 
   const value = useMemo(
-    () => ({ user, loading, login, register, googleLogin, logout, refreshUser }),
+    () => ({ user, loading, login, register, googleLogin, acceptSession, logout, refreshUser }),
     [user, loading]
   );
 

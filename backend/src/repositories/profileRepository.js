@@ -35,6 +35,9 @@ const updateById = async (userId, data) => {
   if (data.profilePictureUrl !== undefined) updates.profile_picture_url = data.profilePictureUrl;
   if (data.themePreference !== undefined) updates.theme_preference = data.themePreference;
   if (data.password !== undefined) updates.password = data.password;
+  if (data.isSubscribed !== undefined) updates.is_subscribed = data.isSubscribed;
+  if (data.subscriptionPreferences !== undefined) updates.subscription_preferences = data.subscriptionPreferences;
+  if (data.subscription_preferences !== undefined) updates.subscription_preferences = data.subscription_preferences;
 
   if (Object.keys(updates).length === 0) {
     return await getById(userId);

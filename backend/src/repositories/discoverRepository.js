@@ -335,9 +335,23 @@ const getUpcomingEventsNearby = async ({ latitude = null, longitude = null, radi
         e.image_url,
         e.start_date,
         e.end_date,
+        e.start_time,
+        e.end_time,
+        e.max_attendees,
+        e.is_free,
+        e.price,
+        e.tags,
+        e.location_override,
+        COALESCE(att.going_count, 0) AS going_count,
         ${distance.sql}
       FROM events e
       JOIN restaurants r ON r.id = e.restaurant_id
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(attendees_count), 0)::int AS going_count
+        FROM event_attendees ea
+        WHERE ea.event_id = e.id
+          AND ea.status = 'confirmed'
+      ) att ON true
       WHERE r.is_verified = true
         AND r.approval_status = 'approved'
         AND e.is_active = true

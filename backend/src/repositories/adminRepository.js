@@ -462,6 +462,23 @@ const insertAuditLog = async ({ adminId, action, entityType, entityId = null, de
   );
 };
 
+const getSubscribedUsersByPreference = async (updateType) => {
+  const result = await pool.query(
+    `
+      SELECT id, full_name, email, subscription_preferences
+      FROM users
+      WHERE is_subscribed = true
+        AND (
+          subscription_preferences IS NULL
+          OR array_length(subscription_preferences, 1) IS NULL
+          OR $1 = ANY(subscription_preferences)
+        )
+    `,
+    [updateType]
+  );
+  return result.rows;
+};
+
 module.exports = {
   getDashboardStats,
   getRecentActivity,
@@ -478,5 +495,6 @@ module.exports = {
   dismissFlaggedReview,
   deleteReviewByFlagId,
   insertAuditLog,
+  getSubscribedUsersByPreference,
 };
 

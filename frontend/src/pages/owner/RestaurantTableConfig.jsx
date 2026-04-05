@@ -267,7 +267,7 @@ export default function RestaurantTableConfig() {
 
         <div className={`capacityPreview ${preview.tableBased > 0 && preview.zoneTotal > 0 && preview.zoneTotal !== preview.tableBased ? "capacityPreview--warn" : ""}`}>
           {preview.tableBased > 0
-            ? <>System will allow <strong>{preview.tableBased} seats</strong> per time slot ({preview.tableBased / Math.max(toNumber(form.table_2_person) + toNumber(form.table_4_person) + toNumber(form.table_6_person), 1)} seats/table on average).</>
+            ? <>System will allow <strong>{preview.tableBased} seats</strong> per time slot.</>
             : <>System will allow <strong>{preview.total} seats</strong> per time slot.</>}
         </div>
 

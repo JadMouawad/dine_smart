@@ -5,6 +5,7 @@ const {
   sendRestaurantApprovalEmail,
   sendRestaurantRejectionEmail,
 } = require("../utils/emailSender");
+const subscriptionService = require("./subscriptionService");
 
 const parsePositiveInt = (value, fallback) => {
   const parsed = parseInt(value, 10);
@@ -98,6 +99,19 @@ const approveRestaurant = async ({ restaurantId, adminId }) => {
     } catch (error) {
       console.warn("Failed to send restaurant approval email:", error.message);
     }
+  }
+
+  try {
+    await subscriptionService.sendSubscriptionUpdateOnce({
+      updateType: "news",
+      subject: `New restaurant on DineSmart: ${updated.name}`,
+      message: `Say hello to ${updated.name}! Check out their menu and reserve your table now.`,
+      entityType: "restaurant",
+      entityId: updated.id,
+      fingerprint: `approved:${updated.id}`,
+    });
+  } catch (error) {
+    console.warn("Failed to send restaurant launch subscription update:", error.message);
   }
 
   return { success: true, data: updated };
@@ -309,6 +323,29 @@ const deleteFlaggedReview = async ({ flagId, adminId }) => {
   });
 };
 
+const sendSubscriptionUpdate = async ({ adminId, updateType, subject, message }) => {
+  const result = await subscriptionService.sendSubscriptionUpdate({ updateType, subject, message });
+  if (!result.success) return result;
+  const { sent, total, failed } = result.data;
+  const normalizedType = String(updateType || "").trim().toLowerCase();
+  const safeSubject = String(subject || "").trim();
+
+  await adminRepository.insertAuditLog({
+    adminId,
+    action: "subscription_update_sent",
+    entityType: "subscription_update",
+    details: {
+      type: normalizedType,
+      subject: safeSubject,
+      total,
+      sent,
+      failed,
+    },
+  });
+
+  return { success: true, status: 200, data: { sent, total, failed } };
+};
+
 module.exports = {
   getStats,
   getRecentAiLogs,
@@ -327,5 +364,6 @@ module.exports = {
   bulkModerateFlaggedReviews,
   dismissFlaggedReview,
   deleteFlaggedReview,
+  sendSubscriptionUpdate,
 };
 

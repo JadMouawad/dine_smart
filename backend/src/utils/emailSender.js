@@ -96,31 +96,56 @@ const sendReservationConfirmationEmail = async ({
   seatingPreference,
   specialRequest,
 }) => {
+  const safeRestaurant = restaurantName || "N/A";
+  const safeDate = reservationDate || "N/A";
+  const safeTime = reservationTime || "N/A";
+  const safePartySize = partySize != null ? partySize : "N/A";
+  const safeConfirmationId = confirmationId || "N/A";
   const seatingLine = seatingPreference ? `<p><strong>Seating:</strong> ${seatingPreference}</p>` : "";
   const specialRequestLine = specialRequest
     ? `<p><strong>Special request:</strong> ${specialRequest}</p>`
     : "";
+
+  const textBody =
+    `Hi ${userName},\n\n` +
+    `Your reservation has been confirmed. Please keep your confirmation ID for check-in.\n\n` +
+    `Confirmation ID: ${safeConfirmationId}\n` +
+    `Restaurant: ${safeRestaurant}\n` +
+    `Date: ${safeDate}\n` +
+    `Time: ${safeTime}\n` +
+    `Party size: ${safePartySize}\n`;
 
   const html = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
-      <title>Reservation confirmed - DineSmart</title>
+      <title>Reservation Confirmed</title>
     </head>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h2>Reservation Confirmed</h2>
-      <p>Hi ${userName},</p>
-      <p>Your reservation has been confirmed. Please keep your confirmation ID for check-in.</p>
-      <p><strong>Confirmation ID:</strong> ${confirmationId}</p>
-      <p><strong>Restaurant:</strong> ${restaurantName}</p>
-      <p><strong>Date:</strong> ${reservationDate}</p>
-      <p><strong>Time:</strong> ${reservationTime}</p>
-      <p><strong>Party size:</strong> ${partySize}</p>
-      ${seatingLine}
-      ${specialRequestLine}
-      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
-      <p style="font-size: 12px; color: #888;">DineSmart - Reservation confirmation</p>
+    <body style="margin:0; padding:0; font-family: Arial, sans-serif; color:#222;">
+      <div style="max-width:600px; margin:0 auto; padding:24px 22px;">
+        <h1 style="margin:0 0 18px; font-size:26px; font-weight:700;">Reservation Confirmed</h1>
+        <p style="margin:0 0 12px; font-size:16px;">Hi ${userName},</p>
+        <p style="margin:0 0 18px; font-size:16px;">
+          Your reservation has been confirmed. Please keep your confirmation ID for check-in.
+        </p>
+
+        <p style="margin:0 0 10px; font-size:16px;">
+          <strong>Confirmation ID:</strong> ${safeConfirmationId}
+        </p>
+        <p style="margin:0 0 10px; font-size:16px;">
+          <strong>Restaurant:</strong> ${safeRestaurant}
+        </p>
+        <p style="margin:0 0 10px; font-size:16px;">
+          <strong>Date:</strong> ${safeDate}
+        </p>
+        <p style="margin:0 0 10px; font-size:16px;">
+          <strong>Time:</strong> ${safeTime}
+        </p>
+        <p style="margin:0; font-size:16px;">
+          <strong>Party size:</strong> ${safePartySize}
+        </p>
+      </div>
     </body>
     </html>
   `;
@@ -128,8 +153,9 @@ const sendReservationConfirmationEmail = async ({
   const mailOptions = {
     from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
     to,
-    subject: "Your DineSmart reservation is confirmed",
+    subject: "Reservation Confirmed",
     html,
+    text: `Reservation Confirmed\n\n${textBody}`,
   };
 
   await transporter.sendMail(mailOptions);
@@ -309,6 +335,89 @@ const sendRestaurantApprovalEmail = async ({
   await transporter.sendMail(mailOptions);
 };
 
+const sendWaitlistSlotAvailableEmail = async ({
+  to,
+  userName = "Guest",
+  restaurantName,
+  reservationDate,
+  reservationTime,
+  partySize,
+  availableSeats,
+}) => {
+  const availableLine = Number.isFinite(availableSeats)
+    ? `<p><strong>Seats available right now:</strong> ${availableSeats}</p>`
+    : "";
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Reservation slot available - DineSmart</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2>A spot just opened up</h2>
+      <p>Hi ${userName},</p>
+      <p>Good news! A reservation slot is now available for:</p>
+      <p><strong>Restaurant:</strong> ${restaurantName}</p>
+      <p><strong>Date:</strong> ${reservationDate}</p>
+      <p><strong>Time:</strong> ${reservationTime}</p>
+      <p><strong>Party size:</strong> ${partySize}</p>
+      ${availableLine}
+      <p>Please log in and book as soon as possible. Availability is not guaranteed.</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+      <p style="font-size: 12px; color: #888;">DineSmart - Waitlist updates</p>
+    </body>
+    </html>
+  `;
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    to,
+    subject: "A reservation slot is available",
+    html,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+const sendSubscriptionUpdateEmail = async ({
+  to,
+  userName = "Guest",
+  updateType,
+  subject,
+  message,
+}) => {
+  const safeSubject = subject || "DineSmart Updates";
+  const typeLabel = updateType ? String(updateType).toUpperCase() : "UPDATE";
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>${safeSubject}</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <p style="margin: 0 0 12px; font-size: 12px; letter-spacing: 1px; color: #777;">${typeLabel}</p>
+      <h2 style="margin: 0 0 16px;">${safeSubject}</h2>
+      <p>Hi ${userName},</p>
+      <p>${message}</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+      <p style="font-size: 12px; color: #888;">DineSmart - Updates</p>
+    </body>
+    </html>
+  `;
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    to,
+    subject: safeSubject,
+    html,
+    text: `${safeSubject}\n\nHi ${userName},\n\n${message}\n`,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
 module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
@@ -318,4 +427,6 @@ module.exports = {
   sendNoShowBanEmail,
   sendRestaurantApprovalEmail,
   sendRestaurantRejectionEmail,
+  sendWaitlistSlotAvailableEmail,
+  sendSubscriptionUpdateEmail,
 };

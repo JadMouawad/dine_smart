@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import DatePicker from "react-datepicker";
-import { createReservation, getDisabledReservationSlots, getReservationAvailability } from "../services/reservationService";
+import { createReservation, getDisabledReservationSlots, getReservationAvailability, joinWaitlist } from "../services/reservationService";
 import { useAuth } from "../auth/AuthContext";
 import ThemedSelect from "./ThemedSelect.jsx";
 
@@ -124,8 +124,10 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
   const [showAllTimes, setShowAllTimes] = useState(false);
   const [disabledSlotKeys, setDisabledSlotKeys] = useState(() => new Set());
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [partySizeDropdownOpen, setPartySizeDropdownOpen] = useState(false);
-  const [seatingDropdownOpen, setSeatingDropdownOpen] = useState(false);
+  const [waitlistStatus, setWaitlistStatus] = useState({ loading: false, success: "", error: "" });
+  const [waitlistModalOpen, setWaitlistModalOpen] = useState(false);
+  const [lastWaitlistKey, setLastWaitlistKey] = useState("");
+  const [bookingSuccessOpen, setBookingSuccessOpen] = useState(false);
 
   const today = useMemo(() => getDayStart(new Date()), []);
   const selectedDateValue = useMemo(() => toDateValue(date), [date]);
@@ -176,8 +178,10 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
     setSuggestedTimes([]);
     setShowAllTimes(false);
     setDisabledSlotKeys(new Set());
-    setPartySizeDropdownOpen(false);
-    setSeatingDropdownOpen(false);
+    setWaitlistStatus({ loading: false, success: "", error: "" });
+    setWaitlistModalOpen(false);
+    setLastWaitlistKey("");
+    setBookingSuccessOpen(false);
   }, [isOpen]);
 
   useEffect(() => {
@@ -239,6 +243,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
       setAvailabilityInfo(null);
       setAvailabilityError("");
       setAvailabilityLoading(false);
+      setWaitlistStatus({ loading: false, success: "", error: "" });
       return;
     }
 
@@ -275,6 +280,11 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
     };
   }, [isOpen, partySize, seatingPreference, restaurant?.id, selectedDateValue, time, timeOptions]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    setWaitlistStatus({ loading: false, success: "", error: "" });
+  }, [isOpen, selectedDateValue, time, partySize, restaurant?.id]);
+
   if ((!isOpen && !inline) || !restaurant) return null;
 
   const normalizedPartySize = Number(partySize) || 2;
@@ -297,6 +307,55 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
   const preferenceLabel = seatingPreference ? seatingPreference.charAt(0).toUpperCase() + seatingPreference.slice(1) : "";
   const preferenceAvailableSeats = availabilityInfo?.available_seats_preference;
   const preferenceCapacity = availabilityInfo?.preference_capacity;
+
+  useEffect(() => {
+    if (!availabilityInfo || !isFullyBooked || !selectedDateValue || !time) return;
+    const key = `${selectedDateValue}-${time}-${partySize}`;
+    if (key !== lastWaitlistKey) {
+      setWaitlistModalOpen(true);
+      setLastWaitlistKey(key);
+    }
+  }, [availabilityInfo, isFullyBooked, selectedDateValue, time, partySize, lastWaitlistKey]);
+
+  async function handleJoinWaitlist() {
+    if (!date || !time) {
+      setErrors((prev) => ({ ...prev, time: "Please choose a date and time first." }));
+      return;
+    }
+    const selectedOption = timeOptions.find((o) => o.value === time);
+    const effectiveDate = selectedOption?.nextDay ? addOneDay(selectedDateValue) : selectedDateValue;
+    const parsedPartySize = Number(partySize);
+    if (!Number.isInteger(parsedPartySize) || parsedPartySize < 1 || parsedPartySize > 12) {
+      setErrors((prev) => ({ ...prev, partySize: "Party size must be between 1 and 12." }));
+      return;
+    }
+
+    setWaitlistStatus({ loading: true, success: "", error: "" });
+    try {
+      await joinWaitlist({
+        restaurantId: restaurant.id,
+        date: effectiveDate,
+        time,
+        partySize: parsedPartySize,
+      });
+      setWaitlistStatus({
+        loading: false,
+        success: `You’re on the waitlist for ${availabilityTimeLabel || "this time slot"}. We’ll email you when seats open.`,
+        error: "",
+      });
+      setWaitlistModalOpen(false);
+    } catch (error) {
+      const availableSeats = error?.payload?.available_seats;
+      const seatMessage = availableSeats != null
+        ? `Seats are available now (${availableSeats}). Please book instead.`
+        : "We couldn’t add you to the waitlist. Please try again.";
+      setWaitlistStatus({
+        loading: false,
+        success: "",
+        error: error.message || seatMessage,
+      });
+    }
+  }
   async function handleSubmit(event) {
     event.preventDefault();
 
@@ -342,7 +401,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
         reservation_date: effectiveDate,
         reservation_time: `${time}:00`,
       });
-      onClose?.();
+      setBookingSuccessOpen(true);
     } catch (error) {
       setErrors((prev) => ({ ...prev, submit: error.message || "Failed to create reservation." }));
       setSuggestedTimes(Array.isArray(error?.payload?.suggested_times) ? error.payload.suggested_times : []);
@@ -513,28 +572,6 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
           </div>
         )}
 
-        {suggestedTimes.length > 0 && (
-          <div className="reservationAvailability reservationAvailability--suggested">
-            <div>Suggested times:</div>
-            <div className="reservationSuggestedTimes">
-              {suggestedTimes.map((suggested) => {
-                const value = String(suggested).slice(0, 5);
-                const selected = value === time;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    className={`suggestedTimeBtn ${selected ? "is-selected" : ""}`}
-                    onClick={() => setTime(value)}
-                  >
-                    {toTimeLabel(value)}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {availabilityInfo && isFullyBooked && suggestedTimes.length === 0 && (
           <div className="reservationHint">
             No available slots for this time. Try another date or time.
@@ -548,6 +585,100 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
           {submitting ? "Booking..." : (isBanned ? "BOOKING DISABLED" : (availabilityInfo?.is_disabled ? "SLOT DISABLED" : (isFullyBooked ? "SLOT BOOKED" : "BOOK RESERVATION")))}
         </button>
       </form>
+
+      {waitlistStatus.success && (
+        <div className="waitlistModalOverlay" role="dialog" aria-modal="true">
+          <div className="waitlistModal waitlistModal--success">
+            <button
+              className="waitlistModal__close"
+              type="button"
+              aria-label="Close"
+              onClick={() => setWaitlistStatus((prev) => ({ ...prev, success: "" }))}
+            >
+              X
+            </button>
+            <h3 className="waitlistModal__title">You’re on the waitlist</h3>
+            <p className="waitlistModal__text">{waitlistStatus.success}</p>
+          </div>
+        </div>
+      )}
+
+      {waitlistModalOpen && (
+        <div className="waitlistModalOverlay" role="dialog" aria-modal="true">
+          <div className="waitlistModal">
+            <button
+              className="waitlistModal__close"
+              type="button"
+              aria-label="Close"
+              onClick={() => setWaitlistModalOpen(false)}
+            >
+              X
+            </button>
+            <h3 className="waitlistModal__title">Join the waitlist?</h3>
+            <p className="waitlistModal__text">
+              This slot is fully booked at {availabilityTimeLabel || "this time"}.
+              We’ll email you if seats open up.
+            </p>
+            <p className="waitlistModal__meta">
+              Party size: {normalizedPartySize} {normalizedPartySize === 1 ? "guest" : "guests"}
+            </p>
+            {waitlistStatus.error && <div className="inlineToast inlineToast--error">{waitlistStatus.error}</div>}
+            <div className="waitlistModal__actions">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => setWaitlistModalOpen(false)}
+              >
+                Not now
+              </button>
+              <button
+                type="button"
+                className="btn btn--gold"
+                onClick={handleJoinWaitlist}
+                disabled={waitlistStatus.loading || isBanned || !user}
+              >
+                {waitlistStatus.loading ? "Joining..." : "Join Waitlist"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {bookingSuccessOpen && (
+        <div className="waitlistModalOverlay" role="dialog" aria-modal="true">
+          <div className="waitlistModal waitlistModal--success">
+            <button
+              className="waitlistModal__close"
+              type="button"
+              aria-label="Close"
+              onClick={() => {
+                setBookingSuccessOpen(false);
+                onClose?.();
+              }}
+            >
+              X
+            </button>
+            <h3 className="waitlistModal__title">Booked successfully</h3>
+            <p className="waitlistModal__text">
+              Your reservation request was sent. We’re waiting for the restaurant to accept it.
+              You’ll receive an email once it’s confirmed.
+            </p>
+            <div className="waitlistModal__actions">
+              <button
+                type="button"
+                className="btn btn--gold"
+                onClick={() => {
+                  setBookingSuccessOpen(false);
+                  onClose?.();
+                }}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </>
   );
 

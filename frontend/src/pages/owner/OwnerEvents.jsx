@@ -3,17 +3,28 @@ import {
   createOwnerEvent,
   deleteOwnerEvent,
   getMyRestaurant,
+  getOwnerEventAttendees,
   getOwnerEvents,
   updateOwnerEvent,
 } from "../../services/restaurantService";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 
+const TAG_OPTIONS = ["Free", "Trending", "Ending Soon", "Family", "Live Music", "Outdoor"];
+
 const initialForm = {
   title: "",
   description: "",
-  image_url: "",
   start_date: "",
   end_date: "",
+  start_time: "",
+  end_time: "",
+  max_attendees: "",
+  max_attendees_unlimited: false,
+  is_free: true,
+  price: "",
+  tags: [],
+  location_override: "",
+  image_url: "",
 };
 
 function normalizeDateInput(value) {
@@ -35,6 +46,21 @@ function formatDateLabel(value) {
   return parsed.toLocaleDateString();
 }
 
+function buildDateTime(date, time) {
+  if (!date || !time) return null;
+  const stamp = new Date(`${date}T${time}`);
+  return Number.isNaN(stamp.getTime()) ? null : stamp;
+}
+
+function getEventStatus(event) {
+  const start = buildDateTime(normalizeDateInput(event.start_date), event.start_time || "00:00");
+  const end = buildDateTime(normalizeDateInput(event.end_date), event.end_time || "23:59");
+  const now = new Date();
+  if (start && now < start) return "upcoming";
+  if (end && now > end) return "finished";
+  return "ongoing";
+}
+
 export default function OwnerEvents() {
   const [restaurant, setRestaurant] = useState(null);
   const [events, setEvents] = useState([]);
@@ -45,17 +71,23 @@ export default function OwnerEvents() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [confirmDeleteEvent, setConfirmDeleteEvent] = useState(null);
+  const [detailsEvent, setDetailsEvent] = useState(null);
+  const [attendees, setAttendees] = useState([]);
+  const [attendeesLoading, setAttendeesLoading] = useState(false);
 
   async function loadData() {
     setLoading(true);
     setError("");
     try {
-      const [ownedRestaurant, ownerEvents] = await Promise.all([
-        getMyRestaurant(),
-        getOwnerEvents(),
-      ]);
+      const ownedRestaurant = await getMyRestaurant();
       setRestaurant(ownedRestaurant);
-      setEvents(Array.isArray(ownerEvents) ? ownerEvents : []);
+      try {
+        const ownerEvents = await getOwnerEvents();
+        setEvents(Array.isArray(ownerEvents) ? ownerEvents : []);
+      } catch (eventsError) {
+        setEvents([]);
+        setError(eventsError.message || "Failed to load events.");
+      }
     } catch (err) {
       setError(err.message || "Failed to load events.");
     } finally {
@@ -75,6 +107,14 @@ export default function OwnerEvents() {
       image_url: event.image_url || "",
       start_date: normalizeDateInput(event.start_date),
       end_date: normalizeDateInput(event.end_date),
+      start_time: event.start_time ? String(event.start_time).slice(0, 5) : "",
+      end_time: event.end_time ? String(event.end_time).slice(0, 5) : "",
+      max_attendees: event.max_attendees ?? "",
+      max_attendees_unlimited: event.max_attendees == null,
+      is_free: event.is_free !== false,
+      price: event.price ?? "",
+      tags: Array.isArray(event.tags) ? event.tags : [],
+      location_override: event.location_override || "",
     });
     setSuccess("");
     setError("");
@@ -89,18 +129,49 @@ export default function OwnerEvents() {
     event.preventDefault();
     if (!restaurant?.id) return;
 
+    if (!form.title.trim()) {
+      setError("Title is required.");
+      return;
+    }
+    if (!form.description.trim()) {
+      setError("Description is required.");
+      return;
+    }
+    if (!form.start_date || !form.end_date) {
+      setError("Start and end dates are required.");
+      return;
+    }
+    if (!form.start_time || !form.end_time) {
+      setError("Start and end times are required.");
+      return;
+    }
+    const startStamp = buildDateTime(form.start_date, form.start_time);
+    const endStamp = buildDateTime(form.end_date, form.end_time);
+    if (!startStamp || !endStamp || endStamp <= startStamp) {
+      setError("End date/time must be after start date/time.");
+      return;
+    }
+    if (!form.is_free && (!form.price || Number(form.price) <= 0)) {
+      setError("Price is required for paid events.");
+      return;
+    }
+
     setSaving(true);
     setError("");
     setSuccess("");
     try {
+      const payload = {
+        ...form,
+        max_attendees: form.max_attendees_unlimited ? "" : form.max_attendees,
+      };
       if (editingEventId) {
-        const updated = await updateOwnerEvent(editingEventId, form);
+        const updated = await updateOwnerEvent(editingEventId, payload);
         setEvents((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
         setSuccess("Event updated.");
       } else {
         const created = await createOwnerEvent({
           restaurant_id: restaurant.id,
-          ...form,
+          ...payload,
         });
         setEvents((prev) => [created, ...prev]);
         setSuccess("Event created.");
@@ -123,6 +194,36 @@ export default function OwnerEvents() {
     } catch (err) {
       setError(err.message || "Failed to delete event.");
     }
+  }
+
+  async function openDetails(eventItem) {
+    setDetailsEvent(eventItem);
+    setAttendees([]);
+    setAttendeesLoading(true);
+    try {
+      const data = await getOwnerEventAttendees(eventItem.id);
+      setAttendees(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message || "Failed to load attendees.");
+    } finally {
+      setAttendeesLoading(false);
+    }
+  }
+
+  async function onPickImage(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    if (!file.type?.startsWith("image/")) {
+      setError("Please select a valid image (PNG, JPG, JPEG).");
+      event.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setForm((prev) => ({ ...prev, image_url: String(reader.result || "") }));
+    };
+    reader.onerror = () => setError("Failed to read image.");
+    reader.readAsDataURL(file);
   }
 
   if (loading) {
@@ -171,13 +272,20 @@ export default function OwnerEvents() {
         </label>
 
         <label className="field">
-          <span>Image URL</span>
-          <input
-            type="url"
-            value={form.image_url}
-            onChange={(e) => setForm((prev) => ({ ...prev, image_url: e.target.value }))}
-            placeholder="https://..."
-          />
+          <span>Event Image</span>
+          <div className="imageCard imageCard--equal ownerEventImageCard">
+            <div className="imageCard__preview imageCard__preview--equal ownerEventImagePreview">
+              {form.image_url ? (
+                <img className="imageCard__img ownerEventImageImg" src={form.image_url} alt="Event" />
+              ) : (
+                <div className="imageCard__placeholder">PNG, JPG, or JPEG</div>
+              )}
+            </div>
+            <label className="btn btn--gold imageCard__btn">
+              Upload Image
+              <input className="imageCard__input" type="file" accept="image/png, image/jpeg" onChange={onPickImage} />
+            </label>
+          </div>
         </label>
 
         <div className="twoCols">
@@ -201,12 +309,126 @@ export default function OwnerEvents() {
           </label>
         </div>
 
-        <div className="formCard__actions">
-          <button className="btn btn--gold btn--xl" type="submit" disabled={saving}>
-            {saving ? "Saving..." : editingEventId ? "UPDATE EVENT" : "CREATE EVENT"}
+        <div className="twoCols">
+          <label className="field">
+            <span>Start Time</span>
+            <input
+              type="time"
+              value={form.start_time}
+              onChange={(e) => setForm((prev) => ({ ...prev, start_time: e.target.value }))}
+              required
+            />
+          </label>
+          <label className="field">
+            <span>End Time</span>
+            <input
+              type="time"
+              value={form.end_time}
+              onChange={(e) => setForm((prev) => ({ ...prev, end_time: e.target.value }))}
+              required
+            />
+          </label>
+        </div>
+
+        <div className="twoCols ownerEventTwoCols">
+          <label className="field">
+            <span>Max Attendees</span>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={form.max_attendees}
+              onChange={(e) => setForm((prev) => ({ ...prev, max_attendees: e.target.value, max_attendees_unlimited: false }))}
+              placeholder={form.max_attendees_unlimited ? "∞" : "e.g. 30"}
+              disabled={form.max_attendees_unlimited}
+            />
+            <label className="ownerEventMaxToggle">
+              <input
+                type="checkbox"
+                checked={form.max_attendees_unlimited}
+                onChange={(e) => setForm((prev) => ({
+                  ...prev,
+                  max_attendees_unlimited: e.target.checked,
+                  max_attendees: e.target.checked ? "" : prev.max_attendees,
+                }))}
+              />
+              Unlimited (∞)
+            </label>
+          </label>
+          <label className="field ownerEventPricingField">
+            <span>Pricing</span>
+            <div className="ownerEventPricingRow">
+              <div className="ownerFilterChipRow ownerEventPricingChips">
+                <button
+                  type="button"
+                  className={`ownerFilterChip ownerFilterChip--button ${form.is_free ? "is-active" : ""}`}
+                  onClick={() => setForm((prev) => ({ ...prev, is_free: true, price: "" }))}
+                >
+                  Free
+                </button>
+                <button
+                  type="button"
+                  className={`ownerFilterChip ownerFilterChip--button ${!form.is_free ? "is-active" : ""}`}
+                  onClick={() => setForm((prev) => ({ ...prev, is_free: false }))}
+                >
+                  Paid
+                </button>
+              </div>
+              {!form.is_free && (
+                <input
+                  className="ownerEventPriceInput"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.price}
+                  onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}
+                  placeholder="Price"
+                />
+              )}
+            </div>
+          </label>
+        </div>
+
+        <label className="field">
+          <span>Tags</span>
+          <div className="ownerFilterChipRow ownerEventTagChips">
+            {TAG_OPTIONS.map((tag) => {
+              const active = form.tags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  className={`ownerFilterChip ownerFilterChip--button ${active ? "is-active" : ""}`}
+                  onClick={() => {
+                    setForm((prev) => ({
+                      ...prev,
+                      tags: active ? prev.tags.filter((t) => t !== tag) : [...prev.tags, tag],
+                    }));
+                  }}
+                >
+                  {tag}
+                </button>
+              );
+            })}
+          </div>
+        </label>
+
+        <label className="field">
+          <span>Location</span>
+          <input
+            type="text"
+            value={form.location_override}
+            onChange={(e) => setForm((prev) => ({ ...prev, location_override: e.target.value }))}
+            placeholder={restaurant.address || "Defaults to restaurant address"}
+          />
+        </label>
+
+        <div className="formCard__actions ownerEventFormActions">
+          <button className="btn btn--gold btn--xl ownerEventActionBtn" type="submit" disabled={saving}>
+            {saving ? "Saving..." : editingEventId ? "Update Event" : "Create Event"}
           </button>
           {editingEventId && (
-            <button className="btn btn--ghost" type="button" onClick={resetForm}>
+            <button className="btn btn--ghost ownerEventActionBtn" type="button" onClick={resetForm}>
               Cancel Edit
             </button>
           )}
@@ -217,31 +439,40 @@ export default function OwnerEvents() {
         {events.length === 0 ? (
           <div className="menuSectionEmpty">No events created yet.</div>
         ) : (
-          events.map((event) => (
-            <article className="menuSectionBlock" key={event.id}>
-              <div className="menuSectionHeader">
-                <button className="btn btn--gold ownerMenuSectionBtn" type="button">
-                  {event.title}
-                </button>
-                <div className="ownerEventActions">
-                  <button className="btn btn--ghost" type="button" onClick={() => startEdit(event)}>
-                    Edit
-                  </button>
-                  <button
-                    className="btn btn--ghost"
-                    type="button"
-                    onClick={() => setConfirmDeleteEvent(event)}
-                  >
-                    Delete
-                  </button>
+          events.map((event) => {
+            const status = getEventStatus(event);
+            return (
+              <article className="menuSectionBlock ownerEventCard" key={event.id}>
+                <div className="ownerEventCard__header">
+                  <div className="ownerEventCard__title">{event.title}</div>
+                  <div className="ownerEventCard__actions">
+                    <button className="btn btn--ghost" type="button" onClick={() => openDetails(event)}>
+                      Details
+                    </button>
+                    <button className="btn btn--ghost" type="button" onClick={() => startEdit(event)}>
+                      Edit
+                    </button>
+                    <button
+                      className="btn btn--ghost"
+                      type="button"
+                      onClick={() => setConfirmDeleteEvent(event)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <p>{event.description}</p>
-              <p>
-                {formatDateLabel(event.start_date)} - {formatDateLabel(event.end_date)}
-              </p>
-            </article>
-          ))
+
+                <div className="ownerEventCard__meta">
+                  <span>⏰ {event.start_time ? String(event.start_time).slice(0, 5) : "--:--"} – {event.end_time ? String(event.end_time).slice(0, 5) : "--:--"}</span>
+                  <span>📅 {formatDateLabel(event.start_date)} → {formatDateLabel(event.end_date)}</span>
+                  <span>👥 {event.going_count ?? 0}/{event.max_attendees ?? "∞"} attendees</span>
+                  <span className={`ownerEventCard__status ownerEventCard__status--${status}`}>{status}</span>
+                </div>
+
+                <p className="ownerEventCard__desc">{event.description}</p>
+              </article>
+            );
+          })
         )}
       </div>
 
@@ -263,6 +494,41 @@ export default function OwnerEvents() {
         }}
         onCancel={() => setConfirmDeleteEvent(null)}
       />
+
+      {detailsEvent && (
+        <div className="eventModalOverlay" role="dialog" aria-modal="true">
+          <div className="eventModal eventModal--compact">
+            <button className="eventModal__close" type="button" onClick={() => setDetailsEvent(null)} aria-label="Close">×</button>
+            <div className="eventModal__content">
+              <div className="eventModal__title">{detailsEvent.title}</div>
+              <div className="eventModal__subtitle">{detailsEvent.restaurant_name}</div>
+              <div className="eventModal__description">
+                {detailsEvent.going_count ?? 0}/{detailsEvent.max_attendees ?? "∞"} attendees
+                {detailsEvent.max_attendees ? (
+                  <span> · {Math.max(0, detailsEvent.max_attendees - (detailsEvent.going_count ?? 0))} spots left</span>
+                ) : null}
+              </div>
+              {attendeesLoading ? (
+                <div>Loading attendees...</div>
+              ) : attendees.length ? (
+                <div className="eventAttendeeList">
+                  {attendees.map((att) => (
+                    <div key={att.id} className="eventAttendeeRow">
+                      <div>
+                        <div className="eventAttendeeName">{att.full_name || "User"}</div>
+                        <div className="eventAttendeeMeta">{att.email || ""}</div>
+                      </div>
+                      <div className="eventAttendeeCount">{att.attendees_count} people</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div>No attendees yet.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
