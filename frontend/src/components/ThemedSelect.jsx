@@ -14,9 +14,13 @@ export default function ThemedSelect({
   ariaLabel,
   align = "left",
   minMenuWidth = "100%",
+  searchable = false,
+  searchPlaceholder = "Search...",
 }) {
   const rootRef = useRef(null);
+  const searchInputRef = useRef(null);
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
 
   const normalizedOptions = useMemo(
     () =>
@@ -24,9 +28,20 @@ export default function ThemedSelect({
         value: option?.value ?? "",
         valueKey: String(option?.value ?? ""),
         label: option?.label ?? "",
+        buttonLabel: option?.buttonLabel ?? option?.label ?? "",
+        menuLabel: option?.menuLabel ?? option?.label ?? "",
+        searchText: String(option?.searchText ?? option?.label ?? "")
+          .toLowerCase()
+          .trim(),
       })),
     [options]
   );
+
+  const visibleOptions = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!searchable || !normalizedQuery) return normalizedOptions;
+    return normalizedOptions.filter((option) => option.searchText.includes(normalizedQuery));
+  }, [normalizedOptions, query, searchable]);
 
   const selectedOption = normalizedOptions.find(
     (option) => option.valueKey === String(value ?? "")
@@ -58,6 +73,16 @@ export default function ThemedSelect({
     if (disabled) setOpen(false);
   }, [disabled]);
 
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+      return;
+    }
+    if (searchable) {
+      window.setTimeout(() => searchInputRef.current?.focus(), 0);
+    }
+  }, [open, searchable]);
+
   const menuStyle =
     align === "right"
       ? { right: 0, left: "auto", minWidth: minMenuWidth }
@@ -83,7 +108,7 @@ export default function ThemedSelect({
         disabled={disabled}
       >
         <span className="themedSelect__label">
-          {selectedOption?.label || placeholder}
+          {selectedOption?.buttonLabel || placeholder}
         </span>
         <span className={`sortDropdown__caret themedSelect__caret${open ? " is-open" : ""}`}>
           ⌄
@@ -96,7 +121,24 @@ export default function ThemedSelect({
           role="listbox"
           style={menuStyle}
         >
-          {normalizedOptions.map((option) => {
+          {searchable && (
+            <div className="themedSelect__searchWrap">
+              <input
+                ref={searchInputRef}
+                className="themedSelect__searchInput"
+                type="text"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => event.stopPropagation()}
+                placeholder={searchPlaceholder}
+                aria-label={searchPlaceholder}
+              />
+            </div>
+          )}
+          {visibleOptions.length === 0 && (
+            <div className="themedSelect__empty">No matches found.</div>
+          )}
+          {visibleOptions.map((option) => {
             const isActive = option.valueKey === String(value ?? "");
             return (
               <button
@@ -112,7 +154,7 @@ export default function ThemedSelect({
                   setOpen(false);
                 }}
               >
-                {option.label}
+                {option.menuLabel}
               </button>
             );
           })}
