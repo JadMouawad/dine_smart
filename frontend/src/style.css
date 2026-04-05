@@ -12169,6 +12169,41 @@ body.dark .slotDraftRemoveBtn:hover,
   background: linear-gradient(90deg, #ffb454, #ffd978);
 }
 
+[data-theme="light"] .reservationChartPanel {
+  background: rgba(255, 251, 244, 0.9);
+  border-color: rgba(175, 115, 45, 0.18);
+  box-shadow: 0 12px 28px rgba(160, 112, 40, 0.08);
+}
+
+[data-theme="light"] .reservationChartPanel__title {
+  color: rgba(55, 31, 12, 0.96);
+}
+
+[data-theme="light"] .reservationBarChart__value,
+[data-theme="light"] .reservationBarChart__label,
+[data-theme="light"] .reservationHourRow__label,
+[data-theme="light"] .reservationHourRow__value {
+  color: rgba(108, 73, 38, 0.82);
+}
+
+[data-theme="light"] .reservationPeakBadge {
+  background: rgba(201, 162, 39, 0.14);
+  color: rgba(133, 84, 20, 0.96);
+  border: 1px solid rgba(201, 162, 39, 0.18);
+}
+
+[data-theme="light"] .reservationHourRow__track {
+  background: rgba(175, 115, 45, 0.12);
+}
+
+[data-theme="light"] .reservationHourRow__fill {
+  background: linear-gradient(90deg, rgba(176, 118, 42, 0.92), rgba(224, 186, 94, 0.96));
+}
+
+[data-theme="light"] .reservationHourRow__fill.is-peak {
+  background: linear-gradient(90deg, #f0a43b, #f8cf67);
+}
+
 @media (max-width: 900px) {
   .reservationChartsGrid {
     grid-template-columns: 1fr;
