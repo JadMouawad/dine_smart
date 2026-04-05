@@ -99,6 +99,15 @@ function filterReservationsByPartySize(list, partySizeFilter) {
   });
 }
 
+function filterReservationsByStatus(list, statusFilter) {
+  if (statusFilter === "all") return list;
+
+  return list.filter((reservation) => {
+    const normalizedStatus = formatOwnerReservationStatus(reservation?.status);
+    return normalizedStatus === statusFilter;
+  });
+}
+
 function normalizeSeatingValue(value) {
   return String(value || "any").trim().toLowerCase();
 }
@@ -171,6 +180,15 @@ const SEATING_OPTIONS = [
   { value: "outdoor", label: "Outdoor" },
 ];
 
+const RESERVATION_STATUS_FILTER_OPTIONS = [
+  { value: "all", label: "All statuses" },
+  { value: "accepted", label: "Accepted" },
+  { value: "rejected", label: "Rejected" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "completed", label: "Completed" },
+  { value: "no-show", label: "No-show" },
+  { value: "pending", label: "Pending" },
+];
 
 function sameDisabledSlot(slot, draft) {
   return (
@@ -186,7 +204,7 @@ export default function OwnerReservations() {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  
+
   const [updatingId, setUpdatingId] = useState(null);
   const [confirmRejectReservation, setConfirmRejectReservation] = useState(null);
   const [clockNow, setClockNow] = useState(() => Date.now());
@@ -244,6 +262,25 @@ export default function OwnerReservations() {
     }
   });
 
+  const [statusFilter, setStatusFilter] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(OWNER_RESERVATION_FILTERS_KEY) || "{}");
+      return saved.status || "all";
+    } catch {
+      return "all";
+    }
+  });
+
+  const appliedFiltersCount = useMemo(() => {
+    let count = 0;
+
+    if (statusFilter !== "all") count += 1;
+    if (reservationSortBy !== "date-time") count += 1;
+    if (partySizeFilter !== "all") count += 1;
+
+    return count;
+  }, [statusFilter, reservationSortBy, partySizeFilter]);
+
   useEffect(() => {
     try {
       localStorage.setItem(OWNER_RESERVATION_SECTION_KEY, activeSection);
@@ -262,9 +299,10 @@ export default function OwnerReservations() {
         view: reservationView,
         sortBy: reservationSortBy,
         partySize: partySizeFilter,
+        status: statusFilter,
       })
     );
-  }, [reservationView, reservationSortBy, partySizeFilter]);
+  }, [reservationView, reservationSortBy, partySizeFilter, statusFilter]);
 
   async function loadReservations() {
     setError("");
@@ -516,8 +554,11 @@ export default function OwnerReservations() {
     const sortedUpcoming = sortReservationsList(upcoming, reservationSortBy, false);
     const sortedPast = sortReservationsList(past, reservationSortBy, true);
 
-    const filteredUpcoming = filterReservationsByPartySize(sortedUpcoming, partySizeFilter);
-    const filteredPast = filterReservationsByPartySize(sortedPast, partySizeFilter);
+    const filteredUpcomingByParty = filterReservationsByPartySize(sortedUpcoming, partySizeFilter);
+    const filteredPastByParty = filterReservationsByPartySize(sortedPast, partySizeFilter);
+
+    const filteredUpcoming = filterReservationsByStatus(filteredUpcomingByParty, statusFilter);
+    const filteredPast = filterReservationsByStatus(filteredPastByParty, statusFilter);
 
     let visible = filteredUpcoming;
 
@@ -529,7 +570,7 @@ export default function OwnerReservations() {
     }
 
     return { visibleReservations: visible };
-  }, [reservations, clockNow, reservationSortBy, partySizeFilter, reservationView]);
+  }, [reservations, clockNow, reservationSortBy, partySizeFilter, statusFilter, reservationView]);
 
   const reservationCharts = useMemo(() => {
     const byDay = new Map();
@@ -623,15 +664,15 @@ export default function OwnerReservations() {
   }
 
   function addDisabledSlotDraft() {
-  setDisabledSlotDrafts((prev) => {
-    const nextSlotNumber =
-      prev.length > 0
-        ? Math.max(...prev.map((draft) => draft.slotNumber || 0)) + 1
-        : 1;
+    setDisabledSlotDrafts((prev) => {
+      const nextSlotNumber =
+        prev.length > 0
+          ? Math.max(...prev.map((draft) => draft.slotNumber || 0)) + 1
+          : 1;
 
-    return [createDisabledSlotDraft(nextSlotNumber), ...prev];
-  });
-}
+      return [createDisabledSlotDraft(nextSlotNumber), ...prev];
+    });
+  }
 
   function removeDisabledSlotDraft(draftId) {
     setDisabledSlotDrafts((prev) => {
@@ -737,12 +778,12 @@ export default function OwnerReservations() {
       await loadReservations();
 
       const messageMap = {
-  accept: "Reservation accepted.",
-  reject: "Reservation rejected.",
-  "no-show": "Reservation marked as no-show.",
-  complete: "Reservation marked as completed.",
-};
-toast.success(messageMap[action] || "Reservation updated.");
+        accept: "Reservation accepted.",
+        reject: "Reservation rejected.",
+        "no-show": "Reservation marked as no-show.",
+        complete: "Reservation marked as completed.",
+      };
+      toast.success(messageMap[action] || "Reservation updated.");
 
       window.dispatchEvent(
         new CustomEvent("ds:reservation-changed", {
@@ -776,6 +817,7 @@ toast.success(messageMap[action] || "Reservation updated.");
     setReservationView("all");
     setPartySizeFilter("all");
     setReservationSortBy("date-time");
+    setStatusFilter("all");
     setFocusedReservationId(reservation.id);
 
     window.setTimeout(() => {
@@ -806,46 +848,46 @@ toast.success(messageMap[action] || "Reservation updated.");
       {error && <div className="fieldError">{error}</div>}
 
       <div className="ownerReservationSectionSwitcher">
-  <button
-    type="button"
-    className={`ownerReservationSectionSwitcher__btn ${activeSection === "calendar" ? "is-active" : ""}`}
-    onClick={() => setActiveSection("calendar")}
-  >
-    Calendar
-  </button>
+        <button
+          type="button"
+          className={`ownerReservationSectionSwitcher__btn ${activeSection === "calendar" ? "is-active" : ""}`}
+          onClick={() => setActiveSection("calendar")}
+        >
+          Calendar
+        </button>
 
-  <button
-    type="button"
-    className={`ownerReservationSectionSwitcher__btn ${activeSection === "charts" ? "is-active" : ""}`}
-    onClick={() => setActiveSection("charts")}
-  >
-    Charts
-  </button>
+        <button
+          type="button"
+          className={`ownerReservationSectionSwitcher__btn ${activeSection === "charts" ? "is-active" : ""}`}
+          onClick={() => setActiveSection("charts")}
+        >
+          Charts
+        </button>
 
-  <button
-    type="button"
-    className={`ownerReservationSectionSwitcher__btn ${activeSection === "seat-adjustment" ? "is-active" : ""}`}
-    onClick={() => setActiveSection("seat-adjustment")}
-  >
-    Seat Adjustment
-  </button>
+        <button
+          type="button"
+          className={`ownerReservationSectionSwitcher__btn ${activeSection === "seat-adjustment" ? "is-active" : ""}`}
+          onClick={() => setActiveSection("seat-adjustment")}
+        >
+          Seat Adjustment
+        </button>
 
-  <button
-    type="button"
-    className={`ownerReservationSectionSwitcher__btn ${activeSection === "disable-slot" ? "is-active" : ""}`}
-    onClick={() => setActiveSection("disable-slot")}
-  >
-    Disable Time Slot
-  </button>
+        <button
+          type="button"
+          className={`ownerReservationSectionSwitcher__btn ${activeSection === "disable-slot" ? "is-active" : ""}`}
+          onClick={() => setActiveSection("disable-slot")}
+        >
+          Disable Time Slot
+        </button>
 
-  <button
-    type="button"
-    className={`ownerReservationSectionSwitcher__btn ${activeSection === "reservations" ? "is-active" : ""}`}
-    onClick={() => setActiveSection("reservations")}
-  >
-    Reservations
-  </button>
-</div>
+        <button
+          type="button"
+          className={`ownerReservationSectionSwitcher__btn ${activeSection === "reservations" ? "is-active" : ""}`}
+          onClick={() => setActiveSection("reservations")}
+        >
+          Reservations
+        </button>
+      </div>
 
       {activeSection === "calendar" && (
         <div className="ownerReservationPanel">
@@ -857,78 +899,79 @@ toast.success(messageMap[action] || "Reservation updated.");
       )}
 
       {activeSection === "charts" && (
-  <section className="formCard reservationChartCard ownerReservationPanel">
-    <div className="slotAdjustHeader">
-      <h2 className="reservationSection__title">Reservation Charts</h2>
-      <p className="slotAdjustHint">
-        Track recent reservation volume and spot your busiest hours quickly.
-      </p>
-    </div>
-
-    <div className="reservationChartsGrid">
-      <div className="reservationChartPanel">
-        <div className="reservationChartPanel__title">Last 7 days</div>
-        {reservationCharts.dayData.length ? (
-          <div className="reservationBarChart">
-            {reservationCharts.dayData.map((item) => {
-              const max = Math.max(...reservationCharts.dayData.map((entry) => entry.value), 1);
-              const height = Math.max(14, Math.round((item.value / max) * 100));
-
-              return (
-                <div className="reservationBarChart__item" key={item.label}>
-                  <div className="reservationBarChart__value">{item.value}</div>
-                  <div className="reservationBarChart__barWrap">
-                    <div
-                      className="reservationBarChart__bar"
-                      style={{ height: `${height}%` }}
-                    />
-                  </div>
-                  <div className="reservationBarChart__label">{item.shortLabel}</div>
-                </div>
-              );
-            })}
+        <section className="formCard reservationChartCard ownerReservationPanel">
+          <div className="slotAdjustHeader">
+            <h2 className="reservationSection__title">Reservation Charts</h2>
+            <p className="slotAdjustHint">
+              Track recent reservation volume and spot your busiest hours quickly.
+            </p>
           </div>
-        ) : (
-          <div className="profileEmpty">No reservation data yet.</div>
-        )}
-      </div>
 
-      <div className="reservationChartPanel">
-        <div className="reservationChartPanel__title">Peak hours</div>
-        {reservationCharts.hourData.length ? (
-          <>
-            <div className="reservationPeakBadge">
-              Peak hour: {reservationCharts.peakHour?.shortLabel || "N/A"} ({reservationCharts.peakHour?.value || 0} reservations)
+          <div className="reservationChartsGrid">
+            <div className="reservationChartPanel">
+              <div className="reservationChartPanel__title">Last 7 days</div>
+              {reservationCharts.dayData.length ? (
+                <div className="reservationBarChart">
+                  {reservationCharts.dayData.map((item) => {
+                    const max = Math.max(...reservationCharts.dayData.map((entry) => entry.value), 1);
+                    const height = Math.max(14, Math.round((item.value / max) * 100));
+
+                    return (
+                      <div className="reservationBarChart__item" key={item.label}>
+                        <div className="reservationBarChart__value">{item.value}</div>
+                        <div className="reservationBarChart__barWrap">
+                          <div
+                            className="reservationBarChart__bar"
+                            style={{ height: `${height}%` }}
+                          />
+                        </div>
+                        <div className="reservationBarChart__label">{item.shortLabel}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="profileEmpty">No reservation data yet.</div>
+              )}
             </div>
 
-            <div className="reservationHourList">
-              {reservationCharts.hourData.map((item) => {
-                const max = Math.max(...reservationCharts.hourData.map((entry) => entry.value), 1);
-                const width = Math.max(8, Math.round((item.value / max) * 100));
-                const isPeak = item.label === reservationCharts.peakHour?.label;
-
-                return (
-                  <div className="reservationHourRow" key={item.label}>
-                    <div className="reservationHourRow__label">{item.shortLabel}</div>
-                    <div className="reservationHourRow__track">
-                      <div
-                        className={`reservationHourRow__fill ${isPeak ? "is-peak" : ""}`}
-                        style={{ width: `${width}%` }}
-                      />
-                    </div>
-                    <div className="reservationHourRow__value">{item.value}</div>
+            <div className="reservationChartPanel">
+              <div className="reservationChartPanel__title">Peak hours</div>
+              {reservationCharts.hourData.length ? (
+                <>
+                  <div className="reservationPeakBadge">
+                    Peak hour: {reservationCharts.peakHour?.shortLabel || "N/A"} ({reservationCharts.peakHour?.value || 0} reservations)
                   </div>
-                );
-              })}
+
+                  <div className="reservationHourList">
+                    {reservationCharts.hourData.map((item) => {
+                      const max = Math.max(...reservationCharts.hourData.map((entry) => entry.value), 1);
+                      const width = Math.max(8, Math.round((item.value / max) * 100));
+                      const isPeak = item.label === reservationCharts.peakHour?.label;
+
+                      return (
+                        <div className="reservationHourRow" key={item.label}>
+                          <div className="reservationHourRow__label">{item.shortLabel}</div>
+                          <div className="reservationHourRow__track">
+                            <div
+                              className={`reservationHourRow__fill ${isPeak ? "is-peak" : ""}`}
+                              style={{ width: `${width}%` }}
+                            />
+                          </div>
+                          <div className="reservationHourRow__value">{item.value}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <div className="profileEmpty">Peak hours will appear once reservations are added.</div>
+              )}
             </div>
-          </>
-        ) : (
-          <div className="profileEmpty">Peak hours will appear once reservations are added.</div>
-        )}
-      </div>
-    </div>
-  </section>
-)}
+          </div>
+        </section>
+      )}
+
       {activeSection === "seat-adjustment" && (
         <section className="formCard slotAdjustCard ownerReservationPanel">
           <div className="slotAdjustHeader">
@@ -1156,14 +1199,14 @@ toast.success(messageMap[action] || "Reservation updated.");
                   </div>
 
                   <div className="slotStateRow">
-  <span
-    className={`statusBadge slotStatePill ${
-      currentMatchedSlot ? "slotStatePill--disabled" : "slotStatePill--enabled"
-    }`}
-  >
-    {currentMatchedSlot ? "Disabled" : "Enabled"}
-  </span>
-</div>
+                    <span
+                      className={`statusBadge slotStatePill ${
+                        currentMatchedSlot ? "slotStatePill--disabled" : "slotStatePill--enabled"
+                      }`}
+                    >
+                      {currentMatchedSlot ? "Disabled" : "Enabled"}
+                    </span>
+                  </div>
 
                   {isDateLoading && (
                     <div className="slotAdjustStatus">Loading disabled slots...</div>
@@ -1257,6 +1300,9 @@ toast.success(messageMap[action] || "Reservation updated.");
               onClick={() => setFiltersOpen(true)}
             >
               ⚙ Filters
+              {appliedFiltersCount > 0 && (
+                <span className="searchFilterBtn__badge">{appliedFiltersCount}</span>
+              )}
             </button>
           </div>
 
@@ -1277,6 +1323,19 @@ toast.success(messageMap[action] || "Reservation updated.");
                 </div>
 
                 <div className="ownerReservationFiltersModal__body">
+                  <div className="ownerReservationFiltersSection">
+                    <div className="ownerReservationFiltersSection__title">Status</div>
+
+                    <ThemedSelect
+                      value={statusFilter}
+                      onChange={setStatusFilter}
+                      options={RESERVATION_STATUS_FILTER_OPTIONS}
+                      placeholder="All statuses"
+                      ariaLabel="Filter reservations by status"
+                      fullWidth
+                    />
+                  </div>
+
                   <div className="ownerReservationFiltersSection">
                     <div className="ownerReservationFiltersSection__title">Sort by</div>
 
@@ -1331,6 +1390,7 @@ toast.success(messageMap[action] || "Reservation updated.");
                     onClick={() => {
                       setReservationSortBy("date-time");
                       setPartySizeFilter("all");
+                      setStatusFilter("all");
                     }}
                   >
                     Reset
