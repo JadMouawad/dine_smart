@@ -15,6 +15,7 @@ export const COUNTRY_OPTIONS = [
 ].map((country) => ({
   ...country,
   flag: getFlagEmoji(country.iso),
+  flagIconUrl: `https://flagcdn.com/24x18/${country.iso.toLowerCase()}.png`,
   displayLabel: `${country.label} (${country.code})`,
 }));
 
