@@ -86,13 +86,37 @@ export default function UserReservations() {
     return grouped;
   }, [reservations, clockNow]);
 
+  function normalizeDatePart(value) {
+    if (!value) return "";
+    if (value instanceof Date) return value.toISOString().slice(0, 10);
+    const raw = String(value).trim();
+    if (!raw) return "";
+    if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return "";
+    return parsed.toISOString().slice(0, 10);
+  }
+
+  function normalizeTimePart(value, fallback) {
+    if (!value) return fallback;
+    if (value instanceof Date) return value.toISOString().slice(11, 19);
+    const raw = String(value).trim();
+    if (!raw) return fallback;
+    if (/^\d{2}:\d{2}(:\d{2})?$/.test(raw)) return raw.length === 5 ? `${raw}:00` : raw;
+    return fallback;
+  }
+
   function toEventDateTime(reservation, useEnd = false) {
-    const datePart = String(useEnd ? (reservation.end_date || reservation.start_date || "") : (reservation.start_date || reservation.end_date || "")).trim();
+    const fallbackDate = reservation.event_date || reservation.start_date || reservation.end_date || "";
+    const datePart = normalizeDatePart(
+      useEnd ? (reservation.end_date || reservation.start_date || reservation.event_date || "") : (reservation.start_date || reservation.event_date || reservation.end_date || "")
+    ) || normalizeDatePart(fallbackDate);
+    if (!datePart) return null;
     const timePartRaw = useEnd ? reservation.end_time : reservation.start_time;
-    const timePart = String(timePartRaw || (useEnd ? "23:59:59" : "00:00:00")).slice(0, 8);
+    const fallbackTime = useEnd ? "23:59:59" : "00:00:00";
+    const timePart = normalizeTimePart(timePartRaw, fallbackTime);
     const parsed = new Date(`${datePart}T${timePart}`);
-    if (!Number.isNaN(parsed.getTime())) return parsed;
-    return null;
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
 
   function formatEventDateTime(reservation) {

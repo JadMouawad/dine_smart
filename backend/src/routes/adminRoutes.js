@@ -25,5 +25,7 @@ router.get("/flagged-reviews", adminController.getFlaggedReviews);
 router.put("/flagged-reviews/:id/dismiss", adminController.dismissFlaggedReview);
 router.delete("/flagged-reviews/:id", adminController.deleteFlaggedReview);
 
+router.post("/updates/send", adminController.sendSubscriptionUpdate);
+
 module.exports = router;
 

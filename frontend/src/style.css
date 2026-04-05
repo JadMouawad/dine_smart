@@ -663,6 +663,33 @@ html[data-theme="light"] .quickFilterBtn.is-active {
   background: rgba(255, 251, 243, 0.75);
   border-color: rgba(175, 115, 45, 0.14);
 }
+[data-theme="light"] .ownerEventCard__title {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .ownerEventCard__meta {
+  color: rgba(80, 45, 15, 0.72);
+}
+[data-theme="light"] .ownerEventCard__desc {
+  color: rgba(60, 30, 12, 0.78);
+}
+[data-theme="light"] .ownerEventCard__status {
+  border-color: rgba(175, 115, 45, 0.28);
+}
+[data-theme="light"] .ownerEventCard__status--upcoming {
+  color: #8b6914;
+  border-color: rgba(201, 162, 39, 0.45);
+  background: rgba(201, 162, 39, 0.2);
+}
+[data-theme="light"] .ownerEventCard__status--ongoing {
+  color: #1f7a3f;
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.18);
+}
+[data-theme="light"] .ownerEventCard__status--finished {
+  color: #a33a3a;
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.18);
+}
 [data-theme="light"] .menuItemCard {
   background: rgba(255, 248, 235, 0.88);
   border-color: rgba(175, 115, 45, 0.18);
@@ -4671,10 +4698,27 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   background: rgba(0, 0, 0, 0.12);
 }
 
+.reviewCardFull__avatar--fallback {
+  border: none;
+  background: transparent;
+}
+
 .reviewCardFull__avatarImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.reviewCardFull__avatarFallback {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #caa32b;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'><path d='M12 12.5c2.485 0 4.5-2.015 4.5-4.5S14.485 3.5 12 3.5 7.5 5.515 7.5 8s2.015 4.5 4.5 4.5zm0 2c-3.589 0-8.5 1.806-8.5 5v2.5h17v-2.5c0-3.194-4.911-5-8.5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 58%;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .reviewCardFull__top {
@@ -6464,6 +6508,146 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .userProfileSide {
   display: grid;
   gap: 16px;
+}
+
+.formCard__divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  margin: 10px 0 6px;
+}
+
+.updatesSubscription {
+  display: grid;
+  gap: 14px;
+}
+
+.updatesSubscription__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.updatesSubscription__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.updatesSubscription__desc {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  min-height: 36px;
+  min-width: 60px;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  cursor: pointer;
+}
+
+.switch__track {
+  width: 54px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.switch__thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  transform: translateX(0);
+  transition: transform 0.2s ease;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.switch input:checked + .switch__track {
+  background: rgba(201, 162, 39, 0.65);
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.25);
+}
+
+.switch input:checked + .switch__track .switch__thumb {
+  transform: translateX(26px);
+}
+
+.updatesPrefs {
+  background: rgba(8, 14, 34, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+.updatesPrefs--disabled {
+  opacity: 0.5;
+  filter: grayscale(0.3);
+  pointer-events: none;
+}
+
+.updatesPrefs__title {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.updatesPrefs__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.prefChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(6, 12, 32, 0.4);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  min-height: 44px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.prefChip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.prefChip--active {
+  border-color: rgba(201, 162, 39, 0.7);
+  box-shadow: 0 12px 24px rgba(201, 162, 39, 0.15);
+  background: rgba(201, 162, 39, 0.12);
+}
+
+.prefChip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.28);
 }
 
 @media (max-width: 980px) {

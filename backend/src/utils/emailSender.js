@@ -346,6 +346,44 @@ const sendWaitlistSlotAvailableEmail = async ({
   await transporter.sendMail(mailOptions);
 };
 
+const sendSubscriptionUpdateEmail = async ({
+  to,
+  userName = "Guest",
+  updateType,
+  subject,
+  message,
+}) => {
+  const safeSubject = subject || "DineSmart Updates";
+  const typeLabel = updateType ? String(updateType).toUpperCase() : "UPDATE";
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>${safeSubject}</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <p style="margin: 0 0 12px; font-size: 12px; letter-spacing: 1px; color: #777;">${typeLabel}</p>
+      <h2 style="margin: 0 0 16px;">${safeSubject}</h2>
+      <p>Hi ${userName},</p>
+      <p>${message}</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+      <p style="font-size: 12px; color: #888;">DineSmart - Updates</p>
+    </body>
+    </html>
+  `;
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    to,
+    subject: safeSubject,
+    html,
+    text: `${safeSubject}\n\nHi ${userName},\n\n${message}\n`,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
 module.exports = {
   sendVerificationEmail,
   sendReservationConfirmationEmail,
@@ -355,4 +393,5 @@ module.exports = {
   sendRestaurantApprovalEmail,
   sendRestaurantRejectionEmail,
   sendWaitlistSlotAvailableEmail,
+  sendSubscriptionUpdateEmail,
 };

@@ -5,6 +5,7 @@ const {
   sendRestaurantApprovalEmail,
   sendRestaurantRejectionEmail,
 } = require("../utils/emailSender");
+const subscriptionService = require("./subscriptionService");
 
 const parsePositiveInt = (value, fallback) => {
   const parsed = parseInt(value, 10);
@@ -263,6 +264,29 @@ const deleteFlaggedReview = async ({ flagId, adminId }) => {
   return { success: true, data: deleted };
 };
 
+const sendSubscriptionUpdate = async ({ adminId, updateType, subject, message }) => {
+  const result = await subscriptionService.sendSubscriptionUpdate({ updateType, subject, message });
+  if (!result.success) return result;
+  const { sent, total, failed } = result.data;
+  const normalizedType = String(updateType || "").trim().toLowerCase();
+  const safeSubject = String(subject || "").trim();
+
+  await adminRepository.insertAuditLog({
+    adminId,
+    action: "subscription_update_sent",
+    entityType: "subscription_update",
+    details: {
+      type: normalizedType,
+      subject: safeSubject,
+      total,
+      sent,
+      failed,
+    },
+  });
+
+  return { success: true, status: 200, data: { sent, total, failed } };
+};
+
 module.exports = {
   getStats,
   getRecentAiLogs,
@@ -279,5 +303,6 @@ module.exports = {
   getFlaggedReviews,
   dismissFlaggedReview,
   deleteFlaggedReview,
+  sendSubscriptionUpdate,
 };
 

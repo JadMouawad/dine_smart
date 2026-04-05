@@ -572,7 +572,7 @@ export default function RestaurantDetailPanel({
               {reviews.map((rev) => (
                 <div className="reviewCardFull" key={rev.id}>
                   <div className="reviewCardFull__left">
-                    <div className="reviewCardFull__avatar">
+                    <div className={`reviewCardFull__avatar ${!(rev.profilePictureUrl || rev.profile_picture_url) ? "reviewCardFull__avatar--fallback" : ""}`}>
                       {(rev.profilePictureUrl || rev.profile_picture_url) ? (
                         <img
                           className="reviewCardFull__avatarImg"
@@ -580,9 +580,11 @@ export default function RestaurantDetailPanel({
                           alt={`${rev.user_name || rev.authorName || "User"} avatar`}
                         />
                       ) : (
-                        <span className="reviewCardFull__avatarFallback">
-                          {(rev.user_name || rev.authorName || "?")[0].toUpperCase()}
-                        </span>
+                        <span
+                          className="reviewCardFull__avatarFallback"
+                          role="img"
+                          aria-label="Default profile"
+                        />
                       )}
                     </div>
                   </div>
