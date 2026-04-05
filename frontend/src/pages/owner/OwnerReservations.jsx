@@ -806,38 +806,46 @@ toast.success(messageMap[action] || "Reservation updated.");
       {error && <div className="fieldError">{error}</div>}
 
       <div className="ownerReservationSectionSwitcher">
-        <button
-          type="button"
-          className={`ownerReservationSectionSwitcher__btn ${activeSection === "calendar" ? "is-active" : ""}`}
-          onClick={() => setActiveSection("calendar")}
-        >
-          Calendar
-        </button>
+  <button
+    type="button"
+    className={`ownerReservationSectionSwitcher__btn ${activeSection === "calendar" ? "is-active" : ""}`}
+    onClick={() => setActiveSection("calendar")}
+  >
+    Calendar
+  </button>
 
-        <button
-          type="button"
-          className={`ownerReservationSectionSwitcher__btn ${activeSection === "seat-adjustment" ? "is-active" : ""}`}
-          onClick={() => setActiveSection("seat-adjustment")}
-        >
-          Seat Adjustment
-        </button>
+  <button
+    type="button"
+    className={`ownerReservationSectionSwitcher__btn ${activeSection === "charts" ? "is-active" : ""}`}
+    onClick={() => setActiveSection("charts")}
+  >
+    Charts
+  </button>
 
-        <button
-          type="button"
-          className={`ownerReservationSectionSwitcher__btn ${activeSection === "disable-slot" ? "is-active" : ""}`}
-          onClick={() => setActiveSection("disable-slot")}
-        >
-          Disable Time Slot
-        </button>
+  <button
+    type="button"
+    className={`ownerReservationSectionSwitcher__btn ${activeSection === "seat-adjustment" ? "is-active" : ""}`}
+    onClick={() => setActiveSection("seat-adjustment")}
+  >
+    Seat Adjustment
+  </button>
 
-        <button
-          type="button"
-          className={`ownerReservationSectionSwitcher__btn ${activeSection === "reservations" ? "is-active" : ""}`}
-          onClick={() => setActiveSection("reservations")}
-        >
-          Reservations
-        </button>
-      </div>
+  <button
+    type="button"
+    className={`ownerReservationSectionSwitcher__btn ${activeSection === "disable-slot" ? "is-active" : ""}`}
+    onClick={() => setActiveSection("disable-slot")}
+  >
+    Disable Time Slot
+  </button>
+
+  <button
+    type="button"
+    className={`ownerReservationSectionSwitcher__btn ${activeSection === "reservations" ? "is-active" : ""}`}
+    onClick={() => setActiveSection("reservations")}
+  >
+    Reservations
+  </button>
+</div>
 
       {activeSection === "calendar" && (
         <div className="ownerReservationPanel">
@@ -848,71 +856,79 @@ toast.success(messageMap[action] || "Reservation updated.");
         </div>
       )}
 
-      <section className="formCard reservationChartCard">
-        <div className="slotAdjustHeader">
-          <h2 className="reservationSection__title">Reservation Charts</h2>
-          <p className="slotAdjustHint">
-            Track recent reservation volume and spot your busiest hours quickly.
-          </p>
-        </div>
-        <div className="reservationChartsGrid">
-          <div className="reservationChartPanel">
-            <div className="reservationChartPanel__title">Last 7 days</div>
-            {reservationCharts.dayData.length ? (
-              <div className="reservationBarChart">
-                {reservationCharts.dayData.map((item) => {
-                  const max = Math.max(...reservationCharts.dayData.map((entry) => entry.value), 1);
-                  const height = Math.max(14, Math.round((item.value / max) * 100));
-                  return (
-                    <div className="reservationBarChart__item" key={item.label}>
-                      <div className="reservationBarChart__value">{item.value}</div>
-                      <div className="reservationBarChart__barWrap">
-                        <div className="reservationBarChart__bar" style={{ height: `${height}%` }} />
-                      </div>
-                      <div className="reservationBarChart__label">{item.shortLabel}</div>
+      {activeSection === "charts" && (
+  <section className="formCard reservationChartCard ownerReservationPanel">
+    <div className="slotAdjustHeader">
+      <h2 className="reservationSection__title">Reservation Charts</h2>
+      <p className="slotAdjustHint">
+        Track recent reservation volume and spot your busiest hours quickly.
+      </p>
+    </div>
+
+    <div className="reservationChartsGrid">
+      <div className="reservationChartPanel">
+        <div className="reservationChartPanel__title">Last 7 days</div>
+        {reservationCharts.dayData.length ? (
+          <div className="reservationBarChart">
+            {reservationCharts.dayData.map((item) => {
+              const max = Math.max(...reservationCharts.dayData.map((entry) => entry.value), 1);
+              const height = Math.max(14, Math.round((item.value / max) * 100));
+
+              return (
+                <div className="reservationBarChart__item" key={item.label}>
+                  <div className="reservationBarChart__value">{item.value}</div>
+                  <div className="reservationBarChart__barWrap">
+                    <div
+                      className="reservationBarChart__bar"
+                      style={{ height: `${height}%` }}
+                    />
+                  </div>
+                  <div className="reservationBarChart__label">{item.shortLabel}</div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="profileEmpty">No reservation data yet.</div>
+        )}
+      </div>
+
+      <div className="reservationChartPanel">
+        <div className="reservationChartPanel__title">Peak hours</div>
+        {reservationCharts.hourData.length ? (
+          <>
+            <div className="reservationPeakBadge">
+              Peak hour: {reservationCharts.peakHour?.shortLabel || "N/A"} ({reservationCharts.peakHour?.value || 0} reservations)
+            </div>
+
+            <div className="reservationHourList">
+              {reservationCharts.hourData.map((item) => {
+                const max = Math.max(...reservationCharts.hourData.map((entry) => entry.value), 1);
+                const width = Math.max(8, Math.round((item.value / max) * 100));
+                const isPeak = item.label === reservationCharts.peakHour?.label;
+
+                return (
+                  <div className="reservationHourRow" key={item.label}>
+                    <div className="reservationHourRow__label">{item.shortLabel}</div>
+                    <div className="reservationHourRow__track">
+                      <div
+                        className={`reservationHourRow__fill ${isPeak ? "is-peak" : ""}`}
+                        style={{ width: `${width}%` }}
+                      />
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="profileEmpty">No reservation data yet.</div>
-            )}
-          </div>
-
-          <div className="reservationChartPanel">
-            <div className="reservationChartPanel__title">Peak hours</div>
-            {reservationCharts.hourData.length ? (
-              <>
-                <div className="reservationPeakBadge">
-                  Peak hour: {reservationCharts.peakHour?.shortLabel || "N/A"} ({reservationCharts.peakHour?.value || 0} reservations)
-                </div>
-                <div className="reservationHourList">
-                  {reservationCharts.hourData.map((item) => {
-                    const max = Math.max(...reservationCharts.hourData.map((entry) => entry.value), 1);
-                    const width = Math.max(8, Math.round((item.value / max) * 100));
-                    const isPeak = item.label === reservationCharts.peakHour?.label;
-                    return (
-                      <div className="reservationHourRow" key={item.label}>
-                        <div className="reservationHourRow__label">{item.shortLabel}</div>
-                        <div className="reservationHourRow__track">
-                          <div
-                            className={`reservationHourRow__fill ${isPeak ? "is-peak" : ""}`}
-                            style={{ width: `${width}%` }}
-                          />
-                        </div>
-                        <div className="reservationHourRow__value">{item.value}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            ) : (
-              <div className="profileEmpty">Peak hours will appear once reservations are added.</div>
-            )}
-          </div>
-        </div>
-      </section>
-
+                    <div className="reservationHourRow__value">{item.value}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <div className="profileEmpty">Peak hours will appear once reservations are added.</div>
+        )}
+      </div>
+    </div>
+  </section>
+)}
       {activeSection === "seat-adjustment" && (
         <section className="formCard slotAdjustCard ownerReservationPanel">
           <div className="slotAdjustHeader">
