@@ -8,141 +8,226 @@ import UserReservations from "./UserReservations.jsx";
 import UserDiscover from "./UserDiscover.jsx";
 import UserExplore from "./UserExplore.jsx";
 import { getProfile } from "../../services/profileService.js";
+import { getPublicEvents } from "../../services/restaurantService.js";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import ChatWidget from "../../components/ChatWidget.jsx";
 
+const USER_SEEN_EVENT_IDS_KEY = "ds-user-seen-event-ids";
+
+function normalizeEventId(eventItem) {
+  return String(eventItem?.id ?? "");
+}
+
 export default function UserShell({ initialActive = "search" }) {
-    const [active, setActive] = useState(initialActive);
-    const [restaurantToOpen, setRestaurantToOpen] = useState(null);
-    const [chatCommand, setChatCommand] = useState(null);
-    const [userAvatarUrl, setUserAvatarUrl] = useState("");
-    const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
-    const navigate = useNavigate();
-    const { user, logout, loading } = useAuth();
+  const [active, setActive] = useState(initialActive);
+  const [restaurantToOpen, setRestaurantToOpen] = useState(null);
+  const [chatCommand, setChatCommand] = useState(null);
+  const [userAvatarUrl, setUserAvatarUrl] = useState("");
+  const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
+  const [unseenEventCount, setUnseenEventCount] = useState(0);
 
-    useEffect(() => {
-        setActive(initialActive);
-    }, [initialActive]);
+  const navigate = useNavigate();
+  const { user, logout, loading } = useAuth();
 
-    useEffect(() => {
-        if (!loading && (!user || user.role !== "user")) {
-            navigate("/", { replace: true });
-        }
-    }, [loading, user, navigate]);
+  useEffect(() => {
+    setActive(initialActive);
+  }, [initialActive]);
 
-    useEffect(() => {
-        if (!user?.id) {
-            setUserAvatarUrl("");
-            return;
-        }
+  useEffect(() => {
+    if (!loading && (!user || user.role !== "user")) {
+      navigate("/", { replace: true });
+    }
+  }, [loading, user, navigate]);
 
-        let mounted = true;
-        getProfile()
-            .then((profile) => {
-                if (!mounted) return;
-                const avatar = profile?.profilePictureUrl ?? profile?.profile_picture_url ?? "";
-                setUserAvatarUrl(avatar);
-            })
-            .catch(() => {
-                if (mounted) setUserAvatarUrl("");
-            });
-
-        return () => {
-            mounted = false;
-        };
-    }, [user?.id]);
-
-    // Wait for auth to restore before rendering
-    if (loading) return null;
-    if (!user || user.role !== "user") return null;
-
-    function handleLogout() {
-        setConfirmLogoutOpen(false);
-        logout();
-        navigate("/");
+  useEffect(() => {
+    if (!user?.id) {
+      setUserAvatarUrl("");
+      return;
     }
 
-    function handleChatAction(action) {
-        if (!action?.type) return;
-        setActive("search");
-        setChatCommand({
-            ...action,
-            id: action.id || `chat-${Date.now()}`,
+    let mounted = true;
+    getProfile()
+      .then((profile) => {
+        if (!mounted) return;
+        const avatar = profile?.profilePictureUrl ?? profile?.profile_picture_url ?? "";
+        setUserAvatarUrl(avatar);
+      })
+      .catch(() => {
+        if (mounted) setUserAvatarUrl("");
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setUnseenEventCount(0);
+      return;
+    }
+
+    const storageKey = `${USER_SEEN_EVENT_IDS_KEY}:${user.id}`;
+    let cancelled = false;
+
+    async function syncEventBadge(markAllAsSeen = false) {
+      try {
+        const data = await getPublicEvents({
+          latitude: user?.latitude ?? undefined,
+          longitude: user?.longitude ?? undefined,
+          limit: 40,
         });
+
+        if (cancelled) return;
+
+        const events = Array.isArray(data) ? data : [];
+        const eventIds = events
+          .map(normalizeEventId)
+          .filter(Boolean);
+
+        if (markAllAsSeen) {
+          localStorage.setItem(storageKey, JSON.stringify(eventIds));
+          setUnseenEventCount(0);
+          return;
+        }
+
+        const savedRaw = localStorage.getItem(storageKey);
+
+        if (!savedRaw) {
+          localStorage.setItem(storageKey, JSON.stringify(eventIds));
+          setUnseenEventCount(0);
+          return;
+        }
+
+        let seenIds = [];
+        try {
+          seenIds = JSON.parse(savedRaw);
+        } catch {
+          seenIds = [];
+        }
+
+        const seenSet = new Set((Array.isArray(seenIds) ? seenIds : []).map(String));
+
+        const unseenCount = eventIds.filter((id) => !seenSet.has(id)).length;
+        setUnseenEventCount(unseenCount);
+      } catch {
+        // keep last known count
+      }
     }
 
-    return (
-        <div className="userArea">
-            <UserNav
-                active={active}
-                onChange={setActive}
-                avatarSrc={userAvatarUrl}
-                user={user}
-                onLogout={() => setConfirmLogoutOpen(true)}
-            />
+    if (active === "discover") {
+      syncEventBadge(true);
+      return () => {
+        cancelled = true;
+      };
+    }
 
-            <main className="userArea__main">
-                {active === "profile" && (
-                    <UserProfile
-                      onAvatarPreviewChange={setUserAvatarUrl}
-                      onOpenRestaurant={(restaurant) => {
-                        setRestaurantToOpen(restaurant);
-                        setActive("search");
-                      }}
-                    />
-                  )}
+    syncEventBadge(false);
 
-                {active === "search" && (
-                    <UserSearch
-                      restaurantToOpen={restaurantToOpen}
-                      clearRestaurantToOpen={() => setRestaurantToOpen(null)}
-                      chatCommand={chatCommand}
-                      clearChatCommand={() => setChatCommand(null)}
-                    />
-                  )}
+    const intervalId = window.setInterval(() => {
+      syncEventBadge(false);
+    }, 20000);
 
-                {active === "discover" && (
-                    <UserDiscover
-                      onOpenRestaurant={(restaurant) => {
-                        setRestaurantToOpen(restaurant);
-                        setActive("search");
-                      }}
-                      onViewBooking={() => setActive("reservations")}
-                    />
-                )}
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [user?.id, user?.latitude, user?.longitude, active]);
 
-                {active === "explore" && (
-                    <UserExplore
-                      onOpenRestaurant={(restaurant) => {
-                        setRestaurantToOpen(restaurant);
-                        setActive("search");
-                      }}
-                    />
-                )}
+  if (loading) return null;
+  if (!user || user.role !== "user") return null;
 
-                {active === "reservations" && <UserReservations />}   
+  function handleLogout() {
+    setConfirmLogoutOpen(false);
+    logout();
+    navigate("/");
+  }
 
-                {active !== "profile" && active !== "search" && active !== "reservations" && active !== "discover" && active !== "explore" && (
-                    <div className="placeholderPage">
-                        <h1 className="placeholderPage__title">
-                            {active.charAt(0).toUpperCase() + active.slice(1)}
-                        </h1>
-                        <p className="placeholderPage__text">This page will be built next.</p>
-                    </div>
-                )}
-            </main>
+  function handleChatAction(action) {
+    if (!action?.type) return;
+    setActive("search");
+    setChatCommand({
+      ...action,
+      id: action.id || `chat-${Date.now()}`,
+    });
+  }
 
-            <ConfirmDialog
-              open={confirmLogoutOpen}
-              title="Log out?"
-              message="Are you sure you want to log out?"
-              confirmLabel="Log Out"
-              cancelLabel="Cancel"
-              onConfirm={handleLogout}
-              onCancel={() => setConfirmLogoutOpen(false)}
-            />
+  return (
+    <div className="userArea">
+      <UserNav
+        active={active}
+        onChange={setActive}
+        avatarSrc={userAvatarUrl}
+        user={user}
+        onLogout={() => setConfirmLogoutOpen(true)}
+        unseenEventCount={unseenEventCount}
+      />
 
-            <ChatWidget onAction={handleChatAction} />
-        </div>
-    );
+      <main className="userArea__main">
+        {active === "profile" && (
+          <UserProfile
+            onAvatarPreviewChange={setUserAvatarUrl}
+            onOpenRestaurant={(restaurant) => {
+              setRestaurantToOpen(restaurant);
+              setActive("search");
+            }}
+          />
+        )}
+
+        {active === "search" && (
+          <UserSearch
+            restaurantToOpen={restaurantToOpen}
+            clearRestaurantToOpen={() => setRestaurantToOpen(null)}
+            chatCommand={chatCommand}
+            clearChatCommand={() => setChatCommand(null)}
+          />
+        )}
+
+        {active === "discover" && (
+          <UserDiscover
+            onOpenRestaurant={(restaurant) => {
+              setRestaurantToOpen(restaurant);
+              setActive("search");
+            }}
+          />
+        )}
+
+        {active === "explore" && (
+          <UserExplore
+            onOpenRestaurant={(restaurant) => {
+              setRestaurantToOpen(restaurant);
+              setActive("search");
+            }}
+          />
+        )}
+
+        {active === "reservations" && <UserReservations />}
+
+        {active !== "profile" &&
+          active !== "search" &&
+          active !== "reservations" &&
+          active !== "discover" &&
+          active !== "explore" && (
+            <div className="placeholderPage">
+              <h1 className="placeholderPage__title">
+                {active.charAt(0).toUpperCase() + active.slice(1)}
+              </h1>
+              <p className="placeholderPage__text">This page will be built next.</p>
+            </div>
+          )}
+      </main>
+
+      <ConfirmDialog
+        open={confirmLogoutOpen}
+        title="Log out?"
+        message="Are you sure you want to log out?"
+        confirmLabel="Log Out"
+        cancelLabel="Cancel"
+        onConfirm={handleLogout}
+        onCancel={() => setConfirmLogoutOpen(false)}
+      />
+
+      <ChatWidget onAction={handleChatAction} />
+    </div>
+  );
 }

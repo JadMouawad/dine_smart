@@ -136,4 +136,20 @@ router.post(
   reservationController.upsertSlotAdjustmentForOwner
 );
 
+router.get(
+  "/restaurants/:id/disabled-slots",
+  authenticateToken,
+  authorizeRoles("owner"),
+  requireApprovedRestaurant,
+  reservationController.getDisabledSlotsForOwner
+);
+
+router.post(
+  "/restaurants/:id/disabled-slots",
+  authenticateToken,
+  authorizeRoles("owner"),
+  requireApprovedRestaurant,
+  reservationController.upsertDisabledSlotForOwner
+);
+
 module.exports = router;

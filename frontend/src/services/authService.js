@@ -22,6 +22,20 @@ export function loginUser({ email, password }) {
   });
 }
 
+export function requestPasswordReset(email) {
+  return apiRequest("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function resetPassword({ token, password }) {
+  return apiRequest("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
+  });
+}
+
 export function googleAuth({ idToken, role }) {
   return apiRequest("/auth/google", {
     method: "POST",

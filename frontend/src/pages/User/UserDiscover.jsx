@@ -453,7 +453,7 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
   if (loading) {
     return (
       <div className="userSearchPage">
-        <h1 className="userSearchPage__title">Discover</h1>
+        <h1 className="userSearchPage__title">Events</h1>
         <LoadingSkeleton variant="card" count={6} />
       </div>
     );
@@ -462,7 +462,7 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
   if (error) {
     return (
       <div className="userSearchPage">
-        <h1 className="userSearchPage__title">Discover</h1>
+        <h1 className="userSearchPage__title">Events</h1>
         <p className="fieldError">{error}</p>
       </div>
     );
@@ -470,7 +470,7 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
 
   return (
     <div className="userSearchPage">
-      <h1 className="userSearchPage__title">Discover</h1>
+      <h1 className="userSearchPage__title">Events</h1>
 
       <section className="discoverEventsWrap">
         <div className="discoverEventsHeader">

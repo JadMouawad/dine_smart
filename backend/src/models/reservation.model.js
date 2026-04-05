@@ -359,6 +359,78 @@ async function cancelWaitlistEntryByUserAndSlot(db, data) {
   return cancelWaitlistEntry(db, data);
 }
 
+async function getDisabledSlotsForDate(db, restaurantId, reservationDate) {
+  const query = `
+    SELECT id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time,
+           seating_preference, reason, created_at, updated_at
+    FROM reservation_disabled_slots
+    WHERE restaurant_id = $1
+      AND reservation_date = $2
+    ORDER BY reservation_time ASC, seating_preference ASC, created_at ASC;
+  `;
+  return db.query(query, [restaurantId, reservationDate]);
+}
+
+async function getDisabledSlot(db, restaurantId, reservationDate, reservationTime, seatingPreference) {
+  const query = `
+    SELECT id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time,
+           seating_preference, reason, created_at, updated_at
+    FROM reservation_disabled_slots
+    WHERE restaurant_id = $1
+      AND reservation_date = $2
+      AND reservation_time = $3
+      AND seating_preference = $4
+    LIMIT 1;
+  `;
+  return db.query(query, [restaurantId, reservationDate, reservationTime, seatingPreference]);
+}
+
+async function upsertDisabledSlot(db, data) {
+  const {
+    restaurantId,
+    reservationDate,
+    reservationTime,
+    seatingPreference,
+    reason,
+  } = data;
+
+  const query = `
+    INSERT INTO reservation_disabled_slots (
+      restaurant_id,
+      reservation_date,
+      reservation_time,
+      seating_preference,
+      reason
+    )
+    VALUES ($1, $2, $3, $4, $5)
+    ON CONFLICT (restaurant_id, reservation_date, reservation_time, seating_preference)
+    DO UPDATE SET reason = EXCLUDED.reason, updated_at = NOW()
+    RETURNING id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time,
+              seating_preference, reason, created_at, updated_at;
+  `;
+
+  return db.query(query, [
+    restaurantId,
+    reservationDate,
+    reservationTime,
+    seatingPreference,
+    reason,
+  ]);
+}
+
+async function deleteDisabledSlot(db, restaurantId, reservationDate, reservationTime, seatingPreference) {
+  const query = `
+    DELETE FROM reservation_disabled_slots
+    WHERE restaurant_id = $1
+      AND reservation_date = $2
+      AND reservation_time = $3
+      AND seating_preference = $4
+    RETURNING id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time,
+              seating_preference, reason, created_at, updated_at;
+  `;
+  return db.query(query, [restaurantId, reservationDate, reservationTime, seatingPreference]);
+}
+
 module.exports = {
   acquireTransactionLock,
   getRestaurantById,
@@ -383,5 +455,9 @@ module.exports = {
   markWaitlistNotified,
   cancelWaitlistEntry,
   cancelWaitlistEntryByUserAndSlot,
+  getDisabledSlotsForDate,
+  getDisabledSlot,
+  upsertDisabledSlot,
+  deleteDisabledSlot,
 };
 

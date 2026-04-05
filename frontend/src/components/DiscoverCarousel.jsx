@@ -25,7 +25,7 @@ export default function DiscoverCarousel({ onSelectCuisine }) {
   return (
     <section className="discover" id="discover">
       <div className="discover__inner">
-        <h2 className="discover__title">Our Cuisines</h2>
+        <h2 className="discover__title">Discover Flavors</h2>
         <p className="discover__subtitle">
           Find your next delicious meal from a variety of culinary traditions!
         </p>

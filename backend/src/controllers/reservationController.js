@@ -103,6 +103,24 @@ const updateReservationStatusForOwner = async (req, res) => {
   }
 };
 
+
+const getDisabledSlots = async (req, res) => {
+  try {
+    const result = await reservationService.getDisabledSlotsForRestaurant({
+      restaurantId: req.query.restaurant_id,
+      reservationDate: req.query.date,
+    });
+
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+
+    return res.status(200).json(result.disabledSlots);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 const getAvailability = async (req, res) => {
   try {
     const result = await reservationService.getAvailability({
@@ -224,6 +242,47 @@ const upsertSlotAdjustmentForOwner = async (req, res) => {
   }
 };
 
+
+const getDisabledSlotsForOwner = async (req, res) => {
+  try {
+    const result = await reservationService.getDisabledSlotsForOwner({
+      restaurantId: req.params.id,
+      ownerId: req.user.id,
+      reservationDate: req.query.date,
+    });
+
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+
+    return res.status(200).json(result.disabledSlots);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const upsertDisabledSlotForOwner = async (req, res) => {
+  try {
+    const result = await reservationService.upsertDisabledSlotForOwner({
+      restaurantId: req.params.id,
+      ownerId: req.user.id,
+      reservationDate: req.body.date,
+      reservationTime: req.body.time,
+      seatingPreference: req.body.seating_preference,
+      reason: req.body.reason,
+      disabled: req.body.disabled,
+    });
+
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+
+    return res.status(200).json(result.disabledSlot);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 const markNoShow = async (req, res) => {
   try {
     const result = await reservationService.markNoShow({
@@ -248,9 +307,12 @@ module.exports = {
   cancelReservation,
   updateReservationStatusForOwner,
   deleteReservationForOwner,
+  getDisabledSlots,
   getAvailability,
   getSlotAdjustmentForOwner,
   upsertSlotAdjustmentForOwner,
+  getDisabledSlotsForOwner,
+  upsertDisabledSlotForOwner,
   markNoShow,
   joinWaitlist,
   leaveWaitlist,

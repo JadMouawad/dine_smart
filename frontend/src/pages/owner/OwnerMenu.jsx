@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getMyRestaurant, updateMyRestaurant } from "../../services/restaurantService";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
+import ThemedSelect from "../../components/ThemedSelect.jsx";
 
 const CURRENCIES = ["USD", "LBP", "EUR"];
 
@@ -71,6 +72,9 @@ export default function OwnerMenu() {
   const [itemDesc, setItemDesc] = useState("");
   const [itemImageDataUrl, setItemImageDataUrl] = useState("");
 
+  const [itemSectionDropdownOpen, setItemSectionDropdownOpen] = useState(false);
+  const [itemCurrencyDropdownOpen, setItemCurrencyDropdownOpen] = useState(false);
+
   const [openSectionMenuId, setOpenSectionMenuId] = useState(null);
 
   // ✅ Edit/Rename section states
@@ -127,6 +131,8 @@ export default function OwnerMenu() {
   function closeAllMenus() {
     setOpenSectionMenuId(null);
     setOpenItemMenuId(null);
+    setItemSectionDropdownOpen(false);
+    setItemCurrencyDropdownOpen(false);
   }
 
   function openAddSection() {
@@ -210,6 +216,8 @@ export default function OwnerMenu() {
     setItemDesc(item.description);
     setItemImageDataUrl("");
     setEditingItemImageUrl(item.imagePreviewUrl || "");
+    setItemSectionDropdownOpen(false);
+    setItemCurrencyDropdownOpen(false);
 
     setItemModalOpen(true);
     setItemStep(2);
@@ -225,6 +233,8 @@ export default function OwnerMenu() {
     setItemDesc("");
     setItemImageDataUrl("");
     setEditingItemImageUrl("");
+    setItemSectionDropdownOpen(false);
+    setItemCurrencyDropdownOpen(false);
     setItemModalOpen(true);
   }
 
@@ -251,6 +261,7 @@ export default function OwnerMenu() {
   function goToItemDetails(e) {
     e.preventDefault();
     if (!selectedSectionId) return;
+    setItemSectionDropdownOpen(false);
     setItemStep(2);
   }
 
@@ -327,6 +338,8 @@ export default function OwnerMenu() {
     setEditingItemId(null);
     setEditingItemImageUrl("");
     setItemImageDataUrl("");
+    setItemSectionDropdownOpen(false);
+    setItemCurrencyDropdownOpen(false);
   }
 
   if (menuLoading) {
@@ -545,7 +558,7 @@ export default function OwnerMenu() {
       {sectionModalOpen && (
         <div className="modal is-open" role="dialog" aria-modal="true">
           <div className="modal__backdrop" onClick={closeAddSection} />
-          <div className="modal__panel" role="document">
+          <div className="modal__panel" role="document" onClick={(e) => e.stopPropagation()}>
             <button
               className="modal__close"
               type="button"
@@ -595,7 +608,7 @@ export default function OwnerMenu() {
       {itemModalOpen && (
         <div className="modal is-open" role="dialog" aria-modal="true">
           <div className="modal__backdrop" onClick={closeItemModalAndReset} />
-          <div className="modal__panel" role="document">
+          <div className="modal__panel" role="document" onClick={(e) => e.stopPropagation()}>
             <button
               className="modal__close"
               type="button"
@@ -614,22 +627,16 @@ export default function OwnerMenu() {
 
                 <form className="form" onSubmit={goToItemDetails}>
                   <label className="field">
-                    <span>Section</span>
-                    <select
-                      className="select"
+                    <span>Section</span>                    <ThemedSelect
                       value={selectedSectionId}
-                      onChange={(e) => setSelectedSectionId(e.target.value)}
-                      required
-                    >
-                      <option value="" disabled>
-                        Select a section
-                      </option>
-                      {sections.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setSelectedSectionId}
+                      options={sections.map((section) => ({
+                        value: section.id,
+                        label: section.name,
+                      }))}
+                      placeholder="Select a section"
+                      ariaLabel="Select section"
+                    />
                   </label>
 
                   <div className="menuModalHelper">
@@ -687,19 +694,15 @@ export default function OwnerMenu() {
                     </label>
 
                     <label className="field">
-                      <span>Currency</span>
-                      <select
-                        className="select"
+                      <span>Currency</span>                      <ThemedSelect
                         value={itemCurrency}
-                        onChange={(e) => setItemCurrency(e.target.value)}
-                        required
-                      >
-                        {CURRENCIES.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={setItemCurrency}
+                        options={CURRENCIES.map((currency) => ({
+                          value: currency,
+                          label: currency,
+                        }))}
+                        ariaLabel="Select currency"
+                      />
                     </label>
                   </div>
 

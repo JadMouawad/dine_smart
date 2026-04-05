@@ -5,9 +5,11 @@ import { getProfile, updateProfile } from "../../services/profileService.js";
 import { getFavorites } from "../../services/favoriteService.js";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useTheme } from "../../auth/ThemeContext.jsx";
+import { COUNTRY_OPTIONS, splitPhoneNumber } from "../../constants/countries.js";
 
 import { FILLED_STAR, EMPTY_STAR } from "../../constants/filters";
 import { DEFAULT_AVATAR } from "../../constants/avatar";
+import ThemedSelect from "../../components/ThemedSelect.jsx";
 
 export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant }) {
   const { user, refreshUser } = useAuth();
@@ -51,7 +53,9 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       .then((profile) => {
         setFullName(profile.fullName ?? profile.full_name ?? user.name ?? user.fullName ?? "");
         setEmail(profile.email ?? user.email ?? "");
-        setPhone(profile.phone ?? "");
+        const phoneParts = splitPhoneNumber(profile.phone ?? "");
+        setCountryCode(phoneParts.countryCode);
+        setPhone(phoneParts.localNumber);
         setAccountProvider(String(profile.provider ?? user.provider ?? "local").toLowerCase());
         setProfilePictureUrl(profile.profilePictureUrl ?? profile.profile_picture_url ?? "");
         const lat = parseFloat(profile.latitude ?? user?.latitude);
@@ -255,14 +259,30 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
           <label className="field">
             <span>Phone number</span>
             <div className="phoneRow">
+              <ThemedSelect
+                className="phoneRow__codeDropdown"
+                buttonClassName="phoneRow__codeDropdownBtn"
+                menuClassName="phoneRow__codeDropdownMenu"
+                value={countryCode}
+                onChange={setCountryCode}
+                options={[
+                  { value: "+961", label: "+961" },
+                  { value: "+1", label: "+1" },
+                  { value: "+33", label: "+33" },
+                  { value: "+44", label: "+44" },
+                  { value: "+49", label: "+49" },
+                  { value: "+971", label: "+971" },
+                  { value: "+966", label: "+966" },
+                ]}
+                fullWidth={false}
+                ariaLabel="Select country code"
+              />
               <select className="select phoneRow__code" value={countryCode} onChange={(e) => setCountryCode(e.target.value)}>
-                <option value="+961">+961</option>
-                <option value="+1">+1</option>
-                <option value="+33">+33</option>
-                <option value="+44">+44</option>
-                <option value="+49">+49</option>
-                <option value="+971">+971</option>
-                <option value="+966">+966</option>
+                {COUNTRY_OPTIONS.map((country) => (
+                  <option key={country.code} value={country.code}>
+                    {country.displayLabel}
+                  </option>
+                ))}
               </select>
               <input
                 className="phoneRow__number"

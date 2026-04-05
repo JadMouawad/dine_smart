@@ -31,6 +31,16 @@ export async function cancelReservation(reservationId) {
   });
 }
 
+
+export async function getDisabledReservationSlots({ restaurantId, date }) {
+  const params = new URLSearchParams();
+  params.set("restaurant_id", String(restaurantId));
+  params.set("date", date);
+  return apiRequest(`/reservations/disabled-slots?${params.toString()}`, {
+    method: "GET",
+  });
+}
+
 export async function getReservationAvailability({ restaurantId, date, time, partySize, seatingPreference }) {
   const params = new URLSearchParams();
   params.set("restaurant_id", String(restaurantId));
@@ -102,6 +112,22 @@ export async function getOwnerSlotAdjustment({ restaurantId, date, time, seating
 
 export async function saveOwnerSlotAdjustment(restaurantId, data) {
   return apiRequest(`/owner/restaurants/${restaurantId}/slot-adjustments`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+
+export async function getOwnerDisabledSlots({ restaurantId, date }) {
+  const params = new URLSearchParams();
+  params.set("date", date);
+  return apiRequest(`/owner/restaurants/${restaurantId}/disabled-slots?${params.toString()}`, {
+    method: "GET",
+  });
+}
+
+export async function saveOwnerDisabledSlot(restaurantId, data) {
+  return apiRequest(`/owner/restaurants/${restaurantId}/disabled-slots`, {
     method: "POST",
     body: JSON.stringify(data),
   });

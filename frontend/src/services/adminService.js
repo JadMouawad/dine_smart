@@ -72,3 +72,31 @@ export async function deleteFlaggedReview(flagId) {
   return apiRequest(`/admin/flagged-reviews/${flagId}`, { method: "DELETE" });
 }
 
+export async function moderateFlaggedReview(flagId, { action, adminNotes = "", resolutionLabel = null } = {}) {
+  return apiRequest(`/admin/flagged-reviews/${flagId}/action`, {
+    method: "PUT",
+    body: JSON.stringify({
+      action,
+      admin_notes: adminNotes || null,
+      resolution_label: resolutionLabel,
+    }),
+  });
+}
+
+export async function bulkModerateFlaggedReviews({
+  flagIds,
+  action,
+  adminNotes = "",
+  resolutionLabel = null,
+} = {}) {
+  return apiRequest("/admin/flagged-reviews/bulk-action", {
+    method: "PUT",
+    body: JSON.stringify({
+      flag_ids: flagIds,
+      action,
+      admin_notes: adminNotes || null,
+      resolution_label: resolutionLabel,
+    }),
+  });
+}
+

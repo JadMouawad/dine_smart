@@ -11,6 +11,7 @@ import RestaurantDetailPanel from "./RestaurantDetailPanel.jsx";
 import { getTodayDateValue, isOpenNow } from "../../utils/timeUtils";
 import { getCrowdMeterMeta } from "../../utils/crowdMeter";
 import { CUISINES, DIETARY_OPTIONS, PRICE_OPTIONS, PRICE_LABELS, DIETARY_LABELS, FILLED_STAR } from "../../constants/filters";
+import ThemedSelect from "../../components/ThemedSelect.jsx";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const DEFAULT_BEIRUT_GEO = { latitude: 33.8938, longitude: 35.5018 };
@@ -51,6 +52,11 @@ function getRestaurantGalleryUrls(restaurant) {
   return fallbackImage ? [fallbackImage] : [];
 }
 
+function getSafeReviewCount(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+}
+
 function getInitialFilters() {
   return {
     minRating: 0,
@@ -73,6 +79,8 @@ const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, onSe
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const activeImageUrl = imageUrls[activeImageIndex] || "";
   const crowd = useMemo(() => getCrowdMeterMeta(r), [r]);
+  const reviewCount = useMemo(() => getSafeReviewCount(r?.review_count), [r]);
+  const ratingDisplay = r?.rating ?? "N/A";
 
   useEffect(() => {
     if (!imageUrls.length) {
@@ -151,7 +159,7 @@ const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, onSe
           <span className="crowdMeter__dot" />
           <span>Live Crowd: {crowd.label}{crowd.pct != null ? ` (${crowd.pct}%)` : ""}</span>
         </div>
-        <div className="restaurantCard__metaLine">{FILLED_STAR} {r.rating ?? "N/A"}</div>
+        <div className="restaurantCard__metaLine">{FILLED_STAR} {ratingDisplay} ({reviewCount})</div>
         <div className="restaurantCard__metaLine">
           {r.distance_km != null ? `${r.distance_km} km away` : (r.address || "Location unavailable")}
         </div>
@@ -209,13 +217,11 @@ export default function UserSearch({
 
   const scrollRestoreRef = useRef(null);
 
-  // ── Auth guard ────────────────────────────────────────────
   function requireAuth() {
     if (isGuest || !user?.id) { onRequireSignup?.(); return false; }
     return true;
   }
 
-  // ── Filter helpers ────────────────────────────────────────
   function updateFilters(updater, preserveScroll = true) {
     if (preserveScroll) scrollRestoreRef.current = window.scrollY;
     setFilters((prev) => (typeof updater === "function" ? updater(prev) : updater));
@@ -224,12 +230,10 @@ export default function UserSearch({
   function resetFilters() { updateFilters(getInitialFilters()); }
   function retryRestaurants() { setRefreshKey((prev) => prev + 1); }
 
-  // ── Favorites (API-backed, optimistic) ───────────────────
   function isFavorited(restaurantId) { return favorites.some((r) => r.id === restaurantId); }
 
   function toggleFavorite(restaurant) {
     const alreadyFavorited = isFavorited(restaurant.id);
-    // Update UI immediately — never revert so the heart always responds
     setFavorites((prev) =>
       alreadyFavorited ? prev.filter((r) => r.id !== restaurant.id) : [...prev, restaurant]
     );
@@ -241,7 +245,6 @@ export default function UserSearch({
     });
   }
 
-  // ── Geo ───────────────────────────────────────────────────
   const profileGeo = useMemo(() => {
     const latitude = Number(user?.latitude);
     const longitude = Number(user?.longitude);
@@ -255,17 +258,52 @@ export default function UserSearch({
     return DEFAULT_BEIRUT_GEO;
   }, [geo.latitude, geo.longitude, profileGeo]);
 
-  // ── Derived ───────────────────────────────────────────────
   const filteredRestaurants = useMemo(() => {
     const list = Array.isArray(restaurants) ? [...restaurants] : [];
     const sortBy = String(filters.sortBy || "rating").toLowerCase();
     const toNum = (v, fallback = 0) => { const n = Number(v); return Number.isFinite(n) ? n : fallback; };
-    if (sortBy === "alphabetical") return list.sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || "")));
-    if (sortBy === "distance") return list.sort((a, b) => { const ad = toNum(a?.distance_km, Number.MAX_SAFE_INTEGER), bd = toNum(b?.distance_km, Number.MAX_SAFE_INTEGER); return ad !== bd ? ad - bd : toNum(b?.rating) - toNum(a?.rating); });
-    if (sortBy === "rating_asc") return list.sort((a, b) => { const ar = toNum(a?.rating), br = toNum(b?.rating); return ar !== br ? ar - br : String(a?.name || "").localeCompare(String(b?.name || "")); });
-    if (sortBy === "reviews") return list.sort((a, b) => { const ar = toNum(a?.review_count), br = toNum(b?.review_count); return ar !== br ? br - ar : toNum(b?.rating) - toNum(a?.rating); });
-    if (sortBy === "popularity") return list.sort((a, b) => { const ap = toNum(a?.popularity_score), bp = toNum(b?.popularity_score); return ap !== bp ? bp - ap : toNum(b?.rating) - toNum(a?.rating); });
-    return list.sort((a, b) => { const ar = toNum(a?.rating), br = toNum(b?.rating); return ar !== br ? br - ar : String(a?.name || "").localeCompare(String(b?.name || "")); });
+
+    if (sortBy === "alphabetical") {
+      return list.sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || "")));
+    }
+
+    if (sortBy === "distance") {
+      return list.sort((a, b) => {
+        const ad = toNum(a?.distance_km, Number.MAX_SAFE_INTEGER);
+        const bd = toNum(b?.distance_km, Number.MAX_SAFE_INTEGER);
+        return ad !== bd ? ad - bd : toNum(b?.rating) - toNum(a?.rating);
+      });
+    }
+
+    if (sortBy === "rating_asc") {
+      return list.sort((a, b) => {
+        const ar = toNum(a?.rating);
+        const br = toNum(b?.rating);
+        return ar !== br ? ar - br : String(a?.name || "").localeCompare(String(b?.name || ""));
+      });
+    }
+
+    if (sortBy === "reviews") {
+      return list.sort((a, b) => {
+        const ar = toNum(a?.review_count);
+        const br = toNum(b?.review_count);
+        return ar !== br ? br - ar : toNum(b?.rating) - toNum(a?.rating);
+      });
+    }
+
+    if (sortBy === "popularity") {
+      return list.sort((a, b) => {
+        const ap = toNum(a?.popularity_score);
+        const bp = toNum(b?.popularity_score);
+        return ap !== bp ? bp - ap : toNum(b?.rating) - toNum(a?.rating);
+      });
+    }
+
+    return list.sort((a, b) => {
+      const ar = toNum(a?.rating);
+      const br = toNum(b?.rating);
+      return ar !== br ? br - ar : String(a?.name || "").localeCompare(String(b?.name || ""));
+    });
   }, [restaurants, filters.sortBy]);
 
   const optionCounts = useMemo(() => {
@@ -273,17 +311,24 @@ export default function UserSearch({
       cuisine: Object.fromEntries(CUISINES.map((c) => [c, 0])),
       price: Object.fromEntries(PRICE_OPTIONS.map((p) => [p, 0])),
       dietary: Object.fromEntries(DIETARY_OPTIONS.map((d) => [d, 0])),
-      topRated: 0, openNow: 0, availableToday: 0,
+      topRated: 0,
+      openNow: 0,
+      availableToday: 0,
     };
+
     const today = getTodayDateValue();
+
     baseRestaurants.forEach((r) => {
       if (counts.cuisine[r.cuisine] != null) counts.cuisine[r.cuisine] += 1;
       if (counts.price[r.price_range] != null) counts.price[r.price_range] += 1;
-      parseDietarySupport(r.dietary_support).forEach((d) => { if (counts.dietary[d] != null) counts.dietary[d] += 1; });
+      parseDietarySupport(r.dietary_support).forEach((d) => {
+        if (counts.dietary[d] != null) counts.dietary[d] += 1;
+      });
       if (Number(r.rating || 0) >= 4) counts.topRated += 1;
       if (isOpenNow(r.opening_time ?? r.openingTime, r.closing_time ?? r.closingTime)) counts.openNow += 1;
       if (today) counts.availableToday += 1;
     });
+
     return counts;
   }, [baseRestaurants]);
 
@@ -294,13 +339,40 @@ export default function UserSearch({
     if (filters.availabilityDate) chips.push({ key: "date", label: `Date: ${filters.availabilityDate}`, clear: () => updateFilters((p) => ({ ...p, availabilityDate: "", availabilityTime: "" })) });
     if (filters.availabilityTime) chips.push({ key: "time", label: `Time: ${filters.availabilityTime}`, clear: () => updateFilters((p) => ({ ...p, availabilityTime: "" })) });
     if (filters.distanceEnabled) chips.push({ key: "distance", label: `Distance: ${filters.distanceRadius}km`, clear: () => updateFilters((p) => ({ ...p, distanceEnabled: false })) });
+
     if (filters.sortBy && filters.sortBy !== "rating") {
-      const labels = { rating_asc: "Lowest Rated", distance: "Distance", reviews: "Reviews", popularity: "Popularity", alphabetical: "A-Z" };
-      chips.push({ key: "sort", label: `Sort: ${labels[filters.sortBy] || filters.sortBy}`, clear: () => updateFilters((p) => ({ ...p, sortBy: "rating" })) });
+      const labels = {
+        rating_asc: "Lowest Rated",
+        distance: "Distance",
+        reviews: "Reviews",
+        popularity: "Popularity",
+        alphabetical: "A-Z",
+      };
+      chips.push({
+        key: "sort",
+        label: `Sort: ${labels[filters.sortBy] || filters.sortBy}`,
+        clear: () => updateFilters((p) => ({ ...p, sortBy: "rating" })),
+      });
     }
-    filters.priceRange.forEach((p) => chips.push({ key: `price-${p}`, label: `Price: ${PRICE_LABELS[p] || p}`, clear: () => updateFilters((prev) => ({ ...prev, priceRange: prev.priceRange.filter((x) => x !== p) })) }));
-    filters.dietarySupport.forEach((d) => chips.push({ key: `dietary-${d}`, label: DIETARY_LABELS[d] || d, clear: () => updateFilters((prev) => ({ ...prev, dietarySupport: prev.dietarySupport.filter((x) => x !== d) })) }));
-    filters.cuisines.forEach((c) => chips.push({ key: `cuisine-${c}`, label: c, clear: () => updateFilters((prev) => ({ ...prev, cuisines: prev.cuisines.filter((x) => x !== c) })) }));
+
+    filters.priceRange.forEach((p) => chips.push({
+      key: `price-${p}`,
+      label: `Price: ${PRICE_LABELS[p] || p}`,
+      clear: () => updateFilters((prev) => ({ ...prev, priceRange: prev.priceRange.filter((x) => x !== p) })),
+    }));
+
+    filters.dietarySupport.forEach((d) => chips.push({
+      key: `dietary-${d}`,
+      label: DIETARY_LABELS[d] || d,
+      clear: () => updateFilters((prev) => ({ ...prev, dietarySupport: prev.dietarySupport.filter((x) => x !== d) })),
+    }));
+
+    filters.cuisines.forEach((c) => chips.push({
+      key: `cuisine-${c}`,
+      label: c,
+      clear: () => updateFilters((prev) => ({ ...prev, cuisines: prev.cuisines.filter((x) => x !== c) })),
+    }));
+
     return chips;
   }, [filters]);
 
@@ -313,13 +385,11 @@ export default function UserSearch({
     { value: "alphabetical", label: "A-Z" },
   ];
 
-  // ── Effects ───────────────────────────────────────────────
-
-  // Fetch restaurants
   useEffect(() => {
     let cancelled = false;
     setRestaurantsLoading(true);
     setRestaurantsError("");
+
     const payload = {
       minRating: filters.minRating,
       priceRange: filters.priceRange,
@@ -333,31 +403,47 @@ export default function UserSearch({
       distanceRadius: filters.distanceEnabled ? filters.distanceRadius : null,
       sortBy: filters.sortBy,
     };
+
     Promise.all([
       searchRestaurants(query.trim(), filters.cuisines, payload),
-      searchRestaurants(query.trim(), [], { verifiedOnly: true, latitude: effectiveGeo.latitude, longitude: effectiveGeo.longitude }),
+      searchRestaurants(query.trim(), [], {
+        verifiedOnly: true,
+        latitude: effectiveGeo.latitude,
+        longitude: effectiveGeo.longitude,
+      }),
     ])
       .then(([filtered, base]) => {
         if (cancelled) return;
         setRestaurants(Array.isArray(filtered) ? filtered : []);
         setBaseRestaurants(Array.isArray(base) ? base : []);
       })
-      .catch(() => { if (cancelled) return; setRestaurants([]); setBaseRestaurants([]); setRestaurantsError("We couldn't load restaurants. Check your connection and try again."); })
-      .finally(() => { if (!cancelled) setRestaurantsLoading(false); });
-    return () => { cancelled = true; };
+      .catch(() => {
+        if (cancelled) return;
+        setRestaurants([]);
+        setBaseRestaurants([]);
+        setRestaurantsError("We couldn't load restaurants. Check your connection and try again.");
+      })
+      .finally(() => {
+        if (!cancelled) setRestaurantsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [query, filters, effectiveGeo.latitude, effectiveGeo.longitude, refreshKey]);
 
-  // GPS
   useEffect(() => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
-      (pos) => setGeo({ latitude: Number(pos.coords.latitude.toFixed(6)), longitude: Number(pos.coords.longitude.toFixed(6)) }),
+      (pos) => setGeo({
+        latitude: Number(pos.coords.latitude.toFixed(6)),
+        longitude: Number(pos.coords.longitude.toFixed(6)),
+      }),
       () => setGeo({ latitude: null, longitude: null }),
       { timeout: 7000 }
     );
   }, []);
 
-  // Load favorites from server
   useEffect(() => {
     if (!user?.id) return;
     getFavorites()
@@ -365,22 +451,22 @@ export default function UserSearch({
       .catch(() => setFavorites([]));
   }, [user?.id]);
 
-  // Seed cuisine from external nav
   useEffect(() => {
     const preset = String(initialCuisine || "").trim();
     if (!preset) return;
     setFilters((prev) => ({ ...prev, cuisines: [preset] }));
   }, [initialCuisineToken, initialCuisine]);
 
-  // Open restaurant passed from Discover / Explore
   useEffect(() => {
     if (!restaurantToOpen) return;
     setRestaurantNotFound(false);
+
     if (restaurantToOpen.name != null) {
       setSelectedRestaurant(restaurantToOpen);
       clearRestaurantToOpen?.();
       return;
     }
+
     const id = restaurantToOpen.id ?? restaurantToOpen;
     getRestaurantById(id)
       .then((r) => setSelectedRestaurant(r))
@@ -451,7 +537,6 @@ export default function UserSearch({
     };
   }, [chatCommand, clearChatCommand]);
 
-  // Scroll restore after filter change
   useEffect(() => {
     if (scrollRestoreRef.current == null) return;
     const restoreTo = scrollRestoreRef.current;
@@ -459,34 +544,31 @@ export default function UserSearch({
     window.requestAnimationFrame(() => window.scrollTo({ top: restoreTo, behavior: "auto" }));
   }, [restaurants]);
 
-  // Notify parent when search is active (used by the landing page)
   useEffect(() => {
     const initial = getInitialFilters();
     const active =
-      query.trim().length > 0
-      || filters.minRating !== initial.minRating
-      || filters.openNow !== initial.openNow
-      || filters.verifiedOnly !== initial.verifiedOnly
-      || filters.availabilityDate !== initial.availabilityDate
-      || filters.availabilityTime !== initial.availabilityTime
-      || filters.distanceEnabled !== initial.distanceEnabled
-      || Number(filters.distanceRadius) !== Number(initial.distanceRadius)
-      || filters.sortBy !== initial.sortBy
-      || filters.priceRange.length > 0
-      || filters.dietarySupport.length > 0
-      || filters.cuisines.length > 0;
+      query.trim().length > 0 ||
+      filters.minRating !== initial.minRating ||
+      filters.openNow !== initial.openNow ||
+      filters.verifiedOnly !== initial.verifiedOnly ||
+      filters.availabilityDate !== initial.availabilityDate ||
+      filters.availabilityTime !== initial.availabilityTime ||
+      filters.distanceEnabled !== initial.distanceEnabled ||
+      Number(filters.distanceRadius) !== Number(initial.distanceRadius) ||
+      filters.sortBy !== initial.sortBy ||
+      filters.priceRange.length > 0 ||
+      filters.dietarySupport.length > 0 ||
+      filters.cuisines.length > 0;
+
     onSearchActiveChange?.(active);
   }, [query, filters, onSearchActiveChange]);
 
-  // Disable sticky nav while inside restaurant detail
   useEffect(() => {
     const inDetails = !!selectedRestaurant;
     document.body.classList.toggle("ds-nav-not-sticky", inDetails);
     return () => document.body.classList.remove("ds-nav-not-sticky");
   }, [selectedRestaurant]);
 
-
-  // ── Render: not found ─────────────────────────────────────
   if (restaurantNotFound) {
     return (
       <div className="userSearchPage">
@@ -496,14 +578,55 @@ export default function UserSearch({
             className="btn btn--ghost backArrowBtn backArrowBtn--topLeftInCard"
             onClick={() => setRestaurantNotFound(false)}
             aria-label="Go back"
-          >←</button>
+          >
+            ←
+          </button>
           <p className="userSearchNotFoundCard__text">Restaurant not found or no longer available.</p>
         </div>
       </div>
     );
   }
 
-  // ── Render: detail view ───────────────────────────────────
+  function handleRestaurantUpdated(updatedRestaurant) {
+    if (!updatedRestaurant?.id) return;
+
+    setRestaurants((prev) =>
+      Array.isArray(prev)
+        ? prev.map((restaurant) =>
+            String(restaurant.id) === String(updatedRestaurant.id)
+              ? { ...restaurant, ...updatedRestaurant }
+              : restaurant
+          )
+        : prev
+    );
+
+    setBaseRestaurants((prev) =>
+      Array.isArray(prev)
+        ? prev.map((restaurant) =>
+            String(restaurant.id) === String(updatedRestaurant.id)
+              ? { ...restaurant, ...updatedRestaurant }
+              : restaurant
+          )
+        : prev
+    );
+
+    setFavorites((prev) =>
+      Array.isArray(prev)
+        ? prev.map((restaurant) =>
+            String(restaurant.id) === String(updatedRestaurant.id)
+              ? { ...restaurant, ...updatedRestaurant }
+              : restaurant
+          )
+        : prev
+    );
+
+    setSelectedRestaurant((prev) =>
+      prev && String(prev.id) === String(updatedRestaurant.id)
+        ? { ...prev, ...updatedRestaurant }
+        : prev
+    );
+  }
+
   if (selectedRestaurant) {
     return (
       <RestaurantDetailPanel
@@ -512,12 +635,12 @@ export default function UserSearch({
         onToggleFavorite={toggleFavorite}
         requireAuth={requireAuth}
         reservationIntentToken={reservationIntentToken}
+        onRestaurantUpdated={handleRestaurantUpdated}
         onBack={() => { setSelectedRestaurant(null); setRestaurantNotFound(false); }}
       />
     );
   }
 
-  // ── Render: search list ───────────────────────────────────
   return (
     <div className="userSearchPage">
       <h1 className="userSearchPage__title">Search Restaurants</h1>
@@ -528,7 +651,10 @@ export default function UserSearch({
           type="text"
           placeholder="Search by name, cuisine, or keyword"
           value={query}
-          onChange={(e) => { scrollRestoreRef.current = window.scrollY; setQuery(e.target.value); }}
+          onChange={(e) => {
+            scrollRestoreRef.current = window.scrollY;
+            setQuery(e.target.value);
+          }}
           aria-label="Search restaurants"
         />
         <button
@@ -561,37 +687,17 @@ export default function UserSearch({
         <p className="searchResultsHeader__count">{filteredRestaurants.length} restaurants found</p>
         <div className="searchSortControl">
           <span>Sort by</span>
-          <div className="sortDropdown">
-            <button
-              type="button"
-              className="sortDropdown__btn"
-              onClick={() => setSortOpen((v) => !v)}
-              aria-haspopup="listbox"
-              aria-expanded={sortOpen}
-            >
-              {sortOptions.find((o) => o.value === filters.sortBy)?.label || "Top Rated"}
-              <span className="sortDropdown__arrow">▾</span>
-            </button>
-            {sortOpen && (
-              <>
-                <div className="sortDropdown__backdrop" onClick={() => setSortOpen(false)} />
-                <div className="sortDropdown__menu" role="listbox">
-                  {sortOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      role="option"
-                      aria-selected={filters.sortBy === option.value}
-                      className={`sortDropdown__item${filters.sortBy === option.value ? " is-active" : ""}`}
-                      onClick={() => { updateFilters((prev) => ({ ...prev, sortBy: option.value })); setSortOpen(false); }}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+          <ThemedSelect
+            value={filters.sortBy}
+            onChange={(nextValue) => {
+              updateFilters((prev) => ({ ...prev, sortBy: nextValue }));
+              setSortOpen(false);
+            }}
+            options={sortOptions}
+            placeholder="Top Rated"
+            ariaLabel="Sort restaurants"
+            fullWidth={false}
+          />
         </div>
       </div>
 
@@ -613,6 +719,7 @@ export default function UserSearch({
             onAction={resetFilters}
           />
         ) : null}
+
         {!restaurantsLoading && filteredRestaurants.map((r, i) => (
           <motion.div
             key={r.id}
@@ -624,8 +731,14 @@ export default function UserSearch({
               r={r}
               isFavorited={isFavorited(r.id)}
               onSelect={(restaurant) => setSelectedRestaurant(restaurant)}
-              onFavorite={(restaurant) => { if (!requireAuth()) return; toggleFavorite(restaurant); }}
-              onReserve={(restaurant) => { if (!requireAuth()) return; setSelectedRestaurant(restaurant); }}
+              onFavorite={(restaurant) => {
+                if (!requireAuth()) return;
+                toggleFavorite(restaurant);
+              }}
+              onReserve={(restaurant) => {
+                if (!requireAuth()) return;
+                setSelectedRestaurant(restaurant);
+              }}
             />
           </motion.div>
         ))}
@@ -637,7 +750,10 @@ export default function UserSearch({
         effectiveGeo={effectiveGeo}
         optionCounts={optionCounts}
         onClose={() => setDrawerOpen(false)}
-        onApply={(newFilters) => { updateFilters(newFilters); setDrawerOpen(false); }}
+        onApply={(newFilters) => {
+          updateFilters(newFilters);
+          setDrawerOpen(false);
+        }}
       />
     </div>
   );

@@ -3,6 +3,7 @@ const router = express.Router();
 const requireAuth = require("../middleware/requireAuth");
 const reservationController = require("../controllers/reservationController");
 
+router.get("/disabled-slots", reservationController.getDisabledSlots);
 router.get("/availability", reservationController.getAvailability);
 router.post("/", requireAuth, reservationController.createReservation);
 router.get("/user/:id", requireAuth, reservationController.getReservationsByUser);
@@ -11,4 +12,3 @@ router.post("/waitlist", requireAuth, reservationController.joinWaitlist);
 router.delete("/waitlist", requireAuth, reservationController.leaveWaitlist);
 
 module.exports = router;
-

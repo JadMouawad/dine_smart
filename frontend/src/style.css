@@ -268,10 +268,22 @@
 [data-theme="light"] .formCard--matchHeight .field input,
 [data-theme="light"] .formCard--matchHeight .select,
 [data-theme="light"] .formCard--userProfile .field input,
-[data-theme="light"] .formCard--userProfile .select {
-  background: rgba(255, 251, 243, 0.90);
-  border-color: rgba(175, 115, 45, 0.25);
-  color: #1A0E06;
+[data-theme="light"] .select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-color: rgba(255, 251, 243, 0.90) !important;
+  border-color: rgba(175, 115, 45, 0.25) !important;
+  color: #1A0E06 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 7.5L10 12l4.5-4.5' fill='none' stroke='%23502d0f' stroke-opacity='0.72' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: calc(100% - 14px) 50% !important;
+  background-size: 14px 14px !important;
+  padding-right: 40px !important;
+}
+
+[data-theme="light"] .select::-ms-expand {
+  display: none;
 }
 [data-theme="light"] .formCard--matchHeight .field input::placeholder,
 [data-theme="light"] .formCard--userProfile .field input::placeholder {
@@ -293,9 +305,7 @@
   background-color: rgba(255, 251, 243, 0.90);
   border-color: rgba(175, 115, 45, 0.25);
   color: #1A0E06;
-  background-image:
-    linear-gradient(45deg, transparent 50%, rgba(80, 45, 15, 0.70) 50%),
-    linear-gradient(135deg, rgba(80, 45, 15, 0.70) 50%, transparent 50%);
+  background-image: none;
 }
 [data-theme="light"] .select option {
   background: #fdf8f0;
@@ -2199,6 +2209,8 @@ body.ds-nav-not-sticky .nav {
 .ownerArea__main--pending {
   width: min(860px, 92vw);
   padding: 24px 16px 32px;
+  display: grid;
+  gap: 18px;
 }
 
 .ownerPendingCard {
@@ -2210,6 +2222,18 @@ body.ds-nav-not-sticky .nav {
     linear-gradient(160deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.02)),
     rgba(10, 16, 58, 0.4);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  margin-bottom: 8px;
+}
+
+.ownerPendingCard__title {
+  font-size: 1.9rem;
+  line-height: 1.15;
+}
+
+.ownerPendingCard__text {
+  margin-top: 10px;
+  font-size: 1.02rem;
+  line-height: 1.55;
 }
 
 /* ========================= */
@@ -2258,6 +2282,9 @@ body.ds-nav-not-sticky .nav {
 /* NAV LINK HOVER (rounded + glow) */
 
 .nav__links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 8px 14px;
   border-radius: 999px;
   transition:
@@ -2926,7 +2953,7 @@ body {
     rgba(255, 255, 255, 0.03)
   ),
   rgba(12, 19, 79, 0.22);
-  border-radius: 22px;
+  border-radius: 20px;
   padding: 14px;
   backdrop-filter: blur(20px) saturate(160%);
  -webkit-backdrop-filter: blur(20px) saturate(160%);
@@ -2938,7 +2965,7 @@ body {
   border: 1px dashed rgba(255, 255, 255, 0.18);
   background: rgba(0, 0, 0, 0.14);
   overflow: hidden;
-  margin-bottom: 12px;
+  margin-bottom: 0;
 
   position: relative;
   min-height: 0;
@@ -3063,6 +3090,7 @@ body {
   width: 100%;
   position: relative;
   overflow: hidden;
+  min-height: 42px;
 }
 
 .imageCard__input {
@@ -3104,33 +3132,44 @@ body {
 }
 
 .select {
-  width: 100%;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.92);
-
-  padding: 12px 12px;
-  outline: none;
-
-  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  font-size: 14px;
-
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-
-  background-image:
-    linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.85) 50%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.85) 50%, transparent 50%);
-  background-position:
-    calc(100% - 18px) 50%,
-    calc(100% - 12px) 50%;
-  background-size:
-    6px 6px,
-    6px 6px;
+  width: 100%;
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background-color: rgba(255, 255, 255, 0.06);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 7.5L10 12l4.5-4.5' fill='none' stroke='rgba(255,255,255,0.72)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
+  background-position: calc(100% - 14px) 50%;
+  background-size: 14px 14px;
+  color: rgba(255, 255, 255, 0.92);
+  padding: 0 40px 0 14px;
+  font-size: 14px;
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  outline: none;
+  cursor: pointer;
+}
+
+.select::-ms-expand {
+  display: none;
+}
+
+.select::-ms-expand {
+  display: none;
+}
+
+.ownerCalendarField .select,
+.ownerCalendarField select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+}
+
+.ownerCalendarField .select::-ms-expand,
+.ownerCalendarField select::-ms-expand {
+  display: none;
 }
 
 .select:focus {
@@ -3199,13 +3238,25 @@ body {
   }
 }
 
-input[type="time"] {
-  color: rgba(255, 255, 255, 0.92);
+input[type="time"],
+input[type="date"] {
+  color: inherit;
 }
 
-input[type="time"]::-webkit-calendar-picker-indicator {
+/* Dark mode: make the icons white */
+[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator,
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
+  opacity: 0.95;
+  cursor: pointer;
+}
+
+/* Light mode: keep the icons black */
+[data-theme="light"] input[type="time"]::-webkit-calendar-picker-indicator,
+[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: none;
   opacity: 0.9;
+  cursor: pointer;
 }
 
 .ownerProfileGrid {
@@ -3219,27 +3270,28 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 .ownerProfileGrid__media {
   display: grid;
-  grid-template-rows: 1fr 1fr;
+  grid-auto-rows: min-content;
   gap: 14px;
-  height: 100%;
+  height: auto;
   min-height: 0;
 }
 
 .imageCard--equal {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto auto auto;
+  gap: 12px;
   min-height: 0;
 }
 
 .imageCard__title {
   font-weight: 800;
-  margin-bottom: 10px;
+  margin-bottom: 0;
   color: rgba(255, 255, 255, 0.92);
 }
 
 .imageCard__preview--equal {
-  height: 100%;
-  min-height: 0;
+  min-height: 150px;
+  height: auto;
 }
 
 .formCard--matchHeight {
@@ -3294,12 +3346,12 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 .ownerFilterChip {
   position: relative;
-  min-height: 44px;
+  min-height: 40px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(7, 13, 46, 0.68);
   color: rgba(255, 255, 255, 0.92);
-  padding: 10px 14px;
+  padding: 8px 13px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3431,16 +3483,16 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 /* Match logo preview size with gallery preview */
 .imageCard__preview--logo {
-  width: 100%;
-  height: 100%;
-  margin: 0 0 12px;
+  width: 156px;
+  height: 156px;
+  margin: 0 auto;
 }
 
 /* Keep logo upload button aligned with card */
 .imageCard__btn--logo {
-  width: 100%;
-  align-self: stretch;
-  padding: 10px 18px;
+  width: auto;
+  align-self: center;
+  padding: 9px 18px;
 }
 
 .imageCard__formats {
@@ -3452,7 +3504,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 .formCard--matchHeight .field {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -3480,7 +3532,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  height: 60px;
+  height: 54px;
   padding: 0 14px;
   line-height: normal;
   font-size: 16px;
@@ -3685,6 +3737,20 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .adminFilters {
   grid-template-columns: 2fr 1fr 1fr;
   align-items: center;
+  position: relative;
+  z-index: 200;
+  overflow: visible;
+}
+
+.adminFilters .sortDropdown,
+.adminFilters .themedSelect {
+  position: relative;
+  z-index: 210;
+}
+
+.adminFilters .sortDropdown__menu,
+.adminFilters .themedSelect__menu {
+  z-index: 9999;
 }
 
 .adminUsersLayout {
@@ -3693,11 +3759,21 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   grid-template-columns: 1.3fr 0.9fr;
   gap: 12px;
   align-items: start;
+  position: relative;
+  z-index: 1;
 }
 
 .adminUsersTableCard {
   overflow: hidden;
   padding: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.adminUserDetailsCard {
+  gap: 10px;
+  position: relative;
+  z-index: 1;
 }
 
 .adminTable {
@@ -4263,13 +4339,45 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 .phoneRow {
   display: grid;
-  grid-template-columns: 130px 1fr;
+  grid-template-columns: 198px minmax(0, 1fr);
   gap: 12px;
   align-items: center;
 }
 
+.ownerProfileGrid__media .documentCard {
+  margin-top: 0;
+  min-height: 58px;
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.ownerProfileGrid__media .documentCard__name {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.ownerProfileGrid__media .imageCard__preview--equal:has(.documentCard) {
+  min-height: 78px;
+}
+
 .phoneRow__code {
   height: 44px;
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI", sans-serif;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-left: 14px;
+  padding-right: 26px;
+  line-height: 1.15;
+  background-position:
+    calc(100% - 16px) calc(50% + 1px),
+    calc(100% - 10px) calc(50% + 1px);
+  background-size:
+    6px 6px,
+    6px 6px;
+}
+
+.phoneRow__code option {
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI", sans-serif;
 }
 
 .phoneRow__number {
@@ -7330,6 +7438,189 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   background: rgba(201, 162, 39, 0.14);
 }
 
+.sortDropdown__caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.72;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.sortDropdown__caret.is-open {
+  transform: rotate(180deg);
+  opacity: 1;
+}
+
+.themedSelect--full {
+  width: 100%;
+}
+
+.themedSelect__btn {
+  width: 100%;
+}
+
+.themedSelect__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.themedSelect__menu {
+  width: 100%;
+  max-height: 240px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201, 162, 39, 0.55) rgba(255, 255, 255, 0.06);
+}
+
+.themedSelect__menu::-webkit-scrollbar {
+  width: 8px;
+}
+
+.themedSelect__menu::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+}
+
+.themedSelect__menu::-webkit-scrollbar-thumb {
+  background: rgba(201, 162, 39, 0.48);
+  border-radius: 999px;
+}
+
+.themedSelect__searchWrap {
+  padding: 4px 4px 6px;
+}
+
+.themedSelect__searchInput {
+  width: 100%;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  padding: 0 10px;
+  outline: none;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.themedSelect__searchInput::placeholder {
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.themedSelect__searchInput:focus {
+  border-color: rgba(201, 162, 39, 0.5);
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.12);
+}
+
+.themedSelect__empty {
+  padding: 8px 12px 10px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 13px;
+}
+
+.phoneRow__codeDropdown {
+  width: 198px;
+  flex: 0 0 198px;
+  position: relative;
+  z-index: 3;
+}
+
+.phoneRow__codeDropdownBtn {
+  min-width: 0;
+  width: 100%;
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI", sans-serif;
+  position: relative;
+  justify-content: flex-start;
+  padding-right: 20px;
+}
+
+.phoneRow__codeDropdownBtn .themedSelect__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-right: 0;
+}
+
+.phoneRow__codeDropdownBtn .sortDropdown__caret {
+  position: absolute;
+  right: 2px;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0;
+  transform: translateY(-4px);
+}
+
+.phoneRow__codeDropdownBtn .sortDropdown__caret.is-open {
+  transform: translateY(-4px) rotate(180deg);
+}
+
+.phoneRow__codeDropdownMenu {
+  min-width: 100%;
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI", sans-serif;
+  z-index: 120;
+}
+
+.phoneCountryOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.phoneCountryOption__flag {
+  width: 18px;
+  height: 14px;
+  border-radius: 2px;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+
+[data-theme="light"] .themedSelect__searchInput {
+  border-color: rgba(175, 115, 45, 0.22);
+  background: rgba(255, 251, 243, 0.96);
+  color: rgba(26, 14, 6, 0.9);
+}
+
+[data-theme="light"] .themedSelect__searchInput::placeholder {
+  color: rgba(120, 82, 41, 0.58);
+}
+
+[data-theme="light"] .themedSelect__empty {
+  color: rgba(88, 56, 23, 0.68);
+}
+
+.ownerCalendarSelect {
+  min-width: 170px;
+}
+
+.ownerCalendarMonthSelect,
+.ownerCalendarWeekSelect {
+  min-width: 0;
+  width: 100%;
+}
+
+.reviewCard__select {
+  width: 120px;
+}
+
+.reviewCard__select .sortDropdown__btn {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .phoneRow__codeDropdown {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+}
+
 .userMenuAccordion {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 18px;
@@ -7957,21 +8248,64 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   padding-right: 46px;
 }
 
+/* Hide browser-native password reveal / clear icons
+   so only the custom eye button remains */
+.passwordFieldWrap input::-ms-reveal,
+.passwordFieldWrap input::-ms-clear {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.passwordFieldWrap input::-webkit-credentials-auto-fill-button,
+.passwordFieldWrap input::-webkit-contacts-auto-fill-button {
+  visibility: hidden;
+  display: none !important;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+}
+
 .passwordToggleBtn {
   position: absolute;
   right: 10px;
   border: 0;
   background: transparent;
-  color: rgba(255, 255, 255, 0.78);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   font-size: 18px;
+  padding: 0;
+  line-height: 1;
+  z-index: 2;
+}
+
+/* Dark mode eye = white */
+[data-theme="dark"] .passwordToggleBtn {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+[data-theme="dark"] .passwordToggleBtn:hover {
+  color: rgba(255, 255, 255, 1);
+}
+
+/* Light mode eye = black */
+[data-theme="light"] .passwordToggleBtn {
+  color: rgba(0, 0, 0, 0.78);
+}
+
+[data-theme="light"] .passwordToggleBtn:hover {
+  color: rgba(0, 0, 0, 1);
+}
+
+/* Fallback if theme attribute is missing */
+.passwordToggleBtn {
+  color: rgba(0, 0, 0, 0.78);
 }
 
 .passwordToggleBtn:hover {
-  color: rgba(255, 255, 255, 0.96);
+  color: rgba(0, 0, 0, 1);
 }
 
 .authMapField {
@@ -9803,7 +10137,7 @@ html[data-theme="light"] .quickFilterBtn {
   border-top-color: rgba(0, 0, 0, 0.08);
 }
 
-/* ── ErrorBoundary ──────────────────────────────────────────────────────── */
+/* ── ErrorBoundary ────────────────────────────────────────────────────── */
 .errorBoundary {
   display: flex;
   flex-direction: column;
@@ -9982,7 +10316,8 @@ html[data-theme="light"] .quickFilterBtn {
   margin: 0;
   white-space: pre-wrap;
   color: var(--text);
-  line-height: 1.5;
+  line-height: 1.45;
+  font-size: 0.82rem;
 }
 
 .chatWidget__timestamp {
@@ -10012,37 +10347,130 @@ html[data-theme="light"] .quickFilterBtn {
 
 .chatWidget__cards {
   width: 100%;
-  display: grid;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .chatWidget__card {
-  display: grid;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.09);
   background: rgba(255, 255, 255, 0.05);
   cursor: pointer;
 }
 
+.chatWidget__cardMeta {
+  flex: 1;
+  min-width: 0;
+}
+
 .chatWidget__cardName {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.8rem;
+  font-weight: 700;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chatWidget__cardCuisine,
 .chatWidget__cardRating {
-  margin: 4px 0 0;
+  margin: 1px 0 0;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.72rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chatWidget__cardActions {
   display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.chatWidget__cardActions .btn {
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+/* ── Reservation confirmation card ─────────────────────────────── */
+.chatWidget__reservationCard {
+  margin-top: 10px;
+  border-radius: 12px;
+  background: rgba(201, 162, 39, 0.08);
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chatWidget__reservationCard__header {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  justify-content: flex-end;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: #c9a227;
+}
+
+.chatWidget__reservationCard__icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.chatWidget__reservationCard__details {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.chatWidget__reservationCard__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.83rem;
+}
+
+.chatWidget__reservationCard__label {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.chatWidget__reservationCard__value {
+  color: var(--text);
+  font-weight: 600;
+  text-align: right;
+}
+
+.chatWidget__reservationCard__id {
+  font-size: 0.78rem;
+  color: var(--muted);
+  border-top: 1px solid rgba(201, 162, 39, 0.18);
+  padding-top: 8px;
+}
+
+.chatWidget__reservationCard__id strong {
+  color: #c9a227;
+  letter-spacing: 0.04em;
+}
+
+[data-theme="light"] .chatWidget__reservationCard {
+  background: rgba(201, 162, 39, 0.06);
+  border-color: rgba(175, 115, 45, 0.3);
+}
+
+[data-theme="light"] .chatWidget__reservationCard__value {
+  color: #1a0e06;
 }
 
 .chatWidget__composer {
@@ -10123,6 +10551,65 @@ html[data-theme="light"] .quickFilterBtn {
 
 .chatWidget__typingDot:nth-child(3) {
   animation-delay: 0.3s;
+}
+
+/* ── Tool status bar ─────────────────────────────────────────────────────── */
+
+.chatWidget__toolStatus {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 6px;
+  padding: 0 2px;
+}
+
+.chatWidget__toolStatus__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.3;
+}
+
+.chatWidget__toolStatus__item--done {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.chatWidget__toolStatus__icon {
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.chatWidget__toolStatus__label {
+  font-weight: 500;
+}
+
+.chatWidget__toolStatus__summary {
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 400;
+}
+
+.chatWidget__toolStatus__spinner {
+  opacity: 0.7;
+  animation: chatWidgetSpinnerPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes chatWidgetSpinnerPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 0.25; }
+}
+
+[data-theme="light"] .chatWidget__toolStatus__item {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="light"] .chatWidget__toolStatus__item--done {
+  color: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .chatWidget__toolStatus__summary {
+  color: rgba(0, 0, 0, 0.28);
 }
 
 @keyframes chatWidgetBounce {
@@ -10230,4 +10717,2876 @@ html[data-theme="light"] .quickFilterBtn {
 }
 [data-theme="light"] .ownerProfileGrid__media .imageCard__removeBtn:hover {
   background: rgba(255, 248, 235, 0.98);
+}
+
+.ownerReservationToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 18px 0 18px;
+}
+
+.ownerReservationTabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ownerReservationTabs__btn {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(8, 13, 42, 0.55);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+}
+
+.ownerReservationTabs__btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.6);
+}
+
+.ownerReservationTabs__btn.is-active {
+  background: rgba(201, 162, 39, 0.18);
+  border-color: rgba(201, 162, 39, 0.72);
+  color: #fff;
+}
+
+.ownerReservationFiltersBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 20, 0.45);
+  z-index: 9998;
+}
+
+.ownerReservationFiltersModal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(78vh, 760px);
+  transform: translate(-50%, -50%);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(10, 14, 50, 0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.45);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ownerReservationFiltersModal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ownerReservationFiltersModal__title {
+  font-size: 26px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.ownerReservationFiltersModal__close {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.ownerReservationFiltersModal__body {
+  padding: 18px 20px;
+  overflow-y: auto;
+  display: grid;
+  gap: 16px;
+}
+
+.ownerReservationFiltersSection {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.ownerReservationFiltersSection__title {
+  font-size: 15px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.ownerReservationRadioRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ownerReservationPartySizeGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ownerReservationFiltersModal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.reservationCard__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.reservationCard__statusWrap {
+  flex-shrink: 0;
+}
+
+.reservationCard__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+[data-theme="light"] .ownerReservationTabs__btn {
+  background: rgba(255, 248, 235, 0.9);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+
+[data-theme="light"] .ownerReservationTabs__btn.is-active {
+  background: rgba(201, 162, 39, 0.2);
+  border-color: rgba(201, 162, 39, 0.62);
+  color: #5a3d00;
+}
+
+[data-theme="light"] .ownerReservationFiltersBackdrop {
+  background: rgba(30, 20, 10, 0.3);
+}
+
+[data-theme="light"] .ownerReservationFiltersModal {
+  background: rgba(253, 248, 238, 0.98);
+  border-color: rgba(175, 115, 45, 0.2);
+  box-shadow: 0 22px 70px rgba(150, 90, 30, 0.22);
+}
+
+[data-theme="light"] .ownerReservationFiltersModal__head {
+  border-bottom-color: rgba(175, 115, 45, 0.16);
+}
+
+[data-theme="light"] .ownerReservationFiltersModal__title {
+  color: #1A0E06;
+}
+
+[data-theme="light"] .ownerReservationFiltersModal__close {
+  background: rgba(255, 248, 235, 0.9);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.82);
+}
+
+[data-theme="light"] .ownerReservationFiltersSection {
+  border-color: rgba(175, 115, 45, 0.16);
+  background: rgba(255, 248, 235, 0.78);
+}
+
+[data-theme="light"] .ownerReservationFiltersSection__title {
+  color: rgba(26, 14, 6, 0.9);
+}
+
+[data-theme="light"] .ownerReservationRadioRow {
+  color: rgba(26, 14, 6, 0.82);
+}
+
+[data-theme="light"] .ownerReservationFiltersModal__footer {
+  border-top-color: rgba(175, 115, 45, 0.16);
+}
+
+.ownerReservationToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 18px 0 18px;
+}
+
+.ownerReservationTabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ownerReservationTabs__btn {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(8, 13, 42, 0.55);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+}
+
+.ownerReservationTabs__btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.6);
+}
+
+.ownerReservationTabs__btn.is-active {
+  background: rgba(201, 162, 39, 0.18);
+  border-color: rgba(201, 162, 39, 0.72);
+  color: #fff;
+}
+
+.ownerReservationFiltersBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 20, 0.45);
+  z-index: 9998;
+}
+
+.ownerReservationFiltersModal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(78vh, 760px);
+  transform: translate(-50%, -50%);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(10, 14, 50, 0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.45);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ownerReservationFiltersModal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ownerReservationFiltersModal__title {
+  font-size: 26px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.ownerReservationFiltersModal__close {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.ownerReservationFiltersModal__body {
+  padding: 18px 20px;
+  overflow-y: auto;
+  display: grid;
+  gap: 16px;
+}
+
+.ownerReservationFiltersSection {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.ownerReservationFiltersSection__title {
+  font-size: 15px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.ownerReservationRadioRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ownerReservationFiltersModal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ownerReservationSliderRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 84px;
+  gap: 14px;
+  align-items: center;
+}
+
+.ownerReservationSlider {
+  width: 100%;
+  accent-color: #C9A227;
+  cursor: pointer;
+}
+
+.ownerReservationSliderValue {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.ownerReservationSliderMarks {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.62);
+  margin-top: 2px;
+}
+
+.ownerReservationSliderHint {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.68);
+  line-height: 1.45;
+}
+
+.reservationCard__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.reservationCard__statusWrap {
+  flex-shrink: 0;
+}
+
+.reservationCard__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+[data-theme="light"] .ownerReservationTabs__btn {
+  background: rgba(255, 248, 235, 0.9);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+
+[data-theme="light"] .ownerReservationTabs__btn.is-active {
+  background: rgba(201, 162, 39, 0.2);
+  border-color: rgba(201, 162, 39, 0.62);
+  color: #5a3d00;
+}
+
+[data-theme="light"] .ownerReservationFiltersBackdrop {
+  background: rgba(30, 20, 10, 0.3);
+}
+
+[data-theme="light"] .ownerReservationFiltersModal {
+  background: rgba(253, 248, 238, 0.98);
+  border-color: rgba(175, 115, 45, 0.2);
+  box-shadow: 0 22px 70px rgba(150, 90, 30, 0.22);
+}
+
+[data-theme="light"] .ownerReservationFiltersModal__head {
+  border-bottom-color: rgba(175, 115, 45, 0.16);
+}
+
+[data-theme="light"] .ownerReservationFiltersModal__title {
+  color: #1A0E06;
+}
+
+[data-theme="light"] .ownerReservationFiltersModal__close {
+  background: rgba(255, 248, 235, 0.9);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.82);
+}
+
+[data-theme="light"] .ownerReservationFiltersSection {
+  border-color: rgba(175, 115, 45, 0.16);
+  background: rgba(255, 248, 235, 0.78);
+}
+
+[data-theme="light"] .ownerReservationFiltersSection__title {
+  color: rgba(26, 14, 6, 0.9);
+}
+
+[data-theme="light"] .ownerReservationRadioRow {
+  color: rgba(26, 14, 6, 0.82);
+}
+
+[data-theme="light"] .ownerReservationFiltersModal__footer {
+  border-top-color: rgba(175, 115, 45, 0.16);
+}
+
+[data-theme="light"] .ownerReservationSliderValue {
+  border-color: rgba(175, 115, 45, 0.22);
+  background: rgba(255, 251, 243, 0.92);
+  color: #1A0E06;
+}
+
+[data-theme="light"] .ownerReservationSliderMarks {
+  color: rgba(80, 45, 15, 0.68);
+}
+
+[data-theme="light"] .ownerReservationSliderHint {
+  color: rgba(80, 45, 15, 0.72);
+}
+
+.restaurantCard__reviewCount {
+  display: inline-block;
+  margin-left: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.72);
+  letter-spacing: 0;
+}
+
+.restaurantHeroInfoReviewCount {
+  display: inline-block;
+  margin-left: 2px;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+[data-theme="light"] .restaurantCard__reviewCount {
+  color: rgba(80, 45, 15, 0.72);
+}
+
+[data-theme="light"] .restaurantHeroInfoReviewCount {
+  color: rgba(80, 45, 15, 0.72);
+}
+
+/* ===== Sprint 5 – PBI 2: Disable Time Slots ===== */
+
+.slotAdjustCard {
+  display: grid;
+  gap: 1rem;
+}
+
+.slotAdjustHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.slotAdjustForm {
+  display: grid;
+  gap: 1rem;
+}
+
+.slotAdjustGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.9rem;
+}
+
+.slotAdjustActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.slotAdjustStatus {
+  margin-top: 0.35rem;
+  font-size: 0.92rem;
+  color: var(--muted, #6b7280);
+}
+
+.slotStateRow {
+  display: flex;
+  align-items: center;
+  margin-top: 0.35rem;
+}
+
+.slotStatePill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0.42rem 0.9rem;
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1;
+  border-radius: 999px;
+  text-transform: none;
+}
+
+.slotStatePill--enabled {
+  background: rgba(34, 197, 94, 0.18);
+  border: 1px solid rgba(34, 197, 94, 0.45);
+  color: #166534;
+}
+
+.slotStatePill--disabled {
+  background: rgba(239, 68, 68, 0.16);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #b91c1c;
+}
+
+.slotAdjustHint {
+  display: inline-block;
+  margin-top: 0.45rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--muted, #6b7280);
+}
+
+.slotAdjustHint--reduce {
+  color: #b45309;
+}
+
+.disabledSlotsPanel {
+  display: grid;
+  gap: 0.7rem;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(148, 163, 184, 0.08);
+  border-radius: 18px;
+  padding: 1rem;
+}
+
+.disabledSlotsPanel__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text, #111827);
+}
+
+.disabledSlotsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.disabledSlotChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  border-radius: 999px;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid rgba(107, 114, 128, 0.28);
+  background: rgba(107, 114, 128, 0.12);
+  color: var(--text, #1f2937);
+  font-size: 0.88rem;
+  line-height: 1.2;
+}
+
+.disabledSlotChip__reason {
+  opacity: 0.78;
+  font-size: 0.82rem;
+}
+
+/* User reservation form: grid of time slots */
+.reservationTimeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.55rem;
+}
+
+.timeSlotToggleBtn {
+  margin-top: 0.8rem;
+  border: 0;
+  background: transparent;
+  color: var(--gold, #c9a227);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.timeSlotToggleBtn:hover {
+  text-decoration: underline;
+}
+
+.reservationHint {
+  margin-top: 0.65rem;
+  font-size: 0.9rem;
+  color: var(--muted, #6b7280);
+}
+
+/* Time slot button styling */
+.timeSlotBtn {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 52px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: var(--surface, #ffffff);
+  color: var(--text, #111827);
+  padding: 0.8rem 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease,
+    opacity 0.18s ease;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+.timeSlotBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.45);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.09);
+}
+
+.timeSlotBtn:disabled {
+  cursor: not-allowed;
+}
+
+.timeSlotBtn__activeBg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(135deg, rgba(201, 162, 39, 0.18), rgba(201, 162, 39, 0.08));
+}
+
+.timeSlotBtn__label {
+  position: relative;
+  z-index: 1;
+}
+
+.timeSlotBtn.is-selected {
+  border-color: rgba(201, 162, 39, 0.9);
+  box-shadow: 0 12px 28px rgba(201, 162, 39, 0.18);
+}
+
+.timeSlotBtn.is-unavailable {
+  background: rgba(148, 163, 184, 0.16);
+  border-color: rgba(148, 163, 184, 0.3);
+  color: #6b7280;
+  opacity: 0.78;
+  box-shadow: none;
+}
+
+.timeSlotBtn.is-unavailable .timeSlotBtn__label {
+  text-decoration: line-through;
+}
+
+/* Availability boxes under form */
+.reservationAvailability {
+  margin-top: 0.5rem;
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+  font-size: 0.94rem;
+  line-height: 1.45;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--text, #111827);
+}
+
+.reservationAvailability--loading {
+  opacity: 0.85;
+}
+
+.reservationAvailability--suggested {
+  border-color: rgba(201, 162, 39, 0.25);
+  background: rgba(201, 162, 39, 0.08);
+}
+
+.reservationSuggestedTimes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.7rem;
+}
+
+/* Dark mode support */
+html.dark .slotAdjustStatus,
+body.dark .slotAdjustStatus,
+[data-theme="dark"] .slotAdjustStatus {
+  color: #cbd5e1;
+}
+
+html.dark .slotStatePill--enabled,
+body.dark .slotStatePill--enabled,
+[data-theme="dark"] .slotStatePill--enabled {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.42);
+  color: #bbf7d0;
+}
+
+html.dark .slotStatePill--disabled,
+body.dark .slotStatePill--disabled,
+[data-theme="dark"] .slotStatePill--disabled {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.42);
+  color: #fecaca;
+}
+
+html.dark .disabledSlotsPanel,
+body.dark .disabledSlotsPanel,
+[data-theme="dark"] .disabledSlotsPanel {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+html.dark .disabledSlotsPanel__title,
+body.dark .disabledSlotsPanel__title,
+[data-theme="dark"] .disabledSlotsPanel__title,
+html.dark .disabledSlotChip,
+body.dark .disabledSlotChip,
+[data-theme="dark"] .disabledSlotChip {
+  color: #f3f4f6;
+}
+
+html.dark .disabledSlotChip,
+body.dark .disabledSlotChip,
+[data-theme="dark"] .disabledSlotChip {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.24);
+}
+
+html.dark .slotAdjustHint,
+body.dark .slotAdjustHint,
+[data-theme="dark"] .slotAdjustHint,
+html.dark .reservationHint,
+body.dark .reservationHint,
+[data-theme="dark"] .reservationHint {
+  color: #cbd5e1;
+}
+
+html.dark .timeSlotBtn,
+body.dark .timeSlotBtn,
+[data-theme="dark"] .timeSlotBtn {
+  background: rgba(15, 23, 42, 0.9);
+  color: #f8fafc;
+  border-color: rgba(148, 163, 184, 0.18);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22);
+}
+
+html.dark .timeSlotBtn:hover:not(:disabled),
+body.dark .timeSlotBtn:hover:not(:disabled),
+[data-theme="dark"] .timeSlotBtn:hover:not(:disabled) {
+  border-color: rgba(201, 162, 39, 0.5);
+}
+
+html.dark .timeSlotBtn.is-unavailable,
+body.dark .timeSlotBtn.is-unavailable,
+[data-theme="dark"] .timeSlotBtn.is-unavailable {
+  background: rgba(71, 85, 105, 0.38);
+  border-color: rgba(100, 116, 139, 0.28);
+  color: #94a3b8;
+  opacity: 0.82;
+  box-shadow: none;
+}
+
+html.dark .reservationAvailability,
+body.dark .reservationAvailability,
+[data-theme="dark"] .reservationAvailability {
+  background: rgba(30, 41, 59, 0.92);
+  border-color: rgba(148, 163, 184, 0.16);
+  color: #f8fafc;
+}
+
+html.dark .reservationAvailability--suggested,
+body.dark .reservationAvailability--suggested,
+[data-theme="dark"] .reservationAvailability--suggested {
+  background: rgba(201, 162, 39, 0.12);
+  border-color: rgba(201, 162, 39, 0.22);
+}
+
+/* ===== Multi-slot disable UI ===== */
+
+.slotAdjustHeader--row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.slotDraftAddBtn {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 162, 39, 0.38);
+  background: rgba(201, 162, 39, 0.12);
+  color: var(--text, #111827);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+.slotDraftAddBtn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.65);
+  box-shadow: 0 10px 22px rgba(201, 162, 39, 0.16);
+}
+
+.slotDraftStack {
+  display: grid;
+  gap: 1rem;
+}
+
+.slotDraftCard {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.slotDraftCard__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.slotDraftCard__titleWrap {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.slotDraftCard__title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text, #111827);
+}
+
+.slotDraftCard__subtitle {
+  font-size: 0.9rem;
+  color: var(--muted, #6b7280);
+}
+
+.slotDraftRemoveBtn {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: transparent;
+  color: var(--text, #111827);
+  border-radius: 999px;
+  padding: 0.65rem 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.slotDraftRemoveBtn:hover {
+  background: rgba(148, 163, 184, 0.08);
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+@media (max-width: 720px) {
+  .slotAdjustHeader--row,
+  .slotDraftCard__top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .slotDraftAddBtn {
+    align-self: flex-start;
+  }
+}
+
+/* Dark mode */
+html.dark .slotDraftAddBtn,
+body.dark .slotDraftAddBtn,
+[data-theme="dark"] .slotDraftAddBtn {
+  background: rgba(201, 162, 39, 0.14);
+  border-color: rgba(201, 162, 39, 0.32);
+  color: #f8fafc;
+}
+
+html.dark .slotDraftCard,
+body.dark .slotDraftCard,
+[data-theme="dark"] .slotDraftCard {
+  background: rgba(15, 23, 42, 0.35);
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+html.dark .slotDraftCard__title,
+body.dark .slotDraftCard__title,
+[data-theme="dark"] .slotDraftCard__title,
+html.dark .slotDraftRemoveBtn,
+body.dark .slotDraftRemoveBtn,
+[data-theme="dark"] .slotDraftRemoveBtn {
+  color: #f8fafc;
+}
+
+html.dark .slotDraftCard__subtitle,
+body.dark .slotDraftCard__subtitle,
+[data-theme="dark"] .slotDraftCard__subtitle {
+  color: #cbd5e1;
+}
+
+html.dark .slotDraftRemoveBtn,
+body.dark .slotDraftRemoveBtn,
+[data-theme="dark"] .slotDraftRemoveBtn {
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+html.dark .slotDraftRemoveBtn:hover,
+body.dark .slotDraftRemoveBtn:hover,
+[data-theme="dark"] .slotDraftRemoveBtn:hover {
+  background: rgba(148, 163, 184, 0.08);
+}
+
+/* ===== Owner reservations calendar ===== */
+.ownerCalendarCard {
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.ownerCalendarTopbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.ownerCalendarToolbar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px 14px;
+  width: 100%;
+}
+
+.ownerCalendarMonthDisplayWrap {
+  grid-column: 1 / 2;
+  grid-row: 1;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.ownerCalendarNavGroup--left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ownerCalendarMonthLabel {
+  font-size: 17px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+  white-space: nowrap;
+}
+
+.ownerCalendarToolbar__center {
+  grid-column: 2 / 3;
+  grid-row: 1;
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+  margin-left: -100px;
+}
+
+.ownerCalendarToolbar > .ownerCalendarViewToggle {
+  grid-column: 3 / 4;
+  grid-row: 1;
+  justify-self: end;
+  align-self: center;
+}
+
+.ownerCalendarControlBtn,
+.ownerCalendarIconBtn,
+.ownerCalendarViewToggle__btn,
+.ownerCalendarMonthSelect,
+.ownerCalendarYearInput,
+.ownerCalendarWeekSelect {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  border-radius: 14px;
+  min-height: 42px;
+  padding: 0 14px;
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.ownerCalendarControlBtn,
+.ownerCalendarIconBtn,
+.ownerCalendarViewToggle__btn,
+.ownerCalendarMonthSelect {
+  cursor: pointer;
+}
+
+.ownerCalendarControlBtn:hover,
+.ownerCalendarIconBtn:hover,
+.ownerCalendarViewToggle__btn:hover,
+.ownerCalendarMonthSelect:hover,
+.ownerCalendarYearInput:hover,
+.ownerCalendarYearInput:focus,
+.ownerCalendarMonthSelect:focus {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.45);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+  outline: none;
+}
+
+.ownerCalendarIconBtn {
+  width: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 12px;
+}
+
+.ownerCalendarNavGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ownerCalendarNavGroup--left {
+  order: 0;
+}
+
+.ownerCalendarMonthDisplayWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.ownerCalendarMonthLabel {
+  min-width: 140px;
+  font-size: 17px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.ownerCalendarMonthSelect {
+  min-width: 140px;
+}
+
+.ownerCalendarYearInput {
+  width: 92px;
+}
+
+.ownerCalendarViewToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.ownerCalendarViewToggle__btn {
+  min-height: 36px;
+  border-radius: 12px;
+  padding: 0 18px;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.ownerCalendarViewToggle__btn.is-active {
+  background: linear-gradient(135deg, rgba(201, 162, 39, 0.22), rgba(201, 162, 39, 0.12));
+  border: 1px solid rgba(201, 162, 39, 0.55);
+  color: #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(201, 162, 39, 0.18) inset,
+    0 8px 20px rgba(201, 162, 39, 0.18);
+  transform: translateY(-1px);
+}
+
+.ownerCalendarLayout {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) 250px;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.ownerCalendarSidebar {
+  display: grid;
+  gap: 12px;
+}
+
+.ownerCalendarSidebarCard,
+.ownerCalendarHintBox {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.16);
+  padding: 14px;
+}
+
+.ownerCalendarSidebarTitle {
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.92);
+  margin-bottom: 12px;
+}
+
+.ownerCalendarLegendList {
+  display: grid;
+  gap: 10px;
+}
+
+.ownerCalendarLegendItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ownerCalendarLegendItem__labelWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.ownerCalendarLegendDot,
+.ownerCalendarDayMarker__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.ownerCalendarLegendCount,
+.ownerCalendarPanelCount {
+  min-width: 34px;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.ownerCalendarPanelCount {
+  min-width: 44px;
+  padding: 4px 12px;
+}
+
+.ownerCalendarField input {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  padding: 0 14px;
+  font-size: 14px;
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.ownerCalendarField input::placeholder {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.ownerCalendarHintBox {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 14px;
+  line-height: 1.55;
+  font-weight: 500;
+}
+
+.ownerCalendarHintBox__icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  border: 1px solid rgba(96, 165, 250, 0.36);
+  background: rgba(96, 165, 250, 0.16);
+  color: #bfdbfe;
+}
+
+.ownerCalendarGridWrap {
+  min-width: 0;
+}
+
+.ownerCalendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.ownerCalendarWeekday {
+  min-height: 48px;
+  padding: 14px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.ownerCalendarDay {
+  min-height: 108px;
+  border: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  padding: 10px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.94);
+  cursor: pointer;
+  transition: background 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.ownerCalendarDay:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.ownerCalendarDay--empty {
+  min-height: 108px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  cursor: default;
+}
+
+.ownerCalendarGrid--week .ownerCalendarDay,
+.ownerCalendarGrid--week .ownerCalendarDay--empty {
+  min-height: 180px;
+}
+
+.ownerCalendarDay.is-selected {
+  background: rgba(59, 130, 246, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.42);
+}
+
+.ownerCalendarDay.is-today .ownerCalendarDay__number {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ownerCalendarDay__number {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.ownerCalendarDay__markers {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.ownerCalendarDayMarker {
+  max-width: 64px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.ownerCalendarSidebar--right {
+  min-height: 0;
+}
+
+.ownerCalendarSidebarCard--panel {
+  min-height: 100%;
+  height: 100%;
+  max-height: 760px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ownerCalendarPanelHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex: 0 0 auto;
+}
+
+.ownerCalendarPanelList {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  justify-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201, 162, 39, 0.92) rgba(255, 255, 255, 0.08);
+}
+
+.ownerCalendarPanelList::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ownerCalendarPanelList::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+
+.ownerCalendarPanelList::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(212, 175, 55, 0.98),
+    rgba(201, 162, 39, 0.88)
+  );
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ownerCalendarPanelList::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(224, 188, 68, 1),
+    rgba(201, 162, 39, 0.96)
+  );
+}
+
+.ownerCalendarPanelDate {
+  font-size: 15px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.ownerCalendarPanelEmpty {
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  padding: 16px;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.5;
+}
+
+.ownerCalendarReservationCard {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left-width: 4px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.94);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.ownerCalendarReservationCard:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.2);
+}
+
+.ownerCalendarReservationCard__time {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.ownerCalendarReservationCard__name {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.ownerCalendarReservationCard__meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ownerCalendarReservationCard__metaGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+}
+
+.ownerCalendarReservationCard__party {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ownerCalendarLegendDot--pending,
+.ownerCalendarDayMarker--pending,
+.ownerCalendarReservationCard--pending {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.45);
+}
+
+.ownerCalendarLegendDot--accepted,
+.ownerCalendarDayMarker--accepted,
+.ownerCalendarReservationCard--accepted {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.42);
+}
+
+.ownerCalendarLegendDot--rejected,
+.ownerCalendarDayMarker--rejected,
+.ownerCalendarReservationCard--rejected {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.42);
+}
+
+.ownerCalendarLegendDot--cancelled,
+.ownerCalendarDayMarker--cancelled,
+.ownerCalendarReservationCard--cancelled {
+  background: rgba(75, 85, 99, 0.16);
+  border-color: rgba(75, 85, 99, 0.48);
+}
+
+.ownerCalendarLegendDot--completed,
+.ownerCalendarDayMarker--completed,
+.ownerCalendarReservationCard--completed {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.42);
+}
+
+.ownerCalendarLegendDot--no-show,
+.ownerCalendarDayMarker--no-show,
+.ownerCalendarReservationCard--no-show {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.42);
+}
+
+.ownerCalendarLegendDot--pending,
+.ownerCalendarDayMarker--pending .ownerCalendarDayMarker__dot {
+  background: #eab308;
+}
+
+.ownerCalendarLegendDot--accepted,
+.ownerCalendarDayMarker--accepted .ownerCalendarDayMarker__dot {
+  background: #22c55e;
+}
+
+.ownerCalendarLegendDot--rejected,
+.ownerCalendarDayMarker--rejected .ownerCalendarDayMarker__dot {
+  background: #ef4444;
+}
+
+.ownerCalendarLegendDot--cancelled,
+.ownerCalendarDayMarker--cancelled .ownerCalendarDayMarker__dot {
+  background: #4b5563;
+}
+
+.ownerCalendarLegendDot--completed,
+.ownerCalendarDayMarker--completed .ownerCalendarDayMarker__dot {
+  background: #3b82f6;
+}
+
+.ownerCalendarLegendDot--no-show,
+.ownerCalendarDayMarker--no-show .ownerCalendarDayMarker__dot {
+  background: #a855f7;
+}
+
+.ownerCalendarReservationCard--pending {
+  border-left-color: #eab308;
+}
+
+.ownerCalendarReservationCard--accepted {
+  border-left-color: #22c55e;
+}
+
+.ownerCalendarReservationCard--rejected {
+  border-left-color: #ef4444;
+}
+
+.ownerCalendarReservationCard--cancelled {
+  border-left-color: #4b5563;
+}
+
+.ownerCalendarReservationCard--completed {
+  border-left-color: #3b82f6;
+}
+
+.ownerCalendarReservationCard--no-show {
+  border-left-color: #a855f7;
+}
+
+.reservationCard--focused {
+  border-color: rgba(59, 130, 246, 0.52);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.22), 0 18px 40px rgba(0, 0, 0, 0.22);
+}
+
+[data-theme="light"] .ownerCalendarControlBtn,
+[data-theme="light"] .ownerCalendarIconBtn,
+[data-theme="light"] .ownerCalendarViewToggle__btn,
+[data-theme="light"] .ownerCalendarSidebarCard,
+[data-theme="light"] .ownerCalendarHintBox,
+[data-theme="light"] .ownerCalendarGrid,
+[data-theme="light"] .ownerCalendarLegendCount,
+[data-theme="light"] .ownerCalendarPanelCount,
+[data-theme="light"] .ownerCalendarField input,
+[data-theme="light"] .ownerCalendarMonthSelect,
+[data-theme="light"] .ownerCalendarYearInput {
+  background: rgba(255, 255, 255, 0.92);
+  color: rgba(26, 14, 6, 0.88);
+  border-color: rgba(175, 115, 45, 0.16);
+}
+
+[data-theme="light"] .ownerCalendarReservationCard {
+  color: rgba(26, 14, 6, 0.9);
+  border-color: rgba(175, 115, 45, 0.14);
+}
+
+[data-theme="light"] .ownerCalendarReservationCard__party,
+[data-theme="light"] .ownerCalendarReservationCard__metaGroup {
+  color: rgba(82, 52, 24, 0.88);
+}
+
+[data-theme="light"] .ownerCalendarReservationCard--pending {
+  background: rgba(251, 191, 36, 0.18);
+}
+
+[data-theme="light"] .ownerCalendarReservationCard--accepted {
+  background: rgba(34, 197, 94, 0.16);
+}
+
+[data-theme="light"] .ownerCalendarReservationCard--rejected {
+  background: rgba(239, 68, 68, 0.14);
+}
+
+[data-theme="light"] .ownerCalendarReservationCard--cancelled {
+  background: rgba(75, 85, 99, 0.16);
+}
+
+[data-theme="light"] .ownerCalendarReservationCard--completed {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+[data-theme="light"] .ownerCalendarReservationCard--no-show {
+  background: rgba(168, 85, 247, 0.14);
+}
+
+[data-theme="light"] .ownerCalendarViewToggle {
+  background: rgba(175, 115, 45, 0.08);
+  border-color: rgba(175, 115, 45, 0.18);
+}
+
+[data-theme="light"] .ownerCalendarViewToggle__btn.is-active {
+  background: linear-gradient(135deg, rgba(201, 162, 39, 0.24), rgba(201, 162, 39, 0.14));
+  border: 1px solid rgba(175, 115, 45, 0.42);
+  color: rgba(26, 14, 6, 0.95);
+  box-shadow:
+    0 0 0 1px rgba(201, 162, 39, 0.16) inset,
+    0 8px 18px rgba(175, 115, 45, 0.14);
+}
+
+[data-theme="light"] .ownerCalendarMonthLabel,
+[data-theme="light"] .ownerCalendarSidebarTitle,
+[data-theme="light"] .ownerCalendarPanelDate,
+[data-theme="light"] .ownerCalendarReservationCard__name {
+  color: rgba(26, 14, 6, 0.92);
+}
+
+[data-theme="light"] .ownerCalendarLegendItem__labelWrap,
+[data-theme="light"] .ownerCalendarReservationCard__time,
+[data-theme="light"] .ownerCalendarReservationCard__party,
+[data-theme="light"] .ownerCalendarReservationCard__metaGroup,
+[data-theme="light"] .ownerCalendarPanelEmpty,
+[data-theme="light"] .ownerCalendarWeekday,
+[data-theme="light"] .ownerCalendarDay,
+[data-theme="light"] .ownerCalendarField input::placeholder,
+[data-theme="light"] .ownerCalendarHintBox {
+  color: rgba(82, 52, 24, 0.88);
+}
+
+[data-theme="light"] .ownerCalendarWeekday {
+  background: rgba(175, 115, 45, 0.06);
+  border-bottom-color: rgba(175, 115, 45, 0.12);
+}
+
+[data-theme="light"] .ownerCalendarDay,
+[data-theme="light"] .ownerCalendarDay--empty {
+  border-right-color: rgba(175, 115, 45, 0.1);
+  border-bottom-color: rgba(175, 115, 45, 0.1);
+}
+
+[data-theme="light"] .ownerCalendarDay:hover {
+  background: rgba(175, 115, 45, 0.06);
+}
+
+[data-theme="light"] .ownerCalendarDay.is-selected {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+[data-theme="light"] .ownerCalendarPanelEmpty {
+  border-color: rgba(175, 115, 45, 0.18);
+}
+
+[data-theme="light"] .reservationCard--focused {
+  border-color: rgba(59, 130, 246, 0.36);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.14), 0 12px 28px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 1280px) {
+  .ownerCalendarLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .ownerCalendarSidebar--left,
+  .ownerCalendarSidebar--right {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ownerCalendarSidebar--right {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 820px) {
+  .ownerCalendarTopbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ownerCalendarToolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ownerCalendarMonthDisplayWrap {
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .ownerCalendarMonthDisplayWrap .ownerCalendarMonthLabel {
+    margin-right: 0;
+  }
+
+  .ownerCalendarSidebar--left {
+    grid-template-columns: 1fr;
+  }
+
+  .ownerCalendarGrid {
+    overflow-x: auto;
+  }
+
+  .ownerCalendarWeekday,
+  .ownerCalendarDay,
+  .ownerCalendarDay--empty {
+    min-width: 130px;
+  }
+
+  .ownerCalendarMonthLabel,
+  .ownerCalendarMonthSelect,
+  .ownerCalendarYearInput,
+  .ownerCalendarWeekSelect,
+  .ownerCalendarViewToggle {
+    width: 100%;
+  }
+}
+
+.ownerCalendarWeekSelect {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  border-radius: 14px;
+  min-height: 42px;
+  padding: 0 14px;
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.ownerCalendarWeekSelect:hover,
+.ownerCalendarWeekSelect:focus {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.45);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+  outline: none;
+}
+
+[data-theme="light"] .ownerCalendarWeekSelect {
+  background: rgba(255, 255, 255, 0.92);
+  color: rgba(26, 14, 6, 0.88);
+  border-color: rgba(175, 115, 45, 0.16);
+}
+/* ===== FINAL FIX: owner calendar dropdown options visible in dark mode ===== */
+.ownerCalendarMonthSelect,
+.ownerCalendarWeekSelect,
+.ownerCalendarField .select,
+.ownerCalendarField select {
+  appearance: auto;
+  -webkit-appearance: auto;
+  -moz-appearance: auto;
+  color-scheme: dark;
+}
+
+/* Closed select appearance */
+.ownerCalendarMonthSelect,
+.ownerCalendarWeekSelect,
+.ownerCalendarField .select,
+.ownerCalendarField select {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+
+/* Dropdown list options in dark mode */
+.ownerCalendarMonthSelect option,
+.ownerCalendarWeekSelect option,
+.ownerCalendarField .select option,
+.ownerCalendarField select option {
+  background-color: #1b2350 !important;
+  color: #f8fafc !important;
+}
+
+/* Selected / hovered option fallback */
+.ownerCalendarMonthSelect option:checked,
+.ownerCalendarWeekSelect option:checked,
+.ownerCalendarField .select option:checked,
+.ownerCalendarField select option:checked {
+  background: #2a3775 !important;
+  color: #ffffff !important;
+}
+
+/* Optgroup support */
+.ownerCalendarMonthSelect optgroup,
+.ownerCalendarWeekSelect optgroup,
+.ownerCalendarField .select optgroup,
+.ownerCalendarField select optgroup {
+  background-color: #1b2350 !important;
+  color: #f8fafc !important;
+}
+
+/* ===== LIGHT MODE OVERRIDES ===== */
+[data-theme="light"] .ownerCalendarMonthSelect,
+[data-theme="light"] .ownerCalendarWeekSelect,
+[data-theme="light"] .ownerCalendarField .select,
+[data-theme="light"] .ownerCalendarField select {
+  color-scheme: light;
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  color: rgba(26, 14, 6, 0.88) !important;
+  border: 1px solid rgba(175, 115, 45, 0.16) !important;
+}
+
+[data-theme="light"] .ownerCalendarMonthSelect option,
+[data-theme="light"] .ownerCalendarWeekSelect option,
+[data-theme="light"] .ownerCalendarField .select option,
+[data-theme="light"] .ownerCalendarField select option {
+  background-color: #ffffff !important;
+  color: rgba(26, 14, 6, 0.92) !important;
+}
+
+[data-theme="light"] .ownerCalendarMonthSelect option:checked,
+[data-theme="light"] .ownerCalendarWeekSelect option:checked,
+[data-theme="light"] .ownerCalendarField .select option:checked,
+[data-theme="light"] .ownerCalendarField select option:checked {
+  background: #f3e8d4 !important;
+  color: rgba(26, 14, 6, 0.95) !important;
+}
+
+[data-theme="light"] .ownerCalendarMonthSelect optgroup,
+[data-theme="light"] .ownerCalendarWeekSelect optgroup,
+[data-theme="light"] .ownerCalendarField .select optgroup,
+[data-theme="light"] .ownerCalendarField select optgroup {
+  background-color: #ffffff !important;
+  color: rgba(26, 14, 6, 0.92) !important;
+}
+
+.ownerReservationSectionSwitcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+}
+
+.ownerReservationSectionSwitcher__btn {
+  border: 1px solid rgba(201, 162, 39, 0.28);
+  background: rgba(201, 162, 39, 0.08);
+  color: var(--text, #111827);
+  border-radius: 999px;
+  padding: 0.78rem 1.1rem;
+  font-weight: 800;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease;
+}
+
+.ownerReservationSectionSwitcher__btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.58);
+  box-shadow: 0 10px 22px rgba(201, 162, 39, 0.14);
+}
+
+.ownerReservationSectionSwitcher__btn.is-active {
+  background: linear-gradient(135deg, rgba(201, 162, 39, 0.24), rgba(201, 162, 39, 0.12));
+  border-color: rgba(201, 162, 39, 0.72);
+  box-shadow: 0 12px 24px rgba(201, 162, 39, 0.16);
+}
+
+.ownerReservationPanel {
+  animation: ownerReservationPanelFade 0.18s ease;
+}
+
+@keyframes ownerReservationPanelFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+[data-theme="light"] .ownerReservationSectionSwitcher__btn {
+  background: rgba(255, 248, 235, 0.9);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+
+[data-theme="light"] .ownerReservationSectionSwitcher__btn:hover {
+  border-color: rgba(201, 162, 39, 0.58);
+  box-shadow: 0 10px 22px rgba(201, 162, 39, 0.12);
+}
+
+[data-theme="light"] .ownerReservationSectionSwitcher__btn.is-active {
+  background: rgba(201, 162, 39, 0.2);
+  border-color: rgba(201, 162, 39, 0.62);
+  color: #5a3d00;
+}
+
+/* ===== Owner Reviews page refresh ===== */
+.ownerReviewsPage {
+  display: grid;
+  gap: 14px;
+}
+
+.ownerReviewsToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.ownerReviewsToolbar__summary {
+  display: grid;
+  gap: 4px;
+}
+
+.ownerReviewsToolbar__count {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.ownerReviewsToolbar__hint {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.ownerReviewsToolbar__filterBtn {
+  flex-shrink: 0;
+}
+
+.ownerReviewsFilters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03)),
+    rgba(12, 19, 79, 0.18);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+}
+
+.ownerReviewsFilters__field {
+  min-width: 0;
+}
+
+.ownerReviewsFilters__actions {
+  display: flex;
+  align-items: end;
+  justify-content: flex-end;
+}
+
+.ownerReviewsStack {
+  display: grid;
+  gap: 16px;
+}
+
+.ownerReviewCard {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
+  padding: 16px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03)),
+    rgba(12, 19, 79, 0.18);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.14);
+}
+
+.ownerReviewCard__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.ownerReviewCard__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.ownerReviewCard__avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+}
+
+.ownerReviewCard__avatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ownerReviewCard__identityText {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.ownerReviewCard__name {
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.ownerReviewCard__date {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ownerReviewCard__stars {
+  color: rgba(201, 162, 39, 0.95);
+  font-weight: 900;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  padding-top: 2px;
+}
+
+.ownerReviewCard__comment {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.ownerReviewCard__responseField {
+  margin-top: 12px;
+}
+
+.ownerReviewCard__actions {
+  margin-top: 12px;
+}
+
+[data-theme="light"] .ownerReviewsToolbar__count {
+  color: #1A0E06;
+}
+
+[data-theme="light"] .ownerReviewsToolbar__hint {
+  color: rgba(80, 45, 15, 0.72);
+}
+
+[data-theme="light"] .ownerReviewsFilters {
+  border-color: rgba(175, 115, 45, 0.18);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 251, 243, 0.76));
+  box-shadow: 0 14px 34px rgba(150, 90, 30, 0.10);
+}
+
+[data-theme="light"] .ownerReviewCard {
+  border-color: rgba(175, 115, 45, 0.18);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 251, 243, 0.78));
+  box-shadow: 0 14px 34px rgba(150, 90, 30, 0.10);
+}
+
+[data-theme="light"] .ownerReviewCard__avatar {
+  border-color: rgba(175, 115, 45, 0.22);
+  background: rgba(255, 244, 220, 0.80);
+}
+
+[data-theme="light"] .ownerReviewCard__name {
+  color: rgba(26, 14, 6, 0.92);
+}
+
+[data-theme="light"] .ownerReviewCard__date {
+  color: rgba(80, 45, 15, 0.65);
+}
+
+[data-theme="light"] .ownerReviewCard__comment {
+  color: rgba(26, 14, 6, 0.84);
+}
+
+@media (max-width: 900px) {
+  .ownerReviewsFilters {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .ownerReviewsToolbar {
+    align-items: stretch;
+  }
+
+  .ownerReviewsToolbar__filterBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .ownerReviewsFilters {
+    grid-template-columns: 1fr;
+  }
+
+  .ownerReviewsFilters__actions {
+    justify-content: stretch;
+  }
+
+  .ownerReviewsFilters__actions .btn {
+    width: 100%;
+  }
+
+  .ownerReviewCard__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Owner Reviews custom dropdowns */
+.ownerReviewsFilters__customSelect {
+  width: 100%;
+}
+
+.ownerReviewsFilters__customSelect .customSelect__btn {
+  width: 100%;
+}
+
+.ownerReviewsFilters__customSelect .customSelect__menu {
+  width: 100%;
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 60;
+}
+
+.ownerReviewsFilters__customSelect .customSelect__item {
+  width: 100%;
+}
+
+.ownerReviewsFilters__dropdown {
+  width: 100%;
+}
+
+.ownerReviewsFilters__dropdown .sortDropdown__btn {
+  width: 100%;
+}
+
+.ownerReviewsFilters__menu {
+  max-height: 220px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201, 162, 39, 0.55) rgba(255, 255, 255, 0.06);
+}
+
+.ownerReviewsFilters__menu::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ownerReviewsFilters__menu::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+}
+
+.ownerReviewsFilters__menu::-webkit-scrollbar-thumb {
+  background: rgba(201, 162, 39, 0.55);
+  border-radius: 999px;
+}
+
+.ownerReviewsFilters__menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 162, 39, 0.72);
+}
+
+[data-theme="light"] .ownerReviewsFilters__menu {
+  scrollbar-color: rgba(175, 115, 45, 0.55) rgba(175, 115, 45, 0.10);
+}
+
+[data-theme="light"] .ownerReviewsFilters__menu::-webkit-scrollbar-track {
+  background: rgba(175, 115, 45, 0.10);
+}
+
+[data-theme="light"] .ownerReviewsFilters__menu::-webkit-scrollbar-thumb {
+  background: rgba(175, 115, 45, 0.55);
+}
+
+[data-theme="light"] .ownerReviewsFilters__menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(175, 115, 45, 0.72);
+}
+.resetPasswordPage {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+}
+
+.resetPasswordCard {
+  width: min(100%, 460px);
+  background: rgba(14, 20, 32, 0.92);
+  border: 1px solid rgba(201, 162, 39, 0.22);
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+}
+
+.resetPasswordCard__title {
+  margin: 0;
+  font-size: 32px;
+}
+
+.resetPasswordCard__subtitle {
+  margin: 10px 0 20px;
+  color: rgba(245, 239, 224, 0.76);
+}
+
+.resetPasswordCard__back {
+  margin-top: 14px;
+  width: 100%;
+}
+
+[data-theme="light"] .resetPasswordPage {
+  background:
+    radial-gradient(circle at top, rgba(223, 186, 118, 0.2), transparent 38%),
+    linear-gradient(180deg, #fffdf8 0%, #f7efe1 100%);
+}
+
+[data-theme="light"] .resetPasswordCard {
+  background: rgba(255, 252, 245, 0.96);
+  border: 1px solid rgba(175, 115, 45, 0.22);
+  box-shadow: 0 24px 60px rgba(140, 95, 32, 0.16);
+}
+
+[data-theme="light"] .resetPasswordCard__title {
+  color: rgba(80, 45, 15, 0.96);
+}
+
+[data-theme="light"] .resetPasswordCard__subtitle {
+  color: rgba(110, 68, 28, 0.78);
+}
+
+[data-theme="light"] .resetPasswordCard .field span {
+  color: rgba(96, 58, 21, 0.86);
+}
+
+[data-theme="light"] .resetPasswordCard .field input {
+  border-color: rgba(175, 115, 45, 0.22);
+  background: rgba(255, 255, 255, 0.96);
+  color: rgba(65, 38, 14, 0.96);
+}
+
+[data-theme="light"] .resetPasswordCard .field input::placeholder {
+  color: rgba(145, 109, 72, 0.68);
+}
+
+[data-theme="light"] .resetPasswordCard__back.btn--ghost {
+  border-color: rgba(175, 115, 45, 0.2);
+  background: rgba(255, 248, 235, 0.85);
+  color: rgba(80, 45, 15, 0.92);
+}
+
+[data-theme="light"] .resetPasswordCard__back.btn--ghost:hover {
+  background: rgba(255, 243, 220, 0.96);
+}
+
+.profileDocumentCard,
+.documentCard {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(201, 162, 39, 0.16);
+}
+
+.profileDocumentCard__name,
+.documentCard__name {
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.profileDocumentCard__link,
+.documentCard__link {
+  color: #d7b45d;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.reviewCardFull__flag {
+  margin-top: 10px;
+}
+
+.reservationChartCard {
+  margin-bottom: 20px;
+}
+
+.reservationChartsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.reservationChartPanel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.reservationChartPanel__title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.reservationBarChart {
+  min-height: 220px;
+  display: flex;
+  align-items: end;
+  gap: 14px;
+}
+
+.reservationBarChart__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.reservationBarChart__value {
+  font-size: 13px;
+  color: rgba(245, 239, 224, 0.78);
+}
+
+.reservationBarChart__barWrap {
+  height: 150px;
+  width: 100%;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+}
+
+.reservationBarChart__bar {
+  width: min(46px, 100%);
+  border-radius: 14px 14px 8px 8px;
+  background: linear-gradient(180deg, #d8bb67 0%, #9c7432 100%);
+  box-shadow: 0 12px 30px rgba(201, 162, 39, 0.22);
+}
+
+.reservationBarChart__label {
+  font-size: 12px;
+  text-align: center;
+  color: rgba(245, 239, 224, 0.7);
+}
+
+.reservationPeakBadge {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(216, 187, 103, 0.12);
+  color: #f1d58a;
+  font-weight: 600;
+}
+
+.reservationHourList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reservationHourRow {
+  display: grid;
+  grid-template-columns: 60px 1fr 34px;
+  align-items: center;
+  gap: 10px;
+}
+
+.reservationHourRow__label,
+.reservationHourRow__value {
+  font-size: 13px;
+  color: rgba(245, 239, 224, 0.8);
+}
+
+.reservationHourRow__track {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.reservationHourRow__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(153, 113, 45, 0.92), rgba(216, 187, 103, 0.96));
+}
+
+.reservationHourRow__fill.is-peak {
+  background: linear-gradient(90deg, #ffb454, #ffd978);
+}
+
+[data-theme="light"] .reservationChartPanel {
+  background: rgba(255, 251, 244, 0.9);
+  border-color: rgba(175, 115, 45, 0.18);
+  box-shadow: 0 12px 28px rgba(160, 112, 40, 0.08);
+}
+
+[data-theme="light"] .reservationChartPanel__title {
+  color: rgba(55, 31, 12, 0.96);
+}
+
+[data-theme="light"] .reservationBarChart__value,
+[data-theme="light"] .reservationBarChart__label,
+[data-theme="light"] .reservationHourRow__label,
+[data-theme="light"] .reservationHourRow__value {
+  color: rgba(108, 73, 38, 0.82);
+}
+
+[data-theme="light"] .reservationPeakBadge {
+  background: rgba(201, 162, 39, 0.14);
+  color: rgba(133, 84, 20, 0.96);
+  border: 1px solid rgba(201, 162, 39, 0.18);
+}
+
+[data-theme="light"] .reservationHourRow__track {
+  background: rgba(175, 115, 45, 0.12);
+}
+
+[data-theme="light"] .reservationHourRow__fill {
+  background: linear-gradient(90deg, rgba(176, 118, 42, 0.92), rgba(224, 186, 94, 0.96));
+}
+
+[data-theme="light"] .reservationHourRow__fill.is-peak {
+  background: linear-gradient(90deg, #f0a43b, #f8cf67);
+}
+
+@media (max-width: 900px) {
+  .reservationChartsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Landing Highlights ===== */
+.landingHighlights {
+  position: relative;
+  padding: 18px 20px 110px;
+  overflow: visible;
+}
+
+.landingHighlights__inner {
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.landingHighlights__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(28px, 3vw, 54px);
+  align-items: start;
+}
+
+.landingHighlights__card {
+  position: relative;
+  text-align: center;
+  padding: 8px 10px 0;
+}
+
+.landingHighlights__art {
+  position: relative;
+  min-height: 250px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+}
+
+.landingHighlights__wave {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  width: min(100%, 320px);
+  height: 120px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(201, 162, 39, 0.22), rgba(201, 162, 39, 0.12) 45%, transparent 74%);
+  filter: blur(10px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.landingHighlights__image {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.22));
+  transition: transform 220ms ease, filter 220ms ease;
+}
+
+.landingHighlights__image--reservation {
+  max-height: 220px;
+}
+
+.landingHighlights__image--diney {
+  max-height: 255px;
+}
+
+.landingHighlights__image--map {
+  max-height: 220px;
+}
+
+.landingHighlights__card:hover .landingHighlights__image {
+  transform: translateY(-4px) scale(1.02);
+  filter:
+    drop-shadow(0 18px 32px rgba(0, 0, 0, 0.24))
+    drop-shadow(0 0 26px rgba(201, 162, 39, 0.18));
+}
+
+.landingHighlights__title {
+  margin: 0 0 14px;
+  color: var(--text);
+  font-size: clamp(28px, 2.6vw, 40px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+.landingHighlights__rule {
+  width: min(100%, 310px);
+  height: 1px;
+  margin: 0 auto 18px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.18),
+    transparent
+  );
+}
+
+.landingHighlights__desc {
+  max-width: 330px;
+  margin: 0 auto 20px;
+  color: var(--muted);
+  font-size: clamp(16px, 1.15vw, 18px);
+  line-height: 1.5;
+}
+
+.landingHighlights__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: var(--gold);
+  font-size: clamp(17px, 1.15vw, 20px);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.55);
+  transition: transform 180ms ease, opacity 180ms ease, border-color 180ms ease;
+}
+
+.landingHighlights__cta:hover {
+  transform: translateY(-1px);
+  opacity: 0.92;
+  border-color: rgba(201, 162, 39, 0.9);
+}
+
+/* Light mode */
+[data-theme="light"] .landingHighlights__title {
+  color: #5a3726;
+}
+
+[data-theme="light"] .landingHighlights__desc {
+  color: rgba(90, 55, 38, 0.90);
+}
+
+[data-theme="light"] .landingHighlights__rule {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(175, 115, 45, 0.22),
+    transparent
+  );
+}
+
+[data-theme="light"] .landingHighlights__wave {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(201, 162, 39, 0.18), rgba(201, 162, 39, 0.08) 46%, transparent 76%);
+}
+
+[data-theme="light"] .landingHighlights__image {
+  filter: drop-shadow(0 14px 26px rgba(150, 90, 30, 0.14));
+}
+
+[data-theme="light"] .landingHighlights__card:hover .landingHighlights__image {
+  filter:
+    drop-shadow(0 18px 28px rgba(150, 90, 30, 0.18))
+    drop-shadow(0 0 20px rgba(201, 162, 39, 0.12));
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .landingHighlights__grid {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+
+  .landingHighlights {
+    padding: 14px 20px 90px;
+  }
+
+  .landingHighlights__art {
+    min-height: 220px;
+  }
+}
+
+@media (max-width: 768px) {
+  .landingHighlights {
+    padding: 8px 16px 80px;
+  }
+
+  .landingHighlights__art {
+    min-height: 190px;
+  }
+
+  .landingHighlights__image--reservation,
+  .landingHighlights__image--map {
+    max-height: 180px;
+  }
+
+  .landingHighlights__image--diney {
+    max-height: 210px;
+  }
+
+  .landingHighlights__desc {
+    max-width: 300px;
+  }
+}
+
+/* ===== Contact Section ===== */
+.contactSection {
+  position: relative;
+  padding: 100px 20px 180px;
+  overflow: visible;
+}
+
+.contactSection__inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(300px, 430px) minmax(0, 1fr);
+  gap: clamp(34px, 5vw, 82px);
+  align-items: center;
+}
+
+.contactSection__media {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 330px;
+}
+
+.contactSection__glow {
+  position: absolute;
+  inset: auto 50% 18px 50%;
+  transform: translateX(-50%);
+  width: min(100%, 320px);
+  height: 130px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(201, 162, 39, 0.20), rgba(201, 162, 39, 0.10) 46%, transparent 76%);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+.contactSection__image {
+  position: relative;
+  z-index: 1;
+  display: block;
+  max-width: min(100%, 600px);
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.18));
+}
+
+.contactSection__content {
+  max-width: 620px;
+}
+
+.contactSection__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: var(--gold);
+  font-size: 0.96rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.contactSection__title {
+  margin: 0 0 16px;
+  color: var(--text);
+  font-size: clamp(34px, 4vw, 58px);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+}
+
+.contactSection__text {
+  margin: 0 0 24px;
+  color: var(--muted);
+  font-size: clamp(17px, 1.14vw, 20px);
+  line-height: 1.75;
+  max-width: 58ch;
+}
+
+.contactSection__email {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(201, 162, 39, 0.24);
+  border-radius: 999px;
+  padding: 14px 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.10);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.contactSection__email:hover {
+  transform: translateY(-2px);
+  border-color: rgba(201, 162, 39, 0.65);
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.14),
+    0 0 24px rgba(201, 162, 39, 0.10);
+}
+
+.contactSection__email svg:first-child {
+  color: var(--gold);
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.contactSection__email span {
+  font-size: clamp(16px, 1.06vw, 19px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.contactSection__email svg:last-child {
+  color: var(--gold);
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+/* Light mode */
+[data-theme="light"] .contactSection__title {
+  color: #5a3726;
+}
+
+[data-theme="light"] .contactSection__text {
+  color: rgba(90, 55, 38, 0.90);
+}
+
+[data-theme="light"] .contactSection__glow {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(201, 162, 39, 0.16), rgba(201, 162, 39, 0.08) 44%, transparent 74%);
+}
+
+[data-theme="light"] .contactSection__image {
+  filter: drop-shadow(0 16px 26px rgba(145, 95, 35, 0.14));
+}
+
+[data-theme="light"] .contactSection__email {
+  background: rgba(255, 252, 247, 0.9);
+  color: #5a3726;
+  border: 1px solid rgba(175, 115, 45, 0.20);
+  box-shadow: 0 10px 28px rgba(145, 95, 35, 0.09);
+}
+
+/* Dark mode */
+[data-theme="dark"] .contactSection__email {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Responsive */
+@media (max-width: 980px) {
+  .contactSection {
+    padding: 8px 20px 95px;
+  }
+
+  .contactSection__inner {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    text-align: center;
+  }
+
+  .contactSection__content {
+    margin: 0 auto;
+  }
+
+  .contactSection__email {
+    margin: 0 auto;
+  }
+
+  .contactSection__media {
+    min-height: 280px;
+  }
+}
+
+@media (max-width: 640px) {
+  .contactSection {
+    padding: 0 16px 78px;
+  }
+
+  .contactSection__media {
+    min-height: 230px;
+  }
+
+  .contactSection__image {
+    max-width: min(100%, 280px);
+  }
+
+  .contactSection__email {
+    padding: 13px 16px;
+    gap: 10px;
+  }
+
+  .contactSection__email span {
+    font-size: 0.98rem;
+    word-break: break-word;
+  }
 }

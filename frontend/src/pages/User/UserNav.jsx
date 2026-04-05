@@ -1,159 +1,184 @@
 import React, { useEffect, useState } from "react";
 import logo from "../../assets/logo.png";
+import { DEFAULT_AVATAR } from "../../constants/avatar";
 
 const NAV_TABS = [
   { id: "search", label: "🔍 Search" },
-  { id: "discover", label: "✨ Discover" },
+  { id: "discover", label: "✨ Events" },
   { id: "explore", label: "🗺 Explore" },
   { id: "reservations", label: "📅 Reservations" },
   { id: "profile", label: "👤 Profile" },
 ];
 
-import { DEFAULT_AVATAR } from "../../constants/avatar";
+export default function UserNav({
+  active,
+  onChange,
+  avatarSrc,
+  user,
+  onLogout,
+  unseenEventCount = 0,
+}) {
+  const [pillScrolled, setPillScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const resolvedAvatar = avatarSrc || user?.profilePictureUrl || DEFAULT_AVATAR;
 
-export default function UserNav({ active, onChange, avatarSrc, user, onLogout }) {
-    const [pillScrolled, setPillScrolled] = useState(false);
-    const [mobileOpen, setMobileOpen] = useState(false);
-    const resolvedAvatar = avatarSrc || user?.profilePictureUrl || DEFAULT_AVATAR;
-    useEffect(() => {
-        function onScroll() {
-            setPillScrolled(window.scrollY > 10);
-        }
-        onScroll();
-        window.addEventListener("scroll", onScroll, { passive: true });
-        return () => window.removeEventListener("scroll", onScroll);
-    }, []);
-
-    function tabClass(tab) {
-        return tab === active ? "is-active" : "";
+  useEffect(() => {
+    function onScroll() {
+      setPillScrolled(window.scrollY > 10);
     }
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
-    return (
-        <>
-        {mobileOpen && (
-            <div
-                className="userMobileMenu"
-                role="dialog"
-                aria-modal="true"
-                aria-label="Navigation menu"
-                onClick={(e) => { if (e.target === e.currentTarget) setMobileOpen(false); }}
-            >
-                <div className="userMobileMenu__panel">
-                    <div className="userMobileMenu__top">
-                        <span className="userMobileMenu__title">Menu</span>
-                        <button
-                            className="userMobileMenu__close"
-                            type="button"
-                            aria-label="Close menu"
-                            onClick={() => setMobileOpen(false)}
-                        >✕</button>
-                    </div>
+  function tabClass(tab) {
+    return tab === active ? "is-active" : "";
+  }
 
-                    <nav className="userMobileMenu__nav">
-                        {NAV_TABS.map(({ id, label }) => (
-                            <button
-                                key={id}
-                                type="button"
-                                className={`userMobileMenu__link${active === id ? " is-active" : ""}`}
-                                onClick={() => { onChange(id); setMobileOpen(false); }}
-                            >
-                                {label}
-                            </button>
-                        ))}
-                    </nav>
-
-                    <div className="userMobileMenu__actions">
-                        <button
-                            className="btn btn--ghost"
-                            type="button"
-                            onClick={() => { setMobileOpen(false); onLogout(); }}
-                        >
-                            Log Out
-                        </button>
-                    </div>
-                </div>
+  return (
+    <>
+      {mobileOpen && (
+        <div
+          className="userMobileMenu"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation menu"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setMobileOpen(false);
+          }}
+        >
+          <div className="userMobileMenu__panel">
+            <div className="userMobileMenu__top">
+              <span className="userMobileMenu__title">Menu</span>
+              <button
+                className="userMobileMenu__close"
+                type="button"
+                aria-label="Close menu"
+                onClick={() => setMobileOpen(false)}
+              >
+                ✕
+              </button>
             </div>
-        )}
-        <header className="nav">
-            <a className="brand" href="#">
-                <span className="brand__mark">
-                    <img src={logo} className="logo-img" alt="Logo" />
-                </span>
+
+            <nav className="userMobileMenu__nav">
+              {NAV_TABS.map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`userMobileMenu__link${active === id ? " is-active" : ""}`}
+                  onClick={() => {
+                    onChange(id);
+                    setMobileOpen(false);
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+
+            <div className="userMobileMenu__actions">
+              <button
+                className="btn btn--ghost"
+                type="button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  onLogout();
+                }}
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <header className="nav">
+        <a className="brand" href="#">
+          <span className="brand__mark">
+            <img src={logo} className="logo-img" alt="Logo" />
+          </span>
+        </a>
+
+        <div className={`nav__pill ${pillScrolled ? "nav__pill--scrolled" : ""}`}>
+          <nav className="nav__links userNavLinks">
+            <a
+              href="#"
+              className={tabClass("search")}
+              onClick={(e) => {
+                e.preventDefault();
+                onChange("search");
+              }}
+            >
+              Search
             </a>
 
-            <div className={`nav__pill ${pillScrolled ? "nav__pill--scrolled" : ""}`}>
-                <nav className="nav__links userNavLinks">
-                    <a
-                        href="#"
-                        className={tabClass("search")}
-                        onClick={(e) => {
-                            e.preventDefault();
-                            onChange("search");
-                        }}
-                    >
-                        Search
-                    </a>
-
-                    <a
-                        href="#"
-                        className={tabClass("discover")}
-                        onClick={(e) => {
-                            e.preventDefault();
-                            onChange("discover");
-                        }}
-                    >
-                        Discover
-                    </a>
-
-                    <a
-                        href="#"
-                        className={tabClass("explore")}
-                        onClick={(e) => {
-                            e.preventDefault();
-                            onChange("explore");
-                        }}
-                    >
-                        Explore
-                    </a>
-
-                    <a
-                        href="#"
-                        className={tabClass("reservations")}
-                        onClick={(e) => {
-                            e.preventDefault();
-                            onChange("reservations");
-                        }}
-                    >
-                        Reservations
-                    </a>
-
-                </nav>
-
-                <div className="nav__actions userNav__actions">
-                    <button className="btn btn--ghost" type="button" onClick={onLogout}>
-                        Log out
-                    </button>
-                </div>
-
-                <button className="nav__burger" type="button" aria-label="Open menu" onClick={() => setMobileOpen(true)}>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </button>
-            </div>
-
-            <button
-                className="userAvatar userNav__profileDock"
-                type="button"
-                aria-label="Open user profile"
-                onClick={(e) => {
-                    e.preventDefault();
-                    onChange("profile");
-                }}
+            <a
+              href="#"
+              className={tabClass("discover")}
+              onClick={(e) => {
+                e.preventDefault();
+                onChange("discover");
+              }}
             >
-                <img className="userAvatar__img" src={resolvedAvatar} alt="User avatar" />
+              Events
+              {unseenEventCount > 0 && (
+                <span className="adminNavBadge">{unseenEventCount}</span>
+              )}
+            </a>
+
+            <a
+              href="#"
+              className={tabClass("explore")}
+              onClick={(e) => {
+                e.preventDefault();
+                onChange("explore");
+              }}
+            >
+              Explore
+            </a>
+
+            <a
+              href="#"
+              className={tabClass("reservations")}
+              onClick={(e) => {
+                e.preventDefault();
+                onChange("reservations");
+              }}
+            >
+              Reservations
+            </a>
+          </nav>
+
+          <div className="nav__actions userNav__actions">
+            <button className="btn btn--ghost" type="button" onClick={onLogout}>
+              Log out
             </button>
-        </header>
-        </>
-    );
+          </div>
+
+          <button
+            className="nav__burger"
+            type="button"
+            aria-label="Open menu"
+            onClick={() => setMobileOpen(true)}
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+        </div>
+
+        <button
+          className="userAvatar userNav__profileDock"
+          type="button"
+          aria-label="Open user profile"
+          onClick={(e) => {
+            e.preventDefault();
+            onChange("profile");
+          }}
+        >
+          <img className="userAvatar__img" src={resolvedAvatar} alt="User avatar" />
+        </button>
+      </header>
+    </>
+  );
 }
