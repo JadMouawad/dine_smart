@@ -12,6 +12,7 @@ export default function Nav({
   onGoSearch,
   onGoHero,
   onGoDiscover,
+  onGoContact,
 }) {
   const [pillScrolled, setPillScrolled] = useState(false);
   const { theme, toggleTheme } = useTheme();
@@ -27,25 +28,53 @@ export default function Nav({
 
   return (
     <header className="nav">
-      {/* Brand (NOT sticky) */}
       <a className="brand" href="#top" aria-label="Go to top">
         <span className="brand__mark">
           <img src={logo} className="logo-img" alt="DineSmart Logo" />
         </span>
       </a>
 
-      {/* Pill (sticky/fixed in CSS) */}
       <div className={`nav__pill ${pillScrolled ? "nav__pill--scrolled" : ""}`}>
         <nav className="nav__links">
-          <a href="#hero" onClick={(e) => { e.preventDefault(); onGoHero?.(); }}>
-  About
-</a>
-          <a href="#discover" onClick={(e) => { e.preventDefault(); onGoDiscover?.(); }}>
-  Discover
-</a>
-          <a href="#search" onClick={(e) => { e.preventDefault(); onGoSearch?.(); }}>
-  Search
-</a>
+          <a
+            href="#hero"
+            onClick={(e) => {
+              e.preventDefault();
+              onGoHero?.();
+            }}
+          >
+            About
+          </a>
+
+          <a
+            href="#discover"
+            onClick={(e) => {
+              e.preventDefault();
+              onGoDiscover?.();
+            }}
+          >
+            Discover
+          </a>
+
+          <a
+            href="#search"
+            onClick={(e) => {
+              e.preventDefault();
+              onGoSearch?.();
+            }}
+          >
+            Search
+          </a>
+
+          <a
+            href="#contact"
+            onClick={(e) => {
+              e.preventDefault();
+              onGoContact?.();
+            }}
+          >
+            Contact Us
+          </a>
         </nav>
 
         <div className="nav__actions">

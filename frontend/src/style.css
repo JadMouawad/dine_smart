@@ -12282,3 +12282,202 @@ body.dark .slotDraftRemoveBtn:hover,
     max-width: 300px;
   }
 }
+
+/* ===== Contact Section ===== */
+.contactSection {
+  position: relative;
+  padding: 100px 20px 180px;
+  overflow: visible;
+}
+
+.contactSection__inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(300px, 430px) minmax(0, 1fr);
+  gap: clamp(34px, 5vw, 82px);
+  align-items: center;
+}
+
+.contactSection__media {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 330px;
+}
+
+.contactSection__glow {
+  position: absolute;
+  inset: auto 50% 18px 50%;
+  transform: translateX(-50%);
+  width: min(100%, 320px);
+  height: 130px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(201, 162, 39, 0.20), rgba(201, 162, 39, 0.10) 46%, transparent 76%);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+.contactSection__image {
+  position: relative;
+  z-index: 1;
+  display: block;
+  max-width: min(100%, 600px);
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.18));
+}
+
+.contactSection__content {
+  max-width: 620px;
+}
+
+.contactSection__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: var(--gold);
+  font-size: 0.96rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.contactSection__title {
+  margin: 0 0 16px;
+  color: var(--text);
+  font-size: clamp(34px, 4vw, 58px);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+}
+
+.contactSection__text {
+  margin: 0 0 24px;
+  color: var(--muted);
+  font-size: clamp(17px, 1.14vw, 20px);
+  line-height: 1.75;
+  max-width: 58ch;
+}
+
+.contactSection__email {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(201, 162, 39, 0.24);
+  border-radius: 999px;
+  padding: 14px 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.10);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.contactSection__email:hover {
+  transform: translateY(-2px);
+  border-color: rgba(201, 162, 39, 0.65);
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.14),
+    0 0 24px rgba(201, 162, 39, 0.10);
+}
+
+.contactSection__email svg:first-child {
+  color: var(--gold);
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.contactSection__email span {
+  font-size: clamp(16px, 1.06vw, 19px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.contactSection__email svg:last-child {
+  color: var(--gold);
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+/* Light mode */
+[data-theme="light"] .contactSection__title {
+  color: #5a3726;
+}
+
+[data-theme="light"] .contactSection__text {
+  color: rgba(90, 55, 38, 0.90);
+}
+
+[data-theme="light"] .contactSection__glow {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(201, 162, 39, 0.16), rgba(201, 162, 39, 0.08) 44%, transparent 74%);
+}
+
+[data-theme="light"] .contactSection__image {
+  filter: drop-shadow(0 16px 26px rgba(145, 95, 35, 0.14));
+}
+
+[data-theme="light"] .contactSection__email {
+  background: rgba(255, 252, 247, 0.9);
+  color: #5a3726;
+  border: 1px solid rgba(175, 115, 45, 0.20);
+  box-shadow: 0 10px 28px rgba(145, 95, 35, 0.09);
+}
+
+/* Dark mode */
+[data-theme="dark"] .contactSection__email {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Responsive */
+@media (max-width: 980px) {
+  .contactSection {
+    padding: 8px 20px 95px;
+  }
+
+  .contactSection__inner {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    text-align: center;
+  }
+
+  .contactSection__content {
+    margin: 0 auto;
+  }
+
+  .contactSection__email {
+    margin: 0 auto;
+  }
+
+  .contactSection__media {
+    min-height: 280px;
+  }
+}
+
+@media (max-width: 640px) {
+  .contactSection {
+    padding: 0 16px 78px;
+  }
+
+  .contactSection__media {
+    min-height: 230px;
+  }
+
+  .contactSection__image {
+    max-width: min(100%, 280px);
+  }
+
+  .contactSection__email {
+    padding: 13px 16px;
+    gap: 10px;
+  }
+
+  .contactSection__email span {
+    font-size: 0.98rem;
+    word-break: break-word;
+  }
+}

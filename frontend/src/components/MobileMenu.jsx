@@ -5,7 +5,18 @@ export default function MobileMenu({
   onClose,
   onLogin,
   onSignup,
+  onGoHero,
+  onGoDiscover,
+  onGoSearch,
+  onGoContact,
 }) {
+  function handleClick(action) {
+    onClose();
+    window.setTimeout(() => {
+      action?.();
+    }, 10);
+  }
+
   return (
     <div
       className={`mobileMenu ${isOpen ? "is-open" : ""}`}
@@ -23,15 +34,37 @@ export default function MobileMenu({
           </button>
         </div>
 
-        <a href="#about" className="mobileMenu__link" onClick={onClose}>
+        <button
+          type="button"
+          className="mobileMenu__link"
+          onClick={() => handleClick(onGoHero)}
+        >
           About
-        </a>
-        <a href="#discover" className="mobileMenu__link" onClick={onClose}>
+        </button>
+
+        <button
+          type="button"
+          className="mobileMenu__link"
+          onClick={() => handleClick(onGoDiscover)}
+        >
           Discover
-        </a>
-        <a href="#map" className="mobileMenu__link" onClick={onClose}>
-          Map
-        </a>
+        </button>
+
+        <button
+          type="button"
+          className="mobileMenu__link"
+          onClick={() => handleClick(onGoSearch)}
+        >
+          Search
+        </button>
+
+        <button
+          type="button"
+          className="mobileMenu__link"
+          onClick={() => handleClick(onGoContact)}
+        >
+          Contact Us
+        </button>
 
         <div className="mobileMenu__actions">
           <button className="btn btn--ghost" type="button" onClick={onLogin}>

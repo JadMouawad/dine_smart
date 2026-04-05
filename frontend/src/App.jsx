@@ -11,6 +11,7 @@ import MobileMenu from "./components/MobileMenu.jsx";
 import AuthModal from "./components/AuthModal.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import LandingHighlights from "./components/LandingHighlights.jsx";
+import ContactSection from "./components/ContactSection.jsx";
 
 // Code-split heavy areas — only loaded when the user navigates there
 const OwnerShell = lazy(() => import("./pages/owner/OwnerShell.jsx"));
@@ -25,19 +26,20 @@ import AdminRoute from "./routes/AdminRoute.jsx";
 
 const PageLoader = () => (
   <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
-    <div className="loadingSkeleton" style={{ width: 120, height: 8, borderRadius: 4 }} />
+    <div style={{ width: 120, height: 8, borderRadius: 4 }} className="loadingSkeleton" />
   </div>
 );
 
 function AppContent() {
   const [modalOpen, setModalOpen] = useState(false);
-  const [mode, setMode] = useState("signup"); // "signup" | "login"
+  const [mode, setMode] = useState("signup");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [landingView, setLandingView] = useState("full");
   const [searchPresetCuisine, setSearchPresetCuisine] = useState("");
   const [searchPresetToken, setSearchPresetToken] = useState(0);
 
   const { user, loading, logout } = useAuth();
+  const location = useLocation();
 
   const openModal = useCallback((nextMode) => {
     setMode(nextMode);
@@ -51,20 +53,22 @@ function AppContent() {
 
   const openMobile = useCallback(() => setMobileOpen(true), []);
   const closeMobile = useCallback(() => setMobileOpen(false), []);
-  const location = useLocation();
 
   const goToSection = useCallback((view, id) => {
     setLandingView(view);
     requestAnimationFrame(() => {
-      document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }, []);
 
   useEffect(() => {
     const hash = location.hash?.replace("#", "");
     if (!hash) return;
+
     if (hash === "search") goToSection("search", "search");
-    else if (hash === "discover" || hash === "hero") goToSection("full", hash);
+    else if (hash === "discover" || hash === "hero" || hash === "contact") {
+      goToSection("full", hash);
+    }
   }, [location.hash, goToSection]);
 
   return (
@@ -83,9 +87,10 @@ function AppContent() {
             onGoSearch={() => goToSection("search", "search")}
             onGoDiscover={() => goToSection("full", "discover")}
             onGoHero={() => goToSection("full", "hero")}
+            onGoContact={() => goToSection("full", "contact")}
           />
 
-                    {landingView === "full" && (
+          {landingView === "full" && (
             <>
               <section id="hero">
                 <Hero onGettingStarted={() => openModal("signup")} />
@@ -106,6 +111,10 @@ function AppContent() {
                 onAskDiney={() => openModal("signup")}
                 onExploreMap={() => openModal("signup")}
               />
+
+              <section id="contact">
+                <ContactSection />
+              </section>
             </>
           )}
 
@@ -128,9 +137,6 @@ function AppContent() {
       <MobileMenu
         isOpen={mobileOpen}
         onClose={closeMobile}
-        user={user}
-        loading={loading}
-        onLogout={logout}
         onLogin={() => {
           closeMobile();
           openModal("login");
@@ -139,9 +145,18 @@ function AppContent() {
           closeMobile();
           openModal("signup");
         }}
+        onGoHero={() => goToSection("full", "hero")}
+        onGoDiscover={() => goToSection("full", "discover")}
+        onGoSearch={() => goToSection("search", "search")}
+        onGoContact={() => goToSection("full", "contact")}
       />
 
-      <AuthModal isOpen={modalOpen} mode={mode} onClose={closeModal} onToggleMode={toggleMode} />
+      <AuthModal
+        isOpen={modalOpen}
+        mode={mode}
+        onClose={closeModal}
+        onToggleMode={toggleMode}
+      />
     </>
   );
 }
@@ -153,15 +168,12 @@ export default function App() {
         <Routes>
           <Route path="/" element={<AppContent />} />
 
-          {/* Email verification */}
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-          {/* Owner area */}
           <Route path="/owner/profile" element={<OwnerShell />} />
           <Route path="/owner/*" element={<OwnerShell />} />
 
-          {/* Admin area */}
           <Route path="/admin/auth" element={<AdminAccessPage />} />
           <Route
             path="/admin/dashboard"
@@ -180,7 +192,6 @@ export default function App() {
             }
           />
 
-          {/* User area */}
           <Route path="/explore" element={<UserShell initialActive="explore" />} />
           <Route path="/user/profile" element={<UserShell />} />
           <Route path="/user/*" element={<UserShell />} />
