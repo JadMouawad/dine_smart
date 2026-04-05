@@ -2,8 +2,8 @@ const db = require("../../config/db");
 const moderationModel = require("../../models/moderation.model");
 const perspectiveProvider = require("./providers/perspectiveProvider");
 const heuristicProvider = require("./providers/heuristicProvider");
-const { SOURCE_TYPES, SUGGESTED_ACTIONS } = require("./constants");
-const { hashText } = require("./normalization");
+const { SOURCE_TYPES, SUGGESTED_ACTIONS, FLAG_TYPES } = require("./constants");
+const { hashText, buildSnippet } = require("./normalization");
 const { mergeThresholds, confidenceToSeverity, suggestAction } = require("./policyEngine");
 
 const CACHE_TTL_MS = Number(process.env.MODERATION_CACHE_TTL_MS || 120000);
@@ -26,6 +26,12 @@ const setCached = (cacheKey, value) => {
   });
 };
 
+const clampScore = (value) => {
+  const parsed = Number(value || 0);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.max(0, Math.min(100, Math.round(parsed)));
+};
+
 const mergeSignalsByFlagType = (signals) => {
   const merged = new Map();
   signals.forEach((signal) => {
@@ -38,13 +44,19 @@ const mergeSignalsByFlagType = (signals) => {
   return Array.from(merged.values());
 };
 
+const scoreToDecision = (score) => {
+  if (score <= 30) return "approved";
+  if (score >= 85) return "rejected";
+  return "pending_review";
+};
+
 const persistSignals = async ({ reviewId, reviewUserId, signals }) => {
   for (const signal of signals) {
     await moderationModel.createFlaggedReview(db, {
       reviewId,
       userId: signal.sourceType === SOURCE_TYPES.USER_REPORT ? reviewUserId : null,
       reason: signal.reason,
-      status: signal.suggestedAction === SUGGESTED_ACTIONS.REQUIRES_REVIEW ? "pending" : "resolved",
+      status: signal.status,
       sourceType: signal.sourceType,
       flagType: signal.flagType,
       confidence: signal.confidence,
@@ -53,16 +65,39 @@ const persistSignals = async ({ reviewId, reviewUserId, signals }) => {
       suggestedAction: signal.suggestedAction,
       moderationMetadata: {
         provider: signal.provider,
+        labels: Array.isArray(signal.labels) ? signal.labels : [],
+        decision: signal.decision,
+        score: signal.score,
       },
     });
   }
 };
+
+const buildFallbackDecisionSignal = ({ overallScore, decision, reason, source }) => ({
+  flagType: FLAG_TYPES.INAPPROPRIATE_CONTENT,
+  confidence: overallScore,
+  reason: reason || `Moderation decision ${decision} with score ${overallScore}/100.`,
+  snippet: "",
+  provider: source || "combined",
+  sourceType: SOURCE_TYPES.SYSTEM_RULE,
+  labels: ["decision_only"],
+  decision,
+  score: overallScore,
+  severity: "MEDIUM",
+  suggestedAction: SUGGESTED_ACTIONS.REQUIRES_REVIEW,
+  status: "pending",
+});
 
 const moderateReviewComment = async ({ reviewId, restaurantId, reviewUserId, rating, comment, mode = "create" }) => {
   const text = String(comment || "").trim();
   if (!text) {
     return {
       flagged: false,
+      score: 0,
+      decision: "approved",
+      status: "approved",
+      labels: [],
+      reason: "No review comment provided",
       suggestedAction: SUGGESTED_ACTIONS.INFORMATION_ONLY,
       signals: [],
       source: "none",
@@ -86,9 +121,13 @@ const moderateReviewComment = async ({ reviewId, restaurantId, reviewUserId, rat
 
   let signals;
   let source = "combined";
+  let aiScore = 0;
+  let aiReason = null;
 
   if (cached) {
-    signals = cached;
+    signals = cached.signals;
+    aiScore = cached.aiScore;
+    aiReason = cached.aiReason;
     source = "cache";
   } else {
     const heuristics = heuristicProvider.classify({ text, rating });
@@ -96,11 +135,13 @@ const moderateReviewComment = async ({ reviewId, restaurantId, reviewUserId, rat
 
     const aiEnabled = policy?.ai_enabled !== false;
     if (aiEnabled) {
-      try {
-        const perspective = await perspectiveProvider.classify({ text });
-        perspectiveSignals = perspective.signals || [];
-      } catch (_error) {
-        perspectiveSignals = [];
+      const perspective = await perspectiveProvider.classify({ text });
+      aiScore = clampScore(perspective?.score);
+      aiReason = perspective?.reason || perspective?.error || null;
+      perspectiveSignals = perspective?.signals || [];
+
+      if (perspective?.error) {
+        console.warn(`[Moderation][Perspective] reviewId=${reviewId} error=${perspective.error}`);
       }
     }
 
@@ -109,11 +150,15 @@ const moderateReviewComment = async ({ reviewId, restaurantId, reviewUserId, rat
       ...perspectiveSignals.map((signal) => ({ ...signal, sourceType: SOURCE_TYPES.SYSTEM_AI })),
     ]);
 
-    setCached(cacheKey, signals);
+    setCached(cacheKey, {
+      signals,
+      aiScore,
+      aiReason,
+    });
   }
 
   const enrichedSignals = signals.map((signal) => {
-    const confidence = Math.max(0, Math.min(100, Number(signal.confidence || 0)));
+    const confidence = clampScore(signal.confidence);
     return {
       ...signal,
       confidence,
@@ -126,19 +171,61 @@ const moderateReviewComment = async ({ reviewId, restaurantId, reviewUserId, rat
     };
   });
 
-  await persistSignals({ reviewId, reviewUserId, signals: enrichedSignals });
+  const topSignal = [...enrichedSignals].sort((a, b) => b.confidence - a.confidence)[0] || null;
+  const heuristicTopScore = clampScore(topSignal?.confidence);
+  const overallScore = Math.max(aiScore, heuristicTopScore);
+  const decision = scoreToDecision(overallScore);
+  const status = decision === "approved" ? "approved" : "pending_review";
+  const needsManualReview = decision !== "approved";
 
-  const requiresReviewSignals = enrichedSignals.filter(
-    (signal) => signal.suggestedAction === SUGGESTED_ACTIONS.REQUIRES_REVIEW
+  let signalsToPersist = enrichedSignals
+    .filter((signal) => signal.suggestedAction !== SUGGESTED_ACTIONS.INFORMATION_ONLY || signal.confidence >= 35)
+    .map((signal) => ({
+      ...signal,
+      decision,
+      score: overallScore,
+      status: needsManualReview ? "pending" : "resolved",
+      suggestedAction: needsManualReview ? SUGGESTED_ACTIONS.REQUIRES_REVIEW : signal.suggestedAction,
+    }));
+
+  if (needsManualReview && signalsToPersist.length === 0) {
+    signalsToPersist = [
+      buildFallbackDecisionSignal({
+        overallScore,
+        decision,
+        reason: aiReason,
+        source,
+      }),
+    ];
+  }
+
+  if (signalsToPersist.length > 0) {
+    await persistSignals({ reviewId, reviewUserId, signals: signalsToPersist });
+  }
+
+  const labels = Array.from(
+    new Set(
+      enrichedSignals.flatMap((signal) => {
+        const ownLabels = Array.isArray(signal.labels) ? signal.labels : [];
+        return [signal.flagType, ...ownLabels].filter(Boolean);
+      })
+    )
   );
 
-  const topSignal = enrichedSignals.sort((a, b) => b.confidence - a.confidence)[0] || null;
+  const reason = topSignal?.reason || aiReason || "No moderation trigger";
+  const textSnippet = buildSnippet(text, 180).replace(/\s+/g, " ");
+  console.info(
+    `[Moderation] reviewId=${reviewId} restaurantId=${restaurantId} score=${overallScore} decision=${decision} status=${status} source=${source} signals=${enrichedSignals.length} text="${textSnippet}"`
+  );
 
   return {
-    flagged: requiresReviewSignals.length > 0,
-    suggestedAction: requiresReviewSignals.length > 0
-      ? SUGGESTED_ACTIONS.REQUIRES_REVIEW
-      : topSignal?.suggestedAction || SUGGESTED_ACTIONS.INFORMATION_ONLY,
+    flagged: needsManualReview,
+    score: overallScore,
+    decision,
+    status,
+    labels,
+    reason,
+    suggestedAction: needsManualReview ? SUGGESTED_ACTIONS.REQUIRES_REVIEW : SUGGESTED_ACTIONS.INFORMATION_ONLY,
     signals: enrichedSignals,
     source,
   };

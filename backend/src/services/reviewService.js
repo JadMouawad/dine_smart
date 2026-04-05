@@ -50,6 +50,10 @@ const createReview = async (restaurantId, userId, { rating, comment }) => {
       mode: "create",
     });
 
+    console.info(
+      `[ReviewModeration] create reviewId=${review.id} score=${moderation.score} decision=${moderation.decision} text="${commentStr.slice(0, 120)}"`
+    );
+
     if (moderation.flagged) {
       await updateRestaurantAverageRating(restaurantId);
       return {
@@ -104,6 +108,9 @@ const updateReview = async (reviewId, userId, { rating, comment }) => {
       comment: commentStr,
       mode: "update",
     });
+    console.info(
+      `[ReviewModeration] update reviewId=${reviewId} score=${moderation.score} decision=${moderation.decision} text="${commentStr.slice(0, 120)}"`
+    );
   } else {
     await moderationModel.resolvePendingSystemFlagsForReview(
       db,

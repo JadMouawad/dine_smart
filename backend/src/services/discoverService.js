@@ -1,5 +1,6 @@
 const discoverRepository = require("../repositories/discoverRepository");
 const profileRepository = require("../repositories/profileRepository");
+const recommendationService = require("./recommendationService");
 
 const parsePositiveInt = (value, fallback) => {
   const parsed = parseInt(value, 10);
@@ -68,15 +69,41 @@ const getDiscoverFeed = async ({ userId, query }) => {
     limit,
   });
 
+  const recommendationPayload = await recommendationService.getRecommendations({
+    userId,
+    limit: Math.min(limit, 6),
+    latitude: hasCoords ? latitude : null,
+    longitude: hasCoords ? longitude : null,
+  });
+
   return {
+    recommended_for_you: recommendationPayload.recommendations,
     near_you: nearYou,
     popular_right_now: popularRightNow,
     matches_preferences: matchesPreferences,
     upcoming_events_nearby: upcomingEventsNearby,
     highly_rated: highlyRated,
+    recommendations_meta: {
+      source: recommendationPayload.source,
+      cached: recommendationPayload.cached,
+      profile: recommendationPayload.profile,
+    },
   };
+};
+
+const getDiscoverRecommendations = async ({ userId, query }) => {
+  const limit = Math.min(parsePositiveInt(query.limit, 6), 12);
+  const latitude = parseNullableNumber(query.latitude);
+  const longitude = parseNullableNumber(query.longitude);
+  return recommendationService.getRecommendations({
+    userId,
+    limit,
+    latitude,
+    longitude,
+  });
 };
 
 module.exports = {
   getDiscoverFeed,
+  getDiscoverRecommendations,
 };

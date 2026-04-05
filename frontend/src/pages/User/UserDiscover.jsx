@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { getDiscoverFeed } from "../../services/restaurantService";
+import { getDiscoverRecommendations } from "../../services/recommendationService";
 import LoadingSkeleton from "../../components/LoadingSkeleton.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
+import RecommendationCard from "../../components/RecommendationCard.jsx";
 import { toDateObject, startOfDay, formatDateRange } from "../../utils/dateUtils";
 import { getCrowdMeterMeta } from "../../utils/crowdMeter";
 
@@ -110,6 +112,10 @@ export default function UserDiscover({ onOpenRestaurant }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [coords, setCoords] = useState({ latitude: null, longitude: null });
+  const [recommendations, setRecommendations] = useState([]);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(true);
+  const [recommendationsError, setRecommendationsError] = useState("");
+  const [recommendationSource, setRecommendationSource] = useState("fallback");
   const profileLatitude = Number(user?.latitude);
   const profileLongitude = Number(user?.longitude);
   const effectiveLatitude = coords.latitude != null
@@ -165,6 +171,40 @@ export default function UserDiscover({ onOpenRestaurant }) {
     };
   }, [effectiveLatitude, effectiveLongitude]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setRecommendationsLoading(true);
+    setRecommendationsError("");
+
+    getDiscoverRecommendations({
+      latitude: effectiveLatitude,
+      longitude: effectiveLongitude,
+      limit: 6,
+    })
+      .then((payload) => {
+        if (cancelled) return;
+        setRecommendations(Array.isArray(payload?.recommendations) ? payload.recommendations : []);
+        setRecommendationSource(payload?.source || "fallback");
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setRecommendations([]);
+        setRecommendationSource("fallback");
+        setRecommendationsError(err.message || "Failed to load personalized recommendations.");
+      })
+      .finally(() => {
+        if (!cancelled) setRecommendationsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveLatitude, effectiveLongitude]);
+
+  const effectiveRecommendations = recommendations.length
+    ? recommendations
+    : (Array.isArray(feed?.recommended_for_you) ? feed.recommended_for_you : []);
+
   if (loading) {
     return (
       <div className="userSearchPage">
@@ -186,6 +226,38 @@ export default function UserDiscover({ onOpenRestaurant }) {
   return (
     <div className="userSearchPage">
       <h1 className="userSearchPage__title">Events</h1>
+
+      <section className="discoverFeedSection">
+        <div className="discoverFeedSection__header">
+          <h2>Recommended for You</h2>
+          <span className="discoverSectionBadge">
+            {recommendationSource === "fallback" ? "Popular fallback" : "Personalized"}
+          </span>
+        </div>
+        {recommendationsLoading && effectiveRecommendations.length === 0 ? (
+          <LoadingSkeleton variant="card" count={3} />
+        ) : effectiveRecommendations.length > 0 ? (
+          <div className="restaurantGrid">
+            {effectiveRecommendations.map((recommendation) => (
+              <RecommendationCard
+                key={`recommended-${recommendation.id}`}
+                recommendation={recommendation}
+                onOpenRestaurant={onOpenRestaurant}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="No personalized recommendations yet"
+            message="Keep exploring restaurants and your recommendations will improve."
+          />
+        )}
+        {recommendationsError && (
+          <p className="discoverRecommendations__note">
+            {recommendationsError}
+          </p>
+        )}
+      </section>
 
       <SectionRestaurants
         title="Near You"

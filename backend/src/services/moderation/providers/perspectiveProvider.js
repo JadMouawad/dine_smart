@@ -4,7 +4,7 @@ const { toPercentScore, buildSnippet } = require("../normalization");
 
 const API_HOST = "commentanalyzer.googleapis.com";
 const API_PATH = "/v1alpha1/comments:analyze";
-const REQUEST_TIMEOUT_MS = 2000;
+const REQUEST_TIMEOUT_MS = Number(process.env.PERSPECTIVE_TIMEOUT_MS || 3000);
 
 const ATTRIBUTE_MAP = {
   TOXICITY: FLAG_TYPES.INAPPROPRIATE_CONTENT,
@@ -53,6 +53,9 @@ const analyzePerspective = ({ text, apiKey }) =>
 
           try {
             const parsed = JSON.parse(data || "{}");
+            if (parsed?.error) {
+              return reject(new Error(parsed.error.message || "Perspective API rejected request"));
+            }
             return resolve(parsed);
           } catch (_error) {
             return reject(new Error("Invalid Perspective API response"));
@@ -70,12 +73,14 @@ const analyzePerspective = ({ text, apiKey }) =>
 const convertResponseToSignals = ({ text, response }) => {
   const attributeScores = response?.attributeScores || {};
   const byFlagType = new Map();
+  let maxRawScore = 0;
 
   Object.entries(attributeScores).forEach(([attribute, scoreObj]) => {
     const flagType = ATTRIBUTE_MAP[attribute];
     if (!flagType) return;
 
-    const rawScore = scoreObj?.summaryScore?.value;
+    const rawScore = Number(scoreObj?.summaryScore?.value || 0);
+    if (rawScore > maxRawScore) maxRawScore = rawScore;
     const confidence = toPercentScore(rawScore);
 
     if (!byFlagType.has(flagType) || byFlagType.get(flagType).confidence < confidence) {
@@ -85,27 +90,51 @@ const convertResponseToSignals = ({ text, response }) => {
         reason: `Perspective ${attribute.toLowerCase()} score ${confidence}/100.`,
         snippet: buildSnippet(text),
         provider: "perspective",
+        labels: [attribute.toLowerCase()],
       });
     }
   });
 
-  return Array.from(byFlagType.values());
+  return {
+    signals: Array.from(byFlagType.values()),
+    score: toPercentScore(maxRawScore),
+  };
 };
 
 const classify = async ({ text }) => {
-  const apiKey = process.env.PERSPECTIVE_API_KEY;
+  const apiKey = String(process.env.PERSPECTIVE_API_KEY || "").trim();
   if (!apiKey) {
     return {
       skipped: true,
+      score: 0,
       signals: [],
       provider: "perspective",
       reason: "PERSPECTIVE_API_KEY is not configured",
+      error: null,
     };
   }
 
-  const response = await analyzePerspective({ text, apiKey });
-  const signals = convertResponseToSignals({ text, response });
-  return { skipped: false, signals, provider: "perspective" };
+  try {
+    const response = await analyzePerspective({ text, apiKey });
+    const converted = convertResponseToSignals({ text, response });
+    return {
+      skipped: false,
+      provider: "perspective",
+      score: converted.score,
+      signals: converted.signals,
+      reason: null,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      skipped: true,
+      score: 0,
+      signals: [],
+      provider: "perspective",
+      reason: "Perspective request failed; falling back to heuristic moderation",
+      error: error?.message || "Unknown Perspective API error",
+    };
+  }
 };
 
 module.exports = {

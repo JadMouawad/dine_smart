@@ -290,7 +290,6 @@ export default function RestaurantDetailPanel({
 
   async function handlePostReview() {
     if (!requireAuth()) return;
-    if (!reviewComment.trim()) { setReviewError("Please write a comment."); return; }
     if (reviewComment.trim().length > 500) { setReviewError("Review must be at most 500 characters."); return; }
 
     setReviewError("");
@@ -683,13 +682,14 @@ export default function RestaurantDetailPanel({
 
               <textarea
                 className="reviewCard__input reviewCard__input--textarea"
-                placeholder="Write your review (max 500 characters)"
+                placeholder="Write your review (optional, max 500 characters)"
                 value={reviewComment}
                 onChange={(e) => setReviewComment(e.target.value)}
                 maxLength={500}
                 rows={4}
                 disabled={reviewPosting}
               />
+              <span className="reviewCard__helper">Comment is optional.</span>
               <span className="reviewCard__charCount">{reviewComment.length}/500</span>
             </div>
 
