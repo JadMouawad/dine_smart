@@ -186,7 +186,7 @@ export default function OwnerReservations() {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  
   const [updatingId, setUpdatingId] = useState(null);
   const [confirmRejectReservation, setConfirmRejectReservation] = useState(null);
   const [clockNow, setClockNow] = useState(() => Date.now());
@@ -590,7 +590,6 @@ export default function OwnerReservations() {
 
     setAdjustmentLoading(true);
     setAdjustmentError("");
-    setSuccess("");
 
     try {
       const saved = await saveOwnerSlotAdjustment(restaurant.id, {
@@ -721,7 +720,6 @@ export default function OwnerReservations() {
   async function handleAction(reservationId, action) {
     setUpdatingId(reservationId);
     setError("");
-    setSuccess("");
 
     try {
       const existingReservation = reservations.find((reservation) => reservation.id === reservationId) || null;
@@ -739,12 +737,12 @@ export default function OwnerReservations() {
       await loadReservations();
 
       const messageMap = {
-        accept: "Reservation accepted.",
-        reject: "Reservation rejected.",
-        "no-show": "Reservation marked as no-show.",
-        complete: "Reservation marked as completed.",
-      };
-      setSuccess(messageMap[action] || "Reservation updated.");
+  accept: "Reservation accepted.",
+  reject: "Reservation rejected.",
+  "no-show": "Reservation marked as no-show.",
+  complete: "Reservation marked as completed.",
+};
+toast.success(messageMap[action] || "Reservation updated.");
 
       window.dispatchEvent(
         new CustomEvent("ds:reservation-changed", {
@@ -805,7 +803,6 @@ export default function OwnerReservations() {
     <div className="ownerTableConfigPage">
       <h1 className="ownerProfile__title">Reservations</h1>
 
-      {success && <div className="inlineToast inlineToast--success">{success}</div>}
       {error && <div className="fieldError">{error}</div>}
 
       <div className="ownerReservationSectionSwitcher">

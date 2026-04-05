@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { cancelReservation, getReservationsByUserId } from "../../services/reservationService.js";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
@@ -26,7 +27,6 @@ export default function UserReservations() {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
   const [cancellingId, setCancellingId] = useState(null);
   const [confirmReservation, setConfirmReservation] = useState(null);
   const [clockNow, setClockNow] = useState(() => Date.now());
@@ -77,7 +77,6 @@ export default function UserReservations() {
   }, [reservations, clockNow]);
 
   async function onCancelReservation(reservationId) {
-    setMessage("");
     setError("");
     setCancellingId(reservationId);
     try {
@@ -101,7 +100,7 @@ export default function UserReservations() {
         })
       );
       setConfirmReservation(null);
-      setMessage("Reservation cancelled. The restaurant has been updated.");
+      toast.success("Reservation cancelled. The restaurant has been updated.");
     } catch (err) {
       setError(err.message || "We couldn't cancel that reservation. Please try again.");
     } finally {
@@ -121,7 +120,6 @@ export default function UserReservations() {
   return (
     <div className="userReservationsPage">
       <h1 className="placeholderPage__title">Reservations</h1>
-      {message && <div className="inlineToast">{message}</div>}
       {error && <div className="fieldError">{error}</div>}
 
       <section className="reservationSection">
@@ -153,7 +151,7 @@ export default function UserReservations() {
                       disabled={cancellingId === reservation.id}
                       onClick={() => setConfirmReservation(reservation)}
                     >
-                      {cancellingId === reservation.id ? "Cancelling..." : "Cancel Reservation"}
+                      {cancellingId === reservation.id ? "Cancelling..." : "Cancel reservation"}
                     </button>
                   </div>
                 )}
@@ -167,8 +165,8 @@ export default function UserReservations() {
         <h2 className="reservationSection__title">Past Reservations</h2>
         {past.length === 0 ? (
           <EmptyState
-            title="No past reservations yet"
-            message="Once you complete a reservation, it will appear here for easy reference."
+            title="No past reservations"
+            message="Your past reservations will appear here once you have visited or cancelled a booking."
           />
         ) : (
           <div className="reservationList">
@@ -191,24 +189,20 @@ export default function UserReservations() {
       </section>
 
       <ConfirmDialog
-        open={!!confirmReservation}
-        title="Are you sure you want to cancel the reservation?"
+        open={Boolean(confirmReservation)}
+        title="Cancel reservation?"
         message={
           confirmReservation
-            ? `${confirmReservation.restaurant_name} on ${formatReservationDate(confirmReservation)} at ${formatReservationTime(confirmReservation)}.`
+            ? `Are you sure you want to cancel your reservation at ${confirmReservation.restaurant_name} on ${formatReservationDate(confirmReservation)} at ${formatReservationTime(confirmReservation)}?`
             : ""
         }
-        confirmLabel="Cancel Reservation"
-        cancelLabel="Keep Reservation"
-        busy={cancellingId === confirmReservation?.id}
-        busyLabel="Cancelling..."
-        onConfirm={() => {
-          if (!confirmReservation) return;
-          onCancelReservation(confirmReservation.id);
-        }}
+        confirmLabel={cancellingId ? "Cancelling..." : "Yes, cancel it"}
+        cancelLabel="Keep reservation"
+        destructive
+        loading={Boolean(cancellingId)}
+        onConfirm={() => confirmReservation && onCancelReservation(confirmReservation.id)}
         onCancel={() => {
-          if (cancellingId === confirmReservation?.id) return;
-          setConfirmReservation(null);
+          if (!cancellingId) setConfirmReservation(null);
         }}
       />
     </div>
