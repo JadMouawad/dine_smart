@@ -365,10 +365,25 @@ export default function AuthModal({
                     disabled={loading}
                     options={COUNTRY_OPTIONS.map((country) => ({
                       value: country.code,
-                      label: `${country.flag} ${country.label} ${country.code}`,
+                      label: `${country.label} ${country.code}`,
+                      searchText: `${country.label} ${country.code} ${country.iso}`,
+                      buttonLabel: (
+                        <span className="phoneCountryOption">
+                          <img className="phoneCountryOption__flag" src={country.flagIconUrl} alt="" aria-hidden="true" />
+                          <span>{country.label} {country.code}</span>
+                        </span>
+                      ),
+                      menuLabel: (
+                        <span className="phoneCountryOption">
+                          <img className="phoneCountryOption__flag" src={country.flagIconUrl} alt="" aria-hidden="true" />
+                          <span>{country.label} {country.code}</span>
+                        </span>
+                      ),
                     }))}
                     fullWidth={false}
                     ariaLabel="Select country code"
+                    searchable
+                    searchPlaceholder="Search country"
                   />
                   <input
                     className="phoneRow__number"
