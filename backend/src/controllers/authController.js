@@ -12,7 +12,18 @@ const parseCoordinate = (value) => {
 // POST /auth/register
 const register = async (req, res) => {
   try {
-    const { name, email, password, role, latitude, longitude, phone, admin_signup_key: adminSignupKey } = req.body;
+    const {
+      name,
+      email,
+      password,
+      role,
+      latitude,
+      longitude,
+      phone,
+      admin_signup_key: adminSignupKey,
+      is_subscribed: isSubscribed,
+      subscription_preferences: subscriptionPreferences,
+    } = req.body;
     const validationError = validateRegister(name, email, password);
     if (validationError) {
       return res.status(400).json({ message: validationError });
@@ -49,6 +60,8 @@ const register = async (req, res) => {
       latitude: hasLocation ? parsedLatitude : null,
       longitude: hasLocation ? parsedLongitude : null,
       phone: isAdminSignup ? null : `+${normalizedPhone}`,
+      isSubscribed,
+      subscriptionPreferences,
     });
 
     res.status(201).json({

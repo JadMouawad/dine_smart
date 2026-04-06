@@ -52,14 +52,38 @@ const create = async (db, {
   latitude = null,
   longitude = null,
   phone = null,
+  isSubscribed = false,
+  subscriptionPreferences = [],
 }) => {
   const query = `
-    INSERT INTO users (full_name, email, password, role_id, provider, is_verified, latitude, longitude, phone)
-    VALUES ($1, $2, $3, $4, 'local', false, $5, $6, $7)
+    INSERT INTO users (
+      full_name,
+      email,
+      password,
+      role_id,
+      provider,
+      is_verified,
+      latitude,
+      longitude,
+      phone,
+      is_subscribed,
+      subscription_preferences
+    )
+    VALUES ($1, $2, $3, $4, 'local', false, $5, $6, $7, $8, $9)
     RETURNING id, full_name, email, role_id, is_verified, provider, is_suspended, suspended_at, no_show_count, banned_until,
               latitude, longitude, phone, created_at, updated_at
   `;
-  const result = await db.query(query, [fullName, email, password, roleId, latitude, longitude, phone]);
+  const result = await db.query(query, [
+    fullName,
+    email,
+    password,
+    roleId,
+    latitude,
+    longitude,
+    phone,
+    Boolean(isSubscribed),
+    Array.isArray(subscriptionPreferences) ? subscriptionPreferences : [],
+  ]);
   return result.rows[0];
 };
 

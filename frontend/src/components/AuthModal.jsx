@@ -30,6 +30,8 @@ export default function AuthModal({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [signupLocation, setSignupLocation] = useState({ latitude: null, longitude: null });
   const [locatingUser, setLocatingUser] = useState(false);
+  const [signupSubscribed, setSignupSubscribed] = useState(false);
+  const [signupPreferences, setSignupPreferences] = useState([]);
 
   const [accountType, setAccountType] = useState(null);
   const [adminSignupKey, setAdminSignupKey] = useState("");
@@ -70,6 +72,8 @@ export default function AuthModal({
     setShowConfirmPassword(false);
     setSignupLocation({ latitude: null, longitude: null });
     setLocatingUser(false);
+    setSignupSubscribed(false);
+    setSignupPreferences([]);
     setError(null);
     setAccountType(forceRole === "admin" ? "admin" : null);
     setAdminSignupKey("");
@@ -272,6 +276,8 @@ export default function AuthModal({
                     longitude: signupLocation.longitude,
                     phone: fullPhone,
                     adminSignupKey,
+                    isSubscribed: role === "user" ? signupSubscribed : undefined,
+                    subscriptionPreferences: role === "user" ? signupPreferences : undefined,
                   });
 
                   if (data?.message && !data?.token) {
@@ -479,6 +485,59 @@ export default function AuthModal({
                   </div>
                 )}
               </>
+            )}
+
+            {mode === "signup" && !isRestaurantSignup && (
+              <section className="updatesSubscription">
+                <div className="updatesSubscription__header">
+                  <div>
+                    <div className="updatesSubscription__title">Updates Subscription</div>
+                    <p className="updatesSubscription__desc">
+                      Choose what you want to receive from DineSmart.
+                    </p>
+                  </div>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={signupSubscribed}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setSignupSubscribed(checked);
+                        if (!checked) setSignupPreferences([]);
+                      }}
+                      aria-label={signupSubscribed ? "Subscription on" : "Subscription off"}
+                    />
+                    <span className="switch__track">
+                      <span className="switch__thumb" />
+                    </span>
+                  </label>
+                </div>
+
+                <div className={`updatesPrefs${!signupSubscribed ? " updatesPrefs--disabled" : ""}`}>
+                  <div className="updatesPrefs__title">Choose what you want to receive</div>
+                  <div className="updatesPrefs__grid">
+                    {["news", "offers", "events"].map((key) => (
+                      <label
+                        key={key}
+                        className={`prefChip${signupPreferences.includes(key) ? " prefChip--active" : ""}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={signupPreferences.includes(key)}
+                          onChange={() => {
+                            if (!signupSubscribed) return;
+                            setSignupPreferences((prev) =>
+                              prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]
+                            );
+                          }}
+                          disabled={!signupSubscribed}
+                        />
+                        <span>{key.charAt(0).toUpperCase() + key.slice(1)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </section>
             )}
 
             <button className="btn btn--gold btn--xl" type="submit" disabled={loading}>

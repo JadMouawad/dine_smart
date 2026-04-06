@@ -79,6 +79,10 @@ const registerUser = async (fullName, email, password, roleId = 1, location = {}
 
   let user;
   try {
+    const normalizedPreferences = Array.isArray(location.subscriptionPreferences)
+      ? location.subscriptionPreferences.map((item) => String(item).trim()).filter(Boolean)
+      : [];
+    const normalizedSubscribed = location.isSubscribed === true || String(location.isSubscribed).toLowerCase() === "true";
     user = await User.create(pool, {
       fullName,
       email,
@@ -87,6 +91,8 @@ const registerUser = async (fullName, email, password, roleId = 1, location = {}
       latitude: location.latitude,
       longitude: location.longitude,
       phone: normalizedPhone,
+      isSubscribed: normalizedSubscribed,
+      subscriptionPreferences: normalizedPreferences,
     });
   } catch (error) {
     if (error.code === "23505") {
