@@ -30,6 +30,7 @@ export default function AuthModal({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [signupLocation, setSignupLocation] = useState({ latitude: null, longitude: null });
   const [locatingUser, setLocatingUser] = useState(false);
+  const [locationChoice, setLocationChoice] = useState("");
   const [signupSubscribed, setSignupSubscribed] = useState(false);
   const [signupPreferences, setSignupPreferences] = useState([]);
 
@@ -72,6 +73,7 @@ export default function AuthModal({
     setShowConfirmPassword(false);
     setSignupLocation({ latitude: null, longitude: null });
     setLocatingUser(false);
+    setLocationChoice("");
     setSignupSubscribed(false);
     setSignupPreferences([]);
     setError(null);
@@ -140,7 +142,7 @@ export default function AuthModal({
         latitude: Number(position.coords.latitude.toFixed(6)),
         longitude: Number(position.coords.longitude.toFixed(6)),
       });
-      setError("Location added successfully.");
+      setError("");
       setLocatingUser(false);
     };
 
@@ -179,7 +181,7 @@ export default function AuthModal({
 
   const continueWithoutLocation = () => {
     setSignupLocation({ latitude: null, longitude: null });
-    setError("Continuing without location. Explore map will default to Beirut.");
+    setError("");
   };
 
 
@@ -462,29 +464,63 @@ export default function AuthModal({
             )}
 
             {mode === "signup" && forceRole !== "admin" && !isRestaurantSignup && (
-              <>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--xl"
-                  onClick={fetchCurrentLocation}
-                  disabled={loading || locatingUser}
-                >
-                  {locatingUser ? "Getting location..." : "Use My Current Location"}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--xl"
-                  onClick={continueWithoutLocation}
-                  disabled={loading || locatingUser}
-                >
-                  Continue Without Location
-                </button>
+              <div className="locationChoiceGroup" aria-label="Location preference">
+                <div className="locationChoiceRow">
+                  <div className="locationChoiceRow__label">
+                    {locatingUser && locationChoice === "current" ? "Getting location..." : "Use My Current Location"}
+                  </div>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={locationChoice === "current"}
+                      onChange={() => {
+                        const next = locationChoice === "current" ? "" : "current";
+                        setLocationChoice(next);
+                        if (next === "current") fetchCurrentLocation();
+                      }}
+                      disabled={loading || locatingUser}
+                      aria-label="Use my current location"
+                    />
+                    <span className="switch__track">
+                      <span className="switch__thumb" />
+                    </span>
+                  </label>
+                </div>
+
+                <div className="locationChoiceDivider" aria-hidden="true">or</div>
+
+                <div className="locationChoiceRow">
+                  <div className="locationChoiceRow__label">Continue Without Location</div>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={locationChoice === "skip"}
+                      onChange={() => {
+                        const next = locationChoice === "skip" ? "" : "skip";
+                        setLocationChoice(next);
+                        if (next === "skip") continueWithoutLocation();
+                      }}
+                      disabled={loading || locatingUser}
+                      aria-label="Continue without location"
+                    />
+                    <span className="switch__track">
+                      <span className="switch__thumb" />
+                    </span>
+                  </label>
+                </div>
+
+                {locationChoice === "skip" && (
+                  <div className="locationChoiceHint">
+                    Continuing without location. Explore map will default to Beirut.
+                  </div>
+                )}
+
                 {signupLocation.latitude != null && signupLocation.longitude != null && (
                   <div className="modal__hint" aria-live="polite">
                     Location captured.
                   </div>
                 )}
-              </>
+              </div>
             )}
 
             {mode === "signup" && !isRestaurantSignup && (

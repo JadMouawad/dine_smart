@@ -188,6 +188,12 @@
 [data-theme="light"] .authMapField__fallback {
   color: rgba(80, 45, 15, 0.7);
 }
+[data-theme="light"] .locationChoiceRow__label {
+  color: rgba(26, 14, 6, 0.9);
+}
+[data-theme="light"] .locationChoiceDivider {
+  color: rgba(80, 45, 15, 0.55);
+}
 [data-theme="light"] .passwordToggleBtn {
   color: rgba(60, 30, 12, 0.75);
 }
@@ -6766,6 +6772,46 @@ input[type="date"] {
   transform: translateX(26px);
 }
 
+.locationChoiceGroup .switch {
+  min-height: 30px;
+  min-width: 52px;
+}
+
+.locationChoiceGroup .switch__track {
+  width: 46px;
+  height: 24px;
+  padding: 3px;
+}
+
+.locationChoiceGroup .switch__thumb {
+  width: 18px;
+  height: 18px;
+}
+
+.locationChoiceGroup .switch input:checked + .switch__track .switch__thumb {
+  transform: translateX(22px);
+}
+
+.updatesSubscription .switch {
+  min-height: 30px;
+  min-width: 52px;
+}
+
+.updatesSubscription .switch__track {
+  width: 46px;
+  height: 24px;
+  padding: 3px;
+}
+
+.updatesSubscription .switch__thumb {
+  width: 18px;
+  height: 18px;
+}
+
+.updatesSubscription .switch input:checked + .switch__track .switch__thumb {
+  transform: translateX(22px);
+}
+
 .updatesPrefs {
   background: rgba(8, 14, 34, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -8403,6 +8449,46 @@ input[type="date"] {
 .authMapPin {
   font-size: 20px;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
+}
+
+.locationChoiceGroup {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.locationChoiceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 2px;
+}
+
+.locationChoiceRow__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.locationChoiceDivider {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.45);
+  text-align: left;
+  padding-left: 2px;
+  margin-top: -2px;
+  margin-bottom: -2px;
+}
+
+.locationChoiceHint {
+  margin-top: -4px;
+  padding-left: 0;
+  font-size: 12px;
+  color: rgba(201, 162, 39, 0.95);
+  font-weight: 600;
 }
 
 .userProfileFormHint {
