@@ -5393,11 +5393,17 @@ input[type="date"] {
   font-size: 14px;
 }
 
+.profileHistoryList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
 .profileHistoryItem {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 0;
+  gap: 12px;
+  padding: 9px 0;
   border-bottom: 1px solid rgba(0,0,0,0.06);
   font-size: 0.875rem;
 }
@@ -5410,9 +5416,17 @@ input[type="date"] {
   border-bottom: none;
 }
 
-.profileHistoryItem__icon {
-  opacity: 0.4;
-  font-size: 0.8rem;
+.profileHistoryItem__num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(201,162,39,0.15);
+  color: #C9A227;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
@@ -5427,10 +5441,33 @@ input[type="date"] {
   flex-shrink: 0;
 }
 
+.profileHistoryActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.profileHistory__viewBtn {
+  background: rgba(201,162,39,0.12);
+  border: 1px solid rgba(201,162,39,0.35);
+  color: #C9A227;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.profileHistory__viewBtn:hover {
+  background: rgba(201,162,39,0.22);
+}
+
 .profileHistory__clearBtn {
   background: none;
   border: none;
-  color: #c9963a;
+  color: #9ca3af;
   font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
@@ -5438,6 +5475,7 @@ input[type="date"] {
 }
 
 .profileHistory__clearBtn:hover {
+  color: #ef4444;
   text-decoration: underline;
 }
 
