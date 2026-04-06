@@ -80,6 +80,7 @@ const addRecentSearch = async ({ userId, query }) => {
     return { success: false, status: 400, error: "Query too long" };
   }
   await searchRepository.upsertRecentSearch({ userId, query: trimmed });
+  await searchRepository.upsertSearchHistory({ userId, query: trimmed });
   return { success: true, status: 200 };
 };
 
@@ -100,6 +101,16 @@ const clearRecentSearches = async ({ userId }) => {
   return { success: true, status: 200 };
 };
 
+const getSearchHistory = async ({ userId }) => {
+  const list = await searchRepository.getSearchHistoryByUser(userId);
+  return { success: true, status: 200, data: list };
+};
+
+const clearSearchHistory = async ({ userId }) => {
+  await searchRepository.clearSearchHistoryByUser(userId);
+  return { success: true, status: 200 };
+};
+
 module.exports = {
   searchRestaurants,
   saveSearch,
@@ -109,4 +120,6 @@ module.exports = {
   getRecentSearches,
   removeRecentSearch,
   clearRecentSearches,
+  getSearchHistory,
+  clearSearchHistory,
 };

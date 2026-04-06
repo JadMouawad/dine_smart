@@ -193,6 +193,24 @@ const clearRecentSearches = async (req, res) => {
   }
 };
 
+const getSearchHistory = async (req, res) => {
+  try {
+    const result = await searchService.getSearchHistory({ userId: req.user.id });
+    return res.status(200).json(result.data);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+const clearSearchHistory = async (req, res) => {
+  try {
+    await searchService.clearSearchHistory({ userId: req.user.id });
+    return res.status(200).json({ message: "ok" });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   searchRestaurants,
   saveSearch,
@@ -202,4 +220,6 @@ module.exports = {
   getRecentSearches,
   removeRecentSearch,
   clearRecentSearches,
+  getSearchHistory,
+  clearSearchHistory,
 };

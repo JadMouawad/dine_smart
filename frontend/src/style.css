@@ -5393,6 +5393,54 @@ input[type="date"] {
   font-size: 14px;
 }
 
+.profileHistoryItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  font-size: 0.875rem;
+}
+
+[data-theme="dark"] .profileHistoryItem {
+  border-bottom-color: rgba(255,255,255,0.07);
+}
+
+.profileHistoryItem:last-child {
+  border-bottom: none;
+}
+
+.profileHistoryItem__icon {
+  opacity: 0.4;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.profileHistoryItem__query {
+  flex: 1;
+  font-weight: 500;
+}
+
+.profileHistoryItem__date {
+  font-size: 0.75rem;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.profileHistory__clearBtn {
+  background: none;
+  border: none;
+  color: #c9963a;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+}
+
+.profileHistory__clearBtn:hover {
+  text-decoration: underline;
+}
+
 /* ===== Section Fade Animation ===== */
 
 .fadeSection {

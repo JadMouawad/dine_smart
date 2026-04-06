@@ -15,4 +15,8 @@ router.post("/recent", authenticateToken, authorizeRoles("user"), searchControll
 router.delete("/recent", authenticateToken, authorizeRoles("user"), searchController.clearRecentSearches);
 router.delete("/recent/:id", authenticateToken, authorizeRoles("user"), searchController.removeRecentSearch);
 
+// Full search history (profile page)
+router.get("/history", authenticateToken, authorizeRoles("user"), searchController.getSearchHistory);
+router.delete("/history", authenticateToken, authorizeRoles("user"), searchController.clearSearchHistory);
+
 module.exports = router;

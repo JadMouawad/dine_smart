@@ -14,3 +14,9 @@ export const removeRecentSearch = (id) =>
 
 export const clearRecentSearches = () =>
   apiRequest("/search/recent", { method: "DELETE" });
+
+export const getSearchHistory = () =>
+  apiRequest("/search/history", { method: "GET" });
+
+export const clearSearchHistory = () =>
+  apiRequest("/search/history", { method: "DELETE" });

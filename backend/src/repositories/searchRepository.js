@@ -95,6 +95,33 @@ const clearRecentSearchesByUser = async (userId) => {
   await pool.query(`DELETE FROM recent_searches WHERE user_id = $1`, [userId]);
 };
 
+// ── Search History (full, unlimited) ──────────────────────────────────────
+
+const upsertSearchHistory = async ({ userId, query }) => {
+  await pool.query(
+    `INSERT INTO search_history (user_id, query, searched_at)
+     VALUES ($1, $2, NOW())
+     ON CONFLICT (user_id, query)
+     DO UPDATE SET searched_at = NOW()`,
+    [userId, query]
+  );
+};
+
+const getSearchHistoryByUser = async (userId) => {
+  const result = await pool.query(
+    `SELECT id, query, searched_at
+     FROM search_history
+     WHERE user_id = $1
+     ORDER BY searched_at DESC`,
+    [userId]
+  );
+  return result.rows;
+};
+
+const clearSearchHistoryByUser = async (userId) => {
+  await pool.query(`DELETE FROM search_history WHERE user_id = $1`, [userId]);
+};
+
 module.exports = {
   createSavedSearch,
   getSavedSearchesByUser,
@@ -103,4 +130,7 @@ module.exports = {
   getRecentSearchesByUser,
   deleteRecentSearchById,
   clearRecentSearchesByUser,
+  upsertSearchHistory,
+  getSearchHistoryByUser,
+  clearSearchHistoryByUser,
 };

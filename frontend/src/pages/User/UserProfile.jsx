@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { getProfile, updateProfile } from "../../services/profileService.js";
 import { getFavorites } from "../../services/favoriteService.js";
+import { getSearchHistory, clearSearchHistory } from "../../services/recentSearchService.js";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useTheme } from "../../auth/ThemeContext.jsx";
 import { COUNTRY_OPTIONS, splitPhoneNumber } from "../../constants/countries.js";
@@ -17,6 +18,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
 
   const [favorites, setFavorites] = useState([]);
   const [myReviews, setMyReviews] = useState([]);
+  const [searchHistory, setSearchHistory] = useState([]);
 
   const [profilePictureUrl, setProfilePictureUrl] = useState("");
   const [profilePictureDataUrl, setProfilePictureDataUrl] = useState("");
@@ -44,6 +46,14 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
     getFavorites()
       .then((data) => setFavorites(Array.isArray(data) ? data : []))
       .catch(() => setFavorites([]));
+  }, [user?.id]);
+
+  // Load search history
+  useEffect(() => {
+    if (!user?.id) return;
+    getSearchHistory()
+      .then((data) => setSearchHistory(Array.isArray(data) ? data : []))
+      .catch(() => setSearchHistory([]));
   }, [user?.id]);
 
   useEffect(() => {
@@ -487,6 +497,39 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
               </div>
             ) : (
               <div className="profileEmpty">No reviews yet.</div>
+            )}
+          </div>
+
+          <div className="formCard formCard--userProfile profileExtraCard">
+            <div className="formCard__title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>Search History</span>
+              {searchHistory.length > 0 && (
+                <button
+                  type="button"
+                  className="profileHistory__clearBtn"
+                  onClick={() => {
+                    clearSearchHistory().catch(() => {});
+                    setSearchHistory([]);
+                  }}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            {searchHistory.length ? (
+              <div className="profileExtraCard__content">
+                {searchHistory.map((item) => (
+                  <div key={item.id} className="profileHistoryItem">
+                    <span className="profileHistoryItem__icon">🕐</span>
+                    <span className="profileHistoryItem__query">{item.query}</span>
+                    <span className="profileHistoryItem__date">
+                      {new Date(item.searched_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="profileEmpty">No search history yet.</div>
             )}
           </div>
         </div>
