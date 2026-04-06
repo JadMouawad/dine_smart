@@ -155,9 +155,51 @@ const deleteSavedSearch = async (req, res) => {
   }
 };
 
+const addRecentSearch = async (req, res) => {
+  try {
+    const result = await searchService.addRecentSearch({ userId: req.user.id, query: req.body.query });
+    if (!result.success) return res.status(result.status).json({ message: result.error });
+    return res.status(200).json({ message: "ok" });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+const getRecentSearches = async (req, res) => {
+  try {
+    const result = await searchService.getRecentSearches({ userId: req.user.id });
+    return res.status(200).json(result.data);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+const removeRecentSearch = async (req, res) => {
+  try {
+    const result = await searchService.removeRecentSearch({ userId: req.user.id, searchId: req.params.id });
+    if (!result.success) return res.status(result.status).json({ message: result.error });
+    return res.status(200).json({ message: "ok" });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+const clearRecentSearches = async (req, res) => {
+  try {
+    await searchService.clearRecentSearches({ userId: req.user.id });
+    return res.status(200).json({ message: "ok" });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   searchRestaurants,
   saveSearch,
   getSavedSearches,
   deleteSavedSearch,
+  addRecentSearch,
+  getRecentSearches,
+  removeRecentSearch,
+  clearRecentSearches,
 };

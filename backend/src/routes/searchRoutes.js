@@ -9,4 +9,10 @@ router.post("/save", authenticateToken, authorizeRoles("user"), searchController
 router.get("/saved", authenticateToken, authorizeRoles("user"), searchController.getSavedSearches);
 router.delete("/saved/:id", authenticateToken, authorizeRoles("user"), searchController.deleteSavedSearch);
 
+// Recent searches (DB-backed, per user account)
+router.get("/recent", authenticateToken, authorizeRoles("user"), searchController.getRecentSearches);
+router.post("/recent", authenticateToken, authorizeRoles("user"), searchController.addRecentSearch);
+router.delete("/recent", authenticateToken, authorizeRoles("user"), searchController.clearRecentSearches);
+router.delete("/recent/:id", authenticateToken, authorizeRoles("user"), searchController.removeRecentSearch);
+
 module.exports = router;

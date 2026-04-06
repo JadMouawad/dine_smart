@@ -69,9 +69,44 @@ const deleteSavedSearch = async ({ userId, savedSearchId }) => {
   return { success: true, status: 200, data: deleted };
 };
 
+// ── Recent Searches ────────────────────────────────────────────────────────
+
+const addRecentSearch = async ({ userId, query }) => {
+  const trimmed = String(query || "").trim();
+  if (!trimmed || trimmed.length < 2) {
+    return { success: false, status: 400, error: "Query too short" };
+  }
+  if (trimmed.length > 255) {
+    return { success: false, status: 400, error: "Query too long" };
+  }
+  await searchRepository.upsertRecentSearch({ userId, query: trimmed });
+  return { success: true, status: 200 };
+};
+
+const getRecentSearches = async ({ userId }) => {
+  const list = await searchRepository.getRecentSearchesByUser(userId);
+  return { success: true, status: 200, data: list };
+};
+
+const removeRecentSearch = async ({ userId, searchId }) => {
+  const parsedId = parsePositiveInt(searchId, null);
+  if (!parsedId) return { success: false, status: 400, error: "Invalid ID" };
+  await searchRepository.deleteRecentSearchById({ userId, searchId: parsedId });
+  return { success: true, status: 200 };
+};
+
+const clearRecentSearches = async ({ userId }) => {
+  await searchRepository.clearRecentSearchesByUser(userId);
+  return { success: true, status: 200 };
+};
+
 module.exports = {
   searchRestaurants,
   saveSearch,
   getSavedSearches,
   deleteSavedSearch,
+  addRecentSearch,
+  getRecentSearches,
+  removeRecentSearch,
+  clearRecentSearches,
 };

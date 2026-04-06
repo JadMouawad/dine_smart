@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import * as recentSearchService from "../../services/recentSearchService";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext.jsx";
@@ -248,27 +249,46 @@ export default function UserSearch({
   const scrollRestoreRef = useRef(null);
 
   // Recent searches
-  const [recentSearches, setRecentSearches] = useState(() => getRecentSearches());
+  const [recentSearches, setRecentSearches] = useState([]);
   const [showRecent, setShowRecent] = useState(false);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
   const searchBarRef = useRef(null);
+  const dropdownRef = useRef(null);
+
+  // Load recent searches (DB for logged-in, localStorage for guests)
+  useEffect(() => {
+    if (user?.id) {
+      recentSearchService.getRecentSearches()
+        .then((data) => setRecentSearches(Array.isArray(data) ? data : []))
+        .catch(() => setRecentSearches(getRecentSearches().map((q) => ({ query: q }))));
+    } else {
+      setRecentSearches(getRecentSearches().map((q) => ({ query: q })));
+    }
+  }, [user?.id]);
 
   // Save query to recent history after 1s of inactivity
   useEffect(() => {
     if (!query.trim() || query.trim().length < 2) return;
     const timer = setTimeout(() => {
-      addRecentSearch(query);
-      setRecentSearches(getRecentSearches());
+      if (user?.id) {
+        recentSearchService.addRecentSearch(query.trim())
+          .then(() => recentSearchService.getRecentSearches())
+          .then((data) => setRecentSearches(Array.isArray(data) ? data : []))
+          .catch(() => {});
+      } else {
+        addRecentSearch(query);
+        setRecentSearches(getRecentSearches().map((q) => ({ query: q })));
+      }
     }, 1000);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, user?.id]);
 
-  // Close recent dropdown when clicking outside
+  // Close dropdown when clicking outside both the search bar AND the dropdown
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (searchBarRef.current && !searchBarRef.current.contains(e.target)) {
-        setShowRecent(false);
-      }
+      const inSearchBar = searchBarRef.current?.contains(e.target);
+      const inDropdown = dropdownRef.current?.contains(e.target);
+      if (!inSearchBar && !inDropdown) setShowRecent(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -296,16 +316,29 @@ export default function UserSearch({
     setShowRecent(false);
   }, []);
 
-  const handleRemoveRecent = useCallback((e, q) => {
+  const handleRemoveRecent = useCallback((e, item) => {
     e.stopPropagation();
-    removeRecentSearch(q);
-    setRecentSearches(getRecentSearches());
-  }, []);
+    if (user?.id && item.id) {
+      recentSearchService.removeRecentSearch(item.id)
+        .then(() => recentSearchService.getRecentSearches())
+        .then((data) => setRecentSearches(Array.isArray(data) ? data : []))
+        .catch(() => {});
+    } else {
+      removeRecentSearch(item.query);
+      setRecentSearches(getRecentSearches().map((q) => ({ query: q })));
+    }
+  }, [user?.id]);
 
   const handleClearRecent = useCallback(() => {
-    clearRecentSearches();
-    setRecentSearches([]);
-  }, []);
+    if (user?.id) {
+      recentSearchService.clearRecentSearches()
+        .then(() => setRecentSearches([]))
+        .catch(() => {});
+    } else {
+      clearRecentSearches();
+      setRecentSearches([]);
+    }
+  }, [user?.id]);
 
   function requireAuth() {
     if (isGuest || !user?.id) { onRequireSignup?.(); return false; }
@@ -758,22 +791,22 @@ export default function UserSearch({
         />
 
         {showRecent && recentSearches.length > 0 && createPortal(
-          <div className="recentSearchesDropdown" style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}>
+          <div ref={dropdownRef} className="recentSearchesDropdown" style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}>
             <div className="recentSearchesDropdown__header">
               <span>Recent Searches</span>
               <button type="button" className="recentSearchesDropdown__clear" onClick={handleClearRecent}>
                 Clear all
               </button>
             </div>
-            {recentSearches.map((q) => (
-              <div key={q} className="recentSearchesDropdown__item" onClick={() => handleSelectRecent(q)}>
+            {recentSearches.map((item) => (
+              <div key={item.id ?? item.query} className="recentSearchesDropdown__item" onClick={() => handleSelectRecent(item.query)}>
                 <span className="recentSearchesDropdown__icon">🕐</span>
-                <span className="recentSearchesDropdown__text">{q}</span>
+                <span className="recentSearchesDropdown__text">{item.query}</span>
                 <button
                   type="button"
                   className="recentSearchesDropdown__remove"
-                  onClick={(e) => handleRemoveRecent(e, q)}
-                  aria-label={`Remove ${q}`}
+                  onClick={(e) => handleRemoveRecent(e, item)}
+                  aria-label={`Remove ${item.query}`}
                 >
                   ✕
                 </button>
