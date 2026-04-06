@@ -786,8 +786,11 @@ export default function OwnerEvents() {
 
       {activeSubTab === "our-events" && (
         <section className="reservationSection">
-          <div className="reservationSection__header">
-            <h2 className="reservationSection__title">Our Events</h2>
+          <div className="ownerReservationToolbar">
+            <div>
+              <h2 className="reservationSection__title">Our Events</h2>
+            </div>
+
             <button
               type="button"
               className={`searchFilterBtn ${ourEventsFiltersOpen ? "is-active" : ""}`}
@@ -925,8 +928,11 @@ export default function OwnerEvents() {
 
       {activeSubTab === "manage" && (
         <section className="reservationSection">
-          <div className="reservationSection__header">
-            <h2 className="reservationSection__title">Manage Events</h2>
+          <div className="ownerReservationToolbar">
+            <div>
+              <h2 className="reservationSection__title">Manage Events</h2>
+            </div>
+
             <button
               type="button"
               className={`searchFilterBtn ${manageFiltersOpen ? "is-active" : ""}`}
