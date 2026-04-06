@@ -169,7 +169,7 @@ export default function AuthModal({
         setError("Location request timed out. Please try again or enter coordinates manually.");
         return;
       }
-      setError("Unable to fetch your location. You can continue without location.");
+      setError("Unable to fetch your location. You can continue without it.");
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -178,12 +178,6 @@ export default function AuthModal({
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
   };
-
-  const continueWithoutLocation = () => {
-    setSignupLocation({ latitude: null, longitude: null });
-    setError("");
-  };
-
 
   if (!isOpen) return null;
 
@@ -476,7 +470,12 @@ export default function AuthModal({
                       onChange={() => {
                         const next = locationChoice === "current" ? "" : "current";
                         setLocationChoice(next);
-                        if (next === "current") fetchCurrentLocation();
+                        if (next === "current") {
+                          fetchCurrentLocation();
+                        } else {
+                          setSignupLocation({ latitude: null, longitude: null });
+                          setError("");
+                        }
                       }}
                       disabled={loading || locatingUser}
                       aria-label="Use my current location"
@@ -486,34 +485,6 @@ export default function AuthModal({
                     </span>
                   </label>
                 </div>
-
-                <div className="locationChoiceDivider" aria-hidden="true">or</div>
-
-                <div className="locationChoiceRow">
-                  <div className="locationChoiceRow__label">Continue Without Location</div>
-                  <label className="switch">
-                    <input
-                      type="checkbox"
-                      checked={locationChoice === "skip"}
-                      onChange={() => {
-                        const next = locationChoice === "skip" ? "" : "skip";
-                        setLocationChoice(next);
-                        if (next === "skip") continueWithoutLocation();
-                      }}
-                      disabled={loading || locatingUser}
-                      aria-label="Continue without location"
-                    />
-                    <span className="switch__track">
-                      <span className="switch__thumb" />
-                    </span>
-                  </label>
-                </div>
-
-                {locationChoice === "skip" && (
-                  <div className="locationChoiceHint">
-                    Continuing without location. Explore map will default to Beirut.
-                  </div>
-                )}
 
                 {signupLocation.latitude != null && signupLocation.longitude != null && (
                   <div className="modal__hint" aria-live="polite">

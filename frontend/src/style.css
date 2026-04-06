@@ -191,9 +191,6 @@
 [data-theme="light"] .locationChoiceRow__label {
   color: rgba(26, 14, 6, 0.9);
 }
-[data-theme="light"] .locationChoiceDivider {
-  color: rgba(80, 45, 15, 0.55);
-}
 [data-theme="light"] .passwordToggleBtn {
   color: rgba(60, 30, 12, 0.75);
 }
@@ -8471,25 +8468,6 @@ input[type="date"] {
   color: rgba(255, 255, 255, 0.9);
 }
 
-.locationChoiceDivider {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.45);
-  text-align: left;
-  padding-left: 2px;
-  margin-top: -2px;
-  margin-bottom: -2px;
-}
-
-.locationChoiceHint {
-  margin-top: -4px;
-  padding-left: 0;
-  font-size: 12px;
-  color: rgba(201, 162, 39, 0.95);
-  font-weight: 600;
-}
 
 .userProfileFormHint {
   margin: 8px 0 0;
