@@ -281,11 +281,18 @@ export default function UserSearch({
     }
   }, [user?.id]);
 
-  // Track the last non-empty query so we can save it when the input is cleared
+  // Track the longest query typed — only grows, never shrinks during deletion
   useEffect(() => {
     const trimmed = query.trim();
-    if (trimmed.length >= 2) lastQueryRef.current = trimmed;
+    if (trimmed.length > lastQueryRef.current.length) lastQueryRef.current = trimmed;
   }, [query]);
+
+  // Save on unmount (user switches section)
+  const saveRecentSearchRef = useRef(saveRecentSearch);
+  useEffect(() => { saveRecentSearchRef.current = saveRecentSearch; }, [saveRecentSearch]);
+  useEffect(() => {
+    return () => { if (lastQueryRef.current) saveRecentSearchRef.current(lastQueryRef.current); };
+  }, []);
 
 
   // Close dropdown when clicking outside both the search bar AND the dropdown
@@ -784,6 +791,7 @@ export default function UserSearch({
             if (e.target.value === "") {
               // Save whatever was typed before clearing
               saveRecentSearch(lastQueryRef.current);
+              lastQueryRef.current = "";
               setShowRecent(true);
             } else {
               setShowRecent(false);
@@ -907,7 +915,11 @@ export default function UserSearch({
             <RestaurantCard
               r={r}
               isFavorited={isFavorited(r.id)}
-              onSelect={(restaurant) => setSelectedRestaurant(restaurant)}
+              onSelect={(restaurant) => {
+                saveRecentSearch(lastQueryRef.current);
+                lastQueryRef.current = "";
+                setSelectedRestaurant(restaurant);
+              }}
               onFavorite={(restaurant) => {
                 if (!requireAuth()) return;
                 toggleFavorite(restaurant);
