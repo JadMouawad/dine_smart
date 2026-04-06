@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext.jsx";
@@ -756,7 +757,7 @@ export default function UserSearch({
           aria-label="Search restaurants"
         />
 
-        {showRecent && recentSearches.length > 0 && (
+        {showRecent && recentSearches.length > 0 && createPortal(
           <div className="recentSearchesDropdown" style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}>
             <div className="recentSearchesDropdown__header">
               <span>Recent Searches</span>
@@ -778,7 +779,8 @@ export default function UserSearch({
                 </button>
               </div>
             ))}
-          </div>
+          </div>,
+          document.body
         )}
 
         <button
