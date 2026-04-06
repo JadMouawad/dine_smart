@@ -548,6 +548,22 @@ html[data-theme="light"] .quickFilterBtn.is-active {
 [data-theme="light"] .discoverEventCard__date {
   color: rgba(130, 90, 0, 0.90);
 }
+[data-theme="light"] .discoverEventCard--rich {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(175, 115, 45, 0.2);
+  box-shadow: 0 14px 28px rgba(130, 80, 10, 0.12);
+}
+[data-theme="light"] .discoverEventCard__dateRow {
+  color: rgba(80, 45, 15, 0.78);
+}
+[data-theme="light"] .discoverEventCard__metaChip {
+  color: rgba(80, 45, 15, 0.78);
+  border-color: rgba(175, 115, 45, 0.25);
+  background: rgba(201, 162, 39, 0.12);
+}
+[data-theme="light"] .discoverEventCard__social {
+  color: rgba(80, 45, 15, 0.78);
+}
 [data-theme="light"] .restaurantCard__cuisine {
   color: rgba(140, 90, 5, 0.90);
 }
@@ -598,6 +614,38 @@ html[data-theme="light"] .quickFilterBtn.is-active {
 }
 [data-theme="light"] .userProfileHero__email {
   color: rgba(80, 45, 15, 0.75);
+}
+[data-theme="light"] .formCard__divider {
+  background: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .updatesSubscription__title {
+  color: rgba(26, 14, 6, 0.92);
+}
+[data-theme="light"] .updatesSubscription__desc {
+  color: rgba(80, 45, 15, 0.72);
+}
+[data-theme="light"] .switch__track {
+  background: rgba(175, 115, 45, 0.18);
+}
+[data-theme="light"] .updatesPrefs {
+  background: rgba(255, 251, 243, 0.85);
+  border-color: rgba(175, 115, 45, 0.2);
+}
+[data-theme="light"] .updatesPrefs__title {
+  color: rgba(80, 45, 15, 0.75);
+}
+[data-theme="light"] .prefChip {
+  background: rgba(255, 248, 235, 0.9);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.9);
+}
+[data-theme="light"] .prefChip--active {
+  border-color: rgba(201, 162, 39, 0.6);
+  background: rgba(201, 162, 39, 0.18);
+  color: rgba(26, 14, 6, 0.95);
+}
+[data-theme="light"] .prefChip:hover {
+  border-color: rgba(175, 115, 45, 0.45);
 }
 [data-theme="light"] .metaPill {
   background: rgba(201, 162, 39, 0.10);
