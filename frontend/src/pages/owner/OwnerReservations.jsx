@@ -191,6 +191,139 @@ const RESERVATION_STATUS_FILTER_OPTIONS = [
   { value: "pending", label: "Pending" },
 ];
 
+const CHART_RANGE_OPTIONS = [
+  { value: "7d", label: "Last 7 days" },
+  { value: "14d", label: "Last 2 weeks" },
+  { value: "30d", label: "Last month" },
+  { value: "90d", label: "Last 3 months" },
+  { value: "365d", label: "Last year" },
+];
+
+function startOfDay(value) {
+  const date = new Date(value);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function endOfDay(value) {
+  const date = new Date(value);
+  date.setHours(23, 59, 59, 999);
+  return date;
+}
+
+function addDays(value, amount) {
+  const date = new Date(value);
+  date.setDate(date.getDate() + amount);
+  return date;
+}
+
+function addMonths(value, amount) {
+  const date = new Date(value);
+  date.setMonth(date.getMonth() + amount);
+  return date;
+}
+
+function startOfWeek(value) {
+  const date = startOfDay(value);
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  return addDays(date, diff);
+}
+
+function formatChartDateLabel(value) {
+  return value.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function formatLocalDateKey(value) {
+  return `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(value.getDate())}`;
+}
+
+function formatChartWeekLabel(value) {
+  const start = startOfDay(value);
+  const end = addDays(start, 6);
+  const startLabel = start.toLocaleDateString([], { month: "short", day: "numeric" });
+  const endLabel = end.toLocaleDateString([], { day: "numeric" });
+  return `${startLabel}-${endLabel}`;
+}
+
+function formatChartMonthLabel(value) {
+  return value.toLocaleDateString([], { month: "short" });
+}
+
+function formatChartHourLabel(value) {
+  const [hours = "00", minutes = "00"] = String(value || "00:00").split(":");
+  const date = new Date(`2000-01-01T${hours}:${minutes}:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
+function getReservationChartConfig(rangeValue, now = new Date()) {
+  const normalizedNow = new Date(now);
+  let buckets = [];
+  let mode = "day";
+  let bucketSizeDays = 1;
+  let start = startOfDay(normalizedNow);
+  let title = CHART_RANGE_OPTIONS.find((option) => option.value === rangeValue)?.label || "Last 7 days";
+  let groupLabel = "Daily reservations";
+
+  if (rangeValue === "30d") {
+    mode = "rolling-week";
+    bucketSizeDays = 7;
+    groupLabel = "Weekly reservations";
+    const rangeStart = startOfDay(addDays(normalizedNow, -29));
+    start = rangeStart;
+    for (let cursor = new Date(rangeStart); cursor <= normalizedNow; cursor = addDays(cursor, 7)) {
+      const bucketStart = new Date(cursor);
+      buckets.push({
+        key: formatLocalDateKey(bucketStart),
+        label: formatChartWeekLabel(bucketStart),
+      });
+    }
+  } else if (rangeValue === "90d") {
+    mode = "month";
+    groupLabel = "Monthly reservations";
+    start = new Date(normalizedNow.getFullYear(), normalizedNow.getMonth() - 2, 1);
+    for (let cursor = new Date(start); cursor <= normalizedNow; cursor = addMonths(cursor, 1)) {
+      const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+      buckets.push({
+        key: `${monthStart.getFullYear()}-${pad2(monthStart.getMonth() + 1)}`,
+        label: formatChartMonthLabel(monthStart),
+      });
+    }
+  } else if (rangeValue === "365d") {
+    mode = "month";
+    groupLabel = "Monthly reservations";
+    start = new Date(normalizedNow.getFullYear(), normalizedNow.getMonth() - 11, 1);
+    for (let cursor = new Date(start); cursor <= normalizedNow; cursor = addMonths(cursor, 1)) {
+      const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+      buckets.push({
+        key: `${monthStart.getFullYear()}-${pad2(monthStart.getMonth() + 1)}`,
+        label: formatChartMonthLabel(monthStart),
+      });
+    }
+  } else {
+    const days = rangeValue === "14d" ? 14 : 7;
+    start = startOfDay(addDays(normalizedNow, -(days - 1)));
+    for (let cursor = new Date(start); cursor <= normalizedNow; cursor = addDays(cursor, 1)) {
+      const day = new Date(cursor);
+      buckets.push({
+        key: formatLocalDateKey(day),
+        label: formatChartDateLabel(day),
+      });
+    }
+  }
+
+  return {
+    start,
+    end: endOfDay(normalizedNow),
+    mode,
+    bucketSizeDays,
+    title,
+    groupLabel,
+    buckets,
+  };
+}
+
 function sameDisabledSlot(slot, draft) {
   return (
     String(slot?.reservation_date || "") === String(draft?.date || draft?.reservation_date || "") &&
@@ -276,6 +409,7 @@ export default function OwnerReservations() {
       return "all";
     }
   });
+  const [chartRange, setChartRange] = useState("14d");
 
   const appliedFiltersCount = useMemo(() => {
     let count = 0;
@@ -582,39 +716,57 @@ export default function OwnerReservations() {
   }, [reservations, clockNow, reservationSortBy, partySizeFilter, statusFilter, reservationView]);
 
   const reservationCharts = useMemo(() => {
-    const byDay = new Map();
+    const config = getReservationChartConfig(chartRange, new Date(clockNow));
+    const byDay = new Map(config.buckets.map((bucket) => [bucket.key, 0]));
     const byHour = new Map();
 
     reservations.forEach((reservation) => {
-      const dateLabel = String(reservation.reservation_date || "");
-      const timeValue = String(reservation.reservation_time || "").slice(0, 2);
-      const hourKey = `${timeValue || "00"}:00`;
+      const reservationDate = toDateTimeValue(reservation);
+      if (!reservationDate) return;
+      if (reservationDate < config.start || reservationDate > config.end) return;
 
-      byDay.set(dateLabel, (byDay.get(dateLabel) || 0) + 1);
+      let dateKey = formatLocalDateKey(reservationDate);
+      if (config.mode === "week") {
+        dateKey = formatLocalDateKey(startOfWeek(reservationDate));
+      } else if (config.mode === "rolling-week") {
+        const diffDays = Math.floor((startOfDay(reservationDate).getTime() - config.start.getTime()) / 86400000);
+        const bucketIndex = Math.max(0, Math.floor(diffDays / config.bucketSizeDays));
+        const bucket = config.buckets[Math.min(bucketIndex, config.buckets.length - 1)];
+        dateKey = bucket?.key || dateKey;
+      } else if (config.mode === "month") {
+        dateKey = `${reservationDate.getFullYear()}-${pad2(reservationDate.getMonth() + 1)}`;
+      }
+
+      const hourKey = `${pad2(reservationDate.getHours())}:00`;
+
+      byDay.set(dateKey, (byDay.get(dateKey) || 0) + 1);
       byHour.set(hourKey, (byHour.get(hourKey) || 0) + 1);
     });
 
-    const dayData = [...byDay.entries()]
-      .sort((left, right) => left[0].localeCompare(right[0]))
-      .slice(-7)
-      .map(([label, value]) => ({
-        label,
-        shortLabel: label ? new Date(`${label}T00:00:00`).toLocaleDateString([], { month: "short", day: "numeric" }) : "Unknown",
-        value,
-      }));
+    const dayData = config.buckets.map((bucket) => ({
+      label: bucket.key,
+      shortLabel: bucket.label,
+      value: byDay.get(bucket.key) || 0,
+    }));
 
     const hourData = [...byHour.entries()]
       .sort((left, right) => left[0].localeCompare(right[0]))
       .map(([label, value]) => ({
         label,
-        shortLabel: label,
+        shortLabel: formatChartHourLabel(label),
         value,
       }));
 
     const peakHour = hourData.reduce((best, item) => (item.value > (best?.value || 0) ? item : best), null);
 
-    return { dayData, hourData, peakHour };
-  }, [reservations]);
+    return {
+      title: config.title,
+      groupLabel: config.groupLabel,
+      dayData,
+      hourData,
+      peakHour,
+    };
+  }, [reservations, chartRange, clockNow]);
 
   function toEventDateTime(reservation, useEnd = false) {
     const datePart = String(useEnd ? (reservation.end_date || reservation.start_date || "") : (reservation.start_date || reservation.end_date || "")).trim();
@@ -976,16 +1128,33 @@ export default function OwnerReservations() {
 
       {activeSection === "charts" && (
         <section className="formCard reservationChartCard ownerReservationPanel">
-          <div className="slotAdjustHeader">
-            <h2 className="reservationSection__title">Reservation Charts</h2>
-            <p className="slotAdjustHint">
-              Track recent reservation volume and spot your busiest hours quickly.
-            </p>
+          <div className="slotAdjustHeader slotAdjustHeader--row reservationChartHeader">
+            <div>
+              <h2 className="reservationSection__title">Reservation Charts</h2>
+              <p className="slotAdjustHint">
+                Track reservation volume and spot your busiest hours across flexible time ranges.
+              </p>
+            </div>
+
+            <div className="reservationChartRange">
+              <span className="reservationChartRange__label">Time range</span>
+              <ThemedSelect
+                className="reservationChartRange__select"
+                value={chartRange}
+                onChange={setChartRange}
+                options={CHART_RANGE_OPTIONS}
+                ariaLabel="Select reservation chart time range"
+                align="right"
+                minMenuWidth="180px"
+                fullWidth={false}
+              />
+            </div>
           </div>
 
           <div className="reservationChartsGrid">
             <div className="reservationChartPanel">
-              <div className="reservationChartPanel__title">Last 7 days</div>
+              <div className="reservationChartPanel__title">{reservationCharts.title}</div>
+              <div className="reservationChartPanel__meta">{reservationCharts.groupLabel}</div>
               {reservationCharts.dayData.length ? (
                 <div className="reservationBarChart">
                   {reservationCharts.dayData.map((item) => {
@@ -1013,6 +1182,7 @@ export default function OwnerReservations() {
 
             <div className="reservationChartPanel">
               <div className="reservationChartPanel__title">Peak hours</div>
+              <div className="reservationChartPanel__meta">Based on the selected time range</div>
               {reservationCharts.hourData.length ? (
                 <>
                   <div className="reservationPeakBadge">

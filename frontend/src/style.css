@@ -13046,6 +13046,28 @@ body.dark .slotDraftRemoveBtn:hover,
   margin-bottom: 20px;
 }
 
+.reservationChartHeader {
+  margin-bottom: 18px;
+}
+
+.reservationChartRange {
+  display: grid;
+  gap: 8px;
+  min-width: 190px;
+}
+
+.reservationChartRange__label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(245, 239, 224, 0.68);
+}
+
+.reservationChartRange__select {
+  width: 100%;
+}
+
 .reservationChartsGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -13062,6 +13084,12 @@ body.dark .slotDraftRemoveBtn:hover,
 .reservationChartPanel__title {
   font-size: 18px;
   font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.reservationChartPanel__meta {
+  font-size: 12px;
+  color: rgba(245, 239, 224, 0.62);
   margin-bottom: 14px;
 }
 
@@ -13162,6 +13190,11 @@ body.dark .slotDraftRemoveBtn:hover,
   color: rgba(55, 31, 12, 0.96);
 }
 
+[data-theme="light"] .reservationChartRange__label,
+[data-theme="light"] .reservationChartPanel__meta {
+  color: rgba(108, 73, 38, 0.74);
+}
+
 [data-theme="light"] .reservationBarChart__value,
 [data-theme="light"] .reservationBarChart__label,
 [data-theme="light"] .reservationHourRow__label,
@@ -13188,6 +13221,15 @@ body.dark .slotDraftRemoveBtn:hover,
 }
 
 @media (max-width: 900px) {
+  .reservationChartHeader {
+    align-items: stretch;
+  }
+
+  .reservationChartRange {
+    min-width: 0;
+    width: 100%;
+  }
+
   .reservationChartsGrid {
     grid-template-columns: 1fr;
   }
