@@ -254,6 +254,7 @@ export default function UserSearch({
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
   const searchBarRef = useRef(null);
   const dropdownRef = useRef(null);
+  const lastQueryRef = useRef("");
 
   // Load recent searches (DB for logged-in, localStorage for guests)
   useEffect(() => {
@@ -266,22 +267,29 @@ export default function UserSearch({
     }
   }, [user?.id]);
 
-  // Save query to recent history after 1s of inactivity
+  const saveRecentSearch = useCallback((q) => {
+    const trimmed = q.trim();
+    if (!trimmed || trimmed.length < 2) return;
+    if (user?.id) {
+      recentSearchService.addRecentSearch(trimmed)
+        .then(() => recentSearchService.getRecentSearches())
+        .then((data) => setRecentSearches(Array.isArray(data) ? data : []))
+        .catch(() => {});
+    } else {
+      addRecentSearch(trimmed);
+      setRecentSearches(getRecentSearches().map((q2) => ({ query: q2 })));
+    }
+  }, [user?.id]);
+
+  // Save to recent after 500ms of inactivity
   useEffect(() => {
-    if (!query.trim() || query.trim().length < 2) return;
-    const timer = setTimeout(() => {
-      if (user?.id) {
-        recentSearchService.addRecentSearch(query.trim())
-          .then(() => recentSearchService.getRecentSearches())
-          .then((data) => setRecentSearches(Array.isArray(data) ? data : []))
-          .catch(() => {});
-      } else {
-        addRecentSearch(query);
-        setRecentSearches(getRecentSearches().map((q) => ({ query: q })));
-      }
-    }, 1000);
+    const trimmed = query.trim();
+    if (!trimmed || trimmed.length < 2) return;
+    lastQueryRef.current = trimmed;
+    const timer = setTimeout(() => saveRecentSearch(trimmed), 500);
     return () => clearTimeout(timer);
-  }, [query, user?.id]);
+  }, [query, saveRecentSearch]);
+
 
   // Close dropdown when clicking outside both the search bar AND the dropdown
   useEffect(() => {
@@ -776,9 +784,14 @@ export default function UserSearch({
           value={query}
           onChange={(e) => {
             scrollRestoreRef.current = window.scrollY;
+            if (e.target.value === "") {
+              // Save whatever was typed before clearing
+              saveRecentSearch(lastQueryRef.current);
+              setShowRecent(true);
+            } else {
+              setShowRecent(false);
+            }
             setQuery(e.target.value);
-            if (e.target.value === "") setShowRecent(true);
-            else setShowRecent(false);
           }}
           onFocus={() => {
             if (!query && searchBarRef.current) {
