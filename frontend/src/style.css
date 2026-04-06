@@ -12943,6 +12943,14 @@ body.dark .slotDraftRemoveBtn:hover,
 .ownerReviewsFilters__dropdown .sortDropdown__btn {
   width: 100%;
 }
+.ownerReviewsFilters__dropdown .sortDropdown__caret {
+  position: relative;
+  top: -3px;
+  opacity: 0.88;
+  font-size: 13px;
+  letter-spacing: 2px;
+  transform: scaleX(1.15);
+}
 
 .ownerReviewsFilters__menu {
   max-height: 220px;
