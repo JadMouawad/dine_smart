@@ -270,9 +270,9 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                   label: `${country.label} ${country.code}`,
                   searchText: `${country.label} ${country.code} ${country.iso}`,
                   buttonLabel: (
-                    <span className="phoneCountryOption">
-                      <img className="phoneCountryOption__flag" src={country.flagIconUrl} alt="" aria-hidden="true" />
-                      <span>{country.label} {country.code}</span>
+                    <span className="phoneCountryButton">
+                      <img className="phoneCountryButton__flag" src={country.flagIconUrl} alt="" aria-hidden="true" />
+                      <span className="phoneCountryButton__code">{country.code}</span>
                     </span>
                   ),
                   menuLabel: (
@@ -286,6 +286,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                 ariaLabel="Select country code"
                 searchable
                 searchPlaceholder="Search country"
+                minMenuWidth="240px"
               />
               <input
                 className="phoneRow__number"
@@ -419,7 +420,6 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
             </div>
 
             <div className={`updatesPrefs${!isSubscribed ? " updatesPrefs--disabled" : ""}`}>
-              <div className="updatesPrefs__title">Choose what you want to receive</div>
               <div className="updatesPrefs__grid">
                 {subscriptionOptions.map((option) => (
                   <label

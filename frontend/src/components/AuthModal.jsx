@@ -375,9 +375,9 @@ export default function AuthModal({
                       label: `${country.label} ${country.code}`,
                       searchText: `${country.label} ${country.code} ${country.iso}`,
                       buttonLabel: (
-                        <span className="phoneCountryOption">
-                          <img className="phoneCountryOption__flag" src={country.flagIconUrl} alt="" aria-hidden="true" />
-                          <span>{country.label} {country.code}</span>
+                        <span className="phoneCountryButton">
+                          <img className="phoneCountryButton__flag" src={country.flagIconUrl} alt="" aria-hidden="true" />
+                          <span className="phoneCountryButton__code">{country.code}</span>
                         </span>
                       ),
                       menuLabel: (
@@ -391,6 +391,7 @@ export default function AuthModal({
                     ariaLabel="Select country code"
                     searchable
                     searchPlaceholder="Search country"
+                    minMenuWidth="240px"
                   />
                   <input
                     className="phoneRow__number"
@@ -521,7 +522,6 @@ export default function AuthModal({
                 </div>
 
                 <div className={`updatesPrefs${!signupSubscribed ? " updatesPrefs--disabled" : ""}`}>
-                  <div className="updatesPrefs__title">Choose what you want to receive</div>
                   <div className="updatesPrefs__grid">
                     {["news", "offers", "events"].map((key) => (
                       <label

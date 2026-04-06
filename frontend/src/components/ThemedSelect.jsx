@@ -110,8 +110,8 @@ export default function ThemedSelect({
         <span className="themedSelect__label">
           {selectedOption?.buttonLabel || placeholder}
         </span>
-        <span className={`sortDropdown__caret themedSelect__caret${open ? " is-open" : ""}`}>
-          ⌄
+        <span className={`sortDropdown__caret themedSelect__caret${open ? " is-open" : ""}`} aria-hidden="true">
+          <span className="themedSelect__caretIcon" />
         </span>
       </button>
 
@@ -163,3 +163,4 @@ export default function ThemedSelect({
     </div>
   );
 }
+

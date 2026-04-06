@@ -4390,7 +4390,7 @@ input[type="date"] {
 
 .phoneRow {
   display: grid;
-  grid-template-columns: 198px minmax(0, 1fr);
+  grid-template-columns: 120px minmax(0, 1fr);
   gap: 12px;
   align-items: center;
 }
@@ -7545,6 +7545,24 @@ input[type="date"] {
   opacity: 1;
 }
 
+.themedSelect__caretIcon {
+  width: 8px;
+  height: 8px;
+  display: block;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.18s ease;
+}
+
+.sortDropdown__caret.is-open .themedSelect__caretIcon {
+  transform: rotate(-135deg);
+}
+
+.themedSelect__caret.is-open {
+  transform: none;
+}
+
 .themedSelect--full {
   width: 100%;
 }
@@ -7614,8 +7632,8 @@ input[type="date"] {
 }
 
 .phoneRow__codeDropdown {
-  width: 198px;
-  flex: 0 0 198px;
+  width: 120px;
+  flex: 0 0 120px;
   position: relative;
   z-index: 3;
 }
@@ -7627,7 +7645,7 @@ input[type="date"] {
   font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI", sans-serif;
   position: relative;
   justify-content: flex-start;
-  padding-right: 20px;
+  padding: 6px 26px 6px 10px;
 }
 
 .phoneRow__codeDropdownBtn .themedSelect__label {
@@ -7638,23 +7656,25 @@ input[type="date"] {
 
 .phoneRow__codeDropdownBtn .sortDropdown__caret {
   position: absolute;
-  right: 2px;
-  top: 0;
-  bottom: 0;
-  width: 20px;
+  right: 4px;
+  top: 50%;
+  width: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   margin-right: 0;
-  transform: translateY(-4px);
+  transform: translateY(calc(-50% - 2px));
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  transform-origin: center;
 }
 
 .phoneRow__codeDropdownBtn .sortDropdown__caret.is-open {
-  transform: translateY(-4px) rotate(180deg);
+  transform: translateY(calc(-50% - 2px));
 }
 
 .phoneRow__codeDropdownMenu {
-  min-width: 100%;
+  min-width: 240px;
   font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI", sans-serif;
   z-index: 120;
 }
@@ -7672,6 +7692,25 @@ input[type="date"] {
   border-radius: 2px;
   object-fit: cover;
   flex: 0 0 auto;
+}
+
+.phoneCountryButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.phoneCountryButton__flag {
+  width: 18px;
+  height: 14px;
+  border-radius: 2px;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+
+.phoneCountryButton__code {
+  font-variant-numeric: tabular-nums;
 }
 
 [data-theme="light"] .themedSelect__searchInput {
