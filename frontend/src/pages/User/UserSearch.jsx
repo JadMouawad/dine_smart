@@ -330,13 +330,13 @@ export default function UserSearch({
   }, [user?.id]);
 
   const handleClearRecent = useCallback(() => {
+    // Clear UI immediately — don't wait for API
+    setRecentSearches([]);
+    setShowRecent(false);
+    clearRecentSearches(); // always clear localStorage too
     if (user?.id) {
       recentSearchService.clearRecentSearches()
-        .then(() => setRecentSearches([]))
-        .catch(() => {});
-    } else {
-      clearRecentSearches();
-      setRecentSearches([]);
+        .catch((err) => console.warn("Failed to clear recent searches:", err));
     }
   }, [user?.id]);
 
