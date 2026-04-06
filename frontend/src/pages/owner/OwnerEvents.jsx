@@ -23,7 +23,7 @@ const EVENT_STATUS_OPTIONS = [
   { value: "all", label: "All statuses" },
   { value: "upcoming", label: "Upcoming" },
   { value: "ongoing", label: "Ongoing" },
-  { value: "finished", label: "Past" },
+  { value: "finished", label: "Completed" },
 ];
 
 const EVENT_CREATED_RANGE_OPTIONS = [
@@ -40,11 +40,10 @@ const EVENT_SORT_OPTIONS = [
   { value: "start-desc", label: "Starts latest" },
 ];
 
-const MANAGE_TIMING_OPTIONS = [
-  { value: "all", label: "All event timings" },
-  { value: "upcoming", label: "Upcoming events" },
-  { value: "ongoing", label: "Ongoing events" },
-  { value: "finished", label: "Past events" },
+const MANAGE_STATUS_OPTIONS = [
+  { value: "all", label: "All statuses" },
+  { value: "confirmed", label: "Confirmed" },
+  { value: "cancelled", label: "Cancelled" },
 ];
 
 const MANAGE_CREATED_RANGE_OPTIONS = [
@@ -201,6 +200,11 @@ function getEventReservationTiming(reservation) {
   return "ongoing";
 }
 
+function normalizeEventReservationStatus(status) {
+  const normalized = String(status || "").trim().toLowerCase();
+  return normalized === "cancelled" ? "cancelled" : "confirmed";
+}
+
 function formatEventReservationDateTime(reservation) {
   const start = toEventReservationStart(reservation);
   if (!start) return "Date/time unavailable";
@@ -276,10 +280,10 @@ export default function OwnerEvents() {
     }
   });
 
-  const [manageTimingFilter, setManageTimingFilter] = useState(() => {
+  const [manageStatusFilter, setManageStatusFilter] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(OWNER_EVENT_MANAGE_FILTERS_KEY) || "{}");
-      return saved.timing || "all";
+      return saved.status || "all";
     } catch {
       return "all";
     }
@@ -354,13 +358,13 @@ export default function OwnerEvents() {
       localStorage.setItem(
         OWNER_EVENT_MANAGE_FILTERS_KEY,
         JSON.stringify({
-          timing: manageTimingFilter,
+          status: manageStatusFilter,
           createdRange: manageCreatedRange,
           sortBy: manageSortBy,
         })
       );
     } catch {}
-  }, [manageTimingFilter, manageCreatedRange, manageSortBy]);
+  }, [manageStatusFilter, manageCreatedRange, manageSortBy]);
 
   function startEdit(event) {
     setEditingEventId(event.id);
@@ -520,14 +524,14 @@ export default function OwnerEvents() {
 
   const filteredManageReservations = useMemo(() => {
     const filtered = eventReservations.filter((reservation) => {
-      const timing = getEventReservationTiming(reservation);
-      if (manageTimingFilter !== "all" && timing !== manageTimingFilter) return false;
+      const reservationStatus = normalizeEventReservationStatus(reservation.status);
+      if (manageStatusFilter !== "all" && reservationStatus !== manageStatusFilter) return false;
       if (!matchesCreatedRange(reservation.created_at, manageCreatedRange)) return false;
       return true;
     });
 
     return sortManageReservations(filtered, manageSortBy);
-  }, [eventReservations, manageTimingFilter, manageCreatedRange, manageSortBy]);
+  }, [eventReservations, manageStatusFilter, manageCreatedRange, manageSortBy]);
 
   const eventFilterCount = useMemo(() => {
     let count = 0;
@@ -539,11 +543,11 @@ export default function OwnerEvents() {
 
   const manageFilterCount = useMemo(() => {
     let count = 0;
-    if (manageTimingFilter !== "all") count += 1;
+    if (manageStatusFilter !== "all") count += 1;
     if (manageCreatedRange !== "all") count += 1;
     if (manageSortBy !== "event-asc") count += 1;
     return count;
-  }, [manageTimingFilter, manageCreatedRange, manageSortBy]);
+  }, [manageStatusFilter, manageCreatedRange, manageSortBy]);
 
   if (loading) {
     return (
@@ -789,7 +793,10 @@ export default function OwnerEvents() {
               className={`searchFilterBtn ${ourEventsFiltersOpen ? "is-active" : ""}`}
               onClick={() => setOurEventsFiltersOpen(true)}
             >
-              Filters{eventFilterCount > 0 ? ` (${eventFilterCount})` : ""}
+              ⚙ Filters
+              {eventFilterCount > 0 && (
+                <span className="searchFilterBtn__badge">{eventFilterCount}</span>
+              )}
             </button>
           </div>
 
@@ -904,7 +911,7 @@ export default function OwnerEvents() {
                       <span>⏰ {formatTimeLabel(event.start_time)} – {formatTimeLabel(event.end_time)}</span>
                       <span>📅 {formatDateLabel(event.start_date)} → {formatDateLabel(event.end_date)}</span>
                       <span>👥 {event.going_count ?? 0}/{event.max_attendees ?? "∞"} attendees</span>
-                      <span className={`ownerEventCard__status ownerEventCard__status--${status}`}>{status}</span>
+                      <span className={`ownerEventCard__status ownerEventCard__status--${status}`}>{status === "finished" ? "Completed" : status === "ongoing" ? "Ongoing" : "Upcoming"}</span>
                     </div>
 
                     <p className="ownerEventCard__desc">{event.description}</p>
@@ -925,7 +932,10 @@ export default function OwnerEvents() {
               className={`searchFilterBtn ${manageFiltersOpen ? "is-active" : ""}`}
               onClick={() => setManageFiltersOpen(true)}
             >
-              Filters{manageFilterCount > 0 ? ` (${manageFilterCount})` : ""}
+              ⚙ Filters
+              {manageFilterCount > 0 && (
+                <span className="searchFilterBtn__badge">{manageFilterCount}</span>
+              )}
             </button>
           </div>
 
@@ -953,12 +963,12 @@ export default function OwnerEvents() {
 
                 <div className="ownerReservationFiltersModal__body">
                   <div className="ownerReservationFiltersSection">
-                    <div className="ownerReservationFiltersSection__title">Event timing</div>
+                    <div className="ownerReservationFiltersSection__title">Status</div>
                     <ThemedSelect
-                      value={manageTimingFilter}
-                      onChange={setManageTimingFilter}
-                      options={MANAGE_TIMING_OPTIONS}
-                      ariaLabel="Filter event reservations by timing"
+                      value={manageStatusFilter}
+                      onChange={setManageStatusFilter}
+                      options={MANAGE_STATUS_OPTIONS}
+                      ariaLabel="Filter event reservations by status"
                     />
                   </div>
 
@@ -988,7 +998,7 @@ export default function OwnerEvents() {
                     type="button"
                     className="btn btn--ghost"
                     onClick={() => {
-                      setManageTimingFilter("all");
+                      setManageStatusFilter("all");
                       setManageCreatedRange("all");
                       setManageSortBy("event-asc");
                     }}
@@ -1013,6 +1023,7 @@ export default function OwnerEvents() {
             <div className="reservationCards">
               {filteredManageReservations.map((reservation) => {
                 const timing = getEventReservationTiming(reservation);
+                const reservationStatus = normalizeEventReservationStatus(reservation.status);
                 return (
                   <article className="reservationCard" key={`manage-event-${reservation.id}`}>
                     <div className="reservationCard__main">
@@ -1028,8 +1039,8 @@ export default function OwnerEvents() {
                         ) : null}
                       </div>
 
-                      <span className={getManageStatusClass(timing)}>
-                        {timing === "finished" ? "Past" : timing === "ongoing" ? "Ongoing" : "Upcoming"}
+                      <span className={`statusBadge statusBadge--${reservationStatus === "confirmed" ? "confirmed" : "cancelled"}`}>
+                        {reservationStatus === "confirmed" ? "Confirmed" : "Cancelled"}
                       </span>
                     </div>
 
