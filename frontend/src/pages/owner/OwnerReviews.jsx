@@ -76,17 +76,12 @@ export default function OwnerReviews() {
   }, []);
 
   useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      loadReviews();
-    }, 20000);
-
     function onReviewChanged() {
       loadReviews();
     }
 
     window.addEventListener("ds:review-changed", onReviewChanged);
     return () => {
-      window.clearInterval(intervalId);
       window.removeEventListener("ds:review-changed", onReviewChanged);
     };
   }, []);

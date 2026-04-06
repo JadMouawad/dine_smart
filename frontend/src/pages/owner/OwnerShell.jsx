@@ -119,13 +119,8 @@ export default function OwnerShell() {
 
     syncReservationBadge(false);
 
-    const intervalId = window.setInterval(() => {
-      syncReservationBadge(false);
-    }, 20000);
-
     return () => {
       cancelled = true;
-      window.clearInterval(intervalId);
     };
   }, [user?.id, isApproved, active]);
 
@@ -187,10 +182,6 @@ export default function OwnerShell() {
 
     syncReviewBadge(false);
 
-    const intervalId = window.setInterval(() => {
-      syncReviewBadge(false);
-    }, 20000);
-
     function onReviewChanged() {
       syncReviewBadge(false);
     }
@@ -199,7 +190,6 @@ export default function OwnerShell() {
 
     return () => {
       cancelled = true;
-      window.clearInterval(intervalId);
       window.removeEventListener("ds:review-changed", onReviewChanged);
     };
   }, [user?.id, isApproved, active]);
