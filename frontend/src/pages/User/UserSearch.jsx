@@ -794,18 +794,26 @@ export default function UserSearch({
           <div ref={dropdownRef} className="recentSearchesDropdown" style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }} onMouseDown={e => e.stopPropagation()}>
             <div className="recentSearchesDropdown__header">
               <span>Recent Searches</span>
-              <button type="button" className="recentSearchesDropdown__clear" onClick={handleClearRecent}>
+              <button
+                type="button"
+                className="recentSearchesDropdown__clear"
+                onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); handleClearRecent(); }}
+              >
                 Clear all
               </button>
             </div>
             {recentSearches.map((item) => (
-              <div key={item.id ?? item.query} className="recentSearchesDropdown__item" onClick={() => handleSelectRecent(item.query)}>
+              <div
+                key={item.id ?? item.query}
+                className="recentSearchesDropdown__item"
+                onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); handleSelectRecent(item.query); }}
+              >
                 <span className="recentSearchesDropdown__icon">🕐</span>
                 <span className="recentSearchesDropdown__text">{item.query}</span>
                 <button
                   type="button"
                   className="recentSearchesDropdown__remove"
-                  onClick={(e) => handleRemoveRecent(e, item)}
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); handleRemoveRecent(e, item); }}
                   aria-label={`Remove ${item.query}`}
                 >
                   ✕
