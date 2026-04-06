@@ -576,7 +576,7 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
           <h2>Discover Events</h2>
           <p>Hand‑picked experiences near you, with real‑time highlights.</p>
         </div>
-        </div>
+        
 
         <div className="discoverFilters">
           {[
