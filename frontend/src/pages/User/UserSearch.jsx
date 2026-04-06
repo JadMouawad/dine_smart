@@ -281,14 +281,11 @@ export default function UserSearch({
     }
   }, [user?.id]);
 
-  // Save to recent after 500ms of inactivity
+  // Track the last non-empty query so we can save it when the input is cleared
   useEffect(() => {
     const trimmed = query.trim();
-    if (!trimmed || trimmed.length < 2) return;
-    lastQueryRef.current = trimmed;
-    const timer = setTimeout(() => saveRecentSearch(trimmed), 500);
-    return () => clearTimeout(timer);
-  }, [query, saveRecentSearch]);
+    if (trimmed.length >= 2) lastQueryRef.current = trimmed;
+  }, [query]);
 
 
   // Close dropdown when clicking outside both the search bar AND the dropdown
