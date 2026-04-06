@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext.jsx";
@@ -12,6 +12,35 @@ import { getTodayDateValue, isOpenNow } from "../../utils/timeUtils";
 import { getCrowdMeterMeta } from "../../utils/crowdMeter";
 import { CUISINES, DIETARY_OPTIONS, PRICE_OPTIONS, PRICE_LABELS, DIETARY_LABELS, FILLED_STAR } from "../../constants/filters";
 import ThemedSelect from "../../components/ThemedSelect.jsx";
+
+// ── Recent Searches (localStorage) ────────────────────────────────────────
+const RECENT_KEY = "dinesmart_recent_searches";
+const MAX_RECENT = 5;
+
+function getRecentSearches() {
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function addRecentSearch(query) {
+  const trimmed = query.trim();
+  if (!trimmed || trimmed.length < 2) return;
+  const existing = getRecentSearches().filter((q) => q.toLowerCase() !== trimmed.toLowerCase());
+  const updated = [trimmed, ...existing].slice(0, MAX_RECENT);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(updated));
+}
+
+function removeRecentSearch(query) {
+  const updated = getRecentSearches().filter((q) => q !== query);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(updated));
+}
+
+function clearRecentSearches() {
+  localStorage.removeItem(RECENT_KEY);
+}
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const DEFAULT_BEIRUT_GEO = { latitude: 33.8938, longitude: 35.5018 };
@@ -216,6 +245,48 @@ export default function UserSearch({
   const [favorites, setFavorites] = useState([]);
 
   const scrollRestoreRef = useRef(null);
+
+  // Recent searches
+  const [recentSearches, setRecentSearches] = useState(() => getRecentSearches());
+  const [showRecent, setShowRecent] = useState(false);
+  const searchBarRef = useRef(null);
+
+  // Save query to recent history after 1s of inactivity
+  useEffect(() => {
+    if (!query.trim() || query.trim().length < 2) return;
+    const timer = setTimeout(() => {
+      addRecentSearch(query);
+      setRecentSearches(getRecentSearches());
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // Close recent dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchBarRef.current && !searchBarRef.current.contains(e.target)) {
+        setShowRecent(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectRecent = useCallback((q) => {
+    setQuery(q);
+    setShowRecent(false);
+  }, []);
+
+  const handleRemoveRecent = useCallback((e, q) => {
+    e.stopPropagation();
+    removeRecentSearch(q);
+    setRecentSearches(getRecentSearches());
+  }, []);
+
+  const handleClearRecent = useCallback(() => {
+    clearRecentSearches();
+    setRecentSearches([]);
+  }, []);
 
   function requireAuth() {
     if (isGuest || !user?.id) { onRequireSignup?.(); return false; }
@@ -645,7 +716,7 @@ export default function UserSearch({
     <div className="userSearchPage">
       <h1 className="userSearchPage__title">Search Restaurants</h1>
 
-      <div className="searchBarCard">
+      <div className="searchBarCard" ref={searchBarRef}>
         <input
           className="searchInput"
           type="text"
@@ -654,9 +725,38 @@ export default function UserSearch({
           onChange={(e) => {
             scrollRestoreRef.current = window.scrollY;
             setQuery(e.target.value);
+            if (e.target.value === "") setShowRecent(true);
+            else setShowRecent(false);
           }}
+          onFocus={() => { if (!query) setShowRecent(true); }}
           aria-label="Search restaurants"
         />
+
+        {showRecent && recentSearches.length > 0 && (
+          <div className="recentSearchesDropdown">
+            <div className="recentSearchesDropdown__header">
+              <span>Recent Searches</span>
+              <button type="button" className="recentSearchesDropdown__clear" onClick={handleClearRecent}>
+                Clear all
+              </button>
+            </div>
+            {recentSearches.map((q) => (
+              <div key={q} className="recentSearchesDropdown__item" onClick={() => handleSelectRecent(q)}>
+                <span className="recentSearchesDropdown__icon">🕐</span>
+                <span className="recentSearchesDropdown__text">{q}</span>
+                <button
+                  type="button"
+                  className="recentSearchesDropdown__remove"
+                  onClick={(e) => handleRemoveRecent(e, q)}
+                  aria-label={`Remove ${q}`}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <button
           type="button"
           className={`searchFilterBtn${activeFilterChips.length > 0 ? " is-active" : ""}`}

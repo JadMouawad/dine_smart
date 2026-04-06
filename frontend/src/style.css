@@ -13657,3 +13657,92 @@ body.dark .slotDraftRemoveBtn:hover,
   font-size: 12px;
   color: var(--muted-text, #6b7280);
 }
+
+/* ── Recent Searches Dropdown ─────────────────────────────────────────── */
+.searchBarCard {
+  position: relative;
+}
+
+.recentSearchesDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--card-bg, #1a1a2e);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.1));
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.recentSearchesDropdown__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px 8px;
+  font-size: 0.72rem;
+  color: var(--muted-text, #9ca3af);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.07));
+}
+
+.recentSearchesDropdown__clear {
+  background: none;
+  border: none;
+  color: var(--accent, #e2a04b);
+  font-size: 0.72rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.recentSearchesDropdown__clear:hover {
+  text-decoration: underline;
+}
+
+.recentSearchesDropdown__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.recentSearchesDropdown__item:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.recentSearchesDropdown__icon {
+  font-size: 0.85rem;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.recentSearchesDropdown__text {
+  flex: 1;
+  font-size: 0.88rem;
+  color: var(--text-primary, #e5e7eb);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recentSearchesDropdown__remove {
+  background: none;
+  border: none;
+  color: var(--muted-text, #9ca3af);
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.recentSearchesDropdown__remove:hover {
+  opacity: 1;
+  color: var(--text-primary, #e5e7eb);
+}
