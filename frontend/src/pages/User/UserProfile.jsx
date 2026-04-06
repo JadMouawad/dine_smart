@@ -265,25 +265,28 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                 menuClassName="phoneRow__codeDropdownMenu"
                 value={countryCode}
                 onChange={setCountryCode}
-                options={[
-                  { value: "+961", label: "+961" },
-                  { value: "+1", label: "+1" },
-                  { value: "+33", label: "+33" },
-                  { value: "+44", label: "+44" },
-                  { value: "+49", label: "+49" },
-                  { value: "+971", label: "+971" },
-                  { value: "+966", label: "+966" },
-                ]}
+                options={COUNTRY_OPTIONS.map((country) => ({
+                  value: country.code,
+                  label: `${country.label} ${country.code}`,
+                  searchText: `${country.label} ${country.code} ${country.iso}`,
+                  buttonLabel: (
+                    <span className="phoneCountryOption">
+                      <img className="phoneCountryOption__flag" src={country.flagIconUrl} alt="" aria-hidden="true" />
+                      <span>{country.label} {country.code}</span>
+                    </span>
+                  ),
+                  menuLabel: (
+                    <span className="phoneCountryOption">
+                      <img className="phoneCountryOption__flag" src={country.flagIconUrl} alt="" aria-hidden="true" />
+                      <span>{country.label} {country.code}</span>
+                    </span>
+                  ),
+                }))}
                 fullWidth={false}
                 ariaLabel="Select country code"
+                searchable
+                searchPlaceholder="Search country"
               />
-              <select className="select phoneRow__code" value={countryCode} onChange={(e) => setCountryCode(e.target.value)}>
-                {COUNTRY_OPTIONS.map((country) => (
-                  <option key={country.code} value={country.code}>
-                    {country.displayLabel}
-                  </option>
-                ))}
-              </select>
               <input
                 className="phoneRow__number"
                 type="tel"
