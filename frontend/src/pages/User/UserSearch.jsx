@@ -249,6 +249,7 @@ export default function UserSearch({
   // Recent searches
   const [recentSearches, setRecentSearches] = useState(() => getRecentSearches());
   const [showRecent, setShowRecent] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
   const searchBarRef = useRef(null);
 
   // Save query to recent history after 1s of inactivity
@@ -271,6 +272,23 @@ export default function UserSearch({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Recalculate dropdown position on scroll/resize
+  useEffect(() => {
+    if (!showRecent) return;
+    const update = () => {
+      if (!searchBarRef.current) return;
+      const rect = searchBarRef.current.getBoundingClientRect();
+      setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: Math.min(rect.width, 400) });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [showRecent]);
 
   const handleSelectRecent = useCallback((q) => {
     setQuery(q);
@@ -728,12 +746,18 @@ export default function UserSearch({
             if (e.target.value === "") setShowRecent(true);
             else setShowRecent(false);
           }}
-          onFocus={() => { if (!query) setShowRecent(true); }}
+          onFocus={() => {
+            if (!query && searchBarRef.current) {
+              const rect = searchBarRef.current.getBoundingClientRect();
+              setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: Math.min(rect.width, 400) });
+              setShowRecent(true);
+            }
+          }}
           aria-label="Search restaurants"
         />
 
         {showRecent && recentSearches.length > 0 && (
-          <div className="recentSearchesDropdown">
+          <div className="recentSearchesDropdown" style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}>
             <div className="recentSearchesDropdown__header">
               <span>Recent Searches</span>
               <button type="button" className="recentSearchesDropdown__clear" onClick={handleClearRecent}>
