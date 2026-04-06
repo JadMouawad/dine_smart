@@ -11,6 +11,7 @@ import MobileMenu from "./components/MobileMenu.jsx";
 import AuthModal from "./components/AuthModal.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import LandingHighlights from "./components/LandingHighlights.jsx";
+import EventsInviteSection from "./components/EventsInviteSection.jsx";
 import ContactSection from "./components/ContactSection.jsx";
 
 // Code-split heavy areas — only loaded when the user navigates there
@@ -111,6 +112,10 @@ function AppContent() {
                 onAskDiney={() => openModal("signup")}
                 onExploreMap={() => openModal("signup")}
               />
+
+              <section id="events-invite">
+                <EventsInviteSection onJoinEvents={() => openModal("signup")} />
+              </section>
 
               <section id="contact">
                 <ContactSection />
