@@ -7532,6 +7532,7 @@ input[type="date"] {
 .phoneRow__codeDropdownBtn {
   min-width: 0;
   width: 100%;
+  font-size: 13px;
   font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI", sans-serif;
   position: relative;
   justify-content: flex-start;
