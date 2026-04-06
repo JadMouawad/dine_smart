@@ -791,7 +791,7 @@ export default function UserSearch({
         />
 
         {showRecent && recentSearches.length > 0 && createPortal(
-          <div ref={dropdownRef} className="recentSearchesDropdown" style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}>
+          <div ref={dropdownRef} className="recentSearchesDropdown" style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }} onMouseDown={e => e.stopPropagation()}>
             <div className="recentSearchesDropdown__header">
               <span>Recent Searches</span>
               <button type="button" className="recentSearchesDropdown__clear" onClick={handleClearRecent}>
