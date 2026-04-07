@@ -116,7 +116,11 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
       phone: phone.trim() ? `${countryCode}${phone.trim()}` : "",
       profilePictureUrl: profilePictureDataUrl || profilePictureUrl || "",
     };
-    if (!isGoogleAccount && newPassword.trim()) payload.password = newPassword.trim();
+
+    if (!isGoogleAccount && newPassword.trim()) {
+      payload.password = newPassword.trim();
+    }
+
     try {
       const updated = await updateProfile(payload);
       const savedAvatar = updated?.profilePictureUrl ?? payload.profilePictureUrl;
@@ -154,7 +158,12 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
         </div>
         <label className="btn btn--gold userProfileHero__uploadBtn">
           Upload picture
-          <input className="imageCard__input" type="file" accept="image/png, image/jpeg" onChange={onPickProfile} />
+          <input
+            className="imageCard__input"
+            type="file"
+            accept="image/png, image/jpeg"
+            onChange={onPickProfile}
+          />
         </label>
       </section>
 
@@ -196,25 +205,30 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
                 menuClassName="phoneRow__codeDropdownMenu"
                 value={countryCode}
                 onChange={setCountryCode}
-                options={[
-                  { value: "+961", label: "+961" },
-                  { value: "+1", label: "+1" },
-                  { value: "+33", label: "+33" },
-                  { value: "+44", label: "+44" },
-                  { value: "+49", label: "+49" },
-                  { value: "+971", label: "+971" },
-                  { value: "+966", label: "+966" },
-                ]}
+                options={COUNTRY_OPTIONS.map((country) => ({
+                  value: country.code,
+                  label: `${country.label} ${country.code}`,
+                  searchText: `${country.label} ${country.code} ${country.iso}`,
+                  buttonLabel: (
+                    <span className="phoneCountryButton">
+                      <img className="phoneCountryButton__flag" src={country.flagIconUrl} alt="" aria-hidden="true" />
+                      <span className="phoneCountryButton__code">{country.code}</span>
+                    </span>
+                  ),
+                  menuLabel: (
+                    <span className="phoneCountryOption">
+                      <img className="phoneCountryOption__flag" src={country.flagIconUrl} alt="" aria-hidden="true" />
+                      <span>{country.label} {country.code}</span>
+                    </span>
+                  ),
+                }))}
                 fullWidth={false}
                 ariaLabel="Select country code"
+                searchable
+                searchPlaceholder="Search country"
+                minMenuWidth="240px"
               />
-              <select className="select phoneRow__code" value={countryCode} onChange={(e) => setCountryCode(e.target.value)}>
-                {COUNTRY_OPTIONS.map((country) => (
-                  <option key={country.code} value={country.code}>
-                    {country.displayLabel}
-                  </option>
-                ))}
-              </select>
+
               <input
                 className="phoneRow__number"
                 type="tel"
