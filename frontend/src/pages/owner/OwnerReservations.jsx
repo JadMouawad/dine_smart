@@ -712,12 +712,15 @@ export default function OwnerReservations() {
   const reservationCharts = useMemo(() => {
     const config = getReservationChartConfig(chartRange, new Date(clockNow));
     const byDay = new Map(config.buckets.map((bucket) => [bucket.key, 0]));
+    const guestsByDay = new Map(config.buckets.map((bucket) => [bucket.key, 0]));
     const byHour = new Map();
+    const guestsByHour = new Map();
 
     reservations.forEach((reservation) => {
       const reservationDate = toDateTimeValue(reservation);
       if (!reservationDate) return;
       if (reservationDate < config.start || reservationDate > config.end) return;
+      const guestCount = Math.max(1, parseInt(reservation.party_size, 10) || 1);
 
       let dateKey = formatLocalDateKey(reservationDate);
       if (config.mode === "week") {
@@ -734,13 +737,16 @@ export default function OwnerReservations() {
       const hourKey = `${pad2(reservationDate.getHours())}:00`;
 
       byDay.set(dateKey, (byDay.get(dateKey) || 0) + 1);
+      guestsByDay.set(dateKey, (guestsByDay.get(dateKey) || 0) + guestCount);
       byHour.set(hourKey, (byHour.get(hourKey) || 0) + 1);
+      guestsByHour.set(hourKey, (guestsByHour.get(hourKey) || 0) + guestCount);
     });
 
     const dayData = config.buckets.map((bucket) => ({
       label: bucket.key,
       shortLabel: bucket.label,
       value: byDay.get(bucket.key) || 0,
+      guests: guestsByDay.get(bucket.key) || 0,
     }));
 
     const hourData = [...byHour.entries()]
@@ -749,6 +755,7 @@ export default function OwnerReservations() {
         label,
         shortLabel: formatChartHourLabel(label),
         value,
+        guests: guestsByHour.get(label) || 0,
       }));
 
     const peakHour = hourData.reduce((best, item) => (item.value > (best?.value || 0) ? item : best), null);
@@ -1105,9 +1112,15 @@ export default function OwnerReservations() {
                   {reservationCharts.dayData.map((item) => {
                     const max = Math.max(...reservationCharts.dayData.map((entry) => entry.value), 1);
                     const height = Math.max(14, Math.round((item.value / max) * 100));
+                    const guestLabel = item.guests === 1 ? "guest" : "guests";
 
                     return (
-                      <div className="reservationBarChart__item" key={item.label}>
+                      <div
+                        className="reservationBarChart__item"
+                        key={item.label}
+                        data-tooltip={`${item.shortLabel}: ${item.guests} ${guestLabel}`}
+                        tabIndex={0}
+                      >
                         <div className="reservationBarChart__value">{item.value}</div>
                         <div className="reservationBarChart__barWrap">
                           <div
@@ -1139,9 +1152,15 @@ export default function OwnerReservations() {
                       const max = Math.max(...reservationCharts.hourData.map((entry) => entry.value), 1);
                       const width = Math.max(8, Math.round((item.value / max) * 100));
                       const isPeak = item.label === reservationCharts.peakHour?.label;
+                      const guestLabel = item.guests === 1 ? "guest" : "guests";
 
                       return (
-                        <div className="reservationHourRow" key={item.label}>
+                        <div
+                          className="reservationHourRow"
+                          key={item.label}
+                          data-tooltip={`${item.shortLabel}: ${item.guests} ${guestLabel}`}
+                          tabIndex={0}
+                        >
                           <div className="reservationHourRow__label">{item.shortLabel}</div>
                           <div className="reservationHourRow__track">
                             <div
