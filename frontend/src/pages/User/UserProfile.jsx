@@ -323,7 +323,11 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       const result = await redeemReward();
       if (result?.points != null) setPoints(result.points);
       if (result?.rewards) setRewardStatus(result.rewards);
-      toast.success("Reward redeemed! Enjoy 10% off your next booking.");
+      if (result?.voucher?.unique_code) {
+        toast.success(`Voucher ${result.voucher.unique_code} unlocked 🎉`);
+      } else {
+        toast.success("Reward redeemed! Enjoy 10% off your next booking.");
+      }
       setRewardCelebrationOpen(false);
     } catch (err) {
       toast.error(err.message || "Failed to redeem reward.");
@@ -573,45 +577,6 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
 
           <div className="formCard__divider" />
 
-          <section className="rewardsSection">
-            <div className="rewardsHeader">
-              <div>
-                <div className="rewardsTitle">Rewards</div>
-                <p className="rewardsSubtitle">Earn points every time you reserve a table or join an event.</p>
-              </div>
-              <div className="rewardsPoints">
-                <div className="rewardsPoints__value">{points}</div>
-                <div className="rewardsPoints__label">Points</div>
-              </div>
-            </div>
-
-            <div className="rewardsProgress">
-              <div className="rewardsProgress__text">{Math.min(points, rewardThreshold)} / {rewardThreshold} points</div>
-              <div className="rewardsProgress__bar" aria-hidden="true">
-                <div className="rewardsProgress__fill" style={{ width: `${rewardProgress}%` }} />
-              </div>
-            </div>
-
-            {points === 0 && (
-              <p className="rewardsEmpty">Start booking to earn rewards!</p>
-            )}
-
-            <div className="rewardsCards">
-              <article className={`rewardCard${rewardUnlocked ? " is-unlocked" : " is-locked"}${rewardRedeemed ? " is-used" : ""}`}>
-                <div className="rewardCard__title">10% Off</div>
-                <div className="rewardCard__meta">{rewardStatusLabel}</div>
-                <button
-                  type="button"
-                  className="btn btn--gold btn--sm rewardCard__cta"
-                  onClick={handleRedeemReward}
-                  disabled={!rewardUnlocked || rewardRedeemed}
-                >
-                  {rewardRedeemed ? "Used" : "Redeem"}
-                </button>
-              </article>
-            </div>
-          </section>
-
           <section className="updatesSubscription">
             <div className="updatesSubscription__header">
               <div>
@@ -759,6 +724,45 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
               )
             )}
           </div>
+
+          <section className="rewardsSection">
+            <div className="rewardsHeader">
+              <div>
+                <div className="rewardsTitle">Rewards</div>
+                <p className="rewardsSubtitle">Earn points every time you reserve a table or join an event.</p>
+              </div>
+              <div className="rewardsPoints">
+                <div className="rewardsPoints__value">{points}</div>
+                <div className="rewardsPoints__label">Points</div>
+              </div>
+            </div>
+
+            <div className="rewardsProgress">
+              <div className="rewardsProgress__text">{Math.min(points, rewardThreshold)} / {rewardThreshold} points</div>
+              <div className="rewardsProgress__bar" aria-hidden="true">
+                <div className="rewardsProgress__fill" style={{ width: `${rewardProgress}%` }} />
+              </div>
+            </div>
+
+            {points === 0 && (
+              <p className="rewardsEmpty">Start booking to earn rewards!</p>
+            )}
+
+            <div className="rewardsCards">
+              <article className={`rewardCard${rewardUnlocked ? " is-unlocked" : " is-locked"}${rewardRedeemed ? " is-used" : ""}`}>
+                <div className="rewardCard__title">10% Off</div>
+                <div className="rewardCard__meta">{rewardStatusLabel}</div>
+                <button
+                  type="button"
+                  className="btn btn--gold btn--sm rewardCard__cta"
+                  onClick={handleRedeemReward}
+                  disabled={!rewardUnlocked || rewardRedeemed}
+                >
+                  {rewardRedeemed ? "Used" : "Redeem"}
+                </button>
+              </article>
+            </div>
+          </section>
         </div>
       </div>
 

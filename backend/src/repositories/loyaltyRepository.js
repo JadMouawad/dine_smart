@@ -75,9 +75,34 @@ const redeemReward = async (
   return result.rows[0] || { redeemed: false, points: null };
 };
 
+const deductPointsForReward = async (
+  { userId, sourceId, points },
+  db = pool
+) => {
+  const query = `
+    WITH updated AS (
+      UPDATE users
+      SET points = points - $3,
+          updated_at = NOW()
+      WHERE id = $1 AND points >= $3
+      RETURNING points
+    ),
+    ledger AS (
+      INSERT INTO user_points_ledger (user_id, source_type, source_id, points)
+      SELECT $1, 'reward_redeem', $2, -$3
+      WHERE EXISTS (SELECT 1 FROM updated)
+      ON CONFLICT DO NOTHING
+    )
+    SELECT (SELECT points FROM updated) AS points
+  `;
+  const result = await db.query(query, [userId, sourceId, points]);
+  return result.rows[0] || { points: null };
+};
+
 module.exports = {
   awardPointsForSource,
   getUserPoints,
   getRewardByCode,
   redeemReward,
+  deductPointsForReward,
 };

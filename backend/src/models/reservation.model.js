@@ -50,6 +50,8 @@ async function createReservation(db, data) {
     specialRequest,
     confirmationId,
     status,
+    voucherId,
+    discountPercentage,
   } = data;
 
   const query = `
@@ -62,12 +64,14 @@ async function createReservation(db, data) {
       seating_preference,
       special_request,
       status,
-      confirmation_id
+      confirmation_id,
+      voucher_id,
+      discount_percentage
     )
     VALUES
-      ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     RETURNING id, user_id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time, party_size,
-              seating_preference, special_request, status, confirmation_id, created_at, updated_at;
+              seating_preference, special_request, status, confirmation_id, voucher_id, discount_percentage, created_at, updated_at;
   `;
 
   return db.query(query, [
@@ -80,6 +84,8 @@ async function createReservation(db, data) {
     specialRequest || null,
     status || "pending",
     confirmationId,
+    voucherId || null,
+    discountPercentage || null,
   ]);
 }
 

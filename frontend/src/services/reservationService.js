@@ -7,6 +7,7 @@ export async function createReservation({
   partySize,
   seatingPreference,
   specialRequest,
+  voucherCode,
 }) {
   return apiRequest("/reservations", {
     method: "POST",
@@ -17,6 +18,7 @@ export async function createReservation({
       party_size: partySize,
       seating_preference: seatingPreference || null,
       special_request: specialRequest || null,
+      voucher_code: voucherCode || null,
     }),
   });
 }
