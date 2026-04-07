@@ -792,6 +792,7 @@ export default function UserSearch({
 
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "12px" }}>
         <input
+          ref={searchBarRef}
           className="searchInput"
           type="text"
           style={{ width: "700px" }}
