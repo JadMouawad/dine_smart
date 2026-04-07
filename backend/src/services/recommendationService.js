@@ -101,9 +101,22 @@ const inferPreferenceProfile = ({ reviews, favorites, reservations }) => {
     if (/^\d{2}$/.test(hour)) addWeight(reservationHourWeights, hour, 1);
   });
 
+  // Filter cuisines and price ranges: only keep if weight > 2 (require strong signals, not just threshold)
+  const filteredCuisines = Array.from(cuisineWeights.entries())
+    .filter(([, weight]) => weight > 2)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([key]) => key);
+
+  const filteredPrices = Array.from(priceWeights.entries())
+    .filter(([, weight]) => weight > 2)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([key]) => key);
+
   return {
-    preferredCuisines: takeTopKeys(cuisineWeights, 4),
-    preferredPriceRanges: takeTopKeys(priceWeights, 3),
+    preferredCuisines: filteredCuisines,
+    preferredPriceRanges: filteredPrices,
     commonReservationHours: takeTopKeys(reservationHourWeights, 3),
     historySignals: reviews.length + favorites.length + reservations.length,
   };
@@ -134,10 +147,21 @@ const buildFallbackRecommendations = ({ candidates, preferenceProfile, limit, so
       const score = rating * 10 + (matchCuisine ? 18 : 0) + (matchPrice ? 10 : 0) + Math.min(popularity, 15);
 
       const reasonParts = [];
-      if (matchCuisine) reasonParts.push(`matches your ${candidate.cuisine} preference`);
-      if (matchPrice) reasonParts.push(`fits your usual ${candidate.price_range} budget`);
-      if (rating >= 4) reasonParts.push(`has a strong rating (${rating.toFixed(1)})`);
-      if (!reasonParts.length) reasonParts.push("is trending among diners right now");
+      
+      // Build reason based on source and preference matches
+      if (source === "popular") {
+        // For popular fallback, focus on quality and availability
+        if (rating >= 4) reasonParts.push(`highly rated (${rating.toFixed(1)})`);
+        if (popularity > 0) reasonParts.push(`popular with diners`);
+        if (matchCuisine) reasonParts.push(`offers ${candidate.cuisine}`);
+      } else {
+        // For preference-based fallback
+        if (matchCuisine) reasonParts.push(`matches your ${candidate.cuisine} preference`);
+        if (matchPrice) reasonParts.push(`fits your usual ${candidate.price_range} budget`);
+        if (rating >= 4) reasonParts.push(`has a strong rating (${rating.toFixed(1)})`);
+      }
+      
+      if (!reasonParts.length) reasonParts.push("is recommended based on quality and availability");
 
       return {
         ...candidate,
@@ -175,28 +199,41 @@ const buildAiPrompt = ({ preferenceProfile, candidates, limit }) => {
     description: candidate.description,
   }));
 
+  const preferredCuisinesStr = preferenceProfile.preferredCuisines.length > 0
+    ? preferenceProfile.preferredCuisines.join(", ")
+    : "no specific cuisine preference";
+
+  const preferredPricesStr = preferenceProfile.preferredPriceRanges.length > 0
+    ? preferenceProfile.preferredPriceRanges.join(", ")
+    : "no specific price range preference";
+
   return `
-You are generating personalized restaurant recommendations.
+You are a restaurant recommendation engine. Your task is to select the BEST restaurants for a user based on their dining history and preferences.
 
-Rules:
-- Use ONLY candidate IDs provided below.
-- Never invent restaurants.
-- Return JSON only.
-- Choose up to ${limit} recommendations.
+CRITICAL RULES:
+1. Return ONLY valid JSON. No markdown, no explanation.
+2. Choose ONLY from the candidate restaurant IDs provided. NEVER invent IDs.
+3. Return at most ${limit} unique recommendations.
+4. PRIORITIZE restaurants matching user preferences (cuisines: ${preferredCuisinesStr}).
+5. If user has cuisine preferences, recommend primarily from those cuisines UNLESS they have very few candidates.
+6. Consider restaurant rating and popularity when provided.
+7. Create reasons that directly reference the user's stated preferences or history patterns.
 
-User profile:
-${JSON.stringify(preferenceProfile, null, 2)}
+User Preference Profile:
+- Preferred Cuisines: ${preferredCuisinesStr}
+- Preferred Price Ranges: ${preferredPricesStr}
+- Total Dining History Signals: ${preferenceProfile.historySignals}
 
-Candidates:
+Available Restaurant Candidates:
 ${JSON.stringify(compactCandidates, null, 2)}
 
-Return shape:
+REQUIRED OUTPUT FORMAT (valid JSON only):
 {
   "recommendations": [
     {
-      "restaurantId": 123,
-      "reason": "short reason tied to user history",
-      "description": "one sentence summary"
+      "restaurantId": <exact integer from candidates>,
+      "reason": "<reason tied to user preferences>",
+      "description": "<one sentence describing why this matches their taste>"
     }
   ]
 }
@@ -356,6 +393,16 @@ const getEffectiveCoordinates = async ({ userId, latitude, longitude }) => {
   return { latitude: resolvedLat, longitude: resolvedLng };
 };
 
+const isHistoryStrong = (historySignals) => {
+  // Require at least 5 history signals before trusting AI personalization
+  return historySignals >= 5;
+};
+
+const hasPreferenceSignal = (preferenceProfile) => {
+  // True if user has identifiable cuisine or price preferences
+  return preferenceProfile.preferredCuisines.length > 0 || preferenceProfile.preferredPriceRanges.length > 0;
+};
+
 const getRecommendations = async ({ userId, limit = 6, latitude = null, longitude = null }) => {
   const safeLimit = clampLimit(limit, 6);
   const coords = await getEffectiveCoordinates({ userId, latitude, longitude });
@@ -390,6 +437,7 @@ const getRecommendations = async ({ userId, limit = 6, latitude = null, longitud
     ])
   );
 
+  // Step 1: Fetch candidates based on preferences
   let candidates = await recommendationRepository.getRecommendationCandidates({
     cuisines: preferenceProfile.preferredCuisines,
     priceRanges: preferenceProfile.preferredPriceRanges,
@@ -399,6 +447,7 @@ const getRecommendations = async ({ userId, limit = 6, latitude = null, longitud
     limit: Math.max(safeLimit * 3, MAX_CANDIDATES),
   });
 
+  // Step 2: If preference-based candidates are insufficient, supplement with broader candidates
   if (candidates.length < safeLimit) {
     const supplemental = await recommendationRepository.getRecommendationCandidates({
       cuisines: [],
@@ -417,6 +466,7 @@ const getRecommendations = async ({ userId, limit = 6, latitude = null, longitud
     });
   }
 
+  // Step 3: If still no candidates, fall back to popular restaurants
   if (candidates.length === 0) {
     candidates = await recommendationRepository.getPopularFallback({
       excludeRestaurantIds: [],
@@ -426,11 +476,18 @@ const getRecommendations = async ({ userId, limit = 6, latitude = null, longitud
     });
   }
 
-  const aiSelection = await runAiRecommendationSelection({
-    preferenceProfile,
-    candidates,
-    limit: safeLimit,
-  });
+  // Step 4: Decide whether to use AI ranking
+  // Only use AI if: (a) we have strong history signals AND (b) we have clear preference signals
+  const shouldUseAiRanking = isHistoryStrong(preferenceProfile.historySignals) && hasPreferenceSignal(preferenceProfile);
+
+  let aiSelection = { recommendations: [], provider: "none" };
+  if (shouldUseAiRanking && candidates.length > 0) {
+    aiSelection = await runAiRecommendationSelection({
+      preferenceProfile,
+      candidates,
+      limit: safeLimit,
+    });
+  }
 
   const recommendations =
     aiSelection.recommendations.length > 0
@@ -439,18 +496,19 @@ const getRecommendations = async ({ userId, limit = 6, latitude = null, longitud
           candidates,
           preferenceProfile,
           limit: safeLimit,
-          source: "fallback",
+          source: shouldUseAiRanking ? "fallback" : "popular",
         });
 
   const responsePayload = {
     recommendations,
-    source: aiSelection.recommendations.length > 0 ? aiSelection.provider : "fallback",
+    source: aiSelection.recommendations.length > 0 ? aiSelection.provider : (shouldUseAiRanking ? "fallback" : "popular"),
     cached: false,
     profile: {
       preferred_cuisines: preferenceProfile.preferredCuisines,
       preferred_price_ranges: preferenceProfile.preferredPriceRanges,
       common_reservation_hours: preferenceProfile.commonReservationHours,
       history_signals: preferenceProfile.historySignals,
+      ai_ranking_used: shouldUseAiRanking,
     },
   };
 
@@ -460,7 +518,10 @@ const getRecommendations = async ({ userId, limit = 6, latitude = null, longitud
   });
 
   console.info(
-    `[Recommendations] userId=${userId} source=${responsePayload.source} candidates=${candidates.length} returned=${recommendations.length} historySignals=${preferenceProfile.historySignals}`
+    `[Recommendations] userId=${userId} source=${responsePayload.source} ` +
+    `candidates=${candidates.length} returned=${recommendations.length} ` +
+    `historySignals=${preferenceProfile.historySignals} aiRankingUsed=${shouldUseAiRanking} ` +
+    `preferredCuisines=${preferenceProfile.preferredCuisines.join(",")||"none"}`
   );
 
   return responsePayload;
