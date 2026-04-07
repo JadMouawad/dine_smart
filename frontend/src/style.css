@@ -285,6 +285,14 @@
   padding-right: 40px !important;
 }
 
+[data-theme="light"] .formCard--userProfile .field input {
+  background-image: none !important;
+  background-repeat: initial !important;
+  background-position: initial !important;
+  background-size: initial !important;
+  padding-right: 12px !important;
+}
+
 [data-theme="light"] .select::-ms-expand {
   display: none;
 }
@@ -3443,6 +3451,14 @@ input[type="date"] {
   padding-top: 10px;
 }
 
+.userProfileFormCard .formCard__actions {
+  gap: 12px;
+}
+
+.userProfileFormCard .formCard__actions .btn {
+  min-width: 180px;
+}
+
 @media (max-width: 980px) {
   .ownerProfileGrid {
     grid-template-columns: 1fr;
@@ -4382,6 +4398,19 @@ input[type="date"] {
   background: rgba(0, 0, 0, 0.14); /* matches the image preview box vibe */
 }
 
+.formCard--userProfile .field input:disabled {
+  color: rgba(255, 255, 255, 0.88);
+  background: rgba(0, 0, 0, 0.08);
+  opacity: 1;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.88);
+}
+
+[data-theme="light"] .formCard--userProfile .field input:disabled {
+  color: rgba(26, 14, 6, 0.85);
+  background: rgba(255, 255, 255, 0.85);
+  -webkit-text-fill-color: rgba(26, 14, 6, 0.85);
+}
+
 .formCard--userProfile .field input:focus {
   border-color: rgba(201, 162, 39, 0.55);
   box-shadow: 0 0 0 4px rgba(201, 162, 39, 0.12);
@@ -4440,6 +4469,19 @@ input[type="date"] {
   background: rgba(0, 0, 0, 0.14);
   padding: 12px 12px;
   outline: none;
+}
+
+.phoneRow__number:disabled {
+  color: rgba(255, 255, 255, 0.88);
+  background: rgba(0, 0, 0, 0.08);
+  opacity: 1;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.88);
+}
+
+[data-theme="light"] .phoneRow__number:disabled {
+  color: rgba(26, 14, 6, 0.85);
+  background: rgba(255, 255, 255, 0.85);
+  -webkit-text-fill-color: rgba(26, 14, 6, 0.85);
 }
 
 .phoneRow__number:focus {

@@ -36,9 +36,20 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [subscriptionPreferences, setSubscriptionPreferences] = useState([]);
   const [subscriptionSnapshot, setSubscriptionSnapshot] = useState({ isSubscribed: false, preferences: [] });
+  const [profileSnapshot, setProfileSnapshot] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    countryCode: "+961",
+    profilePictureUrl: "",
+    savedLocation: { latitude: null, longitude: null },
+    isSubscribed: false,
+    subscriptionPreferences: [],
+  });
   const [savedLocation, setSavedLocation] = useState({ latitude: null, longitude: null });
   const [locationStatus, setLocationStatus] = useState("idle"); // idle | detecting | granted | denied
   const [profileLoading, setProfileLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Load favorites from server
   useEffect(() => {
@@ -70,6 +81,9 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
         setProfilePictureUrl(profile.profilePictureUrl ?? profile.profile_picture_url ?? "");
         const lat = parseFloat(profile.latitude ?? user?.latitude);
         const lng = parseFloat(profile.longitude ?? user?.longitude);
+        const locationSnapshot = Number.isFinite(lat) && Number.isFinite(lng)
+          ? { latitude: lat, longitude: lng }
+          : { latitude: null, longitude: null };
         if (Number.isFinite(lat) && Number.isFinite(lng)) {
           setSavedLocation({ latitude: lat, longitude: lng });
         }
@@ -79,6 +93,16 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
         setIsSubscribed(Boolean(profile.isSubscribed));
         setSubscriptionPreferences(prefArray);
         setSubscriptionSnapshot({ isSubscribed: Boolean(profile.isSubscribed), preferences: prefArray });
+        setProfileSnapshot({
+          fullName: profile.fullName ?? profile.full_name ?? user.name ?? user.fullName ?? "",
+          email: profile.email ?? user.email ?? "",
+          phone: phoneParts.localNumber,
+          countryCode: phoneParts.countryCode,
+          profilePictureUrl: profile.profilePictureUrl ?? profile.profile_picture_url ?? "",
+          savedLocation: locationSnapshot,
+          isSubscribed: Boolean(profile.isSubscribed),
+          subscriptionPreferences: prefArray,
+        });
         setMyReviews(
           Array.isArray(profile.myReviews)
             ? profile.myReviews.map((review) => ({
@@ -101,6 +125,16 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
         setIsSubscribed(false);
         setSubscriptionPreferences([]);
         setSubscriptionSnapshot({ isSubscribed: false, preferences: [] });
+        setProfileSnapshot({
+          fullName: user.name ?? user.fullName ?? "",
+          email: user.email ?? "",
+          phone: "",
+          countryCode: "+961",
+          profilePictureUrl: "",
+          savedLocation: { latitude: null, longitude: null },
+          isSubscribed: false,
+          subscriptionPreferences: [],
+        });
       })
       .finally(() => setProfileLoading(false));
   }, [user?.id]);
@@ -156,6 +190,10 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
 
   async function onSubmit(e) {
     e.preventDefault();
+    if (!isEditing) {
+      setIsEditing(true);
+      return;
+    }
     if (!isGoogleAccount && newPassword.trim()) {
       if (!confirmNewPassword.trim()) {
         toast.error("Please confirm your new password.");
@@ -191,10 +229,24 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
         toast.success("Profile saved successfully.");
       }
       setSubscriptionSnapshot({ isSubscribed, preferences: subscriptionPreferences });
+      setProfileSnapshot({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        countryCode,
+        profilePictureUrl: savedAvatar,
+        savedLocation:
+          savedLocation.latitude != null && savedLocation.longitude != null
+            ? { latitude: savedLocation.latitude, longitude: savedLocation.longitude }
+            : { latitude: null, longitude: null },
+        isSubscribed,
+        subscriptionPreferences,
+      });
       setNewPassword("");
       setConfirmNewPassword("");
       setShowNewPassword(false);
       setShowConfirmNewPassword(false);
+      setIsEditing(false);
       // Refresh user in context so Explore page picks up new coords
       refreshUser?.();
     } catch (err) {
@@ -212,6 +264,28 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
     setSubscriptionPreferences((prev) => (
       prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]
     ));
+  }
+
+  function handleCancelEdit() {
+    setFullName(profileSnapshot.fullName);
+    setEmail(profileSnapshot.email);
+    setPhone(profileSnapshot.phone);
+    setCountryCode(profileSnapshot.countryCode);
+    setProfilePictureUrl(profileSnapshot.profilePictureUrl);
+    setProfilePictureDataUrl("");
+    setSavedLocation(profileSnapshot.savedLocation);
+    setIsSubscribed(profileSnapshot.isSubscribed);
+    setSubscriptionPreferences(profileSnapshot.subscriptionPreferences);
+    setSubscriptionSnapshot({
+      isSubscribed: profileSnapshot.isSubscribed,
+      preferences: profileSnapshot.subscriptionPreferences,
+    });
+    setNewPassword("");
+    setConfirmNewPassword("");
+    setShowNewPassword(false);
+    setShowConfirmNewPassword(false);
+    setIsEditing(false);
+    setLocationStatus("idle");
   }
 
   if (profileLoading) {
@@ -236,7 +310,13 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
         </div>
         <label className="btn btn--gold userProfileHero__uploadBtn">
           Upload picture
-          <input className="imageCard__input" type="file" accept="image/png, image/jpeg" onChange={onPickProfile} />
+          <input
+            className="imageCard__input"
+            type="file"
+            accept="image/png, image/jpeg"
+            onChange={onPickProfile}
+            disabled={!isEditing}
+          />
         </label>
       </section>
 
@@ -252,6 +332,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
+              disabled={!isEditing}
             />
           </label>
 
@@ -263,6 +344,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={!isEditing}
             />
           </label>
 
@@ -275,6 +357,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                 menuClassName="phoneRow__codeDropdownMenu"
                 value={countryCode}
                 onChange={setCountryCode}
+                disabled={!isEditing}
                 options={COUNTRY_OPTIONS.map((country) => ({
                   value: country.code,
                   label: `${country.label} ${country.code}`,
@@ -306,6 +389,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                 placeholder="Enter number"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                disabled={!isEditing}
               />
             </div>
           </label>
@@ -329,7 +413,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
               className="btn btn--ghost"
               style={{ marginTop: 8 }}
               onClick={handleDetectLocation}
-              disabled={locationStatus === "detecting"}
+              disabled={!isEditing || locationStatus === "detecting"}
             >
               {locationStatus === "detecting" ? "Detecting…" : "📍 Use my current location"}
             </button>
@@ -358,12 +442,14 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     autoComplete="new-password"
+                    disabled={!isEditing}
                   />
                   <button
                     type="button"
                     className="passwordToggleBtn"
                     onClick={() => setShowNewPassword((prev) => !prev)}
                     aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+                    disabled={!isEditing}
                   >
                     {showNewPassword ? <FiEyeOff /> : <FiEye />}
                   </button>
@@ -379,12 +465,14 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                     value={confirmNewPassword}
                     onChange={(e) => setConfirmNewPassword(e.target.value)}
                     autoComplete="new-password"
+                    disabled={!isEditing}
                   />
                   <button
                     type="button"
                     className="passwordToggleBtn"
                     onClick={() => setShowConfirmNewPassword((prev) => !prev)}
                     aria-label={showConfirmNewPassword ? "Hide confirm password" : "Show confirm password"}
+                    disabled={!isEditing}
                   >
                     {showConfirmNewPassword ? <FiEyeOff /> : <FiEye />}
                   </button>
@@ -422,6 +510,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                   checked={isSubscribed}
                   onChange={(e) => setIsSubscribed(e.target.checked)}
                   aria-label={isSubscribed ? "Subscription on" : "Subscription off"}
+                  disabled={!isEditing}
                 />
                 <span className="switch__track">
                   <span className="switch__thumb" />
@@ -440,7 +529,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                       type="checkbox"
                       checked={subscriptionPreferences.includes(option.key)}
                       onChange={() => toggleSubscriptionPreference(option.key)}
-                      disabled={!isSubscribed}
+                      disabled={!isSubscribed || !isEditing}
                     />
                     <span>{option.label}</span>
                   </label>
@@ -451,8 +540,13 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
 
           <div className="formCard__actions">
             <button className="btn btn--gold btn--xl" type="submit">
-              Save Changes
+              {isEditing ? "Save Changes" : "Edit Profile"}
             </button>
+            {isEditing && (
+              <button className="btn btn--ghost btn--xl" type="button" onClick={handleCancelEdit}>
+                Cancel
+              </button>
+            )}
           </div>
         </form>
 
