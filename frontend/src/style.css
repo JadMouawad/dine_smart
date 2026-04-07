@@ -14400,3 +14400,39 @@ body.dark .slotDraftRemoveBtn:hover,
   background: rgba(255,255,255,0.1);
   color: #e5e7eb;
 }
+
+/* ===== FIX: remove rectangle from toggle checkbox on user profile ===== */
+.formCard--userProfile .switch input,
+.userProfileLocationToggle .switch input,
+.updatesSubscription .switch input {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  opacity: 0 !important;
+  cursor: pointer;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  min-height: 0 !important;
+  min-width: 0 !important;
+}
+
+.formCard--userProfile .switch input:focus,
+.formCard--userProfile .switch input:focus-visible,
+.userProfileLocationToggle .switch input:focus,
+.userProfileLocationToggle .switch input:focus-visible,
+.updatesSubscription .switch input:focus,
+.updatesSubscription .switch input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  background: transparent !important;
+}
