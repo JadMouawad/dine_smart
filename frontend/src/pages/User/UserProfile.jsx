@@ -411,15 +411,28 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
               <p className="userProfileFormHint" style={{ marginTop: 2 }}>No location saved yet.</p>
             )}
 
-            <button
-              type="button"
-              className="btn btn--ghost"
-              style={{ marginTop: 8 }}
-              onClick={handleDetectLocation}
-              disabled={!isEditing || locationStatus === "detecting"}
-            >
-              {locationStatus === "detecting" ? "Detecting…" : "📍 Use my current location"}
-            </button>
+            <div className="userProfileLocationToggle">
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={savedLocation.latitude != null && savedLocation.longitude != null}
+                  onChange={(e) => {
+                    const next = e.target.checked;
+                    if (next) {
+                      handleDetectLocation();
+                    } else {
+                      setSavedLocation({ latitude: null, longitude: null });
+                      setLocationStatus("idle");
+                    }
+                  }}
+                  disabled={!isEditing || locationStatus === "detecting"}
+                  aria-label="Use my current location"
+                />
+                <span className="switch__track">
+                  <span className="switch__thumb" />
+                </span>
+              </label>
+            </div>
             {locationStatus === "denied" && (
               <p className="fieldError" style={{ marginTop: 4, fontSize: 12 }}>
                 Location access denied. Please allow location in your browser settings.
@@ -651,3 +664,4 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
     </div>
   );
 }
+

@@ -8702,6 +8702,35 @@ margin: 0 auto;
   color: rgba(255, 255, 255, 0.9);
 }
 
+.userProfileFormCard .locationChoiceGroup,
+.userProfileFormCard .locationChoiceRow {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.userProfileLocationToggle {
+  margin-top: 6px;
+  padding: 0;
+  display: flex;
+  justify-content: flex-end;
+  background: none;
+  border: 0;
+}
+
+.userProfileLocationToggle .switch__track {
+  background: rgba(201, 162, 39, 0.25);
+  box-shadow: none;
+  border-radius: 999px;
+}
+
+.userProfileLocationToggle .switch__thumb {
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
 
 .userProfileFormHint {
   margin: 8px 0 0;
