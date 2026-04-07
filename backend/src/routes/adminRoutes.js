@@ -29,5 +29,7 @@ router.delete("/flagged-reviews/:id", adminController.deleteFlaggedReview);
 
 router.post("/updates/send", adminController.sendSubscriptionUpdate);
 
+router.get("/export/csv", adminController.exportStatsCsv);
+
 module.exports = router;
 

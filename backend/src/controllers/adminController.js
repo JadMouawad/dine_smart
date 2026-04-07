@@ -213,6 +213,18 @@ const sendSubscriptionUpdate = async (req, res) => {
   }
 };
 
+const exportStatsCsv = async (req, res) => {
+  try {
+    const csv = await adminService.exportStatsAsCsv();
+    const filename = `dinesmart_stats_${new Date().toISOString().slice(0, 10)}.csv`;
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    return res.status(200).send(csv);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getStats,
   getRecentAiLogs,
@@ -232,5 +244,6 @@ module.exports = {
   dismissFlaggedReview,
   deleteFlaggedReview,
   sendSubscriptionUpdate,
+  exportStatsCsv,
 };
 

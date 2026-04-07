@@ -4,6 +4,7 @@ import {
   getAdminRecentActivity,
   getAdminStats,
   updateAdminAiSettings,
+  downloadStatsCsv,
 } from "../../services/adminService";
 
 function formatActivityType(type) {
@@ -19,6 +20,18 @@ export default function AdminDashboard({ onOpenPending, onOpenFlags, onOpenUsers
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [aiBusy, setAiBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExportCsv() {
+    setExporting(true);
+    try {
+      await downloadStatsCsv();
+    } catch (err) {
+      setError("Failed to export CSV. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  }
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -96,6 +109,9 @@ export default function AdminDashboard({ onOpenPending, onOpenFlags, onOpenUsers
           <button className="btn btn--gold" type="button" onClick={onOpenPending}>Review Pending Restaurants</button>
           <button className="btn btn--ghost" type="button" onClick={onOpenFlags}>Moderate Flagged Reviews</button>
           <button className="btn btn--ghost" type="button" onClick={onOpenUsers}>Manage Users</button>
+          <button className="btn btn--ghost" type="button" onClick={handleExportCsv} disabled={exporting}>
+            {exporting ? "Exporting..." : "⬇ Export Stats CSV"}
+          </button>
         </div>
       </div>
 
