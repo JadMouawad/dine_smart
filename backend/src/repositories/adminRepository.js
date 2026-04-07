@@ -120,6 +120,7 @@ const approveRestaurant = async (restaurantId) => {
       WITH updated AS (
         UPDATE restaurants
         SET approval_status = 'approved',
+            is_verified = true,
             rejection_reason = NULL,
             updated_at = NOW()
         WHERE id = $1
