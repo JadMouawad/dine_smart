@@ -5,5 +5,6 @@ const profileController = require("../controllers/profileController");
 
 router.get("/", requireAuth, profileController.getProfile);
 router.put("/", requireAuth, profileController.updateProfile);
+router.post("/rewards/redeem", requireAuth, profileController.redeemReward);
 
 module.exports = router;

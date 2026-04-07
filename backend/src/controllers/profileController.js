@@ -1,4 +1,5 @@
 const profileService = require("../services/profileService");
+const loyaltyService = require("../services/loyaltyService");
 
 const getProfile = async (req, res) => {
   try {
@@ -23,6 +24,8 @@ const getProfile = async (req, res) => {
       subscriptionPreferences: Array.isArray(profile.subscription_preferences) ? profile.subscription_preferences : [],
       reservationCount: profile.reservation_count ?? 0,
       loyaltyBadge: profile.loyalty_badge || "Newcomer",
+      points: profile.points ?? 0,
+      rewards: profile.reward_status || null,
       noShowCount: profile.no_show_count ?? 0,
       bannedUntil: profile.banned_until || null,
       myReviews: Array.isArray(profile.my_reviews)
@@ -66,6 +69,7 @@ const updateProfile = async (req, res) => {
     if (!profile) {
       return res.status(404).json({ message: "Profile not found" });
     }
+    const rewardStatus = await loyaltyService.getRewardStatus({ userId });
     res.json({
       id: profile.id,
       fullName: profile.full_name,
@@ -80,6 +84,8 @@ const updateProfile = async (req, res) => {
       themePreference: profile.theme_preference || "dark",
       isSubscribed: profile.is_subscribed ?? false,
       subscriptionPreferences: Array.isArray(profile.subscription_preferences) ? profile.subscription_preferences : [],
+      points: profile.points ?? 0,
+      rewards: rewardStatus,
       noShowCount: profile.no_show_count ?? 0,
       bannedUntil: profile.banned_until || null,
       createdAt: profile.created_at,
@@ -90,7 +96,26 @@ const updateProfile = async (req, res) => {
   }
 };
 
+const redeemReward = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const result = await loyaltyService.redeemReward({ userId });
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+    const rewardStatus = await loyaltyService.getRewardStatus({ userId });
+    res.json({
+      points: result.points ?? rewardStatus.points,
+      rewards: rewardStatus,
+      message: "Reward redeemed successfully.",
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   getProfile,
-  updateProfile
+  updateProfile,
+  redeemReward
 };

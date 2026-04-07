@@ -1,6 +1,7 @@
 const db = require("../config/db");
 const eventRepository = require("../repositories/eventRepository");
 const subscriptionService = require("./subscriptionService");
+const loyaltyService = require("./loyaltyService");
 
 const parsePositiveInt = (value) => {
   const parsed = parseInt(value, 10);
@@ -389,6 +390,12 @@ const joinEvent = async ({ userId, eventId, payload }) => {
           seatingPreference,
           notes,
         }, client);
+
+    await loyaltyService.awardPointsForEvent({
+      userId,
+      attendeeId: saved.id,
+      db: client,
+    });
 
     await client.query("COMMIT");
     return { success: true, status: 200, data: saved };

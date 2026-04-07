@@ -21,7 +21,7 @@ const findById = async (db, id) => {
   const query = `
     SELECT u.id, u.full_name, u.email, u.role_id, u.is_verified, u.provider, u.is_suspended, u.suspended_at,
            u.no_show_count, u.banned_until, u.phone, u.latitude, u.longitude, u.profile_picture_url, u.theme_preference,
-           u.is_subscribed, u.subscription_preferences,
+           u.is_subscribed, u.subscription_preferences, u.points,
            u.created_at, u.updated_at, r.name AS role
     FROM users u
     LEFT JOIN roles r ON u.role_id = r.id
