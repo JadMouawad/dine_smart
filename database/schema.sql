@@ -170,6 +170,8 @@ CREATE TABLE IF NOT EXISTS reservations (
   special_request TEXT,
   status VARCHAR(20) NOT NULL DEFAULT 'pending',
   confirmation_id VARCHAR(20) UNIQUE,
+  voucher_id INTEGER REFERENCES vouchers(id) ON DELETE SET NULL,
+  discount_percentage SMALLINT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT reservations_status_check CHECK (status IN ('pending', 'accepted', 'rejected', 'cancelled', 'no-show', 'completed', 'confirmed'))
@@ -222,6 +224,20 @@ CREATE TABLE IF NOT EXISTS reservation_waitlist (
   CONSTRAINT reservation_waitlist_status_check CHECK (status IN ('pending', 'notified', 'cancelled')),
   CONSTRAINT reservation_waitlist_unique UNIQUE (user_id, restaurant_id, reservation_date, reservation_time)
 );
+
+CREATE TABLE IF NOT EXISTS vouchers (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  discount_percentage SMALLINT NOT NULL DEFAULT 10,
+  status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+  unique_code VARCHAR(40) NOT NULL UNIQUE,
+  expiration_date DATE NOT NULL,
+  used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT vouchers_status_check CHECK (status IN ('ACTIVE', 'USED', 'EXPIRED'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_vouchers_user_id ON vouchers(user_id);
 
 CREATE TABLE IF NOT EXISTS events (
   id SERIAL PRIMARY KEY,

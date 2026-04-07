@@ -6,6 +6,7 @@ const db = require("../config/db");
 const UserModel = require("../models/User");
 const ReservationModel = require("../models/reservation.model");
 const loyaltyService = require("./loyaltyService");
+const voucherService = require("./voucherService");
 const {
   sendReservationConfirmationEmail,
   sendReservationCancellationEmail,
@@ -559,6 +560,7 @@ const createReservation = async ({
   partySize,
   seatingPreference,
   specialRequest,
+  voucherCode,
 }) => {
   const parsedRestaurantId = parseInt(restaurantId, 10);
   const parsedPartySize = parseInt(partySize, 10);
@@ -639,6 +641,7 @@ const createReservation = async ({
   }
 
   let createdReservation = null;
+  let appliedVoucher = null;
   let confirmationId = null;
   let reservationRestaurant = null;
 
@@ -781,6 +784,18 @@ const createReservation = async ({
 
     reservationRestaurant = availability.restaurant;
 
+    if (voucherCode) {
+      const voucherResult = await voucherService.validateAndUseVoucher({
+        userId,
+        code: String(voucherCode).trim(),
+        db: client,
+      });
+      if (!voucherResult.success) {
+        return voucherResult;
+      }
+      appliedVoucher = voucherResult.voucher;
+    }
+
     for (let attempt = 1; attempt <= 5; attempt += 1) {
       confirmationId = createConfirmationId();
       try {
@@ -794,6 +809,8 @@ const createReservation = async ({
           specialRequest: cleanedSpecialRequest,
           status: "pending",
           confirmationId,
+          voucherId: appliedVoucher?.id ?? null,
+          discountPercentage: appliedVoucher?.discount_percentage ?? null,
         });
         createdReservation = insertResult.rows[0];
         break;
@@ -838,6 +855,7 @@ const createReservation = async ({
     reservation: {
       ...createdReservation,
       restaurant_name: reservationRestaurant.name,
+      discount_percentage: appliedVoucher?.discount_percentage ?? createdReservation?.discount_percentage ?? null,
     },
   };
 };
@@ -969,6 +987,14 @@ const updateReservationStatusForOwner = async ({ reservationId, ownerId, action 
 
   if (normalizedAction === "complete") {
     if (existing.status === "completed") {
+      try {
+        await loyaltyService.awardPointsForReservation({
+          userId: existing.user_id,
+          reservationId: existing.id,
+        });
+      } catch (error) {
+        console.warn("Failed to award loyalty points:", error.message);
+      }
       return { success: true, status: 200, reservation: existing };
     }
     if (["cancelled", "rejected", "no-show"].includes(existing.status)) {

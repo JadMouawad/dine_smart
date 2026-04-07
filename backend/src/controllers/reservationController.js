@@ -13,6 +13,7 @@ const createReservation = async (req, res) => {
       partySize: req.body.party_size,
       seatingPreference: req.body.seating_preference,
       specialRequest: req.body.special_request,
+      voucherCode: req.body.voucher_code || req.body.voucherCode,
     });
 
     if (!result.success) {

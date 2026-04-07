@@ -107,6 +107,7 @@ const redeemReward = async (req, res) => {
     res.json({
       points: result.points ?? rewardStatus.points,
       rewards: rewardStatus,
+      voucher: result.voucher || null,
       message: "Reward redeemed successfully.",
     });
   } catch (err) {

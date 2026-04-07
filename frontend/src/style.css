@@ -9742,6 +9742,63 @@ margin: 0 auto;
   cursor: pointer;
 }
 
+[data-theme="light"] .eventModalOverlay {
+  background: rgba(245, 236, 220, 0.78);
+}
+
+[data-theme="light"] .eventModal {
+  background: rgba(255, 251, 243, 0.98);
+  border-color: rgba(175, 115, 45, 0.2);
+  box-shadow: 0 24px 60px rgba(150, 90, 30, 0.2);
+}
+
+[data-theme="light"] .eventModal__close {
+  background: rgba(255, 255, 255, 0.7);
+  color: rgba(26, 14, 6, 0.9);
+}
+
+[data-theme="light"] .eventModal__content {
+  color: rgba(26, 14, 6, 0.92);
+}
+
+[data-theme="light"] .eventModal__subtitle,
+[data-theme="light"] .eventModal__restaurant,
+[data-theme="light"] .eventModal__description,
+[data-theme="light"] .eventModal__infoRow {
+  color: rgba(80, 45, 15, 0.75);
+}
+
+[data-theme="light"] .eventModal__distance {
+  border-color: rgba(175, 115, 45, 0.25);
+}
+
+[data-theme="light"] .eventModal__pricing {
+  border-color: rgba(175, 115, 45, 0.2);
+  background: rgba(255, 248, 235, 0.9);
+}
+
+[data-theme="light"] .eventModal__mapFallback {
+  color: rgba(80, 45, 15, 0.7);
+  background: rgba(255, 248, 235, 0.8);
+  border-color: rgba(175, 115, 45, 0.2);
+}
+
+[data-theme="light"] .eventFormRow select,
+[data-theme="light"] .eventFormRow textarea {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(175, 115, 45, 0.25);
+  color: rgba(26, 14, 6, 0.95);
+}
+
+[data-theme="light"] .eventCounter {
+  border-color: rgba(175, 115, 45, 0.25);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+[data-theme="light"] .eventCounter button {
+  color: rgba(26, 14, 6, 0.95);
+}
+
 .eventSuccessIcon {
   width: 54px;
   height: 54px;
