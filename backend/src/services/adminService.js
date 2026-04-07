@@ -346,6 +346,23 @@ const sendSubscriptionUpdate = async ({ adminId, updateType, subject, message })
   return { success: true, status: 200, data: { sent, total, failed } };
 };
 
+const getRestaurantsWithHealthCertificates = async () => {
+  const list = await adminRepository.getRestaurantsWithHealthCertificates();
+  return { success: true, status: 200, data: list };
+};
+
+const verifyRestaurant = async ({ restaurantId }) => {
+  const result = await adminRepository.verifyRestaurant(restaurantId);
+  if (!result) return { success: false, status: 404, error: "Restaurant not found" };
+  return { success: true, status: 200, data: result };
+};
+
+const unverifyRestaurant = async ({ restaurantId }) => {
+  const result = await adminRepository.unverifyRestaurant(restaurantId);
+  if (!result) return { success: false, status: 404, error: "Restaurant not found" };
+  return { success: true, status: 200, data: result };
+};
+
 const exportStatsAsCsv = async () => {
   const data = await adminRepository.getExportData();
 
@@ -422,5 +439,8 @@ module.exports = {
   deleteFlaggedReview,
   sendSubscriptionUpdate,
   exportStatsAsCsv,
+  getRestaurantsWithHealthCertificates,
+  verifyRestaurant,
+  unverifyRestaurant,
 };
 

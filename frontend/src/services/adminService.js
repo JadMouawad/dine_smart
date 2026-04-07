@@ -2,6 +2,18 @@ import { apiRequest } from "./apiClient";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
+export async function getRestaurantsWithHealthCertificates() {
+  return apiRequest("/admin/restaurants/health-certificates", { method: "GET" });
+}
+
+export async function verifyRestaurant(id) {
+  return apiRequest(`/admin/restaurants/${id}/verify`, { method: "PUT" });
+}
+
+export async function unverifyRestaurant(id) {
+  return apiRequest(`/admin/restaurants/${id}/unverify`, { method: "PUT" });
+}
+
 export async function downloadStatsCsv() {
   const token = localStorage.getItem("token") || sessionStorage.getItem("token");
   const res = await fetch(`${API_BASE_URL}/admin/export/csv`, {

@@ -213,6 +213,35 @@ const sendSubscriptionUpdate = async (req, res) => {
   }
 };
 
+const getRestaurantsWithHealthCertificates = async (req, res) => {
+  try {
+    const result = await adminService.getRestaurantsWithHealthCertificates();
+    return res.status(200).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const verifyRestaurant = async (req, res) => {
+  try {
+    const result = await adminService.verifyRestaurant({ restaurantId: req.params.id });
+    if (!result.success) return res.status(result.status).json({ message: result.error });
+    return res.status(200).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const unverifyRestaurant = async (req, res) => {
+  try {
+    const result = await adminService.unverifyRestaurant({ restaurantId: req.params.id });
+    if (!result.success) return res.status(result.status).json({ message: result.error });
+    return res.status(200).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 const exportStatsCsv = async (req, res) => {
   try {
     const csv = await adminService.exportStatsAsCsv();
@@ -245,5 +274,8 @@ module.exports = {
   deleteFlaggedReview,
   sendSubscriptionUpdate,
   exportStatsCsv,
+  getRestaurantsWithHealthCertificates,
+  verifyRestaurant,
+  unverifyRestaurant,
 };
 

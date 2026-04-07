@@ -173,7 +173,10 @@ const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, onSe
       </div>
       <div className="restaurantCard__body">
         <div className="restaurantCard__header">
-          <div className="restaurantCard__name">{r.name}</div>
+          <div className="restaurantCard__name">
+            {r.name}
+            {r.certificate_verified && <span className="verifiedBadge">✓ Verified</span>}
+          </div>
           <button
             className={`favoriteHeartBtn ${isFavorited ? "is-active" : ""}`}
             type="button"

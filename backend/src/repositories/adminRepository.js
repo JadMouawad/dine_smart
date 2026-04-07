@@ -120,7 +120,6 @@ const approveRestaurant = async (restaurantId) => {
       WITH updated AS (
         UPDATE restaurants
         SET approval_status = 'approved',
-            is_verified = true,
             rejection_reason = NULL,
             updated_at = NOW()
         WHERE id = $1
@@ -479,6 +478,40 @@ const getSubscribedUsersByPreference = async (updateType) => {
   return result.rows;
 };
 
+const getRestaurantsWithHealthCertificates = async () => {
+  const result = await pool.query(
+    `SELECT r.id, r.name, r.cuisine, r.address, r.certificate_verified,
+            r.health_certificate_url, r.health_certificate_name,
+            r.updated_at,
+            u.full_name AS owner_name, u.email AS owner_email
+     FROM restaurants r
+     LEFT JOIN users u ON u.id = r.owner_id
+     WHERE r.approval_status = 'approved'
+       AND r.health_certificate_url IS NOT NULL
+       AND r.health_certificate_url != ''
+     ORDER BY r.certificate_verified ASC, r.updated_at DESC`
+  );
+  return result.rows;
+};
+
+const verifyRestaurant = async (restaurantId) => {
+  const result = await pool.query(
+    `UPDATE restaurants SET certificate_verified = true, updated_at = NOW()
+     WHERE id = $1 RETURNING id, name, certificate_verified`,
+    [restaurantId]
+  );
+  return result.rows[0] || null;
+};
+
+const unverifyRestaurant = async (restaurantId) => {
+  const result = await pool.query(
+    `UPDATE restaurants SET certificate_verified = false, updated_at = NOW()
+     WHERE id = $1 RETURNING id, name, certificate_verified`,
+    [restaurantId]
+  );
+  return result.rows[0] || null;
+};
+
 const getExportData = async () => {
   const [overview, users, restaurants, reservations, reviews, topSearches, dailyActivity] = await Promise.all([
     // 1. Platform overview
@@ -642,5 +675,8 @@ module.exports = {
   insertAuditLog,
   getSubscribedUsersByPreference,
   getExportData,
+  getRestaurantsWithHealthCertificates,
+  verifyRestaurant,
+  unverifyRestaurant,
 };
 

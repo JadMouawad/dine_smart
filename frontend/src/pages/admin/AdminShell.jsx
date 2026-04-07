@@ -7,6 +7,7 @@ import PendingRestaurantsPage from "./PendingRestaurantsPage.jsx";
 import UserManagementPage from "./UserManagementPage.jsx";
 import FlaggedReviewsPage from "./FlaggedReviewsPage.jsx";
 import AdminProfile from "./AdminProfile.jsx";
+import HealthCertificatesPage from "./HealthCertificatesPage.jsx";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import { getProfile } from "../../services/profileService.js";
 
@@ -15,6 +16,7 @@ function tabFromPathname(pathname) {
   if (pathname.includes("/pending")) return "pending";
   if (pathname.includes("/flags")) return "flags";
   if (pathname.includes("/users")) return "users";
+  if (pathname.includes("/health-certificates")) return "health-certificates";
   return "dashboard";
 }
 
@@ -69,6 +71,7 @@ export default function AdminShell() {
     if (tab === "flags") navigate("/admin/flags");
     if (tab === "users") navigate("/admin/users");
     if (tab === "profile") navigate("/admin/profile");
+    if (tab === "health-certificates") navigate("/admin/health-certificates");
   }
 
   function handleLogout() {
@@ -127,6 +130,8 @@ export default function AdminShell() {
         )}
 
         {active === "users" && <UserManagementPage />}
+
+        {active === "health-certificates" && <HealthCertificatesPage />}
       </main>
 
       <ConfirmDialog

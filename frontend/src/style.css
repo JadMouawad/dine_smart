@@ -1859,6 +1859,26 @@ body.ds-nav-not-sticky .nav {
   background: rgba(0, 0, 0, 0.18);
 }
 
+.btn--link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #C9A227;
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  min-height: unset;
+  border-radius: 0;
+  box-shadow: none;
+  display: inline;
+}
+.btn--link:hover {
+  color: #e0b83a;
+  background: none;
+}
+
 .btn--gold {
   background: linear-gradient(135deg, #C9A227, #C9A227);
   color: #ffffff;
@@ -3799,6 +3819,52 @@ input[type="date"] {
   align-items: center;
   margin-top: 6px;
   flex-wrap: wrap;
+}
+
+/* ── Verified Badge ─────────────────────────────────────────────────────── */
+.verifiedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  margin-left: 8px;
+  vertical-align: middle;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .verifiedBadge {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.verifiedBadge--inline {
+  font-size: 0.7rem;
+  padding: 3px 10px;
+}
+
+.adminPage__subtitle {
+  color: rgba(255,255,255,0.6);
+  font-size: 0.9rem;
+  margin: -8px 0 20px;
+}
+
+[data-theme="light"] .adminPage__subtitle {
+  color: rgba(0,0,0,0.5);
+}
+
+.adminPage__sectionTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 12px;
+  opacity: 0.75;
 }
 
 .adminFilters {

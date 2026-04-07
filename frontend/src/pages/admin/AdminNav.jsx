@@ -92,6 +92,16 @@ export default function AdminNav({
           >
             Users
           </a>
+          <a
+            href="#"
+            className={tabClass("health-certificates")}
+            onClick={(e) => {
+              e.preventDefault();
+              onChange("health-certificates");
+            }}
+          >
+            Verification
+          </a>
         </nav>
 
         <div className="nav__actions adminNav__actions">

@@ -29,6 +29,10 @@ router.delete("/flagged-reviews/:id", adminController.deleteFlaggedReview);
 
 router.post("/updates/send", adminController.sendSubscriptionUpdate);
 
+router.get("/restaurants/health-certificates", adminController.getRestaurantsWithHealthCertificates);
+router.put("/restaurants/:id/verify", adminController.verifyRestaurant);
+router.put("/restaurants/:id/unverify", adminController.unverifyRestaurant);
+
 router.get("/export/csv", adminController.exportStatsCsv);
 
 module.exports = router;
