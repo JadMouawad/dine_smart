@@ -87,23 +87,35 @@ const getRecentActivity = async (limit = 10) => {
 
 const getPendingRestaurants = async () => {
   const restaurantColumns = await getRestaurantColumns();
-  const businessLicenseUrlSelect = restaurantColumns.has("business_license_url")
-    ? "r.business_license_url"
-    : "NULL::text AS business_license_url";
-  const businessLicenseNameSelect = restaurantColumns.has("business_license_name")
-    ? "r.business_license_name"
-    : "NULL::varchar AS business_license_name";
 
   const result = await pool.query(`
     SELECT
       r.id,
       r.name,
       r.cuisine,
+      r.description,
       r.address,
-      ${businessLicenseUrlSelect},
-      ${businessLicenseNameSelect},
-      r.created_at,
+      r.phone,
+      r.rating,
       r.owner_id,
+      r.opening_time,
+      r.closing_time,
+      r.latitude,
+      r.longitude,
+      r.price_range,
+      r.dietary_support,
+      r.logo_url,
+      r.cover_url,
+      r.gallery_urls,
+      r.business_license_url,
+      r.business_license_name,
+      r.health_certificate_url,
+      r.health_certificate_name,
+      r.is_verified,
+      r.approval_status,
+      r.rejection_reason,
+      r.created_at,
+      r.updated_at,
       u.full_name AS owner_name,
       u.email AS owner_email
     FROM restaurants r

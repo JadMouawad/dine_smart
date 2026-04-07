@@ -5,6 +5,24 @@ import {
   rejectPendingRestaurant,
 } from "../../services/adminService";
 
+function dataUrlToBlobUrl(dataUrl) {
+  const raw = String(dataUrl || "").trim();
+  if (!raw.startsWith("data:")) return raw;
+  const [meta, content] = raw.split(",", 2);
+  if (!meta || content == null) return raw;
+  const mimeMatch = meta.match(/^data:([^;]+)(;base64)?$/i);
+  const mimeType = mimeMatch?.[1] || "application/octet-stream";
+  const isBase64 = /;base64$/i.test(meta);
+  try {
+    const byteString = isBase64 ? atob(content) : decodeURIComponent(content);
+    const bytes = new Uint8Array(byteString.length);
+    for (let i = 0; i < byteString.length; i++) bytes[i] = byteString.charCodeAt(i);
+    return URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+  } catch {
+    return raw;
+  }
+}
+
 export default function PendingRestaurantsPage({ onPendingCountChange }) {
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -88,7 +106,10 @@ export default function PendingRestaurantsPage({ onPendingCountChange }) {
 
   return (
     <div className="adminPage">
-      <h1 className="ownerProfile__title">Pending Restaurants</h1>
+      <h1 className="ownerProfile__title">Pending Restaurant Approvals</h1>
+      <p className="adminPage__subtitle">
+        Review complete restaurant information before granting access. Business licenses are required for approval.
+      </p>
       {success && <div className="inlineToast">{success}</div>}
       {error && <div className="fieldError">{error}</div>}
 
@@ -97,49 +118,17 @@ export default function PendingRestaurantsPage({ onPendingCountChange }) {
       ) : (
         <div className="adminCardList">
           {restaurants.map((restaurant) => (
-            <div className="formCard adminEntityCard" key={restaurant.id}>
-              <div className="adminEntityCard__title">{restaurant.name}</div>
-              <div className="adminEntityCard__meta">
-                {restaurant.cuisine || "Cuisine not set"} • {restaurant.address || "Address not set"}
-              </div>
-              <div className="adminEntityCard__meta">
-                Owner: {restaurant.owner_name || "Unknown"} ({restaurant.owner_email || "No email"})
-              </div>
-              {restaurant.business_license_url && (
-                <div className="adminEntityCard__meta">
-                  License:{" "}
-                  <a href={restaurant.business_license_url} target="_blank" rel="noreferrer">
-                    {restaurant.business_license_name || "View uploaded file"}
-                  </a>
-                </div>
-              )}
-              <div className="adminEntityCard__meta">
-                Submitted: {new Date(restaurant.created_at).toLocaleDateString()}
-              </div>
-
-              <div className="adminEntityCard__actions">
-                <button
-                  className="btn btn--gold"
-                  type="button"
-                  onClick={() => handleApprove(restaurant.id)}
-                  disabled={busyId === restaurant.id}
-                >
-                  {busyId === restaurant.id ? "Saving..." : "Approve"}
-                </button>
-                <button
-                  className="btn btn--ghost"
-                  type="button"
-                  onClick={() => {
-                    setRejectTarget(restaurant);
-                    setRejectReason("");
-                    setRejectError("");
-                  }}
-                  disabled={busyId === restaurant.id}
-                >
-                  Reject
-                </button>
-              </div>
-            </div>
+            <RestaurantApprovalCard
+              key={restaurant.id}
+              restaurant={restaurant}
+              busy={busyId === restaurant.id}
+              onApprove={() => handleApprove(restaurant.id)}
+              onReject={() => {
+                setRejectTarget(restaurant);
+                setRejectReason("");
+                setRejectError("");
+              }}
+            />
           ))}
         </div>
       )}
@@ -174,6 +163,162 @@ export default function PendingRestaurantsPage({ onPendingCountChange }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function RestaurantApprovalCard({ restaurant, busy, onApprove, onReject }) {
+  function openBusinessLicense() {
+    const url = restaurant.business_license_url;
+    if (!url) return;
+    const blobUrl = dataUrlToBlobUrl(url);
+    window.open(blobUrl, "_blank", "noreferrer");
+  }
+
+  function openHealthCertificate() {
+    const url = restaurant.health_certificate_url;
+    if (!url) return;
+    const blobUrl = dataUrlToBlobUrl(url);
+    window.open(blobUrl, "_blank", "noreferrer");
+  }
+
+  return (
+    <div className="formCard adminEntityCard restaurantApprovalCard">
+      <div className="adminEntityCard__title">
+        {restaurant.name}
+      </div>
+
+      {/* Basic Information */}
+      <div className="restaurantApprovalCard__section">
+        <h3 className="restaurantApprovalCard__sectionTitle">Basic Information</h3>
+        <div className="restaurantApprovalCard__grid">
+          <div className="restaurantApprovalCard__field">
+            <span className="restaurantApprovalCard__label">Cuisine:</span>
+            <span className="restaurantApprovalCard__value">{restaurant.cuisine || "Not specified"}</span>
+          </div>
+          <div className="restaurantApprovalCard__field">
+            <span className="restaurantApprovalCard__label">Price Range:</span>
+            <span className="restaurantApprovalCard__value">{restaurant.price_range || "Not specified"}</span>
+          </div>
+          <div className="restaurantApprovalCard__field">
+            <span className="restaurantApprovalCard__label">Phone:</span>
+            <span className="restaurantApprovalCard__value">{restaurant.phone || "Not specified"}</span>
+          </div>
+          <div className="restaurantApprovalCard__field">
+            <span className="restaurantApprovalCard__label">Address:</span>
+            <span className="restaurantApprovalCard__value">{restaurant.address || "Not specified"}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Hours */}
+      {(restaurant.opening_time || restaurant.closing_time) && (
+        <div className="restaurantApprovalCard__section">
+          <h3 className="restaurantApprovalCard__sectionTitle">Operating Hours</h3>
+          <div className="restaurantApprovalCard__field">
+            <span className="restaurantApprovalCard__label">Hours:</span>
+            <span className="restaurantApprovalCard__value">
+              {restaurant.opening_time || "Not set"} - {restaurant.closing_time || "Not set"}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Description */}
+      {restaurant.description && (
+        <div className="restaurantApprovalCard__section">
+          <h3 className="restaurantApprovalCard__sectionTitle">Description</h3>
+          <p className="restaurantApprovalCard__description">{restaurant.description}</p>
+        </div>
+      )}
+
+      {/* Dietary Support */}
+      {restaurant.dietary_support && restaurant.dietary_support.length > 0 && (
+        <div className="restaurantApprovalCard__section">
+          <h3 className="restaurantApprovalCard__sectionTitle">Dietary Support</h3>
+          <div className="restaurantApprovalCard__tags">
+            {restaurant.dietary_support.map((diet, index) => (
+              <span key={index} className="restaurantApprovalCard__tag">{diet}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Owner Information */}
+      <div className="restaurantApprovalCard__section">
+        <h3 className="restaurantApprovalCard__sectionTitle">Owner Information</h3>
+        <div className="restaurantApprovalCard__field">
+          <span className="restaurantApprovalCard__label">Name:</span>
+          <span className="restaurantApprovalCard__value">{restaurant.owner_name || "Unknown"}</span>
+        </div>
+        <div className="restaurantApprovalCard__field">
+          <span className="restaurantApprovalCard__label">Email:</span>
+          <span className="restaurantApprovalCard__value">{restaurant.owner_email || "No email"}</span>
+        </div>
+      </div>
+
+      {/* Documents */}
+      <div className="restaurantApprovalCard__section">
+        <h3 className="restaurantApprovalCard__sectionTitle">Required Documents</h3>
+
+        <div className="restaurantApprovalCard__document">
+          <span className="restaurantApprovalCard__label">Business License:</span>
+          {restaurant.business_license_url ? (
+            <button
+              type="button"
+              className="btn btn--link restaurantApprovalCard__documentLink"
+              onClick={openBusinessLicense}
+            >
+              {restaurant.business_license_name || "View uploaded file"}
+            </button>
+          ) : (
+            <span className="restaurantApprovalCard__missing">Not uploaded</span>
+          )}
+        </div>
+
+        <div className="restaurantApprovalCard__document">
+          <span className="restaurantApprovalCard__label">Health Certificate:</span>
+          {restaurant.health_certificate_url ? (
+            <button
+              type="button"
+              className="btn btn--link restaurantApprovalCard__documentLink"
+              onClick={openHealthCertificate}
+            >
+              {restaurant.health_certificate_name || "View uploaded file"}
+            </button>
+          ) : (
+            <span className="restaurantApprovalCard__missing">Not uploaded</span>
+          )}
+        </div>
+      </div>
+
+      {/* Metadata */}
+      <div className="restaurantApprovalCard__section restaurantApprovalCard__section--meta">
+        <div className="restaurantApprovalCard__field">
+          <span className="restaurantApprovalCard__label">Submitted:</span>
+          <span className="restaurantApprovalCard__value">{new Date(restaurant.created_at).toLocaleDateString()}</span>
+        </div>
+      </div>
+
+      <div className="adminEntityCard__actions">
+        <button
+          className="btn btn--gold"
+          type="button"
+          onClick={onApprove}
+          disabled={busy || !restaurant.business_license_url}
+          title={!restaurant.business_license_url ? "Business license required for approval" : ""}
+        >
+          {busy ? "Saving..." : "✓ Approve Restaurant"}
+        </button>
+        <button
+          className="btn btn--ghost"
+          type="button"
+          onClick={onReject}
+          disabled={busy}
+        >
+          Reject
+        </button>
+      </div>
     </div>
   );
 }

@@ -3900,6 +3900,130 @@ input[type="date"] {
   z-index: 1;
 }
 
+/* ── Restaurant Approval Card ───────────────────────────────────────────── */
+.restaurantApprovalCard {
+  max-width: none;
+}
+
+.restaurantApprovalCard__section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.restaurantApprovalCard__section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.restaurantApprovalCard__section--meta {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: none;
+}
+
+.restaurantApprovalCard__sectionTitle {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 12px 0;
+}
+
+[data-theme="light"] .restaurantApprovalCard__sectionTitle {
+  color: rgba(0, 0, 0, 0.8);
+}
+
+.restaurantApprovalCard__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.restaurantApprovalCard__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.restaurantApprovalCard__label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="light"] .restaurantApprovalCard__label {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.restaurantApprovalCard__value {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.95);
+  word-break: break-word;
+}
+
+[data-theme="light"] .restaurantApprovalCard__value {
+  color: rgba(0, 0, 0, 0.9);
+}
+
+.restaurantApprovalCard__description {
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+}
+
+[data-theme="light"] .restaurantApprovalCard__description {
+  color: rgba(0, 0, 0, 0.8);
+}
+
+.restaurantApprovalCard__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.restaurantApprovalCard__tag {
+  background: rgba(201, 162, 39, 0.15);
+  color: #C9A227;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+[data-theme="light"] .restaurantApprovalCard__tag {
+  background: rgba(201, 162, 39, 0.25);
+  color: #8B6B1F;
+}
+
+.restaurantApprovalCard__document {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.restaurantApprovalCard__documentLink {
+  font-size: 14px;
+  text-decoration: underline;
+}
+
+.restaurantApprovalCard__missing {
+  font-size: 14px;
+  color: rgba(255, 100, 100, 0.8);
+  font-style: italic;
+}
+
+[data-theme="light"] .restaurantApprovalCard__missing {
+  color: rgba(200, 50, 50, 0.8);
+}
+
 .adminTable {
   width: 100%;
   border-collapse: collapse;
