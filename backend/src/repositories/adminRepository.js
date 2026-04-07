@@ -479,6 +479,151 @@ const getSubscribedUsersByPreference = async (updateType) => {
   return result.rows;
 };
 
+const getExportData = async () => {
+  const [overview, users, restaurants, reservations, reviews, topSearches, dailyActivity] = await Promise.all([
+    // 1. Platform overview
+    pool.query(`
+      SELECT
+        (SELECT COUNT(*)::int FROM users) AS total_users,
+        (SELECT COUNT(*)::int FROM users WHERE is_suspended = true) AS suspended_users,
+        (SELECT COUNT(*)::int FROM restaurants) AS total_restaurants,
+        (SELECT COUNT(*)::int FROM restaurants WHERE approval_status = 'approved') AS approved_restaurants,
+        (SELECT COUNT(*)::int FROM restaurants WHERE approval_status = 'pending') AS pending_restaurants,
+        (SELECT COUNT(*)::int FROM reservations) AS total_reservations,
+        (SELECT COUNT(*)::int FROM reservations WHERE status IN ('accepted','confirmed')) AS confirmed_reservations,
+        (SELECT COUNT(*)::int FROM reservations WHERE status = 'cancelled') AS cancelled_reservations,
+        (SELECT COUNT(*)::int FROM reviews) AS total_reviews,
+        (SELECT COUNT(*)::int FROM flagged_reviews) AS total_flagged_reviews,
+        (SELECT COUNT(*)::int FROM flagged_reviews WHERE status = 'pending') AS pending_flags,
+        (SELECT ROUND(AVG(rating)::numeric, 2) FROM restaurants WHERE approval_status = 'approved') AS avg_restaurant_rating
+    `),
+
+    // 2. Users
+    pool.query(`
+      SELECT
+        u.id,
+        u.full_name AS name,
+        u.email,
+        r.name AS role,
+        u.is_suspended AS suspended,
+        u.created_at AS joined_at,
+        COUNT(DISTINCT res.id)::int AS reservation_count,
+        COUNT(DISTINCT rev.id)::int AS review_count
+      FROM users u
+      JOIN roles r ON r.id = u.role_id
+      LEFT JOIN reservations res ON res.user_id = u.id
+      LEFT JOIN reviews rev ON rev.user_id = u.id
+      GROUP BY u.id, u.full_name, u.email, r.name, u.is_suspended, u.created_at
+      ORDER BY u.created_at DESC
+    `),
+
+    // 3. Restaurants
+    pool.query(`
+      SELECT
+        r.id,
+        r.name,
+        r.cuisine,
+        u.full_name AS owner_name,
+        u.email AS owner_email,
+        r.approval_status,
+        r.address,
+        r.phone,
+        ROUND(r.rating::numeric, 2) AS rating,
+        COUNT(DISTINCT rev.id)::int AS review_count,
+        COUNT(DISTINCT res.id)::int AS reservation_count,
+        r.created_at
+      FROM restaurants r
+      LEFT JOIN users u ON u.id = r.owner_id
+      LEFT JOIN reviews rev ON rev.restaurant_id = r.id
+      LEFT JOIN reservations res ON res.restaurant_id = r.id
+      GROUP BY r.id, r.name, r.cuisine, u.full_name, u.email, r.approval_status, r.address, r.phone, r.rating, r.created_at
+      ORDER BY r.created_at DESC
+    `),
+
+    // 4. Reservations
+    pool.query(`
+      SELECT
+        res.id,
+        rest.name AS restaurant_name,
+        u.full_name AS user_name,
+        u.email AS user_email,
+        res.reservation_date,
+        res.reservation_time,
+        res.party_size,
+        res.status,
+        res.created_at
+      FROM reservations res
+      JOIN restaurants rest ON rest.id = res.restaurant_id
+      JOIN users u ON u.id = res.user_id
+      ORDER BY res.reservation_date DESC, res.reservation_time DESC
+    `),
+
+    // 5. Reviews
+    pool.query(`
+      SELECT
+        rv.id,
+        rest.name AS restaurant_name,
+        u.full_name AS reviewer_name,
+        u.email AS reviewer_email,
+        rv.rating AS stars,
+        LEFT(rv.comment, 200) AS comment_preview,
+        CASE WHEN fr.id IS NOT NULL THEN 'Yes' ELSE 'No' END AS flagged,
+        rv.created_at
+      FROM reviews rv
+      JOIN restaurants rest ON rest.id = rv.restaurant_id
+      JOIN users u ON u.id = rv.user_id
+      LEFT JOIN flagged_reviews fr ON fr.review_id = rv.id
+      ORDER BY rv.created_at DESC
+    `),
+
+    // 6. Top searches
+    pool.query(`
+      SELECT
+        query,
+        COUNT(*)::int AS search_count,
+        MAX(searched_at) AS last_searched
+      FROM search_history
+      GROUP BY query
+      ORDER BY search_count DESC
+      LIMIT 50
+    `).catch(() => ({ rows: [] })),
+
+    // 7. Daily activity (last 30 days)
+    pool.query(`
+      SELECT
+        day::date AS date,
+        COALESCE(new_users, 0)::int AS new_users,
+        COALESCE(new_reservations, 0)::int AS new_reservations,
+        COALESCE(new_reviews, 0)::int AS new_reviews
+      FROM generate_series(
+        CURRENT_DATE - INTERVAL '29 days',
+        CURRENT_DATE,
+        INTERVAL '1 day'
+      ) AS day
+      LEFT JOIN (
+        SELECT DATE(created_at) AS d, COUNT(*)::int AS new_users FROM users GROUP BY d
+      ) u ON u.d = day::date
+      LEFT JOIN (
+        SELECT DATE(created_at) AS d, COUNT(*)::int AS new_reservations FROM reservations GROUP BY d
+      ) res ON res.d = day::date
+      LEFT JOIN (
+        SELECT DATE(created_at) AS d, COUNT(*)::int AS new_reviews FROM reviews GROUP BY d
+      ) rev ON rev.d = day::date
+      ORDER BY day ASC
+    `),
+  ]);
+
+  return {
+    overview: overview.rows[0],
+    users: users.rows,
+    restaurants: restaurants.rows,
+    reservations: reservations.rows,
+    reviews: reviews.rows,
+    topSearches: topSearches.rows,
+    dailyActivity: dailyActivity.rows,
+  };
+};
+
 module.exports = {
   getDashboardStats,
   getRecentActivity,
@@ -496,5 +641,6 @@ module.exports = {
   deleteReviewByFlagId,
   insertAuditLog,
   getSubscribedUsersByPreference,
+  getExportData,
 };
 

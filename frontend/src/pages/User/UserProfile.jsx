@@ -19,6 +19,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const [favorites, setFavorites] = useState([]);
   const [myReviews, setMyReviews] = useState([]);
   const [searchHistory, setSearchHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   const [profilePictureUrl, setProfilePictureUrl] = useState("");
   const [profilePictureDataUrl, setProfilePictureDataUrl] = useState("");
@@ -595,9 +596,16 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
           </div>
 
           <div className="formCard formCard--userProfile profileExtraCard">
-            <div className="formCard__title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span>Search History</span>
-              {searchHistory.length > 0 && (
+            <div className="formCard__title">Search History</div>
+            <div className="profileHistoryActions">
+              <button
+                type="button"
+                className="profileHistory__viewBtn"
+                onClick={() => setShowHistory((v) => !v)}
+              >
+                {showHistory ? "Hide History" : `View Full History${searchHistory.length ? ` (${searchHistory.length})` : ""}`}
+              </button>
+              {showHistory && searchHistory.length > 0 && (
                 <button
                   type="button"
                   className="profileHistory__clearBtn"
@@ -606,24 +614,26 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                     setSearchHistory([]);
                   }}
                 >
-                  Clear
+                  Clear All
                 </button>
               )}
             </div>
-            {searchHistory.length ? (
-              <div className="profileExtraCard__content">
-                {searchHistory.map((item) => (
-                  <div key={item.id} className="profileHistoryItem">
-                    <span className="profileHistoryItem__icon">🕐</span>
-                    <span className="profileHistoryItem__query">{item.query}</span>
-                    <span className="profileHistoryItem__date">
-                      {new Date(item.searched_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="profileEmpty">No search history yet.</div>
+            {showHistory && (
+              searchHistory.length ? (
+                <ol className="profileHistoryList">
+                  {searchHistory.map((item, index) => (
+                    <li key={item.id} className="profileHistoryItem">
+                      <span className="profileHistoryItem__num">{index + 1}</span>
+                      <span className="profileHistoryItem__query">{item.query}</span>
+                      <span className="profileHistoryItem__date">
+                        {new Date(item.searched_at).toLocaleDateString()}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <div className="profileEmpty">No search history yet.</div>
+              )
             )}
           </div>
         </div>

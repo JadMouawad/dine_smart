@@ -264,12 +264,12 @@ function getReservationChartConfig(rangeValue, now = new Date()) {
   let bucketSizeDays = 1;
   let start = startOfDay(normalizedNow);
   let title = CHART_RANGE_OPTIONS.find((option) => option.value === rangeValue)?.label || "Last 7 days";
-  let groupLabel = "Daily booked guests";
+  let groupLabel = "Daily reservations";
 
   if (rangeValue === "30d") {
     mode = "rolling-week";
     bucketSizeDays = 7;
-    groupLabel = "Weekly booked guests";
+    groupLabel = "Weekly reservations";
     const rangeStart = startOfDay(addDays(normalizedNow, -29));
     start = rangeStart;
     for (let cursor = new Date(rangeStart); cursor <= normalizedNow; cursor = addDays(cursor, 7)) {
@@ -281,7 +281,7 @@ function getReservationChartConfig(rangeValue, now = new Date()) {
     }
   } else if (rangeValue === "90d") {
     mode = "month";
-    groupLabel = "Monthly booked guests";
+    groupLabel = "Monthly reservations";
     start = new Date(normalizedNow.getFullYear(), normalizedNow.getMonth() - 2, 1);
     for (let cursor = new Date(start); cursor <= normalizedNow; cursor = addMonths(cursor, 1)) {
       const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
@@ -292,7 +292,7 @@ function getReservationChartConfig(rangeValue, now = new Date()) {
     }
   } else if (rangeValue === "365d") {
     mode = "month";
-    groupLabel = "Monthly booked guests";
+    groupLabel = "Monthly reservations";
     start = new Date(normalizedNow.getFullYear(), normalizedNow.getMonth() - 11, 1);
     for (let cursor = new Date(start); cursor <= normalizedNow; cursor = addMonths(cursor, 1)) {
       const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
@@ -718,7 +718,6 @@ export default function OwnerReservations() {
       const reservationDate = toDateTimeValue(reservation);
       if (!reservationDate) return;
       if (reservationDate < config.start || reservationDate > config.end) return;
-      const partySize = Math.max(1, parseInt(reservation.party_size, 10) || 1);
 
       let dateKey = formatLocalDateKey(reservationDate);
       if (config.mode === "week") {
@@ -734,8 +733,8 @@ export default function OwnerReservations() {
 
       const hourKey = `${pad2(reservationDate.getHours())}:00`;
 
-      byDay.set(dateKey, (byDay.get(dateKey) || 0) + partySize);
-      byHour.set(hourKey, (byHour.get(hourKey) || 0) + partySize);
+      byDay.set(dateKey, (byDay.get(dateKey) || 0) + 1);
+      byHour.set(hourKey, (byHour.get(hourKey) || 0) + 1);
     });
 
     const dayData = config.buckets.map((bucket) => ({
@@ -1132,7 +1131,7 @@ export default function OwnerReservations() {
               {reservationCharts.hourData.length ? (
                 <>
                   <div className="reservationPeakBadge">
-                    Peak hour: {reservationCharts.peakHour?.shortLabel || "N/A"} ({reservationCharts.peakHour?.value || 0} guests)
+                    Peak hour: {reservationCharts.peakHour?.shortLabel || "N/A"} ({reservationCharts.peakHour?.value || 0} reservations)
                   </div>
 
                   <div className="reservationHourList">
@@ -1157,7 +1156,7 @@ export default function OwnerReservations() {
                   </div>
                 </>
               ) : (
-                <div className="profileEmpty">Peak hours will appear once guest bookings are added.</div>
+                <div className="profileEmpty">Peak hours will appear once reservations are added.</div>
               )}
             </div>
           </div>

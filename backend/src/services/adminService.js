@@ -346,6 +346,62 @@ const sendSubscriptionUpdate = async ({ adminId, updateType, subject, message })
   return { success: true, status: 200, data: { sent, total, failed } };
 };
 
+const exportStatsAsCsv = async () => {
+  const data = await adminRepository.getExportData();
+
+  const escape = (val) => {
+    if (val === null || val === undefined) return "";
+    const str = String(val);
+    if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const row = (arr) => arr.map(escape).join(",");
+  const section = (title) => `\r\n"=== ${title} ==="\r\n`;
+
+  const lines = [];
+
+  // 1. Platform Overview
+  lines.push(section("PLATFORM OVERVIEW"));
+  lines.push(row(["Total Users","Suspended Users","Total Restaurants","Approved Restaurants","Pending Restaurants","Total Reservations","Confirmed Reservations","Cancelled Reservations","Total Reviews","Total Flagged Reviews","Pending Flags","Avg Restaurant Rating"]));
+  const o = data.overview;
+  lines.push(row([o.total_users, o.suspended_users, o.total_restaurants, o.approved_restaurants, o.pending_restaurants, o.total_reservations, o.confirmed_reservations, o.cancelled_reservations, o.total_reviews, o.total_flagged_reviews, o.pending_flags, o.avg_restaurant_rating]));
+
+  // 2. Users
+  lines.push(section("USERS"));
+  lines.push(row(["ID","Name","Email","Role","Suspended","Joined At","Reservations","Reviews"]));
+  data.users.forEach((u) => lines.push(row([u.id, u.name, u.email, u.role, u.suspended, u.joined_at, u.reservation_count, u.review_count])));
+
+  // 3. Restaurants
+  lines.push(section("RESTAURANTS"));
+  lines.push(row(["ID","Name","Cuisine","Owner Name","Owner Email","Status","Address","Phone","Rating","Reviews","Reservations","Created At"]));
+  data.restaurants.forEach((r) => lines.push(row([r.id, r.name, r.cuisine, r.owner_name, r.owner_email, r.approval_status, r.address, r.phone, r.rating, r.review_count, r.reservation_count, r.created_at])));
+
+  // 4. Reservations
+  lines.push(section("RESERVATIONS"));
+  lines.push(row(["ID","Restaurant","User","User Email","Date","Time","Party Size","Status","Created At"]));
+  data.reservations.forEach((r) => lines.push(row([r.id, r.restaurant_name, r.user_name, r.user_email, r.reservation_date, r.reservation_time, r.party_size, r.status, r.created_at])));
+
+  // 5. Reviews
+  lines.push(section("REVIEWS"));
+  lines.push(row(["ID","Restaurant","Reviewer","Reviewer Email","Stars","Comment Preview","Flagged","Created At"]));
+  data.reviews.forEach((r) => lines.push(row([r.id, r.restaurant_name, r.reviewer_name, r.reviewer_email, r.stars, r.comment_preview, r.flagged, r.created_at])));
+
+  // 6. Top Searches
+  lines.push(section("TOP SEARCHES"));
+  lines.push(row(["Query","Search Count","Last Searched"]));
+  data.topSearches.forEach((s) => lines.push(row([s.query, s.search_count, s.last_searched])));
+
+  // 7. Daily Activity (last 30 days)
+  lines.push(section("DAILY ACTIVITY (LAST 30 DAYS)"));
+  lines.push(row(["Date","New Users","New Reservations","New Reviews"]));
+  data.dailyActivity.forEach((d) => lines.push(row([d.date, d.new_users, d.new_reservations, d.new_reviews])));
+
+  return lines.join("\r\n");
+};
+
 module.exports = {
   getStats,
   getRecentAiLogs,
@@ -365,5 +421,6 @@ module.exports = {
   dismissFlaggedReview,
   deleteFlaggedReview,
   sendSubscriptionUpdate,
+  exportStatsAsCsv,
 };
 
