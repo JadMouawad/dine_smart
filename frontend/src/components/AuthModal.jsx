@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { GoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
 import { FiEye, FiEyeOff } from "react-icons/fi";
@@ -510,6 +511,10 @@ export default function AuthModal({
                       checked={signupSubscribed}
                       onChange={(e) => {
                         const checked = e.target.checked;
+                        if (checked && signupPreferences.length === 0) {
+                          toast.error("Please choose at least one update option before enabling subscription.");
+                          return;
+                        }
                         setSignupSubscribed(checked);
                         if (!checked) setSignupPreferences([]);
                       }}
@@ -521,7 +526,7 @@ export default function AuthModal({
                   </label>
                 </div>
 
-                <div className={`updatesPrefs${!signupSubscribed ? " updatesPrefs--disabled" : ""}`}>
+                <div className="updatesPrefs">
                   <div className="updatesPrefs__grid">
                     {["news", "offers", "events"].map((key) => (
                       <label
@@ -532,12 +537,13 @@ export default function AuthModal({
                           type="checkbox"
                           checked={signupPreferences.includes(key)}
                           onChange={() => {
-                            if (!signupSubscribed) return;
-                            setSignupPreferences((prev) =>
-                              prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]
-                            );
+                            setSignupPreferences((prev) => {
+                              const next = prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key];
+                              setSignupSubscribed(next.length > 0);
+                              return next;
+                            });
                           }}
-                          disabled={!signupSubscribed}
+                          disabled={loading}
                         />
                         <span>{key.charAt(0).toUpperCase() + key.slice(1)}</span>
                       </label>
