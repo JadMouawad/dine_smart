@@ -780,10 +780,11 @@ export default function UserSearch({
     <div className="userSearchPage">
       <h1 className="userSearchPage__title">Search Restaurants</h1>
 
-      <div className="searchBarCard" ref={searchBarRef}>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "12px" }}>
         <input
           className="searchInput"
           type="text"
+          style={{ width: "700px" }}
           placeholder="Search by name, cuisine, or keyword"
           value={query}
           onChange={(e) => {
