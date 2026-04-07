@@ -10,3 +10,9 @@ export async function updateProfile(data) {
     body: JSON.stringify(data),
   });
 }
+
+export async function redeemReward() {
+  return apiRequest("/profile/rewards/redeem", {
+    method: "POST",
+  });
+}

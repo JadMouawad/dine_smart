@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const db = require("../config/db");
 const UserModel = require("../models/User");
 const ReservationModel = require("../models/reservation.model");
+const loyaltyService = require("./loyaltyService");
 const {
   sendReservationConfirmationEmail,
   sendReservationCancellationEmail,
@@ -1036,6 +1037,17 @@ const updateReservationStatusForOwner = async ({ reservationId, ownerId, action 
       }
     } catch (error) {
       console.warn("Failed to send reservation confirmation email:", error.message);
+    }
+  }
+
+  if (nextStatus === "completed") {
+    try {
+      await loyaltyService.awardPointsForReservation({
+        userId: updated.user_id,
+        reservationId: updated.id,
+      });
+    } catch (error) {
+      console.warn("Failed to award loyalty points:", error.message);
     }
   }
 
