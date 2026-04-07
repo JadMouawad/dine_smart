@@ -30,23 +30,28 @@ export default function HealthCertificatesPage() {
   const [success, setSuccess] = useState("");
   const [busyId, setBusyId] = useState(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setLoading(true);
-      setError("");
-      try {
-        const data = await getRestaurantsWithHealthCertificates();
-        if (!cancelled) setRestaurants(Array.isArray(data) ? data : []);
-      } catch (err) {
-        if (!cancelled) setError(err.message || "Failed to load restaurants.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  async function loadRestaurants() {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await getRestaurantsWithHealthCertificates();
+      setRestaurants(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message || "Failed to load restaurants.");
+    } finally {
+      setLoading(false);
     }
-    load();
-    return () => { cancelled = true; };
+  }
+
+  useEffect(() => {
+    loadRestaurants();
   }, []);
+
+  function silentReload() {
+    getRestaurantsWithHealthCertificates()
+      .then((data) => setRestaurants(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }
 
   async function handleVerify(restaurant) {
     setSuccess(""); setError("");
@@ -57,6 +62,7 @@ export default function HealthCertificatesPage() {
         prev.map((r) => r.id === restaurant.id ? { ...r, certificate_verified: true } : r)
       );
       setSuccess(`"${restaurant.name}" is now verified.`);
+      silentReload();
     } catch (err) {
       setError(err.message || "Failed to verify restaurant.");
     } finally {
@@ -73,6 +79,7 @@ export default function HealthCertificatesPage() {
         prev.map((r) => r.id === restaurant.id ? { ...r, certificate_verified: false } : r)
       );
       setSuccess(`"${restaurant.name}" verification removed.`);
+      silentReload();
     } catch (err) {
       setError(err.message || "Failed to unverify restaurant.");
     } finally {
