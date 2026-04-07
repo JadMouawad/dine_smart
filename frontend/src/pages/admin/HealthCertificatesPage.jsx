@@ -30,23 +30,28 @@ export default function HealthCertificatesPage() {
   const [success, setSuccess] = useState("");
   const [busyId, setBusyId] = useState(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setLoading(true);
-      setError("");
-      try {
-        const data = await getRestaurantsWithHealthCertificates();
-        if (!cancelled) setRestaurants(Array.isArray(data) ? data : []);
-      } catch (err) {
-        if (!cancelled) setError(err.message || "Failed to load restaurants.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  async function loadRestaurants() {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await getRestaurantsWithHealthCertificates();
+      setRestaurants(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message || "Failed to load restaurants.");
+    } finally {
+      setLoading(false);
     }
-    load();
-    return () => { cancelled = true; };
+  }
+
+  useEffect(() => {
+    loadRestaurants();
   }, []);
+
+  function silentReload() {
+    getRestaurantsWithHealthCertificates()
+      .then((data) => setRestaurants(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }
 
   async function handleVerify(restaurant) {
     setSuccess(""); setError("");
@@ -57,6 +62,7 @@ export default function HealthCertificatesPage() {
         prev.map((r) => r.id === restaurant.id ? { ...r, certificate_verified: true } : r)
       );
       setSuccess(`"${restaurant.name}" is now verified.`);
+      silentReload();
     } catch (err) {
       setError(err.message || "Failed to verify restaurant.");
     } finally {
@@ -73,6 +79,7 @@ export default function HealthCertificatesPage() {
         prev.map((r) => r.id === restaurant.id ? { ...r, certificate_verified: false } : r)
       );
       setSuccess(`"${restaurant.name}" verification removed.`);
+      silentReload();
     } catch (err) {
       setError(err.message || "Failed to unverify restaurant.");
     } finally {
@@ -153,7 +160,12 @@ function RestaurantCertCard({ restaurant, busy, onVerify, onUnverify }) {
       <div className="adminEntityCard__title">
         {restaurant.name}
         {restaurant.certificate_verified && (
-          <span className="verifiedBadge verifiedBadge--inline">✓ Verified</span>
+          <span className="verifiedBadge" title="Verified Restaurant">
+            <svg className="verifiedBadge__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Verified">
+              <circle cx="12" cy="12" r="12" fill="#1877F2"/>
+              <path d="M7 12.5l3.5 3.5 6.5-7" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </span>
         )}
       </div>
       <div className="adminEntityCard__meta">
