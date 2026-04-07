@@ -1,5 +1,6 @@
 const bcrypt = require("bcrypt");
 const profileRepository = require("../repositories/profileRepository");
+const loyaltyService = require("./loyaltyService");
 
 const SALT_ROUNDS = 10;
 
@@ -11,10 +12,11 @@ const resolveLoyaltyBadge = (reservationCount) => {
 };
 
 const getProfile = async (userId) => {
-  const [profile, reservationCount, reviews] = await Promise.all([
+  const [profile, reservationCount, reviews, rewardStatus] = await Promise.all([
     profileRepository.getById(userId),
     profileRepository.getReservationCountByUserId(userId),
     profileRepository.getReviewsByUserId(userId),
+    loyaltyService.getRewardStatus({ userId }),
   ]);
 
   if (!profile) return null;
@@ -23,6 +25,7 @@ const getProfile = async (userId) => {
     reservation_count: reservationCount,
     loyalty_badge: resolveLoyaltyBadge(reservationCount),
     my_reviews: reviews,
+    reward_status: rewardStatus,
   };
 };
 

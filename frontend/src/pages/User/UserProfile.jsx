@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext.jsx";
-import { getProfile, updateProfile } from "../../services/profileService.js";
+import { getProfile, redeemReward, updateProfile } from "../../services/profileService.js";
 import { getFavorites } from "../../services/favoriteService.js";
 import { getSearchHistory, clearSearchHistory } from "../../services/recentSearchService.js";
 import { FiEye, FiEyeOff } from "react-icons/fi";
@@ -34,6 +34,9 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
   const [reservationCount, setReservationCount] = useState(0);
   const [loyaltyBadge, setLoyaltyBadge] = useState("Newcomer");
+  const [points, setPoints] = useState(0);
+  const [rewardStatus, setRewardStatus] = useState({ threshold: 100, unlocked: false, redeemed: false });
+  const [rewardCelebrationOpen, setRewardCelebrationOpen] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [subscriptionPreferences, setSubscriptionPreferences] = useState([]);
   const [subscriptionSnapshot, setSubscriptionSnapshot] = useState({ isSubscribed: false, preferences: [] });
@@ -51,6 +54,8 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const [locationStatus, setLocationStatus] = useState("idle"); // idle | detecting | granted | denied
   const [profileLoading, setProfileLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const prevPointsRef = useRef(null);
+  const prevUnlockedRef = useRef(false);
 
   // Load favorites from server
   useEffect(() => {
@@ -68,79 +73,103 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       .catch(() => setSearchHistory([]));
   }, [user?.id]);
 
-  useEffect(() => {
+  const loadProfile = async (showLoader = true) => {
     if (!user) return;
-    setProfileLoading(true);
-    getProfile()
-      .then((profile) => {
-        setFullName(profile.fullName ?? profile.full_name ?? user.name ?? user.fullName ?? "");
-        setEmail(profile.email ?? user.email ?? "");
-        const phoneParts = splitPhoneNumber(profile.phone ?? "");
-        setCountryCode(phoneParts.countryCode);
-        setPhone(phoneParts.localNumber);
-        setAccountProvider(String(profile.provider ?? user.provider ?? "local").toLowerCase());
-        setProfilePictureUrl(profile.profilePictureUrl ?? profile.profile_picture_url ?? "");
-        const lat = parseFloat(profile.latitude ?? user?.latitude);
-        const lng = parseFloat(profile.longitude ?? user?.longitude);
-        const locationSnapshot = Number.isFinite(lat) && Number.isFinite(lng)
-          ? { latitude: lat, longitude: lng }
-          : { latitude: null, longitude: null };
-        if (Number.isFinite(lat) && Number.isFinite(lng)) {
-          setSavedLocation({ latitude: lat, longitude: lng });
-        }
-        setReservationCount(Number(profile.reservationCount ?? 0));
-        setLoyaltyBadge(profile.loyaltyBadge ?? "Newcomer");
-        const prefArray = Array.isArray(profile.subscriptionPreferences) ? profile.subscriptionPreferences : [];
-        setIsSubscribed(Boolean(profile.isSubscribed));
-        setSubscriptionPreferences(prefArray);
-        setSubscriptionSnapshot({ isSubscribed: Boolean(profile.isSubscribed), preferences: prefArray });
-        setProfileSnapshot({
-          fullName: profile.fullName ?? profile.full_name ?? user.name ?? user.fullName ?? "",
-          email: profile.email ?? user.email ?? "",
-          phone: phoneParts.localNumber,
-          countryCode: phoneParts.countryCode,
-          profilePictureUrl: profile.profilePictureUrl ?? profile.profile_picture_url ?? "",
-          savedLocation: locationSnapshot,
-          isSubscribed: Boolean(profile.isSubscribed),
-          subscriptionPreferences: prefArray,
-        });
-        setMyReviews(
-          Array.isArray(profile.myReviews)
-            ? profile.myReviews.map((review) => ({
-                id: review.id,
-                restaurantId: review.restaurantId ?? review.restaurant_id,
-                restaurantName: review.restaurantName ?? review.restaurant_name ?? "Restaurant",
-                stars: Number(review.stars ?? review.rating ?? 0),
-                text: review.text ?? review.comment ?? "",
-                createdAt: review.createdAt ?? review.created_at,
-              }))
-            : []
-        );
-      })
-      .catch(() => {
-        setFullName(user.name ?? user.fullName ?? "");
-        setEmail(user.email ?? "");
-        setAccountProvider(String(user.provider ?? "local").toLowerCase());
-        setMyReviews([]);
-        setProfilePictureUrl("");
-        setIsSubscribed(false);
-        setSubscriptionPreferences([]);
-        setSubscriptionSnapshot({ isSubscribed: false, preferences: [] });
-        setProfileSnapshot({
-          fullName: user.name ?? user.fullName ?? "",
-          email: user.email ?? "",
-          phone: "",
-          countryCode: "+961",
-          profilePictureUrl: "",
-          savedLocation: { latitude: null, longitude: null },
-          isSubscribed: false,
-          subscriptionPreferences: [],
-        });
-      })
-      .finally(() => setProfileLoading(false));
+    if (showLoader) setProfileLoading(true);
+    try {
+      const profile = await getProfile();
+      const resolvedName = profile.fullName ?? profile.full_name ?? user.name ?? user.fullName ?? "";
+      const resolvedEmail = profile.email ?? user.email ?? "";
+      const phoneParts = splitPhoneNumber(profile.phone ?? "");
+      const lat = parseFloat(profile.latitude ?? user?.latitude);
+      const lng = parseFloat(profile.longitude ?? user?.longitude);
+      const locationSnapshot = Number.isFinite(lat) && Number.isFinite(lng)
+        ? { latitude: lat, longitude: lng }
+        : { latitude: null, longitude: null };
+      const prefArray = Array.isArray(profile.subscriptionPreferences) ? profile.subscriptionPreferences : [];
+
+      setFullName(resolvedName);
+      setEmail(resolvedEmail);
+      setCountryCode(phoneParts.countryCode);
+      setPhone(phoneParts.localNumber);
+      setAccountProvider(String(profile.provider ?? user.provider ?? "local").toLowerCase());
+      setProfilePictureUrl(profile.profilePictureUrl ?? profile.profile_picture_url ?? "");
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        setSavedLocation({ latitude: lat, longitude: lng });
+      } else {
+        setSavedLocation({ latitude: null, longitude: null });
+      }
+      setReservationCount(Number(profile.reservationCount ?? 0));
+      setLoyaltyBadge(profile.loyaltyBadge ?? "Newcomer");
+      setPoints(Number(profile.points ?? profile.rewards?.points ?? 0));
+      setRewardStatus(profile.rewards ?? { threshold: 100, unlocked: false, redeemed: false });
+      setIsSubscribed(Boolean(profile.isSubscribed));
+      setSubscriptionPreferences(prefArray);
+      setSubscriptionSnapshot({ isSubscribed: Boolean(profile.isSubscribed), preferences: prefArray });
+      setProfileSnapshot({
+        fullName: resolvedName,
+        email: resolvedEmail,
+        phone: phoneParts.localNumber,
+        countryCode: phoneParts.countryCode,
+        profilePictureUrl: profile.profilePictureUrl ?? profile.profile_picture_url ?? "",
+        savedLocation: locationSnapshot,
+        isSubscribed: Boolean(profile.isSubscribed),
+        subscriptionPreferences: prefArray,
+      });
+      setMyReviews(
+        Array.isArray(profile.myReviews)
+          ? profile.myReviews.map((review) => ({
+              id: review.id,
+              restaurantId: review.restaurantId ?? review.restaurant_id,
+              restaurantName: review.restaurantName ?? review.restaurant_name ?? "Restaurant",
+              stars: Number(review.stars ?? review.rating ?? 0),
+              text: review.text ?? review.comment ?? "",
+              createdAt: review.createdAt ?? review.created_at,
+            }))
+          : []
+      );
+    } catch {
+      setFullName(user.name ?? user.fullName ?? "");
+      setEmail(user.email ?? "");
+      setAccountProvider(String(user.provider ?? "local").toLowerCase());
+      setMyReviews([]);
+      setProfilePictureUrl("");
+      setIsSubscribed(false);
+      setSubscriptionPreferences([]);
+      setSubscriptionSnapshot({ isSubscribed: false, preferences: [] });
+      setRewardStatus({ threshold: 100, unlocked: false, redeemed: false });
+      setPoints(0);
+      setProfileSnapshot({
+        fullName: user.name ?? user.fullName ?? "",
+        email: user.email ?? "",
+        phone: "",
+        countryCode: "+961",
+        profilePictureUrl: "",
+        savedLocation: { latitude: null, longitude: null },
+        isSubscribed: false,
+        subscriptionPreferences: [],
+      });
+    } finally {
+      if (showLoader) setProfileLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProfile(true);
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!user?.id || isEditing) return;
+    const interval = window.setInterval(() => loadProfile(false), 30000);
+    return () => window.clearInterval(interval);
+  }, [user?.id, isEditing]);
+
   const isGoogleAccount = accountProvider === "google";
+  const rewardThreshold = rewardStatus?.threshold ?? 100;
+  const rewardProgress = rewardThreshold > 0 ? Math.min(points, rewardThreshold) / rewardThreshold * 100 : 0;
+  const rewardUnlocked = Boolean(rewardStatus?.unlocked);
+  const rewardRedeemed = Boolean(rewardStatus?.redeemed);
+  const rewardStatusLabel = rewardRedeemed ? "Used" : rewardUnlocked ? "Unlocked" : "Locked";
 
   const avatarSrc = useMemo(() => {
     return profilePictureDataUrl || profilePictureUrl || DEFAULT_AVATAR;
@@ -150,6 +179,25 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
     if (!onAvatarPreviewChange) return;
     onAvatarPreviewChange(avatarSrc);
   }, [avatarSrc, onAvatarPreviewChange]);
+
+  useEffect(() => {
+    if (prevPointsRef.current == null) {
+      prevPointsRef.current = points;
+      return;
+    }
+    if (points > prevPointsRef.current) {
+      toast.success(`+${points - prevPointsRef.current} points earned 🎉`);
+    }
+    prevPointsRef.current = points;
+  }, [points]);
+
+  useEffect(() => {
+    const unlocked = Boolean(rewardStatus?.unlocked) && !rewardStatus?.redeemed;
+    if (!prevUnlockedRef.current && unlocked) {
+      setRewardCelebrationOpen(true);
+    }
+    prevUnlockedRef.current = unlocked;
+  }, [rewardStatus]);
 
   function handleDetectLocation() {
     if (!navigator.geolocation) {
@@ -267,6 +315,19 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       setIsSubscribed(next.length > 0);
       return next;
     });
+  }
+
+  async function handleRedeemReward() {
+    if (!rewardStatus?.unlocked || rewardStatus?.redeemed) return;
+    try {
+      const result = await redeemReward();
+      if (result?.points != null) setPoints(result.points);
+      if (result?.rewards) setRewardStatus(result.rewards);
+      toast.success("Reward redeemed! Enjoy 10% off your next booking.");
+      setRewardCelebrationOpen(false);
+    } catch (err) {
+      toast.error(err.message || "Failed to redeem reward.");
+    }
   }
 
   function handleCancelEdit() {
@@ -512,6 +573,45 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
 
           <div className="formCard__divider" />
 
+          <section className="rewardsSection">
+            <div className="rewardsHeader">
+              <div>
+                <div className="rewardsTitle">Rewards</div>
+                <p className="rewardsSubtitle">Earn points every time you reserve a table or join an event.</p>
+              </div>
+              <div className="rewardsPoints">
+                <div className="rewardsPoints__value">{points}</div>
+                <div className="rewardsPoints__label">Points</div>
+              </div>
+            </div>
+
+            <div className="rewardsProgress">
+              <div className="rewardsProgress__text">{Math.min(points, rewardThreshold)} / {rewardThreshold} points</div>
+              <div className="rewardsProgress__bar" aria-hidden="true">
+                <div className="rewardsProgress__fill" style={{ width: `${rewardProgress}%` }} />
+              </div>
+            </div>
+
+            {points === 0 && (
+              <p className="rewardsEmpty">Start booking to earn rewards!</p>
+            )}
+
+            <div className="rewardsCards">
+              <article className={`rewardCard${rewardUnlocked ? " is-unlocked" : " is-locked"}${rewardRedeemed ? " is-used" : ""}`}>
+                <div className="rewardCard__title">10% Off</div>
+                <div className="rewardCard__meta">{rewardStatusLabel}</div>
+                <button
+                  type="button"
+                  className="btn btn--gold btn--sm rewardCard__cta"
+                  onClick={handleRedeemReward}
+                  disabled={!rewardUnlocked || rewardRedeemed}
+                >
+                  {rewardRedeemed ? "Used" : "Redeem"}
+                </button>
+              </article>
+            </div>
+          </section>
+
           <section className="updatesSubscription">
             <div className="updatesSubscription__header">
               <div>
@@ -661,6 +761,24 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
           </div>
         </div>
       </div>
+
+      {rewardCelebrationOpen && (
+        <div className="rewardModalOverlay" role="dialog" aria-modal="true">
+          <div className="rewardModalCard">
+            <div className="rewardModalBadge">Congratulations</div>
+            <div className="rewardModalTitle">You unlocked 10% off!</div>
+            <p className="rewardModalText">Redeem your reward on your next restaurant booking.</p>
+            <div className="rewardModalActions">
+              <button type="button" className="btn btn--gold btn--xl" onClick={handleRedeemReward}>
+                Redeem Now
+              </button>
+              <button type="button" className="btn btn--ghost btn--xl" onClick={() => setRewardCelebrationOpen(false)}>
+                Later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
