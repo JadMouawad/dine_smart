@@ -175,7 +175,14 @@ const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, onSe
         <div className="restaurantCard__header">
           <div className="restaurantCard__name">
             {r.name}
-            {r.certificate_verified && <span className="verifiedBadge">✓ Verified</span>}
+            {r.certificate_verified && (
+              <span className="verifiedBadge" title="Verified Restaurant">
+                <svg className="verifiedBadge__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Verified">
+                  <circle cx="12" cy="12" r="12" fill="#1877F2"/>
+                  <path d="M7 12.5l3.5 3.5 6.5-7" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </span>
+            )}
           </div>
           <button
             className={`favoriteHeartBtn ${isFavorited ? "is-active" : ""}`}

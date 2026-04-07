@@ -3825,29 +3825,20 @@ input[type="date"] {
 .verifiedBadge {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  background: rgba(16, 185, 129, 0.12);
-  color: #059669;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-radius: 999px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  margin-left: 8px;
+  margin-left: 5px;
   vertical-align: middle;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-[data-theme="dark"] .verifiedBadge {
-  background: rgba(16, 185, 129, 0.18);
-  color: #34d399;
-  border-color: rgba(16, 185, 129, 0.35);
+.verifiedBadge__icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+  filter: drop-shadow(0 1px 3px rgba(24, 119, 242, 0.45));
 }
 
-.verifiedBadge--inline {
-  font-size: 0.7rem;
-  padding: 3px 10px;
+[data-theme="light"] .verifiedBadge__icon {
+  filter: drop-shadow(0 1px 3px rgba(24, 119, 242, 0.30));
 }
 
 .adminPage__subtitle {
