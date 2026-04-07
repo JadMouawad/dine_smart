@@ -544,6 +544,29 @@ const getReviewDetailsForModerationEmail = async (reviewId) => {
   return result.rows[0] || null;
 };
 
+const getReviewDetailsForModerationEmailByFlagId = async (flagId) => {
+  const result = await pool.query(
+    `
+      SELECT
+        fr.id AS flag_id,
+        rv.id AS review_id,
+        rv.comment,
+        u.email AS user_email,
+        u.full_name AS user_name,
+        r.name AS restaurant_name
+      FROM flagged_reviews fr
+      JOIN reviews rv ON rv.id = fr.review_id
+      JOIN users u ON u.id = rv.user_id
+      JOIN restaurants r ON r.id = rv.restaurant_id
+      WHERE fr.id = $1
+      LIMIT 1
+    `,
+    [flagId]
+  );
+
+  return result.rows[0] || null;
+};
+
 const getBulkReviewDetailsForModerationEmail = async (reviewIds) => {
   if (!Array.isArray(reviewIds) || reviewIds.length === 0) return [];
   
@@ -564,6 +587,110 @@ const getBulkReviewDetailsForModerationEmail = async (reviewIds) => {
   );
 
   return result.rows;
+};
+
+const getBulkReviewDetailsForModerationEmailByFlagIds = async (flagIds) => {
+  if (!Array.isArray(flagIds) || flagIds.length === 0) return [];
+
+  const normalizedFlagIds = Array.from(
+    new Set(
+      flagIds
+        .map((id) => parseInt(id, 10))
+        .filter((id) => Number.isInteger(id) && id > 0)
+    )
+  );
+  if (!normalizedFlagIds.length) return [];
+
+  const result = await pool.query(
+    `
+      SELECT
+        fr.id AS flag_id,
+        rv.id AS review_id,
+        rv.comment,
+        u.email AS user_email,
+        u.full_name AS user_name,
+        r.name AS restaurant_name
+      FROM flagged_reviews fr
+      JOIN reviews rv ON rv.id = fr.review_id
+      JOIN users u ON u.id = rv.user_id
+      JOIN restaurants r ON r.id = rv.restaurant_id
+      WHERE fr.id = ANY($1::int[])
+    `,
+    [normalizedFlagIds]
+  );
+
+  return result.rows;
+};
+
+const getRestaurantIdByReviewId = async (reviewId) => {
+  const result = await pool.query(
+    `SELECT restaurant_id FROM reviews WHERE id = $1 LIMIT 1`,
+    [reviewId]
+  );
+  return result.rows[0]?.restaurant_id || null;
+};
+
+const getRestaurantIdsByReviewIds = async (reviewIds) => {
+  if (!Array.isArray(reviewIds) || reviewIds.length === 0) return new Map();
+
+  const normalizedReviewIds = Array.from(
+    new Set(
+      reviewIds
+        .map((id) => parseInt(id, 10))
+        .filter((id) => Number.isInteger(id) && id > 0)
+    )
+  );
+  if (!normalizedReviewIds.length) return new Map();
+
+  const result = await pool.query(
+    `
+      SELECT id AS review_id, restaurant_id
+      FROM reviews
+      WHERE id = ANY($1::int[])
+    `,
+    [normalizedReviewIds]
+  );
+
+  return new Map(
+    result.rows.map((row) => [parseInt(row.review_id, 10), parseInt(row.restaurant_id, 10)])
+  );
+};
+
+const recalculateRestaurantRating = async (restaurantId) => {
+  const result = await pool.query(
+    `
+      WITH computed AS (
+        SELECT COALESCE(ROUND(AVG(rv.rating)::numeric, 2), 0) AS avg_rating
+        FROM reviews rv
+        WHERE rv.restaurant_id = $1
+          AND NOT EXISTS (
+            SELECT 1
+            FROM flagged_reviews fr
+            WHERE fr.review_id = rv.id
+              AND (
+                (
+                  fr.status = 'pending'
+                  AND COALESCE(fr.suggested_action, 'REQUIRES_REVIEW') = 'REQUIRES_REVIEW'
+                )
+                OR (
+                  fr.status = 'resolved'
+                  AND fr.moderator_action = 'REQUIRE_CHANGES'
+                  AND COALESCE(fr.resolved_at, fr.updated_at, fr.created_at) >= COALESCE(rv.updated_at, rv.created_at)
+                )
+              )
+          )
+      )
+      UPDATE restaurants r
+      SET rating = computed.avg_rating,
+          updated_at = NOW()
+      FROM computed
+      WHERE r.id = $1
+      RETURNING r.id, r.rating
+    `,
+    [restaurantId]
+  );
+
+  return result.rows[0] || null;
 };
 
 const getExportData = async () => {
@@ -730,7 +857,12 @@ module.exports = {
   getSubscribedUsersByPreference,
   getExportData,
   getReviewDetailsForModerationEmail,
+  getReviewDetailsForModerationEmailByFlagId,
   getBulkReviewDetailsForModerationEmail,
+  getBulkReviewDetailsForModerationEmailByFlagIds,
+  getRestaurantIdByReviewId,
+  getRestaurantIdsByReviewIds,
+  recalculateRestaurantRating,
   getRestaurantsWithHealthCertificates,
   verifyRestaurant,
   unverifyRestaurant,

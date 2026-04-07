@@ -257,6 +257,12 @@ const moderateFlaggedReview = async ({ flagId, adminId, action, adminNotes, reso
     };
   }
 
+  const shouldNotifyUser = ["REQUIRE_CHANGES", "APPROVE_PUBLISH", "DELETE"].includes(normalizedAction);
+  let reviewDetailsForEmail = null;
+  if (shouldNotifyUser) {
+    reviewDetailsForEmail = await adminRepository.getReviewDetailsForModerationEmailByFlagId(parsedFlagId);
+  }
+
   const applied = await adminRepository.applyModerationActionByFlagId({
     flagId: parsedFlagId,
     action: normalizedAction,
@@ -273,21 +279,29 @@ const moderateFlaggedReview = async ({ flagId, adminId, action, adminNotes, reso
     details: { review_id: applied.review_id, moderator_action: normalizedAction },
   });
 
+  try {
+    let affectedRestaurantId = parsePositiveInt(applied.restaurant_id, null);
+    if (!affectedRestaurantId && applied.review_id) {
+      affectedRestaurantId = await adminRepository.getRestaurantIdByReviewId(applied.review_id);
+    }
+    if (affectedRestaurantId) {
+      await adminRepository.recalculateRestaurantRating(affectedRestaurantId);
+    }
+  } catch (ratingError) {
+    console.warn(`Failed to refresh restaurant rating after moderation action ${normalizedAction}:`, ratingError.message);
+  }
+
   // Send email notification for moderation actions that affect the user
-  if (["REQUIRE_CHANGES", "APPROVE_PUBLISH", "DELETE"].includes(normalizedAction)) {
+  if (shouldNotifyUser && reviewDetailsForEmail) {
     try {
-      // Get review and user details for email
-      const reviewDetails = await adminRepository.getReviewDetailsForModerationEmail(applied.review_id);
-      if (reviewDetails) {
-        await sendReviewModerationEmail({
-          to: reviewDetails.user_email,
-          userName: reviewDetails.user_name,
-          restaurantName: reviewDetails.restaurant_name,
-          action: normalizedAction,
-          reviewComment: reviewDetails.comment,
-          adminNotes: adminNotes,
-        });
-      }
+      await sendReviewModerationEmail({
+        to: reviewDetailsForEmail.user_email,
+        userName: reviewDetailsForEmail.user_name,
+        restaurantName: reviewDetailsForEmail.restaurant_name,
+        action: normalizedAction,
+        reviewComment: reviewDetailsForEmail.comment,
+        adminNotes,
+      });
     } catch (emailError) {
       console.warn(`Failed to send moderation email for review ${applied.review_id}:`, emailError.message);
       // Don't fail the moderation action if email fails
@@ -310,12 +324,48 @@ const bulkModerateFlaggedReviews = async ({ flagIds, adminId, action, adminNotes
     return { success: false, status: 400, error: "flag_ids is required and must be a non-empty array" };
   }
 
+  const shouldNotifyUsers = ["REQUIRE_CHANGES", "APPROVE_PUBLISH", "DELETE"].includes(normalizedAction);
+  let reviewDetailsByFlagId = new Map();
+  if (shouldNotifyUsers) {
+    const detailsRows = await adminRepository.getBulkReviewDetailsForModerationEmailByFlagIds(flagIds);
+    reviewDetailsByFlagId = new Map(
+      detailsRows
+        .map((row) => [parseInt(row.flag_id, 10), row])
+        .filter(([mappedFlagId]) => Number.isInteger(mappedFlagId))
+    );
+  }
+
   const results = await adminRepository.bulkApplyModerationAction({
     flagIds,
     action: normalizedAction,
     adminNotes,
     resolutionLabel: resolutionLabel || null,
   });
+
+  try {
+    const reviewIdsNeedingLookup = results
+      .filter((item) => !parsePositiveInt(item.restaurant_id, null) && parsePositiveInt(item.review_id, null))
+      .map((item) => parseInt(item.review_id, 10));
+    const restaurantByReviewId = await adminRepository.getRestaurantIdsByReviewIds(reviewIdsNeedingLookup);
+    const affectedRestaurantIds = new Set();
+
+    results.forEach((item) => {
+      let restaurantId = parsePositiveInt(item.restaurant_id, null);
+      if (!restaurantId) {
+        const reviewId = parsePositiveInt(item.review_id, null);
+        if (reviewId) restaurantId = restaurantByReviewId.get(reviewId) || null;
+      }
+      if (restaurantId) affectedRestaurantIds.add(restaurantId);
+    });
+
+    await Promise.all(
+      Array.from(affectedRestaurantIds).map((restaurantId) =>
+        adminRepository.recalculateRestaurantRating(restaurantId)
+      )
+    );
+  } catch (ratingError) {
+    console.warn(`Failed to refresh restaurant ratings after bulk moderation action ${normalizedAction}:`, ratingError.message);
+  }
 
   await adminRepository.insertAuditLog({
     adminId,
@@ -325,27 +375,25 @@ const bulkModerateFlaggedReviews = async ({ flagIds, adminId, action, adminNotes
   });
 
   // Send email notifications for bulk moderation actions that affect users
-  if (["REQUIRE_CHANGES", "APPROVE_PUBLISH", "DELETE"].includes(normalizedAction)) {
+  if (shouldNotifyUsers) {
     try {
-      // Get review details for all affected reviews
-      const reviewIds = results.map(r => r.review_id).filter(id => id);
-      if (reviewIds.length > 0) {
-        const reviewDetailsList = await adminRepository.getBulkReviewDetailsForModerationEmail(reviewIds);
-        
-        // Send emails for each review
-        for (const reviewDetails of reviewDetailsList) {
-          try {
-            await sendReviewModerationEmail({
-              to: reviewDetails.user_email,
-              userName: reviewDetails.user_name,
-              restaurantName: reviewDetails.restaurant_name,
-              action: normalizedAction,
-              reviewComment: reviewDetails.comment,
-              adminNotes: adminNotes,
-            });
-          } catch (emailError) {
-            console.warn(`Failed to send bulk moderation email for review ${reviewDetails.review_id}:`, emailError.message);
-          }
+      for (const moderationResult of results) {
+        const resultFlagId = parseInt(moderationResult.id || moderationResult.flag_id, 10);
+        if (!Number.isInteger(resultFlagId)) continue;
+        const reviewDetails = reviewDetailsByFlagId.get(resultFlagId);
+        if (!reviewDetails) continue;
+
+        try {
+          await sendReviewModerationEmail({
+            to: reviewDetails.user_email,
+            userName: reviewDetails.user_name,
+            restaurantName: reviewDetails.restaurant_name,
+            action: normalizedAction,
+            reviewComment: reviewDetails.comment,
+            adminNotes,
+          });
+        } catch (emailError) {
+          console.warn(`Failed to send bulk moderation email for review ${reviewDetails.review_id}:`, emailError.message);
         }
       }
     } catch (emailError) {

@@ -391,8 +391,17 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
         AND NOT EXISTS (
           SELECT 1 FROM flagged_reviews fr
           WHERE fr.review_id = rv.id
-            AND fr.status IN ('pending', 'resolved')
-            AND (fr.moderator_action IS NULL OR fr.moderator_action != 'APPROVE_PUBLISH')
+            AND (
+              (
+                fr.status = 'pending'
+                AND COALESCE(fr.suggested_action, 'REQUIRES_REVIEW') = 'REQUIRES_REVIEW'
+              )
+              OR (
+                fr.status = 'resolved'
+                AND fr.moderator_action = 'REQUIRE_CHANGES'
+                AND COALESCE(fr.resolved_at, fr.updated_at, fr.created_at) >= COALESCE(rv.updated_at, rv.created_at)
+              )
+            )
         )
     ) rv ON true
   `);
@@ -731,8 +740,17 @@ const compactRestaurantName = (name = "") => cleanRestaurantName(name)
             AND NOT EXISTS (
               SELECT 1 FROM flagged_reviews fr
               WHERE fr.review_id = rv.id
-                AND fr.status IN ('pending', 'resolved')
-                AND (fr.moderator_action IS NULL OR fr.moderator_action != 'APPROVE_PUBLISH')
+                AND (
+                  (
+                    fr.status = 'pending'
+                    AND COALESCE(fr.suggested_action, 'REQUIRES_REVIEW') = 'REQUIRES_REVIEW'
+                  )
+                  OR (
+                    fr.status = 'resolved'
+                    AND fr.moderator_action = 'REQUIRE_CHANGES'
+                    AND COALESCE(fr.resolved_at, fr.updated_at, fr.created_at) >= COALESCE(rv.updated_at, rv.created_at)
+                  )
+                )
             )
         ) AS review_count,
         r.updated_at
@@ -773,8 +791,17 @@ const findRestaurantByName = async (name) => {
               AND NOT EXISTS (
                 SELECT 1 FROM flagged_reviews fr
                 WHERE fr.review_id = rv.id
-                  AND fr.status IN ('pending', 'resolved')
-                  AND (fr.moderator_action IS NULL OR fr.moderator_action != 'APPROVE_PUBLISH')
+                  AND (
+                    (
+                      fr.status = 'pending'
+                      AND COALESCE(fr.suggested_action, 'REQUIRES_REVIEW') = 'REQUIRES_REVIEW'
+                    )
+                    OR (
+                      fr.status = 'resolved'
+                      AND fr.moderator_action = 'REQUIRE_CHANGES'
+                      AND COALESCE(fr.resolved_at, fr.updated_at, fr.created_at) >= COALESCE(rv.updated_at, rv.created_at)
+                    )
+                  )
               )
           ) AS review_count,
           r.is_verified,

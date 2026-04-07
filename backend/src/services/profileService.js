@@ -11,10 +11,11 @@ const resolveLoyaltyBadge = (reservationCount) => {
 };
 
 const getProfile = async (userId) => {
-  const [profile, reservationCount, reviews] = await Promise.all([
+  const [profile, reservationCount, reviews, reviewsRequiringChanges] = await Promise.all([
     profileRepository.getById(userId),
     profileRepository.getReservationCountByUserId(userId),
     profileRepository.getReviewsByUserId(userId),
+    profileRepository.getReviewsRequiringChangesByUserId(userId),
   ]);
 
   if (!profile) return null;
@@ -23,6 +24,7 @@ const getProfile = async (userId) => {
     reservation_count: reservationCount,
     loyalty_badge: resolveLoyaltyBadge(reservationCount),
     my_reviews: reviews,
+    reviews_requiring_changes: reviewsRequiringChanges,
   };
 };
 

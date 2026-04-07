@@ -143,7 +143,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     getMyRestaurant()
       .then((restaurant) => {
         setExistingRestaurant(restaurant);
-        setIsEditing(forceEdit);
+        setIsEditing(forceEdit || String(restaurant?.approval_status || "").toLowerCase() === "pending");
         setRestaurantName(restaurant.name || "");
         setCuisineType(restaurant.cuisine || "");
 
@@ -212,6 +212,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
   const activeGalleryPhoto = galleryPreviewUrls[activeGalleryIndex] || "";
 
   const profileName = restaurantName.trim() || existingRestaurant?.name || "Your Restaurant";
+  const isPendingApproval = String(existingRestaurant?.approval_status || "").toLowerCase() === "pending";
 
   useEffect(() => {
     if (!onLogoPreviewChange) return;
@@ -439,13 +440,13 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
         const updated = await updateMyRestaurant(payload);
         setExistingRestaurant((prev) => ({ ...(prev || {}), ...updated }));
         setSuccess("Restaurant updated successfully!");
-        setIsEditing(false);
+        setIsEditing(String(updated?.approval_status || existingRestaurant?.approval_status || "").toLowerCase() === "pending");
         if (onSaved) onSaved();
       } else {
         const created = await createRestaurant(payload);
         setExistingRestaurant(created);
         setSuccess("Restaurant created successfully!");
-        setIsEditing(false);
+        setIsEditing(String(created?.approval_status || "").toLowerCase() === "pending");
         if (onSaved) onSaved();
       }
     } catch (submitError) {
@@ -477,7 +478,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
         <div className="ownerProfile__feedback ownerProfile__feedback--error">{error}</div>
       )}
 
-      {existingRestaurant && !isEditing ? (
+      {existingRestaurant && !isEditing && !isPendingApproval ? (
         <section className="formCard ownerProfileViewCard">
           <div className="ownerProfileViewCard__topActions">
             <button className="btn btn--gold" type="button" onClick={startEditing}>

@@ -17,6 +17,13 @@ export async function deleteReview(restaurantId, reviewId) {
   });
 }
 
+export async function updateReview(restaurantId, reviewId, { rating, comment }) {
+  return apiRequest(`/restaurants/${restaurantId}/reviews/${reviewId}`, {
+    method: "PUT",
+    body: JSON.stringify({ rating, comment }),
+  });
+}
+
 export async function flagReview(reviewId, reason) {
   return apiRequest(`/reviews/${reviewId}/flag`, {
     method: "POST",

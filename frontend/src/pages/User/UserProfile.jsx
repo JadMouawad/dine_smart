@@ -4,6 +4,7 @@ import { useAuth } from "../../auth/AuthContext.jsx";
 import { getProfile, updateProfile } from "../../services/profileService.js";
 import { getFavorites } from "../../services/favoriteService.js";
 import { getSearchHistory, clearSearchHistory } from "../../services/recentSearchService.js";
+import { deleteReview, updateReview } from "../../services/reviewService.js";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useTheme } from "../../auth/ThemeContext.jsx";
 import { COUNTRY_OPTIONS, splitPhoneNumber } from "../../constants/countries.js";
@@ -18,8 +19,13 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
 
   const [favorites, setFavorites] = useState([]);
   const [myReviews, setMyReviews] = useState([]);
+  const [reviewsRequiringChanges, setReviewsRequiringChanges] = useState([]);
   const [searchHistory, setSearchHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [editingRequiredReviewId, setEditingRequiredReviewId] = useState(null);
+  const [requiredEditRating, setRequiredEditRating] = useState(5);
+  const [requiredEditComment, setRequiredEditComment] = useState("");
+  const [requiredActionBusyId, setRequiredActionBusyId] = useState(null);
 
   const [profilePictureUrl, setProfilePictureUrl] = useState("");
   const [profilePictureDataUrl, setProfilePictureDataUrl] = useState("");
@@ -51,6 +57,36 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const [locationStatus, setLocationStatus] = useState("idle"); // idle | detecting | granted | denied
   const [profileLoading, setProfileLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+
+  function mapMyReviewsForUi(reviews) {
+    if (!Array.isArray(reviews)) return [];
+    return reviews.map((review) => ({
+      id: review.id,
+      restaurantId: review.restaurantId ?? review.restaurant_id,
+      restaurantName: review.restaurantName ?? review.restaurant_name ?? "Restaurant",
+      stars: Number(review.stars ?? review.rating ?? 0),
+      text: review.text ?? review.comment ?? "",
+      createdAt: review.createdAt ?? review.created_at,
+    }));
+  }
+
+  function mapRequiredChangeReviewsForUi(reviews) {
+    if (!Array.isArray(reviews)) return [];
+    return reviews.map((review) => ({
+      id: review.id,
+      flagId: review.flagId ?? review.flag_id,
+      restaurantId: review.restaurantId ?? review.restaurant_id,
+      restaurantName: review.restaurantName ?? review.restaurant_name ?? "Restaurant",
+      stars: Number(review.stars ?? review.rating ?? 0),
+      text: review.text ?? review.comment ?? "",
+      createdAt: review.createdAt ?? review.created_at,
+      updatedAt: review.updatedAt ?? review.updated_at,
+      flaggedAt: review.flaggedAt ?? review.flagged_at,
+      resolvedAt: review.resolvedAt ?? review.resolved_at,
+      adminNotes: review.adminNotes ?? review.admin_notes ?? "",
+      reason: review.reason ?? review.flag_reason ?? "",
+    }));
+  }
 
   // Load favorites from server
   useEffect(() => {
@@ -104,24 +140,17 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
           isSubscribed: Boolean(profile.isSubscribed),
           subscriptionPreferences: prefArray,
         });
-        setMyReviews(
-          Array.isArray(profile.myReviews)
-            ? profile.myReviews.map((review) => ({
-                id: review.id,
-                restaurantId: review.restaurantId ?? review.restaurant_id,
-                restaurantName: review.restaurantName ?? review.restaurant_name ?? "Restaurant",
-                stars: Number(review.stars ?? review.rating ?? 0),
-                text: review.text ?? review.comment ?? "",
-                createdAt: review.createdAt ?? review.created_at,
-              }))
-            : []
-        );
+        setMyReviews(mapMyReviewsForUi(profile.myReviews));
+        setReviewsRequiringChanges(mapRequiredChangeReviewsForUi(profile.reviewsRequiringChanges));
+        setEditingRequiredReviewId(null);
+        setRequiredActionBusyId(null);
       })
       .catch(() => {
         setFullName(user.name ?? user.fullName ?? "");
         setEmail(user.email ?? "");
         setAccountProvider(String(user.provider ?? "local").toLowerCase());
         setMyReviews([]);
+        setReviewsRequiringChanges([]);
         setProfilePictureUrl("");
         setIsSubscribed(false);
         setSubscriptionPreferences([]);
@@ -136,6 +165,8 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
           isSubscribed: false,
           subscriptionPreferences: [],
         });
+        setEditingRequiredReviewId(null);
+        setRequiredActionBusyId(null);
       })
       .finally(() => setProfileLoading(false));
   }, [user?.id]);
@@ -289,6 +320,78 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
     setShowConfirmNewPassword(false);
     setIsEditing(false);
     setLocationStatus("idle");
+  }
+
+  async function refreshReviewSections() {
+    try {
+      const profile = await getProfile();
+      setMyReviews(mapMyReviewsForUi(profile?.myReviews));
+      setReviewsRequiringChanges(mapRequiredChangeReviewsForUi(profile?.reviewsRequiringChanges));
+    } catch {
+      // Keep previous state if refresh fails.
+    }
+  }
+
+  function startEditingRequiredReview(review) {
+    setEditingRequiredReviewId(review.id);
+    setRequiredEditRating(Math.max(1, Math.min(5, Number(review.stars) || 5)));
+    setRequiredEditComment(String(review.text || ""));
+  }
+
+  function cancelEditingRequiredReview() {
+    if (requiredActionBusyId != null) return;
+    setEditingRequiredReviewId(null);
+    setRequiredEditRating(5);
+    setRequiredEditComment("");
+  }
+
+  async function handleSaveRequiredReview(review) {
+    if (!review || requiredActionBusyId != null) return;
+    if (requiredEditComment.length > 500) {
+      toast.error("Review must be at most 500 characters.");
+      return;
+    }
+
+    setRequiredActionBusyId(review.id);
+    try {
+      const response = await updateReview(review.restaurantId, review.id, {
+        rating: requiredEditRating,
+        comment: requiredEditComment.trim(),
+      });
+
+      if (response?.flagged) {
+        toast.success(response.message || "Your updated review is pending moderation.");
+      } else {
+        toast.success("Review updated and resubmitted.");
+      }
+
+      setEditingRequiredReviewId(null);
+      await refreshReviewSections();
+    } catch (err) {
+      toast.error(err.message || "Failed to update review.");
+    } finally {
+      setRequiredActionBusyId(null);
+    }
+  }
+
+  async function handleDismissRequiredReview(review) {
+    if (!review || requiredActionBusyId != null) return;
+    const confirmed = window.confirm("Dismiss this review and remove it permanently?");
+    if (!confirmed) return;
+
+    setRequiredActionBusyId(review.id);
+    try {
+      await deleteReview(review.restaurantId, review.id);
+      toast.success("Review dismissed and removed.");
+      if (editingRequiredReviewId === review.id) {
+        setEditingRequiredReviewId(null);
+      }
+      await refreshReviewSections();
+    } catch (err) {
+      toast.error(err.message || "Failed to dismiss review.");
+    } finally {
+      setRequiredActionBusyId(null);
+    }
   }
 
   if (profileLoading) {
@@ -595,6 +698,106 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
               </div>
             ) : (
               <div className="profileEmpty">No favorites yet.</div>
+            )}
+          </div>
+
+          <div className="formCard formCard--userProfile profileExtraCard">
+            <div className="formCard__title">Reviews Requiring Changes</div>
+            {reviewsRequiringChanges.length ? (
+              <div className="profileExtraCard__content">
+                {reviewsRequiringChanges.map((review) => {
+                  const isEditingThis = editingRequiredReviewId === review.id;
+                  const isBusy = requiredActionBusyId === review.id;
+                  return (
+                    <div key={review.id} className="profileReviewItem">
+                      <div className="profileReviewItem__restaurant">{review.restaurantName}</div>
+                      <div className="profileReviewItem__stars">
+                        {FILLED_STAR.repeat(Math.max(0, Number(review.stars) || 0))}
+                        {EMPTY_STAR.repeat(Math.max(0, 5 - (Number(review.stars) || 0)))}
+                      </div>
+                      {review.reason && (
+                        <div className="profileReviewItem__text">
+                          <strong>Flag reason:</strong> {review.reason}
+                        </div>
+                      )}
+                      {review.adminNotes && (
+                        <div className="profileReviewItem__text">
+                          <strong>Admin notes:</strong> {review.adminNotes}
+                        </div>
+                      )}
+                      {!isEditingThis ? (
+                        <>
+                          <div className="profileReviewItem__text">{review.text}</div>
+                          <div className="adminEntityCard__actions" style={{ marginTop: 8 }}>
+                            <button
+                              className="btn btn--gold"
+                              type="button"
+                              onClick={() => startEditingRequiredReview(review)}
+                              disabled={requiredActionBusyId != null}
+                            >
+                              Edit and Resubmit
+                            </button>
+                            <button
+                              className="btn btn--ghost"
+                              type="button"
+                              onClick={() => handleDismissRequiredReview(review)}
+                              disabled={requiredActionBusyId != null}
+                            >
+                              Dismiss Review
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="form" style={{ marginTop: 8 }}>
+                          <label className="field">
+                            <span>Rating</span>
+                            <select
+                              value={requiredEditRating}
+                              onChange={(event) => setRequiredEditRating(Number(event.target.value))}
+                              disabled={isBusy}
+                            >
+                              {[5, 4, 3, 2, 1].map((stars) => (
+                                <option key={stars} value={stars}>{stars}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="field">
+                            <span>Review</span>
+                            <textarea
+                              className="textarea"
+                              rows={4}
+                              maxLength={500}
+                              value={requiredEditComment}
+                              onChange={(event) => setRequiredEditComment(event.target.value)}
+                              disabled={isBusy}
+                            />
+                          </label>
+                          <div className="adminEntityCard__actions">
+                            <button
+                              className="btn btn--gold"
+                              type="button"
+                              onClick={() => handleSaveRequiredReview(review)}
+                              disabled={isBusy}
+                            >
+                              {isBusy ? "Saving..." : "Save Review"}
+                            </button>
+                            <button
+                              className="btn btn--ghost"
+                              type="button"
+                              onClick={cancelEditingRequiredReview}
+                              disabled={isBusy}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="profileEmpty">No reviews currently require changes.</div>
             )}
           </div>
 

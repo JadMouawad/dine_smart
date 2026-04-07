@@ -27,8 +27,17 @@ async function getReviewsByRestaurant(db, restaurantId) {
         SELECT 1
         FROM flagged_reviews fr
         WHERE fr.review_id = r.id
-          AND fr.status = 'pending'
-          AND COALESCE(fr.suggested_action, 'REQUIRES_REVIEW') = 'REQUIRES_REVIEW'
+          AND (
+            (
+              fr.status = 'pending'
+              AND COALESCE(fr.suggested_action, 'REQUIRES_REVIEW') = 'REQUIRES_REVIEW'
+            )
+            OR (
+              fr.status = 'resolved'
+              AND fr.moderator_action = 'REQUIRE_CHANGES'
+              AND COALESCE(fr.resolved_at, fr.updated_at, fr.created_at) >= COALESCE(r.updated_at, r.created_at)
+            )
+          )
       )
     ORDER BY r.created_at DESC;
   `;
@@ -81,8 +90,17 @@ async function getAverageRating(db, restaurantId) {
         SELECT 1
         FROM flagged_reviews fr
         WHERE fr.review_id = reviews.id
-          AND fr.status = 'pending'
-          AND COALESCE(fr.suggested_action, 'REQUIRES_REVIEW') = 'REQUIRES_REVIEW'
+          AND (
+            (
+              fr.status = 'pending'
+              AND COALESCE(fr.suggested_action, 'REQUIRES_REVIEW') = 'REQUIRES_REVIEW'
+            )
+            OR (
+              fr.status = 'resolved'
+              AND fr.moderator_action = 'REQUIRE_CHANGES'
+              AND COALESCE(fr.resolved_at, fr.updated_at, fr.created_at) >= COALESCE(reviews.updated_at, reviews.created_at)
+            )
+          )
       );
   `;
   return db.query(query, [restaurantId]);

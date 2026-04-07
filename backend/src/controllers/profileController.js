@@ -35,6 +35,22 @@ const getProfile = async (req, res) => {
           createdAt: review.created_at,
         }))
         : [],
+      reviewsRequiringChanges: Array.isArray(profile.reviews_requiring_changes)
+        ? profile.reviews_requiring_changes.map((review) => ({
+          id: review.id,
+          flagId: review.flag_id,
+          restaurantId: review.restaurant_id,
+          restaurantName: review.restaurant_name,
+          stars: review.rating,
+          text: review.comment || "",
+          createdAt: review.created_at,
+          updatedAt: review.updated_at,
+          flaggedAt: review.flagged_at,
+          resolvedAt: review.resolved_at,
+          adminNotes: review.admin_notes || "",
+          reason: review.flag_reason || "",
+        }))
+        : [],
       createdAt: profile.created_at,
       updatedAt: profile.updated_at
     });

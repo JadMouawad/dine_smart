@@ -152,6 +152,12 @@ export default function FlaggedReviewsPage({ onPendingCountChange }) {
   return (
     <div className="adminPage">
       <h1 className="ownerProfile__title">Flagged Reviews</h1>
+      <p className="adminPage__subtitle">
+        <strong>Dismiss Flag:</strong> close report and keep review visible.
+        {" "}<strong>Approve and Publish:</strong> mark safe and keep published.
+        {" "}<strong>Mark for Changes:</strong> hide review until the user edits or dismisses it.
+        {" "}<strong>Delete Review:</strong> permanently remove review.
+      </p>
       {message && <div className="inlineToast">{message}</div>}
       {error && <div className="fieldError">{error}</div>}
 
@@ -245,7 +251,7 @@ export default function FlaggedReviewsPage({ onPendingCountChange }) {
                   className="btn btn--ghost"
                   type="button"
                   disabled={busyId === flag.id || flag.status !== "pending"}
-                  onClick={() => handleAction(flag.id, "REQUIRE_CHANGES", "Review marked as requiring changes.")}
+                  onClick={() => handleAction(flag.id, "REQUIRE_CHANGES", "Review hidden until user submits changes.")}
                 >
                   Mark for Changes
                 </button>

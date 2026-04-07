@@ -85,10 +85,62 @@ const getReviewsByUserId = async (userId) => {
           SELECT 1
           FROM flagged_reviews fr
           WHERE fr.review_id = rv.id
-            AND fr.status = 'pending'
-            AND COALESCE(fr.suggested_action, 'REQUIRES_REVIEW') = 'REQUIRES_REVIEW'
+            AND (
+              (
+                fr.status = 'pending'
+                AND COALESCE(fr.suggested_action, 'REQUIRES_REVIEW') = 'REQUIRES_REVIEW'
+              )
+              OR (
+                fr.status = 'resolved'
+                AND fr.moderator_action = 'REQUIRE_CHANGES'
+                AND COALESCE(fr.resolved_at, fr.updated_at, fr.created_at) >= COALESCE(rv.updated_at, rv.created_at)
+              )
+            )
         )
       ORDER BY rv.created_at DESC
+    `,
+    [userId]
+  );
+
+  return result.rows;
+};
+
+const getReviewsRequiringChangesByUserId = async (userId) => {
+  const result = await pool.query(
+    `
+      SELECT
+        rv.id,
+        rv.restaurant_id,
+        rv.rating,
+        rv.comment,
+        rv.created_at,
+        rv.updated_at,
+        r.name AS restaurant_name,
+        fr.id AS flag_id,
+        fr.admin_notes,
+        fr.reason AS flag_reason,
+        fr.created_at AS flagged_at,
+        fr.resolved_at
+      FROM reviews rv
+      JOIN restaurants r ON r.id = rv.restaurant_id
+      JOIN LATERAL (
+        SELECT
+          flagged.id,
+          flagged.admin_notes,
+          flagged.reason,
+          flagged.created_at,
+          flagged.resolved_at,
+          flagged.updated_at
+        FROM flagged_reviews flagged
+        WHERE flagged.review_id = rv.id
+          AND flagged.moderator_action = 'REQUIRE_CHANGES'
+          AND flagged.status IN ('pending', 'resolved')
+          AND COALESCE(flagged.resolved_at, flagged.updated_at, flagged.created_at) >= COALESCE(rv.updated_at, rv.created_at)
+        ORDER BY COALESCE(flagged.resolved_at, flagged.updated_at, flagged.created_at) DESC, flagged.id DESC
+        LIMIT 1
+      ) fr ON true
+      WHERE rv.user_id = $1
+      ORDER BY COALESCE(fr.resolved_at, fr.created_at, rv.updated_at, rv.created_at) DESC
     `,
     [userId]
   );
@@ -101,4 +153,5 @@ module.exports = {
   updateById,
   getReservationCountByUserId,
   getReviewsByUserId,
+  getReviewsRequiringChangesByUserId,
 };
