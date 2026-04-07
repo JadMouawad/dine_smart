@@ -168,7 +168,7 @@ export default function FlaggedReviewsPage({ onPendingCountChange }) {
               disabled={busyId === "bulk" || selectedFlagIds.length === 0}
               onClick={() => handleBulk("APPROVE_PUBLISH")}
             >
-              Bulk Approve Publish
+              Bulk Approve & Publish
             </button>
             <button
               className="btn btn--gold"
@@ -176,7 +176,7 @@ export default function FlaggedReviewsPage({ onPendingCountChange }) {
               disabled={busyId === "bulk" || selectedFlagIds.length === 0}
               onClick={() => handleBulk("REQUIRE_CHANGES")}
             >
-              Bulk Require Changes
+              Bulk Mark for Changes
             </button>
           </div>
 
@@ -231,7 +231,7 @@ export default function FlaggedReviewsPage({ onPendingCountChange }) {
                   disabled={busyId === flag.id || flag.status !== "pending"}
                   onClick={() => handleDismiss(flag.id)}
                 >
-                  Dismiss
+                  Dismiss Flag
                 </button>
                 <button
                   className="btn btn--ghost"
@@ -239,15 +239,15 @@ export default function FlaggedReviewsPage({ onPendingCountChange }) {
                   disabled={busyId === flag.id || flag.status !== "pending"}
                   onClick={() => handleAction(flag.id, "APPROVE_PUBLISH", "Review approved for publish.")}
                 >
-                  Approve Publish
+                  Approve & Publish
                 </button>
                 <button
                   className="btn btn--ghost"
                   type="button"
                   disabled={busyId === flag.id || flag.status !== "pending"}
-                  onClick={() => handleAction(flag.id, "REQUIRE_CHANGES", "Review marked as require changes.")}
+                  onClick={() => handleAction(flag.id, "REQUIRE_CHANGES", "Review marked as requiring changes.")}
                 >
-                  Require Changes
+                  Mark for Changes
                 </button>
                 <button
                   className="btn btn--gold"

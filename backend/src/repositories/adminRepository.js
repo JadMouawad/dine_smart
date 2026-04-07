@@ -525,6 +525,47 @@ const unverifyRestaurant = async (restaurantId) => {
   return result.rows[0] || null;
 };
 
+const getReviewDetailsForModerationEmail = async (reviewId) => {
+  const result = await pool.query(
+    `
+      SELECT
+        rv.comment,
+        u.email AS user_email,
+        u.full_name AS user_name,
+        r.name AS restaurant_name
+      FROM reviews rv
+      JOIN users u ON u.id = rv.user_id
+      JOIN restaurants r ON r.id = rv.restaurant_id
+      WHERE rv.id = $1
+    `,
+    [reviewId]
+  );
+
+  return result.rows[0] || null;
+};
+
+const getBulkReviewDetailsForModerationEmail = async (reviewIds) => {
+  if (!Array.isArray(reviewIds) || reviewIds.length === 0) return [];
+  
+  const result = await pool.query(
+    `
+      SELECT
+        rv.id AS review_id,
+        rv.comment,
+        u.email AS user_email,
+        u.full_name AS user_name,
+        r.name AS restaurant_name
+      FROM reviews rv
+      JOIN users u ON u.id = rv.user_id
+      JOIN restaurants r ON r.id = rv.restaurant_id
+      WHERE rv.id = ANY($1)
+    `,
+    [reviewIds]
+  );
+
+  return result.rows;
+};
+
 const getExportData = async () => {
   const [overview, users, restaurants, reservations, reviews, topSearches, dailyActivity] = await Promise.all([
     // 1. Platform overview
@@ -688,6 +729,8 @@ module.exports = {
   insertAuditLog,
   getSubscribedUsersByPreference,
   getExportData,
+  getReviewDetailsForModerationEmail,
+  getBulkReviewDetailsForModerationEmail,
   getRestaurantsWithHealthCertificates,
   verifyRestaurant,
   unverifyRestaurant,

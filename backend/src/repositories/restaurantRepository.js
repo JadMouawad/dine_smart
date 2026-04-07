@@ -388,6 +388,12 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
       SELECT COUNT(*)::int AS review_count
       FROM reviews rv
       WHERE rv.restaurant_id = r.id
+        AND NOT EXISTS (
+          SELECT 1 FROM flagged_reviews fr
+          WHERE fr.review_id = rv.id
+            AND fr.status IN ('pending', 'resolved')
+            AND (fr.moderator_action IS NULL OR fr.moderator_action != 'APPROVE_PUBLISH')
+        )
     ) rv ON true
   `);
   selectExtras.push("COALESCE(rv.review_count, 0) AS review_count");
@@ -722,6 +728,12 @@ const compactRestaurantName = (name = "") => cleanRestaurantName(name)
           SELECT COUNT(*)::int
           FROM reviews rv
           WHERE rv.restaurant_id = r.id
+            AND NOT EXISTS (
+              SELECT 1 FROM flagged_reviews fr
+              WHERE fr.review_id = rv.id
+                AND fr.status IN ('pending', 'resolved')
+                AND (fr.moderator_action IS NULL OR fr.moderator_action != 'APPROVE_PUBLISH')
+            )
         ) AS review_count,
         r.updated_at
       FROM restaurants r
@@ -758,6 +770,12 @@ const findRestaurantByName = async (name) => {
             SELECT COUNT(*)::int
             FROM reviews rv
             WHERE rv.restaurant_id = r.id
+              AND NOT EXISTS (
+                SELECT 1 FROM flagged_reviews fr
+                WHERE fr.review_id = rv.id
+                  AND fr.status IN ('pending', 'resolved')
+                  AND (fr.moderator_action IS NULL OR fr.moderator_action != 'APPROVE_PUBLISH')
+              )
           ) AS review_count,
           r.is_verified,
           r.updated_at,

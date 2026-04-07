@@ -4,6 +4,7 @@ const systemSettingsRepository = require("../repositories/systemSettingsReposito
 const {
   sendRestaurantApprovalEmail,
   sendRestaurantRejectionEmail,
+  sendReviewModerationEmail,
 } = require("../utils/emailSender");
 const subscriptionService = require("./subscriptionService");
 
@@ -272,6 +273,27 @@ const moderateFlaggedReview = async ({ flagId, adminId, action, adminNotes, reso
     details: { review_id: applied.review_id, moderator_action: normalizedAction },
   });
 
+  // Send email notification for moderation actions that affect the user
+  if (["REQUIRE_CHANGES", "APPROVE_PUBLISH", "DELETE"].includes(normalizedAction)) {
+    try {
+      // Get review and user details for email
+      const reviewDetails = await adminRepository.getReviewDetailsForModerationEmail(applied.review_id);
+      if (reviewDetails) {
+        await sendReviewModerationEmail({
+          to: reviewDetails.user_email,
+          userName: reviewDetails.user_name,
+          restaurantName: reviewDetails.restaurant_name,
+          action: normalizedAction,
+          reviewComment: reviewDetails.comment,
+          adminNotes: adminNotes,
+        });
+      }
+    } catch (emailError) {
+      console.warn(`Failed to send moderation email for review ${applied.review_id}:`, emailError.message);
+      // Don't fail the moderation action if email fails
+    }
+  }
+
   return { success: true, data: applied };
 };
 
@@ -301,6 +323,36 @@ const bulkModerateFlaggedReviews = async ({ flagIds, adminId, action, adminNotes
     entityType: "flagged_review",
     details: { count: results.length, moderator_action: normalizedAction },
   });
+
+  // Send email notifications for bulk moderation actions that affect users
+  if (["REQUIRE_CHANGES", "APPROVE_PUBLISH", "DELETE"].includes(normalizedAction)) {
+    try {
+      // Get review details for all affected reviews
+      const reviewIds = results.map(r => r.review_id).filter(id => id);
+      if (reviewIds.length > 0) {
+        const reviewDetailsList = await adminRepository.getBulkReviewDetailsForModerationEmail(reviewIds);
+        
+        // Send emails for each review
+        for (const reviewDetails of reviewDetailsList) {
+          try {
+            await sendReviewModerationEmail({
+              to: reviewDetails.user_email,
+              userName: reviewDetails.user_name,
+              restaurantName: reviewDetails.restaurant_name,
+              action: normalizedAction,
+              reviewComment: reviewDetails.comment,
+              adminNotes: adminNotes,
+            });
+          } catch (emailError) {
+            console.warn(`Failed to send bulk moderation email for review ${reviewDetails.review_id}:`, emailError.message);
+          }
+        }
+      }
+    } catch (emailError) {
+      console.warn(`Failed to send bulk moderation emails:`, emailError.message);
+      // Don't fail the bulk action if emails fail
+    }
+  }
 
   return { success: true, data: { count: results.length, items: results } };
 };

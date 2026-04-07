@@ -418,6 +418,77 @@ const sendSubscriptionUpdateEmail = async ({
   await transporter.sendMail(mailOptions);
 };
 
+const sendReviewModerationEmail = async ({
+  to,
+  userName = "User",
+  restaurantName,
+  action,
+  reviewComment,
+  adminNotes,
+}) => {
+  let subject, message, actionText;
+
+  switch (action) {
+    case 'REQUIRE_CHANGES':
+      subject = "Your review needs changes - DineSmart";
+      actionText = "requires changes";
+      message = `
+        <p>Your review for <strong>${restaurantName}</strong> has been reviewed by our moderation team and requires some changes before it can be published.</p>
+        <p><strong>Your review:</strong> "${reviewComment || 'No comment'}"</p>
+        ${adminNotes ? `<p><strong>Moderator notes:</strong> ${adminNotes}</p>` : ''}
+        <p>Please log in to your DineSmart account to edit your review. You can find your reviews in your profile section.</p>
+      `;
+      break;
+    case 'APPROVE_PUBLISH':
+      subject = "Your review has been approved - DineSmart";
+      actionText = "has been approved and published";
+      message = `
+        <p>Great news! Your review for <strong>${restaurantName}</strong> has been approved and is now published.</p>
+        <p><strong>Your review:</strong> "${reviewComment || 'No comment'}"</p>
+        <p>Thank you for sharing your dining experience with the DineSmart community!</p>
+      `;
+      break;
+    case 'DELETE':
+      subject = "Your review has been removed - DineSmart";
+      actionText = "has been removed";
+      message = `
+        <p>Your review for <strong>${restaurantName}</strong> has been reviewed and removed from DineSmart.</p>
+        <p><strong>Your review:</strong> "${reviewComment || 'No comment'}"</p>
+        ${adminNotes ? `<p><strong>Reason:</strong> ${adminNotes}</p>` : ''}
+        <p>If you believe this was a mistake, please contact our support team.</p>
+      `;
+      break;
+    default:
+      return; // Don't send email for DISMISS action
+  }
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>${subject}</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2>Review Moderation Update</h2>
+      <p>Hi ${userName},</p>
+      ${message}
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+      <p style="font-size: 12px; color: #888;">DineSmart - Review moderation</p>
+    </body>
+    </html>
+  `;
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    to,
+    subject,
+    html,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
 module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
@@ -429,4 +500,5 @@ module.exports = {
   sendRestaurantRejectionEmail,
   sendWaitlistSlotAvailableEmail,
   sendSubscriptionUpdateEmail,
+  sendReviewModerationEmail,
 };
