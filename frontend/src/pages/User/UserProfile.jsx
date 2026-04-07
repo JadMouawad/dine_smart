@@ -261,9 +261,11 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   ];
 
   function toggleSubscriptionPreference(key) {
-    setSubscriptionPreferences((prev) => (
-      prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]
-    ));
+    setSubscriptionPreferences((prev) => {
+      const next = prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key];
+      setIsSubscribed(next.length > 0);
+      return next;
+    });
   }
 
   function handleCancelEdit() {
@@ -508,7 +510,15 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                 <input
                   type="checkbox"
                   checked={isSubscribed}
-                  onChange={(e) => setIsSubscribed(e.target.checked)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    if (checked && subscriptionPreferences.length === 0) {
+                      toast.error("Select at least one option before enabling subscription.");
+                      return;
+                    }
+                    setIsSubscribed(checked);
+                    if (!checked) setSubscriptionPreferences([]);
+                  }}
                   aria-label={isSubscribed ? "Subscription on" : "Subscription off"}
                   disabled={!isEditing}
                 />
@@ -518,7 +528,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
               </label>
             </div>
 
-            <div className={`updatesPrefs${!isSubscribed ? " updatesPrefs--disabled" : ""}`}>
+            <div className={`updatesPrefs${!isEditing ? " updatesPrefs--disabled" : ""}`}>
               <div className="updatesPrefs__grid">
                 {subscriptionOptions.map((option) => (
                   <label
@@ -529,7 +539,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                       type="checkbox"
                       checked={subscriptionPreferences.includes(option.key)}
                       onChange={() => toggleSubscriptionPreference(option.key)}
-                      disabled={!isSubscribed || !isEditing}
+                      disabled={!isEditing}
                     />
                     <span>{option.label}</span>
                   </label>
