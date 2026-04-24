@@ -353,6 +353,7 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
   const onlyLebanon = filters.onlyLebanon === true;
   const partySize = toFiniteNumberOrNull(filters.partySize);
   const sortBy = String(filters.sortBy || "rating").trim().toLowerCase();
+  const includePopularityScore = sortBy === "popularity";
 
   const values = [];
   let idx = 1;
@@ -407,14 +408,18 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
   `);
   selectExtras.push("COALESCE(rv.review_count, 0) AS review_count");
 
-  joins.push(`
-    LEFT JOIN LATERAL (
-      SELECT COUNT(*)::int AS popularity_score
-      FROM reservations rp
-      WHERE rp.restaurant_id = r.id
-    ) pop ON true
-  `);
-  selectExtras.push("COALESCE(pop.popularity_score, 0) AS popularity_score");
+  if (includePopularityScore) {
+    joins.push(`
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS popularity_score
+        FROM reservations rp
+        WHERE rp.restaurant_id = r.id
+      ) pop ON true
+    `);
+    selectExtras.push("COALESCE(pop.popularity_score, 0) AS popularity_score");
+  } else {
+    selectExtras.push("0::int AS popularity_score");
+  }
 
   // Live crowd meter joins: estimate occupancy for the current 30-min slot.
   joins.push("LEFT JOIN restaurant_table_configs crowd_rtc ON crowd_rtc.restaurant_id = r.id");

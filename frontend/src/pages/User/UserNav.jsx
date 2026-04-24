@@ -101,52 +101,40 @@ export default function UserNav({
 
         <div className={`nav__pill ${pillScrolled ? "nav__pill--scrolled" : ""}`}>
           <nav className="nav__links userNavLinks">
-            <a
-              href="#"
+            <button
+              type="button"
               className={tabClass("search")}
-              onClick={(e) => {
-                e.preventDefault();
-                onChange("search");
-              }}
+              onClick={() => onChange("search")}
             >
               Search
-            </a>
+            </button>
 
-            <a
-              href="#"
+            <button
+              type="button"
               className={tabClass("discover")}
-              onClick={(e) => {
-                e.preventDefault();
-                onChange("discover");
-              }}
+              onClick={() => onChange("discover")}
             >
               Events
               {unseenEventCount > 0 && (
                 <span className="adminNavBadge">{unseenEventCount}</span>
               )}
-            </a>
+            </button>
 
-            <a
-              href="#"
+            <button
+              type="button"
               className={tabClass("explore")}
-              onClick={(e) => {
-                e.preventDefault();
-                onChange("explore");
-              }}
+              onClick={() => onChange("explore")}
             >
               Explore
-            </a>
+            </button>
 
-            <a
-              href="#"
+            <button
+              type="button"
               className={tabClass("reservations")}
-              onClick={(e) => {
-                e.preventDefault();
-                onChange("reservations");
-              }}
+              onClick={() => onChange("reservations")}
             >
               Reservations
-            </a>
+            </button>
           </nav>
 
           <div className="nav__actions userNav__actions">

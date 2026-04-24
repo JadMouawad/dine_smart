@@ -549,18 +549,12 @@ export default function UserSearch({
       sortBy: filters.sortBy,
     };
 
-    Promise.all([
-      searchRestaurants(query.trim(), filters.cuisines, payload),
-      searchRestaurants(query.trim(), [], {
-        verifiedOnly: true,
-        latitude: effectiveGeo.latitude,
-        longitude: effectiveGeo.longitude,
-      }),
-    ])
-      .then(([filtered, base]) => {
+    searchRestaurants(query.trim(), filters.cuisines, payload)
+      .then((filtered) => {
         if (cancelled) return;
-        setRestaurants(Array.isArray(filtered) ? filtered : []);
-        setBaseRestaurants(Array.isArray(base) ? base : []);
+        const nextRestaurants = Array.isArray(filtered) ? filtered : [];
+        setRestaurants(nextRestaurants);
+        setBaseRestaurants(nextRestaurants);
       })
       .catch(() => {
         if (cancelled) return;
@@ -790,12 +784,22 @@ export default function UserSearch({
     <div className="userSearchPage">
       <h1 className="userSearchPage__title">Search Restaurants</h1>
 
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "12px" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: "12px",
+          width: "100%",
+          maxWidth: "900px",
+          margin: "0 auto",
+        }}
+      >
         <input
           ref={searchBarRef}
           className="searchInput"
           type="text"
-          style={{ width: "700px" }}
+          style={{ flex: "1 1 320px", width: "100%", maxWidth: "700px" }}
           placeholder="Search by name, cuisine, or keyword"
           value={query}
           onChange={(e) => {

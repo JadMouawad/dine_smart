@@ -558,7 +558,14 @@ export default function OwnerReservations() {
   }, []);
 
   useEffect(() => {
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        loadReservations();
+      }
+    }
+
     const intervalId = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
       loadReservations();
     }, 20000);
 
@@ -567,9 +574,11 @@ export default function OwnerReservations() {
     }
 
     window.addEventListener("ds:reservation-changed", onReservationChanged);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
       window.clearInterval(intervalId);
       window.removeEventListener("ds:reservation-changed", onReservationChanged);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, []);
 

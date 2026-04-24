@@ -182,8 +182,22 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
 
   useEffect(() => {
     if (!user?.id || isEditing) return;
-    const interval = window.setInterval(() => loadProfile(false), 30000);
-    return () => window.clearInterval(interval);
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        loadProfile(false);
+      }
+    }
+
+    const interval = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      loadProfile(false);
+    }, 30000);
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, [user?.id, isEditing]);
 
   const isGoogleAccount = accountProvider === "google";

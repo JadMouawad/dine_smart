@@ -154,6 +154,7 @@ const canSeatPartiesWithTables = (parties, counts) => {
 const normalizeSeatingPreference = (value) => {
   if (value == null || String(value).trim() === "") return null;
   const normalized = String(value).trim().toLowerCase();
+  if (normalized === "any") return null;
   if (!ALLOWED_SEATING_PREFERENCES.has(normalized)) return null;
   return normalized;
 };
@@ -388,6 +389,21 @@ const getSlotAvailability = async ({
   let preferenceCapacity = null;
   let bookedSeatsPreference = null;
   let availableSeatsPreference = null;
+  let slotReservationsRows = null;
+
+  const getSlotReservationsRows = async () => {
+    if (slotReservationsRows) return slotReservationsRows;
+    const slotReservationsResult = await ReservationModel.getReservationsForSlot(
+      dbClient,
+      restaurantId,
+      reservationDate,
+      reservationTime,
+      durationMinutes,
+      excludeReservationId
+    );
+    slotReservationsRows = slotReservationsResult.rows || [];
+    return slotReservationsRows;
+  };
 
   if (normalizedSeating) {
     if (hasSplitCapacity) {
@@ -399,15 +415,8 @@ const getSlotAvailability = async ({
       preferenceCapacity = Math.max(totalCapacityBase + anyAdjustment + specificPreferenceAdjustment, 0);
     }
 
-    const slotReservationsResult = await ReservationModel.getReservationsForSlot(
-      dbClient,
-      restaurantId,
-      reservationDate,
-      reservationTime,
-      durationMinutes,
-      excludeReservationId
-    );
-    bookedSeatsPreference = (slotReservationsResult.rows || []).reduce((sum, reservation) => {
+    const slotReservations = await getSlotReservationsRows();
+    bookedSeatsPreference = slotReservations.reduce((sum, reservation) => {
       const reservationPreference = String(reservation.seating_preference || "").toLowerCase();
       if (reservationPreference !== normalizedSeating) return sum;
       const reservationPartySize = parseInt(reservation.party_size, 10);
@@ -425,15 +434,8 @@ const getSlotAvailability = async ({
 
   let canFitTables = true;
   if (hasTableConfig) {
-    const slotReservationsResult = await ReservationModel.getReservationsForSlot(
-      dbClient,
-      restaurantId,
-      reservationDate,
-      reservationTime,
-      durationMinutes,
-      excludeReservationId
-    );
-    const parties = (slotReservationsResult.rows || [])
+    const slotReservations = await getSlotReservationsRows();
+    const parties = slotReservations
       .map((reservation) => parseInt(reservation.party_size, 10))
       .filter((value) => Number.isFinite(value) && value > 0);
 
@@ -636,7 +638,8 @@ const createReservation = async ({
   }
 
   const normalizedSeating = normalizeSeatingPreference(seatingPreference);
-  if (seatingPreference && !normalizedSeating) {
+  const normalizedSeatingInput = String(seatingPreference || "").trim().toLowerCase();
+  if (normalizedSeatingInput && normalizedSeatingInput !== "any" && !normalizedSeating) {
     return { success: false, status: 400, error: "Invalid seating preference" };
   }
 
@@ -747,22 +750,22 @@ const createReservation = async ({
     }
 
     if (availability.isDisabled) {
-      const suggestedTimes = await getSuggestedTimes({
-        restaurantId: parsedRestaurantId,
-        reservationDate: normalizedDate,
-        reservationTime: normalizedTime,
-        partySize: parsedPartySize,
-        restaurant: availability.restaurant,
-        totalCapacity: availability.totalCapacity,
-        durationMinutes: normalizedDuration,
-      });
       return {
         success: false,
         status: 409,
         error: "This time slot has been disabled by the restaurant",
         availableSeats: 0,
-        suggestedTimes,
         disabled: true,
+        needsSuggestions: true,
+        suggestionContext: {
+          restaurantId: parsedRestaurantId,
+          reservationDate: normalizedDate,
+          reservationTime: normalizedTime,
+          partySize: parsedPartySize,
+          restaurant: availability.restaurant,
+          totalCapacity: availability.totalCapacity,
+          durationMinutes: normalizedDuration,
+        },
       };
     }
 
@@ -776,16 +779,6 @@ const createReservation = async ({
         : availability.availableSeats;
 
     if (!availability.canAccommodateParty) {
-      const suggestedTimes = await getSuggestedTimes({
-        restaurantId: parsedRestaurantId,
-        reservationDate: normalizedDate,
-        reservationTime: normalizedTime,
-        partySize: parsedPartySize,
-        restaurant: availability.restaurant,
-        totalCapacity: availability.totalCapacity,
-        seatingPreference: normalizedSeating,
-      });
-
       return {
         success: false,
         status: 409,
@@ -795,7 +788,17 @@ const createReservation = async ({
             ? `Only ${availableSeatsForRequest} ${normalizedSeating} seats available`
             : `Only ${availableSeatsForRequest} seats available`,
         availableSeats: availableSeatsForRequest,
-        suggestedTimes,
+        needsSuggestions: true,
+        suggestionContext: {
+          restaurantId: parsedRestaurantId,
+          reservationDate: normalizedDate,
+          reservationTime: normalizedTime,
+          partySize: parsedPartySize,
+          restaurant: availability.restaurant,
+          totalCapacity: availability.totalCapacity,
+          seatingPreference: normalizedSeating,
+          durationMinutes: normalizedDuration,
+        },
       };
     }
 
@@ -847,6 +850,14 @@ const createReservation = async ({
   });
 
   if (!creationResult.success) {
+    if (creationResult.needsSuggestions && creationResult.suggestionContext) {
+      const suggestedTimes = await getSuggestedTimes(creationResult.suggestionContext);
+      return {
+        ...creationResult,
+        suggestedTimes,
+        suggestionContext: undefined,
+      };
+    }
     return creationResult;
   }
 
@@ -1325,7 +1336,8 @@ const getAvailability = async ({ restaurantId, reservationDate, reservationTime,
   }
 
   const normalizedSeating = normalizeSeatingPreference(seatingPreference);
-  if (seatingPreference && !normalizedSeating) {
+  const normalizedSeatingInput = String(seatingPreference || "").trim().toLowerCase();
+  if (normalizedSeatingInput && normalizedSeatingInput !== "any" && !normalizedSeating) {
     return { success: false, status: 400, error: "Invalid seating preference" };
   }
 
@@ -1695,7 +1707,7 @@ const markNoShow = async ({ reservationId, ownerId }) => {
     return { success: false, status: 409, error: `Cannot mark a ${existing.status} reservation as no-show` };
   }
 
-  return withTransaction(async (client) => {
+  const noShowResult = await withTransaction(async (client) => {
     await client.query(
       `UPDATE reservations SET status = 'no-show', updated_at = NOW() WHERE id = $1`,
       [parsedReservationId]
@@ -1711,22 +1723,36 @@ const markNoShow = async ({ reservationId, ownerId }) => {
       await UserModel.setBannedUntil(client, existing.user_id, banDate.toISOString().slice(0, 10));
       bannedUntilLabel = banDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
     }
-
-    const user = await UserModel.findById(db, existing.user_id);
-    if (user?.email) {
-      try {
-        if (bannedUntilLabel) {
-          await sendNoShowBanEmail({ to: user.email, userName: user.full_name || "Guest", bannedUntilLabel });
-        } else if (noShowCount === NO_SHOW_BAN_THRESHOLD - 1) {
-          await sendNoShowWarningEmail({ to: user.email, userName: user.full_name || "Guest" });
-        }
-      } catch (emailError) {
-        console.warn("Failed to send no-show email:", emailError.message);
-      }
-    }
-
-    return { success: true, status: 200, noShowCount, banned: !!bannedUntilLabel, bannedUntilLabel };
+    return {
+      success: true,
+      status: 200,
+      noShowCount,
+      banned: !!bannedUntilLabel,
+      bannedUntilLabel,
+      userId: existing.user_id,
+    };
   });
+
+  const user = await UserModel.findById(db, noShowResult.userId);
+  if (user?.email) {
+    try {
+      if (noShowResult.bannedUntilLabel) {
+        await sendNoShowBanEmail({ to: user.email, userName: user.full_name || "Guest", bannedUntilLabel: noShowResult.bannedUntilLabel });
+      } else if (noShowResult.noShowCount === NO_SHOW_BAN_THRESHOLD - 1) {
+        await sendNoShowWarningEmail({ to: user.email, userName: user.full_name || "Guest" });
+      }
+    } catch (emailError) {
+      console.warn("Failed to send no-show email:", emailError.message);
+    }
+  }
+
+  return {
+    success: noShowResult.success,
+    status: noShowResult.status,
+    noShowCount: noShowResult.noShowCount,
+    banned: noShowResult.banned,
+    bannedUntilLabel: noShowResult.bannedUntilLabel,
+  };
 };
 
 const updateReservation = async ({
@@ -1771,7 +1797,8 @@ const updateReservation = async ({
   }
 
   const normalizedSeating = normalizeSeatingPreference(seatingPreference);
-  if (seatingPreference && !normalizedSeating) {
+  const normalizedSeatingInput = String(seatingPreference || "").trim().toLowerCase();
+  if (normalizedSeatingInput && normalizedSeatingInput !== "any" && !normalizedSeating) {
     return { success: false, status: 400, error: "Invalid seating preference" };
   }
 

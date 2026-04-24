@@ -72,11 +72,11 @@
 [data-theme="light"] .nav__links {
   color: rgba(80, 45, 15, 0.85);
 }
-[data-theme="light"] .nav__links a {
+[data-theme="light"] .nav__links :is(a, button) {
   color: rgba(80, 45, 15, 0.85);
 }
-[data-theme="light"] .nav__links a:hover,
-[data-theme="light"] .nav__links a.is-active {
+[data-theme="light"] .nav__links :is(a, button):hover,
+[data-theme="light"] .nav__links :is(a, button).is-active {
   color: #1A0E06;
   background: rgba(201, 162, 39, 0.12);
   box-shadow:
@@ -1586,12 +1586,12 @@ a {
   color: rgba(255, 255, 255, 0.78);
 }
 
-.nav__links a {
+.nav__links :is(a, button) {
   position: relative;
   padding: 6px 0;
 }
 
-.nav__links a::after {
+.nav__links :is(a, button)::after {
   content: "";
   position: absolute;
   left: 0;
@@ -1603,12 +1603,20 @@ a {
   border-radius: 99px;
 }
 
-.nav__links a:hover {
+.nav__links :is(a, button):hover {
   color: rgba(255, 255, 255, 0.92);
 }
 
-.nav__links a:hover::after {
+.nav__links :is(a, button):hover::after {
   width: 100%;
+}
+
+.nav__links button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
 }
 
 .nav__actions {
@@ -2244,7 +2252,7 @@ body.ds-nav-not-sticky .nav {
   object-fit: contain;
 }
 
-.nav__links a {
+.nav__links :is(a, button) {
   padding: 8px 16px;
   border-radius: 999px;
   transition:
@@ -2253,7 +2261,7 @@ body.ds-nav-not-sticky .nav {
     color 0.25s ease;
 }
 
-.nav__links a:hover {
+.nav__links :is(a, button):hover {
   color: #ffffff;
 
   background: rgba(201, 162, 39, 0.12);
@@ -2263,7 +2271,7 @@ body.ds-nav-not-sticky .nav {
     inset 0 0 6px rgba(201, 162, 39, 0.25);
 }
 
-.nav__links a.is-active {
+.nav__links :is(a, button).is-active {
   color: #ffffff;
   background: rgba(201, 162, 39, 0.12);
   box-shadow:
@@ -2271,7 +2279,7 @@ body.ds-nav-not-sticky .nav {
     inset 0 0 6px rgba(201, 162, 39, 0.25);
 }
 
-.nav__links a.is-disabled {
+.nav__links :is(a, button).is-disabled {
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
@@ -2360,7 +2368,7 @@ body.ds-nav-not-sticky .nav {
 
 /* NAV LINK HOVER (rounded + glow) */
 
-.nav__links a {
+.nav__links :is(a, button) {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -2373,7 +2381,7 @@ body.ds-nav-not-sticky .nav {
   color: rgba(255, 255, 255, 0.78);
 }
 
-.nav__links a:hover {
+.nav__links :is(a, button):hover {
   color: #ffffff;
   background: rgba(201, 162, 39, 0.10);
   box-shadow: 0 0 14px rgba(201, 162, 39, 0.22);

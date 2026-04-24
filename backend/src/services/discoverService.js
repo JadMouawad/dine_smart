@@ -61,20 +61,21 @@ const getDiscoverFeed = async ({ userId, query }) => {
     }),
   ]);
 
-  const matchesPreferences = await discoverRepository.getMatchesPreferences({
-    preferredCuisines,
-    latitude: hasCoords ? latitude : null,
-    longitude: hasCoords ? longitude : null,
-    radiusKm: hasCoords ? distanceRadius : null,
-    limit,
-  });
-
-  const recommendationPayload = await recommendationService.getRecommendations({
-    userId,
-    limit: Math.min(limit, 6),
-    latitude: hasCoords ? latitude : null,
-    longitude: hasCoords ? longitude : null,
-  });
+  const [matchesPreferences, recommendationPayload] = await Promise.all([
+    discoverRepository.getMatchesPreferences({
+      preferredCuisines,
+      latitude: hasCoords ? latitude : null,
+      longitude: hasCoords ? longitude : null,
+      radiusKm: hasCoords ? distanceRadius : null,
+      limit,
+    }),
+    recommendationService.getRecommendations({
+      userId,
+      limit: Math.min(limit, 6),
+      latitude: hasCoords ? latitude : null,
+      longitude: hasCoords ? longitude : null,
+    }),
+  ]);
 
   return {
     recommended_for_you: recommendationPayload.recommendations,

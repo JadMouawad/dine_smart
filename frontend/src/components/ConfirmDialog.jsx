@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useId } from "react";
 
 export default function ConfirmDialog({
   open,
@@ -11,14 +11,32 @@ export default function ConfirmDialog({
   busy = false,
   busyLabel = "Processing...",
 }) {
+  const titleId = useId();
+  const messageId = useId();
+
+  useEffect(() => {
+    if (!open || busy) return undefined;
+    function onKeyDown(event) {
+      if (event.key === "Escape") onCancel?.();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, busy, onCancel]);
+
   if (!open) return null;
 
   return (
-    <div className="modal is-open" role="dialog" aria-modal="true">
+    <div
+      className="modal is-open"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      aria-describedby={message ? messageId : undefined}
+    >
       <div className="modal__backdrop" onClick={busy ? undefined : onCancel} />
       <div className="modal__panel confirmDialog">
-        <h3 className="confirmDialog__title">{title}</h3>
-        {message ? <p className="confirmDialog__message">{message}</p> : null}
+        <h3 id={titleId} className="confirmDialog__title">{title}</h3>
+        {message ? <p id={messageId} className="confirmDialog__message">{message}</p> : null}
         <div className="confirmDialog__actions">
           <button
             className="btn btn--gold"
