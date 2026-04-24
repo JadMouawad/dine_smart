@@ -5,6 +5,11 @@ const loyaltyService = require("./loyaltyService");
 
 const SALT_ROUNDS = 10;
 const ACCOUNT_DELETION_CONFIRMATION_TEXT = "Goodbye DineSmart";
+const normalizeDeletionConfirmation = (value) => String(value || "")
+  .trim()
+  .replace(/^[\s"'“”]+|[\s"'“”]+$/g, "")
+  .replace(/\s+/g, " ")
+  .toLowerCase();
 
 const resolveLoyaltyBadge = (reservationCount) => {
   if (reservationCount >= 30) return "Regular";
@@ -63,12 +68,13 @@ const updateProfile = async (userId, data) => {
 };
 
 const deleteProfileAccount = async ({ userId, confirmationText }) => {
-  const normalizedConfirmation = String(confirmationText || "").trim();
-  if (normalizedConfirmation !== ACCOUNT_DELETION_CONFIRMATION_TEXT) {
+  const normalizedConfirmation = normalizeDeletionConfirmation(confirmationText);
+  const expectedConfirmation = normalizeDeletionConfirmation(ACCOUNT_DELETION_CONFIRMATION_TEXT);
+  if (normalizedConfirmation !== expectedConfirmation) {
     return {
       success: false,
       status: 400,
-      error: `Please type "${ACCOUNT_DELETION_CONFIRMATION_TEXT}" to confirm account deletion.`,
+      error: `Please type ${ACCOUNT_DELETION_CONFIRMATION_TEXT} to confirm account deletion.`,
     };
   }
 

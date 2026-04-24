@@ -66,6 +66,12 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const prevPointsRef = useRef(null);
   const prevUnlockedRef = useRef(false);
   const ACCOUNT_DELETE_TEXT = "Goodbye DineSmart";
+  const normalizeDeleteText = (value) => String(value || "")
+    .trim()
+    .replace(/^[\s"'“”]+|[\s"'“”]+$/g, "")
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+  const isDeleteConfirmed = normalizeDeleteText(deleteConfirmationText) === normalizeDeleteText(ACCOUNT_DELETE_TEXT);
 
   // Load favorites from server
   useEffect(() => {
@@ -417,8 +423,8 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
 
   async function handleDeleteAccount() {
     if (deletingAccount) return;
-    if (deleteConfirmationText.trim() !== ACCOUNT_DELETE_TEXT) {
-      toast.error(`Please type "${ACCOUNT_DELETE_TEXT}" exactly to confirm.`);
+    if (!isDeleteConfirmed) {
+      toast.error(`Please type ${ACCOUNT_DELETE_TEXT} to confirm.`);
       return;
     }
 
@@ -949,7 +955,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
               type="button"
               className="btn btn--ghost"
               onClick={handleDeleteAccount}
-              disabled={deletingAccount || deleteConfirmationText.trim() !== ACCOUNT_DELETE_TEXT}
+                disabled={deletingAccount || !isDeleteConfirmed}
               style={{
                 marginTop: 8,
                 borderColor: "#e53e3e",

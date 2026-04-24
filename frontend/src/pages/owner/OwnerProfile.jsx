@@ -138,6 +138,12 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
   const [documentPreviewUrls, setDocumentPreviewUrls] = useState({});
   const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const normalizeDeleteText = (value) => String(value || "")
+    .trim()
+    .replace(/^[\s"'“”]+|[\s"'“”]+$/g, "")
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+  const isDeleteConfirmed = normalizeDeleteText(deleteConfirmationText) === normalizeDeleteText(ACCOUNT_DELETE_TEXT);
 
   // Mapbox controlled view state
   const [viewState, setViewState] = useState({
@@ -479,8 +485,8 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
 
   async function handleDeleteAccount() {
     if (deletingAccount) return;
-    if (deleteConfirmationText.trim() !== ACCOUNT_DELETE_TEXT) {
-      alert(`Please type "${ACCOUNT_DELETE_TEXT}" exactly to confirm.`);
+    if (!isDeleteConfirmed) {
+      alert(`Please type ${ACCOUNT_DELETE_TEXT} to confirm.`);
       return;
     }
 
@@ -872,7 +878,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                 type="button"
                 className="btn btn--ghost ownerDangerCard__btn"
                 onClick={handleDeleteAccount}
-                disabled={deletingAccount || deleteConfirmationText.trim() !== ACCOUNT_DELETE_TEXT}
+                disabled={deletingAccount || !isDeleteConfirmed}
               >
                 {deletingAccount ? "Deleting..." : "Delete Account"}
               </button>

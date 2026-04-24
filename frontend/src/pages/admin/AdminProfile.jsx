@@ -46,6 +46,12 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
   const [profileSuccess, setProfileSuccess] = useState("");
   const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const normalizeDeleteText = (value) => String(value || "")
+    .trim()
+    .replace(/^[\s"'“”]+|[\s"'“”]+$/g, "")
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+  const isDeleteConfirmed = normalizeDeleteText(deleteConfirmationText) === normalizeDeleteText(ACCOUNT_DELETE_TEXT);
 
   useEffect(() => {
     if (!user) return;
@@ -143,8 +149,8 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
 
   async function handleDeleteAccount() {
     if (deletingAccount) return;
-    if (deleteConfirmationText.trim() !== ACCOUNT_DELETE_TEXT) {
-      setProfileError(`Please type "${ACCOUNT_DELETE_TEXT}" exactly to confirm.`);
+    if (!isDeleteConfirmed) {
+      setProfileError(`Please type ${ACCOUNT_DELETE_TEXT} to confirm.`);
       return;
     }
 
@@ -357,7 +363,7 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
               type="button"
               className="btn btn--ghost"
               onClick={handleDeleteAccount}
-              disabled={deletingAccount || deleteConfirmationText.trim() !== ACCOUNT_DELETE_TEXT}
+              disabled={deletingAccount || !isDeleteConfirmed}
               style={{ borderColor: "#e53e3e", color: "#e53e3e" }}
             >
               {deletingAccount ? "Deleting..." : "Delete Account"}
