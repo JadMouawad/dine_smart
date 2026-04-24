@@ -7069,6 +7069,46 @@ margin: 0 auto;
   gap: 16px;
 }
 
+.ownerProfile--aligned {
+  display: grid;
+  gap: 16px;
+}
+
+.ownerProfileHero__avatar {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ownerProfileHero__avatar--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.ownerProfileLayout {
+  margin-top: 0;
+}
+
+.ownerProfileSide {
+  display: grid;
+  gap: 16px;
+}
+
+.ownerProfileFormCard {
+  gap: 16px;
+}
+
+.ownerProfileMediaCard .ownerProfileGrid__media {
+  gap: 16px;
+}
+
+.ownerProfileSummaryList {
+  display: grid;
+  gap: 14px;
+}
+
 .formCard__divider {
   height: 1px;
   background: rgba(255, 255, 255, 0.08);

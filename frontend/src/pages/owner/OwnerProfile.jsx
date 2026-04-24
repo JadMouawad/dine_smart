@@ -462,145 +462,242 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     setIsEditing(true);
   }
 
+  function formatProfileTime(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "--:--";
+    const parsed = new Date(`2000-01-01T${raw.slice(0, 8)}`);
+    if (Number.isNaN(parsed.getTime())) return raw.slice(0, 5);
+    return parsed.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
+  }
+
   if (!initialLoadComplete) {
     return (
-      <div className="ownerProfile">
-        <div className="formCard ownerProfileViewCard">
-          <div className="formCard__title">Loading restaurant profile...</div>
-        </div>
+      <div className="userProfile">
+        <p style={{ padding: "20px", color: "#888" }}>Loading restaurant profile...</p>
       </div>
     );
   }
 
+  const viewOnly = Boolean(existingRestaurant && !isEditing && !isPendingApproval);
+  const heroSubtitle = buildAddress(address, city) || existingRestaurant?.address || "Restaurant profile";
+  const heroHours = `${formatProfileTime(openingTime || existingRestaurant?.opening_time || "")} - ${formatProfileTime(
+    closingTime || existingRestaurant?.closing_time || ""
+  )}`;
+  const dietaryLabel = Array.isArray(dietarySupport) && dietarySupport.length ? dietarySupport.join(", ") : "Not set";
+
   return (
-    <div className="ownerProfile">
+    <div className="userProfile ownerProfile ownerProfile--aligned">
+      <section className="userProfileHero ownerProfileHero">
+        {logoPreviewUrl ? (
+          <img className="userProfileHero__avatar ownerProfileHero__avatar" src={logoPreviewUrl} alt={`${profileName} logo`} />
+        ) : (
+          <div className="userProfileHero__avatar ownerProfileHero__avatar ownerProfileHero__avatar--fallback">
+            {profileName.charAt(0).toUpperCase() || "R"}
+          </div>
+        )}
+        <div className="userProfileHero__content">
+          <h1 className="userProfileHero__name">{profileName}</h1>
+          <p className="userProfileHero__email">{heroSubtitle}</p>
+          <div className="userProfileHero__meta">
+            <span className="metaPill">Cuisine: {cuisineType || existingRestaurant?.cuisine || "Not set"}</span>
+            <span className="metaPill">Hours: {heroHours}</span>
+          </div>
+        </div>
+        <label className="btn btn--gold userProfileHero__uploadBtn">
+          Upload logo
+          <input
+            className="imageCard__input"
+            type="file"
+            accept="image/png, image/jpeg"
+            onChange={onPickLogo}
+            disabled={viewOnly}
+          />
+        </label>
+      </section>
+
       {!existingRestaurant && initialLoadComplete && error && (
-        <div className="ownerProfile__feedback ownerProfile__feedback--error">{error}</div>
+        <div className="ownerProfile__feedback ownerProfile__feedback--error userProfile__feedbackError">{error}</div>
       )}
 
-      {existingRestaurant && !isEditing && !isPendingApproval ? (
-        <section className="formCard ownerProfileViewCard">
-          <div className="ownerProfileViewCard__topActions">
-            <button className="btn btn--gold" type="button" onClick={startEditing}>
-              Edit profile & photos
-            </button>
+      <div className="userProfileLayout ownerProfileLayout">
+        <form className="formCard formCard--userProfile userProfileFormCard ownerProfileFormCard" onSubmit={onSubmit}>
+          <div className="formCard__title">Restaurant Settings</div>
+
+          <label className="field">
+            <span>Restaurant name</span>
+            <input
+              type="text"
+              placeholder="Enter restaurant name"
+              value={restaurantName}
+              onChange={(event) => setRestaurantName(event.target.value)}
+              required
+              disabled={viewOnly}
+            />
+          </label>
+
+          <div className="twoCols">
+            <label className="field">
+              <span>Opening time</span>
+              <input type="time" value={openingTime} onChange={(event) => setOpeningTime(event.target.value)} required disabled={viewOnly} />
+            </label>
+            <label className="field">
+              <span>Closing time</span>
+              <input type="time" value={closingTime} onChange={(event) => setClosingTime(event.target.value)} required disabled={viewOnly} />
+            </label>
           </div>
-          <div className="ownerProfileViewGrid">
-            <div className="ownerProfileViewRow">
-              <span className="ownerProfileViewLabel">Restaurant name</span>
-              <span className="ownerProfileViewValue">{existingRestaurant.name || "Not set"}</span>
-            </div>
-            <div className="ownerProfileViewRow">
-              <span className="ownerProfileViewLabel">Logo</span>
-              <span className="ownerProfileViewValue">
-                {logoPreviewUrl ? <img className="ownerProfileViewImage ownerProfileViewImage--logo" src={logoPreviewUrl} alt={`${profileName} logo`} /> : "Not set"}
-              </span>
-            </div>
-            <div className="ownerProfileViewRow">
-              <span className="ownerProfileViewLabel">Restaurant photos</span>
-              <span className="ownerProfileViewValue">
-                {galleryPreviewUrls.length ? (
-                  <div className="ownerProfileViewGallery">
-                    {galleryPreviewUrls.map((photoUrl, index) => (
-                      <img
-                        key={`${photoUrl}-${index}`}
-                        loading="lazy"
-                        className="ownerProfileViewImage ownerProfileViewImage--gallery"
-                        src={photoUrl}
-                        alt={`${profileName} photo ${index + 1}`}
-                      />
-                    ))}
-                  </div>
-                ) : "Not set"}
-              </span>
-            </div>
-            <div className="ownerProfileViewRow">
-              <span className="ownerProfileViewLabel">Cuisine</span>
-              <span className="ownerProfileViewValue">{existingRestaurant.cuisine || "Not set"}</span>
-            </div>
-            <div className="ownerProfileViewRow">
-              <span className="ownerProfileViewLabel">Hours</span>
-              <span className="ownerProfileViewValue">
-                {(existingRestaurant.opening_time || "").slice(0, 5) || "--:--"} - {(existingRestaurant.closing_time || "").slice(0, 5) || "--:--"}
-              </span>
-            </div>
-            <div className="ownerProfileViewRow">
-              <span className="ownerProfileViewLabel">Address</span>
-              <span className="ownerProfileViewValue">{address || "Not set"}</span>
-            </div>
-            <div className="ownerProfileViewRow">
-              <span className="ownerProfileViewLabel">City</span>
-              <span className="ownerProfileViewValue">{city || "Not set"}</span>
-            </div>
-            <div className="ownerProfileViewRow ownerProfileViewRow--map">
-              <span className="ownerProfileViewLabel">Location</span>
-              <div className="ownerProfileViewValue ownerProfileViewMapWrap">
-                {latitude != null && longitude != null ? (
-                  <Map
-                    longitude={longitude}
-                    latitude={latitude}
-                    zoom={14}
-                    interactive={false}
-                    mapboxAccessToken={MAPBOX_TOKEN}
-                    style={{ width: "100%", height: "180px" }}
-                    mapStyle="mapbox://styles/mapbox/streets-v12"
-                  >
-                    <Marker longitude={longitude} latitude={latitude} anchor="bottom">
-                      <div className="ownerMapPin">📍</div>
-                    </Marker>
-                  </Map>
-                ) : (
-                  <span className="ownerProfileViewEmpty">Not set — click Edit to pin location</span>
-                )}
-              </div>
-            </div>
-            <div className="ownerProfileViewRow">
-              <span className="ownerProfileViewLabel">Price category</span>
-              <span className="ownerProfileViewValue">{existingRestaurant.price_range || "Not set"}</span>
-            </div>
-            <div className="ownerProfileViewRow">
-              <span className="ownerProfileViewLabel">Dietary support</span>
-              <span className="ownerProfileViewValue">
-                {Array.isArray(existingRestaurant.dietary_support) && existingRestaurant.dietary_support.length
-                  ? existingRestaurant.dietary_support.join(", ")
-                  : "Not set"}
-              </span>
-            </div>
-            <div className="ownerProfileViewRow">
-              <span className="ownerProfileViewLabel">Business license</span>
-              <span className="ownerProfileViewValue">
-                {businessLicenseUrl ? (
-                  <a href={getPreviewHref(businessLicenseUrl, "business-license")} target="_blank" rel="noreferrer">
-                    {businessLicenseName || "View file"}
-                  </a>
-                ) : "Not uploaded"}
-              </span>
-            </div>
-            <div className="ownerProfileViewRow">
-              <span className="ownerProfileViewLabel">Health certificate</span>
-              <span className="ownerProfileViewValue">
-                {healthCertificateUrl ? (
-                  <a href={getPreviewHref(healthCertificateUrl, "health-certificate")} target="_blank" rel="noreferrer">
-                    {healthCertificateName || "View file"}
-                  </a>
-                ) : "Not uploaded"}
-              </span>
-            </div>
-            <div className="ownerProfileViewRow">
-              <span className="ownerProfileViewLabel">Appearance</span>
-              <span className="ownerProfileViewValue">
-                <button type="button" className="appearanceToggle" onClick={toggleTheme}>
-                  <span className="appearanceToggle__icon">{theme === "dark" ? "☀️" : "🌙"}</span>
-                  {theme === "dark" ? "Switch to Light" : "Switch to Dark"}
+
+          <label className="field">
+            <span>Cuisine type</span>
+            <ThemedSelect
+              value={cuisineType}
+              onChange={setCuisineType}
+              options={CUISINES.map((cuisine) => ({ value: cuisine, label: cuisine }))}
+              placeholder="Select cuisine type"
+              ariaLabel="Select cuisine type"
+              disabled={viewOnly}
+            />
+          </label>
+
+          <div className="ownerProfileFilterGroup">
+            <span>Price category</span>
+            <div className="ownerFilterChipRow">
+              {PRICE_RANGE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`ownerFilterChip ownerFilterChip--button ${priceRange === option.value ? "is-active" : ""}`}
+                  onClick={() => setPriceRange((prev) => (prev === option.value ? "" : option.value))}
+                  disabled={viewOnly}
+                >
+                  {option.label}
                 </button>
-              </span>
+              ))}
             </div>
           </div>
 
-        </section>
-      ) : (
-        <form className="ownerProfile__form" onSubmit={onSubmit}>
-          <div className="ownerProfileGrid">
+          <div className="ownerProfileFilterGroup">
+            <span>Dietary support</span>
+            <div className="ownerFilterChipRow">
+              {DIETARY_OPTIONS.map((option) => {
+                const isActive = dietarySupport.includes(option.value);
+                return (
+                  <label key={option.value} className={`ownerFilterChip ${isActive ? "is-active" : ""}`}>
+                    <input
+                      className="ownerFilterChip__input"
+                      type="checkbox"
+                      checked={isActive}
+                      disabled={viewOnly}
+                      onChange={() => {
+                        setDietarySupport((prev) => (
+                          prev.includes(option.value)
+                            ? prev.filter((item) => item !== option.value)
+                            : [...prev, option.value]
+                        ));
+                      }}
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="appearanceSection">
+            <div>
+              <div className="appearanceSection__label">Appearance</div>
+              <div className="appearanceSection__sub">
+                {theme === "dark" ? "Dark mode is on" : "Light mode is on"}
+              </div>
+            </div>
+            <button type="button" className="appearanceToggle" onClick={toggleTheme}>
+              {theme === "dark" ? "Light mode" : "Dark mode"}
+            </button>
+          </div>
+
+          <div className="twoCols">
+            <label className="field">
+              <span>Address</span>
+              <input
+                className="ownerProfile__locationInput"
+                type="text"
+                placeholder="Street address"
+                value={address}
+                onChange={(event) => setAddress(event.target.value)}
+                required
+                disabled={viewOnly}
+              />
+            </label>
+            <label className="field">
+              <span>City</span>
+              <input
+                className="ownerProfile__locationInput"
+                type="text"
+                placeholder="City"
+                value={city}
+                onChange={(event) => setCity(event.target.value)}
+                required
+                disabled={viewOnly}
+              />
+            </label>
+          </div>
+
+          <div className="ownerProfileMapField">
+            <div className="ownerProfileMapField__header">
+              <span>Map location picker</span>
+              <button type="button" className="btn btn--ghost" onClick={useCurrentLocation} disabled={locationLoading || viewOnly}>
+                {locationLoading ? "Locating..." : "Use My Current Location"}
+              </button>
+            </div>
+            <div className="ownerProfileMapField__hint">
+              Click on the map to pin your restaurant location.
+            </div>
+
+            <div className="ownerProfileMapPicker">
+              <Map
+                {...viewState}
+                onMove={(evt) => setViewState(evt.viewState)}
+                onClick={viewOnly ? undefined : handleMapClick}
+                mapboxAccessToken={MAPBOX_TOKEN}
+                style={{ width: "100%", height: "100%" }}
+                mapStyle="mapbox://styles/mapbox/streets-v12"
+                cursor={viewOnly ? "grab" : "crosshair"}
+              >
+                <NavigationControl position="top-right" />
+                {latitude != null && longitude != null && (
+                  <Marker longitude={longitude} latitude={latitude} anchor="bottom">
+                    <div className="ownerMapPin" title={`${latitude}, ${longitude}`}>Pin</div>
+                  </Marker>
+                )}
+              </Map>
+            </div>
+
+            <div className="ownerProfileMapCoords">
+              Latitude: {latitude != null ? latitude : "--"} | Longitude: {longitude != null ? longitude : "--"}
+            </div>
+          </div>
+
+          {viewOnly ? (
+            <div className="formCard__actions">
+              <button className="btn btn--gold btn--xl" type="button" onClick={startEditing}>
+                Edit profile & photos
+              </button>
+            </div>
+          ) : (
+            <>
+              {error && <div className="ownerProfile__feedback ownerProfile__feedback--error">{error}</div>}
+              {success && <div className="ownerProfile__feedback ownerProfile__feedback--success">{success}</div>}
+              <div className="formCard__actions">
+                <button className="btn btn--gold btn--xl" type="submit" disabled={loading}>
+                  {loading ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </>
+          )}
+        </form>
+
+        <div className="userProfileSide ownerProfileSide">
+          <div className="formCard formCard--userProfile profileExtraCard ownerProfileMediaCard">
+            <div className="formCard__title">Branding</div>
             <div className="ownerProfileGrid__media">
               <div className="imageCard imageCard--equal">
                 <div className="imageCard__title">Logo image</div>
@@ -615,7 +712,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                 </div>
                 <label className="btn btn--gold imageCard__btn imageCard__btn--logo">
                   Upload logo
-                  <input className="imageCard__input" type="file" accept="image/png, image/jpeg" onChange={onPickLogo} />
+                  <input className="imageCard__input" type="file" accept="image/png, image/jpeg" onChange={onPickLogo} disabled={viewOnly} />
                 </label>
               </div>
 
@@ -638,7 +735,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                             onClick={showPreviousGalleryPhoto}
                             aria-label="Previous photo"
                           >
-                            ‹
+                            {"<"}
                           </button>
                           <button
                             type="button"
@@ -646,7 +743,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                             onClick={showNextGalleryPhoto}
                             aria-label="Next photo"
                           >
-                            ›
+                            {">"}
                           </button>
                         </>
                       )}
@@ -657,6 +754,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                           className="imageCard__removeBtn"
                           onClick={() => removeGalleryPhoto(activeGalleryIndex)}
                           aria-label={`Remove photo ${activeGalleryIndex + 1}`}
+                          disabled={viewOnly}
                         >
                           Remove
                         </button>
@@ -670,10 +768,15 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                 </div>
                 <label className="btn btn--gold imageCard__btn">
                   Upload photos
-                  <input className="imageCard__input" type="file" accept="image/png, image/jpeg" multiple onChange={onPickGallery} />
+                  <input className="imageCard__input" type="file" accept="image/png, image/jpeg" multiple onChange={onPickGallery} disabled={viewOnly} />
                 </label>
               </div>
+            </div>
+          </div>
 
+          <div className="formCard formCard--userProfile profileExtraCard ownerProfileMediaCard">
+            <div className="formCard__title">Documents</div>
+            <div className="ownerProfileGrid__media">
               <div className="imageCard imageCard--equal">
                 <div className="imageCard__title">Business license</div>
                 <div className="imageCard__preview imageCard__preview--equal">
@@ -694,7 +797,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                 </div>
                 <label className="btn btn--gold imageCard__btn">
                   Upload license
-                  <input className="imageCard__input" type="file" accept="application/pdf,image/png,image/jpeg" onChange={onPickBusinessLicense} />
+                  <input className="imageCard__input" type="file" accept="application/pdf,image/png,image/jpeg" onChange={onPickBusinessLicense} disabled={viewOnly} />
                 </label>
               </div>
 
@@ -718,162 +821,14 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                 </div>
                 <label className="btn btn--gold imageCard__btn">
                   Upload certificate
-                  <input className="imageCard__input" type="file" accept="application/pdf,image/png,image/jpeg" onChange={onPickHealthCertificate} />
+                  <input className="imageCard__input" type="file" accept="application/pdf,image/png,image/jpeg" onChange={onPickHealthCertificate} disabled={viewOnly} />
                 </label>
-              </div>
-            </div>
-
-            <div className="formCard formCard--matchHeight">
-              <label className="field">
-                <span>Restaurant name</span>
-                <input
-                  type="text"
-                  placeholder="Enter restaurant name"
-                  value={restaurantName}
-                  onChange={(event) => setRestaurantName(event.target.value)}
-                  required
-                />
-              </label>
-
-              <div className="twoCols">
-                <label className="field">
-                  <span>Opening time</span>
-                  <input type="time" value={openingTime} onChange={(event) => setOpeningTime(event.target.value)} required />
-                </label>
-                <label className="field">
-                  <span>Closing time</span>
-                  <input type="time" value={closingTime} onChange={(event) => setClosingTime(event.target.value)} required />
-                </label>
-              </div>
-
-              <label className="field">
-                <span>Cuisine type</span>
-                <ThemedSelect
-                  value={cuisineType}
-                  onChange={setCuisineType}
-                  options={CUISINES.map((cuisine) => ({ value: cuisine, label: cuisine }))}
-                  placeholder="Select cuisine type"
-                  ariaLabel="Select cuisine type"
-                />
-              </label>
-
-              <div className="ownerProfileFilterGroup">
-                <span>Price category</span>
-                <div className="ownerFilterChipRow">
-                  {PRICE_RANGE_OPTIONS.map((option) => (
-                    <button
-                      key={option.value} type="button"
-                      className={`ownerFilterChip ownerFilterChip--button ${priceRange === option.value ? "is-active" : ""}`}
-                      onClick={() => setPriceRange((prev) => (prev === option.value ? "" : option.value))}
-                    >{option.label}</button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="ownerProfileFilterGroup">
-                <span>Dietary support</span>
-                <div className="ownerFilterChipRow">
-                  {DIETARY_OPTIONS.map((option) => {
-                    const isActive = dietarySupport.includes(option.value);
-                    return (
-                      <label key={option.value} className={`ownerFilterChip ${isActive ? "is-active" : ""}`}>
-                        <input
-                          className="ownerFilterChip__input" type="checkbox" checked={isActive}
-                          onChange={() => {
-                            setDietarySupport((prev) => (
-                              prev.includes(option.value)
-                                ? prev.filter((item) => item !== option.value)
-                                : [...prev, option.value]
-                            ));
-                          }}
-                        />
-                        <span>{option.label}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="appearanceSection">
-                <div>
-                  <div className="appearanceSection__label">Appearance</div>
-                  <div className="appearanceSection__sub">
-                    {theme === "dark" ? "Dark mode is on" : "Light mode is on"}
-                  </div>
-                </div>
-                <button type="button" className="appearanceToggle" onClick={toggleTheme}>
-                  <span className="appearanceToggle__icon">{theme === "dark" ? "☀️" : "🌙"}</span>
-                  {theme === "dark" ? "Light mode" : "Dark mode"}
-                </button>
-              </div>
-
-              <div className="twoCols">
-                <label className="field">
-                  <span>Address</span>
-                  <input
-                    className="ownerProfile__locationInput" type="text" placeholder="Street address"
-                    value={address} onChange={(event) => setAddress(event.target.value)} required
-                  />
-                </label>
-                <label className="field">
-                  <span>City</span>
-                  <input
-                    className="ownerProfile__locationInput" type="text" placeholder="City"
-                    value={city} onChange={(event) => setCity(event.target.value)} required
-                  />
-                </label>
-              </div>
-
-              {/* ── Map location picker (Mapbox) ── */}
-              <div className="ownerProfileMapField">
-                <div className="ownerProfileMapField__header">
-                  <span>Map location picker</span>
-                  <button type="button" className="btn btn--ghost" onClick={useCurrentLocation} disabled={locationLoading}>
-                    {locationLoading ? "Locating..." : "Use My Current Location"}
-                  </button>
-                </div>
-                <div className="ownerProfileMapField__hint">
-                  Click on the map to pin your restaurant location.
-                </div>
-
-                <div className="ownerProfileMapPicker">
-                  <Map
-                    {...viewState}
-                    onMove={(evt) => setViewState(evt.viewState)}
-                    onClick={handleMapClick}
-                    mapboxAccessToken={MAPBOX_TOKEN}
-                    style={{ width: "100%", height: "100%" }}
-                    mapStyle="mapbox://styles/mapbox/streets-v12"
-                    cursor="crosshair"
-                  >
-                    <NavigationControl position="top-right" />
-
-                    {/* Restaurant pin */}
-                    {latitude != null && longitude != null && (
-                      <Marker longitude={longitude} latitude={latitude} anchor="bottom">
-                        <div className="ownerMapPin" title={`${latitude}, ${longitude}`}>📍</div>
-                      </Marker>
-                    )}
-                  </Map>
-                </div>
-
-                <div className="ownerProfileMapCoords">
-                  Latitude: {latitude != null ? latitude : "--"} | Longitude: {longitude != null ? longitude : "--"}
-                </div>
-              </div>
-
-              {error && <div className="ownerProfile__feedback ownerProfile__feedback--error">{error}</div>}
-              {success && <div className="ownerProfile__feedback ownerProfile__feedback--success">{success}</div>}
-
-              <div className="formCard__actions">
-                <button className="btn btn--gold btn--xl" type="submit" disabled={loading}>
-                  {loading ? "Saving..." : "Save"}
-                </button>
               </div>
             </div>
           </div>
-        </form>
-      )}
+
+        </div>
+      </div>
     </div>
   );
 }
