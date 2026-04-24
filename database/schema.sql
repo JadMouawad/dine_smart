@@ -56,17 +56,6 @@ CREATE TABLE IF NOT EXISTS user_rewards (
 
 CREATE INDEX IF NOT EXISTS idx_user_rewards_user_id ON user_rewards(user_id);
 
-CREATE TABLE IF NOT EXISTS restaurant_updates (
-  id SERIAL PRIMARY KEY,
-  restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
-  update_type VARCHAR(20) NOT NULL,
-  title VARCHAR(200) NOT NULL,
-  message TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT restaurant_updates_type_check CHECK (update_type IN ('news', 'offers'))
-);
-
 CREATE TABLE IF NOT EXISTS subscription_notifications (
   id SERIAL PRIMARY KEY,
   update_type VARCHAR(20) NOT NULL,
@@ -159,6 +148,20 @@ CREATE INDEX IF NOT EXISTS idx_reviews_restaurant_id ON reviews(restaurant_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_user_restaurant ON reviews(user_id, restaurant_id);
 
+CREATE TABLE IF NOT EXISTS vouchers (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  discount_percentage SMALLINT NOT NULL DEFAULT 10,
+  status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+  unique_code VARCHAR(40) NOT NULL UNIQUE,
+  expiration_date DATE NOT NULL,
+  used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT vouchers_status_check CHECK (status IN ('ACTIVE', 'USED', 'EXPIRED'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_vouchers_user_id ON vouchers(user_id);
+
 CREATE TABLE IF NOT EXISTS reservations (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -182,8 +185,6 @@ CREATE INDEX IF NOT EXISTS idx_reservations_user_id ON reservations(user_id);
 CREATE INDEX IF NOT EXISTS idx_reservations_restaurant_id ON reservations(restaurant_id);
 CREATE INDEX IF NOT EXISTS idx_reservations_restaurant_datetime
   ON reservations(restaurant_id, reservation_date, reservation_time);
-CREATE INDEX IF NOT EXISTS idx_waitlist_slot_pending
-  ON reservation_waitlist(restaurant_id, reservation_date, reservation_time, status);
 
 CREATE TABLE IF NOT EXISTS restaurant_table_configs (
   id SERIAL PRIMARY KEY,
@@ -226,19 +227,19 @@ CREATE TABLE IF NOT EXISTS reservation_waitlist (
   CONSTRAINT reservation_waitlist_unique UNIQUE (user_id, restaurant_id, reservation_date, reservation_time)
 );
 
-CREATE TABLE IF NOT EXISTS vouchers (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  discount_percentage SMALLINT NOT NULL DEFAULT 10,
-  status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
-  unique_code VARCHAR(40) NOT NULL UNIQUE,
-  expiration_date DATE NOT NULL,
-  used_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT vouchers_status_check CHECK (status IN ('ACTIVE', 'USED', 'EXPIRED'))
-);
+CREATE INDEX IF NOT EXISTS idx_waitlist_slot_pending
+  ON reservation_waitlist(restaurant_id, reservation_date, reservation_time, status);
 
-CREATE INDEX IF NOT EXISTS idx_vouchers_user_id ON vouchers(user_id);
+CREATE TABLE IF NOT EXISTS restaurant_updates (
+  id SERIAL PRIMARY KEY,
+  restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  update_type VARCHAR(20) NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT restaurant_updates_type_check CHECK (update_type IN ('news', 'offers'))
+);
 
 CREATE TABLE IF NOT EXISTS events (
   id SERIAL PRIMARY KEY,

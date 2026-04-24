@@ -1,16 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { Suspense, lazy, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import UserNav from "./UserNav.jsx";
-import UserSearch from "./UserSearch.jsx";
-import UserProfile from "./UserProfile.jsx";
-import UserReservations from "./UserReservations.jsx";
-import UserDiscover from "./UserDiscover.jsx";
-import UserExplore from "./UserExplore.jsx";
 import { getProfile } from "../../services/profileService.js";
 import { getPublicEvents } from "../../services/restaurantService.js";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import ChatWidget from "../../components/ChatWidget.jsx";
+
+const UserSearch = lazy(() => import("./UserSearch.jsx"));
+const UserProfile = lazy(() => import("./UserProfile.jsx"));
+const UserReservations = lazy(() => import("./UserReservations.jsx"));
+const UserDiscover = lazy(() => import("./UserDiscover.jsx"));
+const UserExplore = lazy(() => import("./UserExplore.jsx"));
 
 const USER_SEEN_EVENT_IDS_KEY = "ds-user-seen-event-ids";
 
@@ -115,26 +116,41 @@ export default function UserShell({ initialActive = "search" }) {
       }
     }
 
+    function onVisibilityChange() {
+      if (document.visibilityState !== "visible") return;
+      syncEventBadge(active === "discover");
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
     if (active === "discover") {
       syncEventBadge(true);
       return () => {
         cancelled = true;
+        document.removeEventListener("visibilitychange", onVisibilityChange);
       };
     }
 
     syncEventBadge(false);
 
     const intervalId = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
       syncEventBadge(false);
     }, 20000);
 
     return () => {
       cancelled = true;
       window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [user?.id, user?.latitude, user?.longitude, active]);
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="placeholderPage">
+        <h1 className="placeholderPage__title">Loading your dashboard...</h1>
+      </div>
+    );
+  }
   if (!user || user.role !== "user") return null;
 
   function handleLogout() {
@@ -164,57 +180,65 @@ export default function UserShell({ initialActive = "search" }) {
       />
 
       <main className="userArea__main">
-        {active === "profile" && (
-          <UserProfile
-            onAvatarPreviewChange={setUserAvatarUrl}
-            onOpenRestaurant={(restaurant) => {
-              setRestaurantToOpen(restaurant);
-              setActive("search");
-            }}
-          />
-        )}
-
-        {active === "search" && (
-          <UserSearch
-            restaurantToOpen={restaurantToOpen}
-            clearRestaurantToOpen={() => setRestaurantToOpen(null)}
-            chatCommand={chatCommand}
-            clearChatCommand={() => setChatCommand(null)}
-          />
-        )}
-
-        {active === "discover" && (
-          <UserDiscover
-            onOpenRestaurant={(restaurant) => {
-              setRestaurantToOpen(restaurant);
-              setActive("search");
-            }}
-          />
-        )}
-
-        {active === "explore" && (
-          <UserExplore
-            onOpenRestaurant={(restaurant) => {
-              setRestaurantToOpen(restaurant);
-              setActive("search");
-            }}
-          />
-        )}
-
-        {active === "reservations" && <UserReservations />}
-
-        {active !== "profile" &&
-          active !== "search" &&
-          active !== "reservations" &&
-          active !== "discover" &&
-          active !== "explore" && (
+        <Suspense
+          fallback={
             <div className="placeholderPage">
-              <h1 className="placeholderPage__title">
-                {active.charAt(0).toUpperCase() + active.slice(1)}
-              </h1>
-              <p className="placeholderPage__text">This page will be built next.</p>
+              <h1 className="placeholderPage__title">Loading section...</h1>
             </div>
+          }
+        >
+          {active === "profile" && (
+            <UserProfile
+              onAvatarPreviewChange={setUserAvatarUrl}
+              onOpenRestaurant={(restaurant) => {
+                setRestaurantToOpen(restaurant);
+                setActive("search");
+              }}
+            />
           )}
+
+          {active === "search" && (
+            <UserSearch
+              restaurantToOpen={restaurantToOpen}
+              clearRestaurantToOpen={() => setRestaurantToOpen(null)}
+              chatCommand={chatCommand}
+              clearChatCommand={() => setChatCommand(null)}
+            />
+          )}
+
+          {active === "discover" && (
+            <UserDiscover
+              onOpenRestaurant={(restaurant) => {
+                setRestaurantToOpen(restaurant);
+                setActive("search");
+              }}
+            />
+          )}
+
+          {active === "explore" && (
+            <UserExplore
+              onOpenRestaurant={(restaurant) => {
+                setRestaurantToOpen(restaurant);
+                setActive("search");
+              }}
+            />
+          )}
+
+          {active === "reservations" && <UserReservations />}
+
+          {active !== "profile" &&
+            active !== "search" &&
+            active !== "reservations" &&
+            active !== "discover" &&
+            active !== "explore" && (
+              <div className="placeholderPage">
+                <h1 className="placeholderPage__title">
+                  {active.charAt(0).toUpperCase() + active.slice(1)}
+                </h1>
+                <p className="placeholderPage__text">This page will be built next.</p>
+              </div>
+            )}
+        </Suspense>
       </main>
 
       <ConfirmDialog

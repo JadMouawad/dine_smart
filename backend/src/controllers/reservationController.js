@@ -2,6 +2,7 @@
 // Handles HTTP requests for reservations.
 
 const reservationService = require("../services/reservationService");
+const sendError = (res, status, error, extra = {}) => res.status(status).json({ error, message: error, ...extra });
 
 const createReservation = async (req, res) => {
   try {
@@ -18,8 +19,7 @@ const createReservation = async (req, res) => {
     });
 
     if (!result.success) {
-      return res.status(result.status).json({
-        message: result.error,
+      return sendError(res, result.status, result.error, {
         ...(result.availableSeats != null ? { available_seats: result.availableSeats } : {}),
         ...(Array.isArray(result.suggestedTimes) && result.suggestedTimes.length > 0
           ? { suggested_times: result.suggestedTimes }
@@ -29,7 +29,7 @@ const createReservation = async (req, res) => {
 
     return res.status(result.status).json(result.reservation);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return sendError(res, 500, error.message);
   }
 };
 
@@ -37,23 +37,23 @@ const getReservationsByUser = async (req, res) => {
   try {
     const requestedUserId = parseInt(req.params.id, 10);
     if (Number.isNaN(requestedUserId)) {
-      return res.status(400).json({ message: "Invalid user ID" });
+      return sendError(res, 400, "Invalid user ID");
     }
 
     const isOwner = requestedUserId === parseInt(req.user.id, 10);
     const isAdmin = req.user.role === "admin";
     if (!isOwner && !isAdmin) {
-      return res.status(403).json({ message: "Forbidden" });
+      return sendError(res, 403, "Forbidden");
     }
 
     const result = await reservationService.getReservationsForUser(requestedUserId);
     if (!result.success) {
-      return res.status(result.status).json({ message: result.error });
+      return sendError(res, result.status, result.error);
     }
 
     return res.status(200).json(result.reservations);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return sendError(res, 500, error.message);
   }
 };
 
@@ -61,11 +61,11 @@ const getReservationsForOwner = async (req, res) => {
   try {
     const result = await reservationService.getReservationsForOwner(req.user.id);
     if (!result.success) {
-      return res.status(result.status).json({ message: result.error });
+      return sendError(res, result.status, result.error);
     }
     return res.status(200).json(result.reservations);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return sendError(res, 500, error.message);
   }
 };
 
@@ -83,15 +83,14 @@ const updateReservation = async (req, res) => {
     });
 
     if (!result.success) {
-      return res.status(result.status).json({
-        message: result.error,
+      return sendError(res, result.status, result.error, {
         ...(result.availableSeats != null ? { available_seats: result.availableSeats } : {}),
       });
     }
 
     return res.status(200).json(result.reservation);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return sendError(res, 500, error.message);
   }
 };
 
@@ -104,12 +103,12 @@ const cancelReservation = async (req, res) => {
     });
 
     if (!result.success) {
-      return res.status(result.status).json({ message: result.error });
+      return sendError(res, result.status, result.error);
     }
 
     return res.status(200).json(result.reservation);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return sendError(res, 500, error.message);
   }
 };
 
@@ -122,12 +121,12 @@ const updateReservationStatusForOwner = async (req, res) => {
     });
 
     if (!result.success) {
-      return res.status(result.status).json({ message: result.error });
+      return sendError(res, result.status, result.error);
     }
 
     return res.status(200).json(result.reservation);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return sendError(res, 500, error.message);
   }
 };
 
@@ -140,12 +139,12 @@ const getDisabledSlots = async (req, res) => {
     });
 
     if (!result.success) {
-      return res.status(result.status).json({ message: result.error });
+      return sendError(res, result.status, result.error);
     }
 
     return res.status(200).json(result.disabledSlots);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return sendError(res, 500, error.message);
   }
 };
 
@@ -162,12 +161,12 @@ const getAvailability = async (req, res) => {
     });
 
     if (!result.success) {
-      return res.status(result.status).json({ message: result.error });
+      return sendError(res, result.status, result.error);
     }
 
     return res.status(200).json(result.availability);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return sendError(res, 500, error.message);
   }
 };
 
@@ -179,12 +178,12 @@ const deleteReservationForOwner = async (req, res) => {
     });
 
     if (!result.success) {
-      return res.status(result.status).json({ message: result.error });
+      return sendError(res, result.status, result.error);
     }
 
     return res.status(200).json(result.reservation);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return sendError(res, 500, error.message);
   }
 };
 
@@ -199,15 +198,14 @@ const joinWaitlist = async (req, res) => {
     });
 
     if (!result.success) {
-      return res.status(result.status).json({
-        message: result.error,
+      return sendError(res, result.status, result.error, {
         ...(result.availableSeats != null ? { available_seats: result.availableSeats } : {}),
       });
     }
 
     return res.status(result.status).json(result.waitlist);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return sendError(res, 500, error.message);
   }
 };
 
@@ -221,12 +219,12 @@ const leaveWaitlist = async (req, res) => {
     });
 
     if (!result.success) {
-      return res.status(result.status).json({ message: result.error });
+      return sendError(res, result.status, result.error);
     }
 
     return res.status(result.status).json(result.waitlist);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return sendError(res, 500, error.message);
   }
 };
 
@@ -242,12 +240,12 @@ const getSlotAdjustmentForOwner = async (req, res) => {
     });
 
     if (!result.success) {
-      return res.status(result.status).json({ message: result.error });
+      return sendError(res, result.status, result.error);
     }
 
     return res.status(200).json(result.adjustment);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return sendError(res, 500, error.message);
   }
 };
 
@@ -263,12 +261,12 @@ const upsertSlotAdjustmentForOwner = async (req, res) => {
     });
 
     if (!result.success) {
-      return res.status(result.status).json({ message: result.error });
+      return sendError(res, result.status, result.error);
     }
 
     return res.status(200).json(result.adjustment);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return sendError(res, 500, error.message);
   }
 };
 
@@ -282,12 +280,12 @@ const getDisabledSlotsForOwner = async (req, res) => {
     });
 
     if (!result.success) {
-      return res.status(result.status).json({ message: result.error });
+      return sendError(res, result.status, result.error);
     }
 
     return res.status(200).json(result.disabledSlots);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return sendError(res, 500, error.message);
   }
 };
 
@@ -304,12 +302,12 @@ const upsertDisabledSlotForOwner = async (req, res) => {
     });
 
     if (!result.success) {
-      return res.status(result.status).json({ message: result.error });
+      return sendError(res, result.status, result.error);
     }
 
     return res.status(200).json(result.disabledSlot);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return sendError(res, 500, error.message);
   }
 };
 
@@ -321,12 +319,12 @@ const markNoShow = async (req, res) => {
     });
 
     if (!result.success) {
-      return res.status(result.status).json({ message: result.error });
+      return sendError(res, result.status, result.error);
     }
 
     return res.status(200).json(result);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return sendError(res, 500, error.message);
   }
 };
 
