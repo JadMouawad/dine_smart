@@ -165,6 +165,85 @@ const sendReservationConfirmationEmail = async ({
   await transporter.sendMail(mailOptions);
 };
 
+const sendReservationUpdatedEmail = async ({
+  to,
+  userName = "Guest",
+  restaurantName,
+  reservationDate,
+  reservationTime,
+  reservationEndTime,
+  durationMinutes,
+  partySize,
+  confirmationId,
+  seatingPreference,
+  specialRequest,
+}) => {
+  const safeRestaurant = restaurantName || "N/A";
+  const safeDate = reservationDate || "N/A";
+  const safeTime = reservationTime || "N/A";
+  const timeLabel = reservationEndTime ? `${safeTime} – ${reservationEndTime}` : safeTime;
+  const durationLabel = durationMinutes ? ` (${durationMinutes >= 60 ? `${durationMinutes / 60}h` : `${durationMinutes}min`})` : "";
+  const safePartySize = partySize != null ? partySize : "N/A";
+  const safeConfirmationId = confirmationId || "N/A";
+  const seatingLine = seatingPreference ? `<p><strong>Seating:</strong> ${seatingPreference}</p>` : "";
+  const specialRequestLine = specialRequest ? `<p><strong>Special request:</strong> ${specialRequest}</p>` : "";
+
+  const textBody =
+    `Hi ${userName},\n\n` +
+    `Your reservation has been updated and is now pending re-confirmation by the restaurant.\n\n` +
+    `Confirmation ID: ${safeConfirmationId}\n` +
+    `Restaurant: ${safeRestaurant}\n` +
+    `Date: ${safeDate}\n` +
+    `Time: ${timeLabel}${durationLabel}\n` +
+    `Party size: ${safePartySize}\n`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Reservation Updated</title>
+    </head>
+    <body style="margin:0; padding:0; font-family: Arial, sans-serif; color:#222;">
+      <div style="max-width:600px; margin:0 auto; padding:24px 22px;">
+        <h1 style="margin:0 0 18px; font-size:26px; font-weight:700;">Reservation Updated</h1>
+        <p style="margin:0 0 12px; font-size:16px;">Hi ${userName},</p>
+        <p style="margin:0 0 18px; font-size:16px;">
+          Your reservation has been updated and is now pending re-confirmation by the restaurant.
+        </p>
+        <p style="margin:0 0 10px; font-size:16px;">
+          <strong>Confirmation ID:</strong> ${safeConfirmationId}
+        </p>
+        <p style="margin:0 0 10px; font-size:16px;">
+          <strong>Restaurant:</strong> ${safeRestaurant}
+        </p>
+        <p style="margin:0 0 10px; font-size:16px;">
+          <strong>Date:</strong> ${safeDate}
+        </p>
+        <p style="margin:0 0 10px; font-size:16px;">
+          <strong>Time:</strong> ${timeLabel}${durationLabel}
+        </p>
+        <p style="margin:0 0 10px; font-size:16px;">
+          <strong>Party size:</strong> ${safePartySize}
+        </p>
+        ${seatingLine}
+        ${specialRequestLine}
+      </div>
+    </body>
+    </html>
+  `;
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    to,
+    subject: "Reservation Updated",
+    html,
+    text: `Reservation Updated\n\n${textBody}`,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
 const sendReservationCancellationEmail = async ({
   to,
   userName = "Guest",
@@ -497,6 +576,7 @@ module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendReservationConfirmationEmail,
+  sendReservationUpdatedEmail,
   sendReservationCancellationEmail,
   sendNoShowWarningEmail,
   sendNoShowBanEmail,

@@ -69,6 +69,32 @@ const getReservationsForOwner = async (req, res) => {
   }
 };
 
+const updateReservation = async (req, res) => {
+  try {
+    const result = await reservationService.updateReservation({
+      reservationId: req.params.id,
+      requestingUserId: req.user.id,
+      reservationDate: req.body.date,
+      reservationTime: req.body.time,
+      partySize: req.body.party_size,
+      seatingPreference: req.body.seating_preference,
+      specialRequest: req.body.special_request,
+      durationMinutes: req.body.duration_minutes,
+    });
+
+    if (!result.success) {
+      return res.status(result.status).json({
+        message: result.error,
+        ...(result.availableSeats != null ? { available_seats: result.availableSeats } : {}),
+      });
+    }
+
+    return res.status(200).json(result.reservation);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 const cancelReservation = async (req, res) => {
   try {
     const result = await reservationService.cancelReservation({
@@ -132,6 +158,7 @@ const getAvailability = async (req, res) => {
       partySize: req.query.party_size,
       seatingPreference: req.query.seating_preference,
       durationMinutes: req.query.duration_minutes,
+      excludeReservationId: req.query.exclude_reservation_id ?? null,
     });
 
     if (!result.success) {
@@ -305,6 +332,7 @@ const markNoShow = async (req, res) => {
 
 module.exports = {
   createReservation,
+  updateReservation,
   getReservationsByUser,
   getReservationsForOwner,
   cancelReservation,

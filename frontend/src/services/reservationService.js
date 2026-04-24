@@ -29,6 +29,20 @@ export async function getReservationsByUserId(userId) {
   return apiRequest(`/reservations/user/${userId}`, { method: "GET" });
 }
 
+export async function updateReservation(reservationId, { date, time, partySize, seatingPreference, specialRequest, durationMinutes }) {
+  return apiRequest(`/reservations/${reservationId}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      date,
+      time,
+      party_size: partySize,
+      seating_preference: seatingPreference || null,
+      special_request: specialRequest || null,
+      duration_minutes: durationMinutes || 120,
+    }),
+  });
+}
+
 export async function cancelReservation(reservationId) {
   return apiRequest(`/reservations/${reservationId}`, {
     method: "DELETE",
@@ -45,7 +59,7 @@ export async function getDisabledReservationSlots({ restaurantId, date }) {
   });
 }
 
-export async function getReservationAvailability({ restaurantId, date, time, partySize, seatingPreference, durationMinutes }) {
+export async function getReservationAvailability({ restaurantId, date, time, partySize, seatingPreference, durationMinutes, reservationId }) {
   const params = new URLSearchParams();
   params.set("restaurant_id", String(restaurantId));
   params.set("date", date);
@@ -53,6 +67,7 @@ export async function getReservationAvailability({ restaurantId, date, time, par
   if (partySize != null) params.set("party_size", String(partySize));
   if (seatingPreference) params.set("seating_preference", String(seatingPreference));
   if (durationMinutes != null) params.set("duration_minutes", String(durationMinutes));
+  if (reservationId != null) params.set("exclude_reservation_id", String(reservationId));
   return apiRequest(`/reservations/availability?${params.toString()}`, {
     method: "GET",
   });

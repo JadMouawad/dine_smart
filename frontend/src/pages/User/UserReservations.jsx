@@ -5,6 +5,7 @@ import { cancelReservation, getReservationsByUserId } from "../../services/reser
 import { getUserEventReservations, cancelUserEventReservation } from "../../services/eventService.js";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
+import EditReservationModal from "../../components/EditReservationModal.jsx";
 import { formatReservationDate, formatReservationTime, toReservationSortTimestamp, toReservationDateTime } from "../../utils/dateUtils";
 
 function toStatusClass(status) {
@@ -31,6 +32,7 @@ export default function UserReservations() {
   const [error, setError] = useState("");
   const [cancellingId, setCancellingId] = useState(null);
   const [confirmReservation, setConfirmReservation] = useState(null);
+  const [editingReservation, setEditingReservation] = useState(null);
   const [confirmEventReservation, setConfirmEventReservation] = useState(null);
   const [cancellingEventId, setCancellingEventId] = useState(null);
   const [clockNow, setClockNow] = useState(() => Date.now());
@@ -171,15 +173,20 @@ export default function UserReservations() {
     }
   }
 
+  function onReservationUpdated(updatedReservation) {
+    setReservations((prev) =>
+      prev.map((r) => (r.id === updatedReservation.id ? { ...r, ...updatedReservation } : r))
+    );
+  }
+
   async function onCancelEventReservation(eventId) {
-    setMessage("");
     setError("");
     setCancellingEventId(eventId);
     try {
       await cancelUserEventReservation(eventId);
       setEventReservations((prev) => prev.filter((reservation) => reservation.event_id !== eventId));
       setConfirmEventReservation(null);
-      setMessage("Event reservation cancelled.");
+      toast.success("Event reservation cancelled.");
     } catch (err) {
       setError(err.message || "We couldn't cancel that event reservation. Please try again.");
     } finally {
@@ -224,6 +231,13 @@ export default function UserReservations() {
                 </div>
                 {["pending", "accepted", "confirmed"].includes(String(reservation.status || "").toLowerCase()) && (
                   <div className="reservationCard__actions">
+                    <button
+                      className="btn btn--secondary"
+                      type="button"
+                      onClick={() => setEditingReservation(reservation)}
+                    >
+                      Edit reservation
+                    </button>
                     <button
                       className="btn btn--ghost"
                       type="button"
@@ -331,6 +345,14 @@ export default function UserReservations() {
           </>
         )}
       </section>
+
+      {editingReservation && (
+        <EditReservationModal
+          reservation={editingReservation}
+          onClose={() => setEditingReservation(null)}
+          onUpdated={onReservationUpdated}
+        />
+      )}
 
       <ConfirmDialog
         open={Boolean(confirmReservation)}
