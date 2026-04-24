@@ -10,6 +10,13 @@ const SEATING_OPTIONS = [
   { value: "indoor", label: "Indoor" },
   { value: "outdoor", label: "Outdoor" },
 ];
+const DURATION_OPTIONS = [
+  { value: "60", label: "1 hour" },
+  { value: "90", label: "1.5 hours" },
+  { value: "120", label: "2 hours (default)" },
+  { value: "150", label: "2.5 hours" },
+  { value: "180", label: "3 hours" },
+];
 const SLOT_STEP_MINUTES = 30;
 const DEFAULT_VISIBLE_TIME_SLOTS = 8;
 
@@ -57,13 +64,14 @@ function toTimeLabel(value) {
   return minutes == null ? value : toLabel(minutes);
 }
 
-function buildTimeOptions(openingTime, closingTime) {
+function buildTimeOptions(openingTime, closingTime, durationMinutes = 120) {
   const openingMinutes = parseTimeToMinutes(openingTime);
   const closingMinutes = parseTimeToMinutes(closingTime);
 
   if (openingMinutes == null || closingMinutes == null) {
     const fallback = [];
     for (let minute = 0; minute <= 23 * 60 + 30; minute += SLOT_STEP_MINUTES) {
+      if (minute + durationMinutes > 24 * 60 + 30) break;
       fallback.push({ value: toTimeValue(minute), label: toLabel(minute), nextDay: false });
     }
     return fallback;
@@ -75,6 +83,7 @@ function buildTimeOptions(openingTime, closingTime) {
 
   const options = [];
   for (let minute = start; minute <= end && options.length < 48; minute += SLOT_STEP_MINUTES) {
+    if (minute + durationMinutes > end) break;
     const nextDay = minute >= (24 * 60);
     const label = toLabel(minute);
     options.push({ value: toTimeValue(minute), label, nextDay });
@@ -112,6 +121,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
   const { user } = useAuth();
   const [date, setDate] = useState(null);
   const [time, setTime] = useState("");
+  const [duration, setDuration] = useState("120");
   const [partySize, setPartySize] = useState("2");
   const [seatingPreference, setSeatingPreference] = useState("");
   const [specialRequest, setSpecialRequest] = useState("");
@@ -154,8 +164,8 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
   }, [bannedUntil]);
 
   const timeOptions = useMemo(
-    () => buildTimeOptions(restaurant?.opening_time ?? restaurant?.openingTime, restaurant?.closing_time ?? restaurant?.closingTime),
-    [restaurant]
+    () => buildTimeOptions(restaurant?.opening_time ?? restaurant?.openingTime, restaurant?.closing_time ?? restaurant?.closingTime, Number(duration) || 120),
+    [restaurant, duration]
   );
   const visibleTimeOptions = useMemo(
     () => (showAllTimes ? timeOptions : timeOptions.slice(0, DEFAULT_VISIBLE_TIME_SLOTS)),
@@ -168,6 +178,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
     setNowMs(Date.now());
     setDate(null);
     setTime("");
+    setDuration("120");
     setPartySize("2");
     setSeatingPreference("");
     setSpecialRequest("");
@@ -195,7 +206,8 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
   useEffect(() => {
     if (!date || !time) return;
     const selectedOption = timeOptions.find((o) => o.value === time);
-    if (!isTimeSlotInPast(date, time, nowMs, selectedOption?.nextDay ?? false)) return;
+    if (!selectedOption) { setTime(""); return; }
+    if (!isTimeSlotInPast(date, time, nowMs, selectedOption.nextDay ?? false)) return;
     setTime("");
   }, [date, time, nowMs, timeOptions]);
 
@@ -258,6 +270,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
       time,
       partySize: Number(partySize) || 2,
       seatingPreference: seatingPreference || null,
+      durationMinutes: Number(duration) || 120,
     })
       .then((info) => {
         if (cancelled) return;
@@ -278,7 +291,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
     return () => {
       cancelled = true;
     };
-  }, [isOpen, partySize, seatingPreference, restaurant?.id, selectedDateValue, time, timeOptions]);
+  }, [isOpen, duration, partySize, seatingPreference, restaurant?.id, selectedDateValue, time, timeOptions]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -304,6 +317,12 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
           ? "Available"
           : "Limited availability";
   const availabilityTimeLabel = time ? toTimeLabel(time) : "";
+  const availabilityEndTimeLabel = useMemo(() => {
+    if (!time) return "";
+    const startMins = parseTimeToMinutes(time);
+    if (startMins == null) return "";
+    return toLabel(startMins + (Number(duration) || 120));
+  }, [time, duration]);
   const preferenceLabel = seatingPreference ? seatingPreference.charAt(0).toUpperCase() + seatingPreference.slice(1) : "";
   const preferenceAvailableSeats = availabilityInfo?.available_seats_preference;
   const preferenceCapacity = availabilityInfo?.preference_capacity;
@@ -395,11 +414,13 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
         partySize: parsedPartySize,
         seatingPreference: seatingPreference || null,
         specialRequest: specialRequest.trim(),
+        durationMinutes: Number(duration) || 120,
       });
       onReserved?.({
         ...reservation,
         reservation_date: effectiveDate,
         reservation_time: `${time}:00`,
+        duration_minutes: Number(duration) || 120,
       });
       setBookingSuccessOpen(true);
     } catch (error) {
@@ -526,6 +547,17 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
         {errors.partySize && <div className="fieldError">{errors.partySize}</div>}
 
         <label className="field">
+          <span>Duration</span>
+          <ThemedSelect
+            value={duration}
+            onChange={(val) => setDuration(String(val))}
+            disabled={isBanned}
+            options={DURATION_OPTIONS}
+            ariaLabel="Select reservation duration"
+          />
+        </label>
+
+        <label className="field">
           <span>Seating Preference (Optional)</span>
           <ThemedSelect
             value={seatingPreference}
@@ -559,7 +591,7 @@ export default function ReservationForm({ isOpen, onClose, restaurant, onReserve
         {availabilityInfo && !availabilityLoading && (
           <div className="reservationAvailability">
             Availability for your selected time
-            {selectedDateLabel && availabilityTimeLabel ? ` (${selectedDateLabel} at ${availabilityTimeLabel})` : ""}
+            {selectedDateLabel && availabilityTimeLabel ? ` (${selectedDateLabel}, ${availabilityTimeLabel}${availabilityEndTimeLabel ? ` – ${availabilityEndTimeLabel}` : ""})` : ""}
             : <strong> {availabilityInfo.available_seats} seats</strong>
             <br />
             Status: <strong>{slotStatusLabel}</strong> | {availabilityInfo.booked_seats} booked / {availabilityInfo.total_capacity} total

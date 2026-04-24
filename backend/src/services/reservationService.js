@@ -46,7 +46,7 @@ const normalizeTime = (value) => {
   return `${hours}:${minutes}:00`;
 };
 
-const isWithinOperatingHours = (reservationTime, openingTime, closingTime) => {
+const isWithinOperatingHours = (reservationTime, openingTime, closingTime, durationMinutes = 0) => {
   const reservationMinutes = parseTimeToMinutes(reservationTime);
   if (reservationMinutes == null) return false;
 
@@ -55,11 +55,15 @@ const isWithinOperatingHours = (reservationTime, openingTime, closingTime) => {
 
   if (openingMinutes == null || closingMinutes == null) return true;
 
+  const endMinutes = reservationMinutes + durationMinutes;
+
   if (openingMinutes <= closingMinutes) {
-    return reservationMinutes >= openingMinutes && reservationMinutes <= closingMinutes;
+    return reservationMinutes >= openingMinutes && endMinutes <= closingMinutes + (24 * 60);
   }
 
-  return reservationMinutes >= openingMinutes || reservationMinutes <= closingMinutes;
+  const adjustedClosing = closingMinutes + (24 * 60);
+  const adjustedReservation = reservationMinutes >= openingMinutes ? reservationMinutes : reservationMinutes + (24 * 60);
+  return adjustedReservation >= openingMinutes && (adjustedReservation + durationMinutes) <= adjustedClosing;
 };
 
 const buildCapacityFromConfig = (tableConfig) => {
@@ -219,6 +223,7 @@ const getSuggestedTimes = async ({
   restaurant,
   totalCapacity,
   seatingPreference = null,
+  durationMinutes = 120,
 }) => {
   const baseMinutes = parseTimeToMinutes(reservationTime);
   if (baseMinutes == null || !restaurant) return [];
@@ -228,7 +233,7 @@ const getSuggestedTimes = async ({
 
   for (const offset of SUGGESTION_OFFSETS) {
     const candidateTime = toTimeValue(baseMinutes + offset);
-    if (!isWithinOperatingHours(candidateTime, restaurant.opening_time, restaurant.closing_time)) {
+    if (!isWithinOperatingHours(candidateTime, restaurant.opening_time, restaurant.closing_time, durationMinutes)) {
       continue;
     }
 
@@ -241,6 +246,7 @@ const getSuggestedTimes = async ({
       reservationTime: candidateTime,
       partySize,
       seatingPreference,
+      durationMinutes,
       restaurantOverride: restaurant,
       totalCapacityOverride: totalCapacity,
     });
@@ -310,6 +316,7 @@ const getSlotAvailability = async ({
   reservationTime,
   partySize = null,
   seatingPreference = null,
+  durationMinutes = 120,
   restaurantOverride = null,
   totalCapacityOverride = null,
   dbClient = db,
@@ -367,7 +374,8 @@ const getSlotAvailability = async ({
     dbClient,
     restaurantId,
     reservationDate,
-    reservationTime
+    reservationTime,
+    durationMinutes
   );
   const bookedSeats = parseInt(bookedResult.rows[0]?.booked_seats, 10) || 0;
   const availableSeats = Math.max(totalCapacity - bookedSeats, 0);
@@ -391,7 +399,8 @@ const getSlotAvailability = async ({
       dbClient,
       restaurantId,
       reservationDate,
-      reservationTime
+      reservationTime,
+      durationMinutes
     );
     bookedSeatsPreference = (slotReservationsResult.rows || []).reduce((sum, reservation) => {
       const reservationPreference = String(reservation.seating_preference || "").toLowerCase();
@@ -415,7 +424,8 @@ const getSlotAvailability = async ({
       dbClient,
       restaurantId,
       reservationDate,
-      reservationTime
+      reservationTime,
+      durationMinutes
     );
     const parties = (slotReservationsResult.rows || [])
       .map((reservation) => parseInt(reservation.party_size, 10))
@@ -561,12 +571,15 @@ const createReservation = async ({
   seatingPreference,
   specialRequest,
   voucherCode,
+  durationMinutes,
 }) => {
   const parsedRestaurantId = parseInt(restaurantId, 10);
   const parsedPartySize = parseInt(partySize, 10);
   const normalizedDate = String(reservationDate || "").trim();
   const normalizedTime = normalizeTime(reservationTime);
   const cleanedSpecialRequest = specialRequest != null ? String(specialRequest).trim() : null;
+  const parsedDuration = parseInt(durationMinutes, 10);
+  const normalizedDuration = (Number.isFinite(parsedDuration) && parsedDuration >= 30 && parsedDuration <= 480) ? parsedDuration : 120;
 
   if (Number.isNaN(parsedRestaurantId)) {
     return { success: false, status: 400, error: "Invalid restaurant ID" };
@@ -693,25 +706,21 @@ const createReservation = async ({
     );
 
     if (activeUserReservationsResult.rows.length > 0 && reservationMinutes != null) {
+      const newEndMinutes = reservationMinutes + normalizedDuration;
       for (const reservation of activeUserReservationsResult.rows) {
         const existingMinutes = parseTimeToMinutes(reservation.reservation_time);
         if (existingMinutes == null) continue;
+        const existingDuration = parseInt(reservation.duration_minutes, 10) || 120;
+        const existingEndMinutes = existingMinutes + existingDuration;
 
-        const diff = Math.abs(reservationMinutes - existingMinutes);
-        if (diff === 0) {
+        const overlaps = reservationMinutes < existingEndMinutes && newEndMinutes > existingMinutes;
+        if (overlaps) {
+          const existingStartLabel = formatTimeForEmail(reservation.reservation_time);
+          const existingEndLabel = formatTimeForEmail(toTimeValue(existingEndMinutes));
           return {
             success: false,
             status: 409,
-            error: "You already have a reservation at this time. Please choose a different time slot.",
-          };
-        }
-
-        if (diff < 120) {
-          const existingLabel = formatTimeForEmail(reservation.reservation_time);
-          return {
-            success: false,
-            status: 409,
-            error: `Please choose a time at least 2 hours apart from your other reservation at ${existingLabel}.`,
+            error: `This overlaps with your existing reservation at ${existingStartLabel}–${existingEndLabel}. Please choose a different time.`,
           };
         }
       }
@@ -723,6 +732,7 @@ const createReservation = async ({
       reservationTime: normalizedTime,
       partySize: parsedPartySize,
       seatingPreference: normalizedSeating,
+      durationMinutes: normalizedDuration,
       dbClient: client,
     });
 
@@ -738,6 +748,7 @@ const createReservation = async ({
         partySize: parsedPartySize,
         restaurant: availability.restaurant,
         totalCapacity: availability.totalCapacity,
+        durationMinutes: normalizedDuration,
       });
       return {
         success: false,
@@ -749,7 +760,7 @@ const createReservation = async ({
       };
     }
 
-    if (!isWithinOperatingHours(normalizedTime, availability.restaurant.opening_time, availability.restaurant.closing_time)) {
+    if (!isWithinOperatingHours(normalizedTime, availability.restaurant.opening_time, availability.restaurant.closing_time, normalizedDuration)) {
       return { success: false, status: 400, error: "Reservation time is outside restaurant operating hours" };
     }
 
@@ -811,6 +822,7 @@ const createReservation = async ({
           confirmationId,
           voucherId: appliedVoucher?.id ?? null,
           discountPercentage: appliedVoucher?.discount_percentage ?? null,
+          durationMinutes: normalizedDuration,
         });
         createdReservation = insertResult.rows[0];
         break;
@@ -1049,12 +1061,17 @@ const updateReservationStatusForOwner = async ({ reservationId, ownerId, action 
       }
 
       if (user?.email) {
+        const durationMins = parseInt(updated.duration_minutes, 10) || 120;
+        const startMins = parseTimeToMinutes(reservationTime);
+        const endTimeLabel = startMins != null ? formatTimeForEmail(toTimeValue(startMins + durationMins)) : null;
         await sendReservationConfirmationEmail({
           to: user.email,
           userName: user.full_name || "Guest",
           restaurantName: restaurantName || "the restaurant",
           reservationDate: formatDateForEmail(reservationDate),
           reservationTime: formatTimeForEmail(reservationTime),
+          reservationEndTime: endTimeLabel,
+          durationMinutes: durationMins,
           partySize,
           confirmationId,
           seatingPreference,
@@ -1274,11 +1291,13 @@ const upsertSlotAdjustmentForOwner = async ({
   return { success: true, status: 200, adjustment: saved };
 };
 
-const getAvailability = async ({ restaurantId, reservationDate, reservationTime, partySize = null, seatingPreference = null }) => {
+const getAvailability = async ({ restaurantId, reservationDate, reservationTime, partySize = null, seatingPreference = null, durationMinutes = null }) => {
   const parsedRestaurantId = parseInt(restaurantId, 10);
   const normalizedDate = String(reservationDate || "").trim();
   const normalizedTime = normalizeTime(reservationTime);
   const parsedPartySize = partySize != null ? parseInt(partySize, 10) : 2;
+  const parsedDuration = parseInt(durationMinutes, 10);
+  const normalizedDuration = (Number.isFinite(parsedDuration) && parsedDuration >= 30) ? parsedDuration : 120;
 
   if (Number.isNaN(parsedRestaurantId)) {
     return { success: false, status: 400, error: "Invalid restaurant ID" };
@@ -1308,6 +1327,7 @@ const getAvailability = async ({ restaurantId, reservationDate, reservationTime,
     reservationTime: normalizedTime,
     partySize: parsedPartySize,
     seatingPreference: normalizedSeating,
+    durationMinutes: normalizedDuration,
   });
 
   if (!availability.success) {
@@ -1322,7 +1342,8 @@ const getAvailability = async ({ restaurantId, reservationDate, reservationTime,
   const withinOperatingHours = isWithinOperatingHours(
   normalizedTime,
   availability.restaurant.opening_time,
-  availability.restaurant.closing_time
+  availability.restaurant.closing_time,
+  normalizedDuration
 );
 
 const availableSeatsForRequest =
@@ -1346,6 +1367,7 @@ const suggestedTimes = shouldSuggest
       restaurant: availability.restaurant,
       totalCapacity: availability.totalCapacity,
       seatingPreference: normalizedSeating,
+      durationMinutes: normalizedDuration,
     })
   : [];
 
@@ -1356,6 +1378,7 @@ return {
     restaurant_id: parsedRestaurantId,
     reservation_date: normalizedDate,
     reservation_time: normalizedTime,
+    duration_minutes: normalizedDuration,
     requested_seating_preference: normalizedSeating,
     total_capacity: availability.totalCapacity,
     total_adjustment: availability.totalAdjustment ?? 0,

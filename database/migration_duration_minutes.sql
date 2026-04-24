@@ -1,0 +1,2 @@
+ALTER TABLE reservations
+  ADD COLUMN IF NOT EXISTS duration_minutes INTEGER NOT NULL DEFAULT 120;

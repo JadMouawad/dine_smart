@@ -14,6 +14,7 @@ const createReservation = async (req, res) => {
       seatingPreference: req.body.seating_preference,
       specialRequest: req.body.special_request,
       voucherCode: req.body.voucher_code || req.body.voucherCode,
+      durationMinutes: req.body.duration_minutes,
     });
 
     if (!result.success) {
@@ -130,6 +131,7 @@ const getAvailability = async (req, res) => {
       reservationTime: req.query.time,
       partySize: req.query.party_size,
       seatingPreference: req.query.seating_preference,
+      durationMinutes: req.query.duration_minutes,
     });
 
     if (!result.success) {

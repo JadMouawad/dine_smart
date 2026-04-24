@@ -79,3 +79,20 @@ export function toReservationSortTimestamp(reservation, fallback) {
   if (!date || Number.isNaN(date.getTime())) return fallback;
   return date.getTime();
 }
+
+export function toReservationEndDateTime(reservation) {
+  const start = toReservationDateTime(reservation);
+  if (!start || Number.isNaN(start.getTime())) return null;
+  const duration = parseInt(reservation.duration_minutes, 10) || 120;
+  return new Date(start.getTime() + duration * 60 * 1000);
+}
+
+export function formatReservationWindow(reservation) {
+  const start = toReservationDateTime(reservation);
+  if (!start || Number.isNaN(start.getTime())) return formatReservationTime(reservation);
+  const end = toReservationEndDateTime(reservation);
+  const startLabel = start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (!end) return startLabel;
+  const endLabel = end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return `${startLabel} – ${endLabel}`;
+}

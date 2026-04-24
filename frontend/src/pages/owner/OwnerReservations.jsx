@@ -28,7 +28,11 @@ function toDateTimeValue(reservation) {
 function formatDateTime(reservation) {
   const date = toDateTimeValue(reservation);
   if (!date) return `${reservation.reservation_date} ${String(reservation.reservation_time || "").slice(0, 5)}`;
-  return `${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  const startLabel = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const duration = parseInt(reservation.duration_minutes, 10) || 120;
+  const endDate = new Date(date.getTime() + duration * 60 * 1000);
+  const endLabel = endDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return `${date.toLocaleDateString()} · ${startLabel} – ${endLabel}`;
 }
 
 function toStatusClass(status) {

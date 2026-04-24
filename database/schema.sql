@@ -172,6 +172,7 @@ CREATE TABLE IF NOT EXISTS reservations (
   confirmation_id VARCHAR(20) UNIQUE,
   voucher_id INTEGER REFERENCES vouchers(id) ON DELETE SET NULL,
   discount_percentage SMALLINT,
+  duration_minutes INTEGER NOT NULL DEFAULT 120,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT reservations_status_check CHECK (status IN ('pending', 'accepted', 'rejected', 'cancelled', 'no-show', 'completed', 'confirmed'))

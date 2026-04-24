@@ -8,6 +8,7 @@ export async function createReservation({
   seatingPreference,
   specialRequest,
   voucherCode,
+  durationMinutes,
 }) {
   return apiRequest("/reservations", {
     method: "POST",
@@ -19,6 +20,7 @@ export async function createReservation({
       seating_preference: seatingPreference || null,
       special_request: specialRequest || null,
       voucher_code: voucherCode || null,
+      duration_minutes: durationMinutes || 120,
     }),
   });
 }
@@ -43,13 +45,14 @@ export async function getDisabledReservationSlots({ restaurantId, date }) {
   });
 }
 
-export async function getReservationAvailability({ restaurantId, date, time, partySize, seatingPreference }) {
+export async function getReservationAvailability({ restaurantId, date, time, partySize, seatingPreference, durationMinutes }) {
   const params = new URLSearchParams();
   params.set("restaurant_id", String(restaurantId));
   params.set("date", date);
   params.set("time", time);
   if (partySize != null) params.set("party_size", String(partySize));
   if (seatingPreference) params.set("seating_preference", String(seatingPreference));
+  if (durationMinutes != null) params.set("duration_minutes", String(durationMinutes));
   return apiRequest(`/reservations/availability?${params.toString()}`, {
     method: "GET",
   });

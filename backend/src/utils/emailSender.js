@@ -91,6 +91,8 @@ const sendReservationConfirmationEmail = async ({
   restaurantName,
   reservationDate,
   reservationTime,
+  reservationEndTime,
+  durationMinutes,
   partySize,
   confirmationId,
   seatingPreference,
@@ -99,6 +101,8 @@ const sendReservationConfirmationEmail = async ({
   const safeRestaurant = restaurantName || "N/A";
   const safeDate = reservationDate || "N/A";
   const safeTime = reservationTime || "N/A";
+  const timeLabel = reservationEndTime ? `${safeTime} – ${reservationEndTime}` : safeTime;
+  const durationLabel = durationMinutes ? ` (${durationMinutes >= 60 ? `${durationMinutes / 60}h` : `${durationMinutes}min`})` : "";
   const safePartySize = partySize != null ? partySize : "N/A";
   const safeConfirmationId = confirmationId || "N/A";
   const seatingLine = seatingPreference ? `<p><strong>Seating:</strong> ${seatingPreference}</p>` : "";
@@ -112,7 +116,7 @@ const sendReservationConfirmationEmail = async ({
     `Confirmation ID: ${safeConfirmationId}\n` +
     `Restaurant: ${safeRestaurant}\n` +
     `Date: ${safeDate}\n` +
-    `Time: ${safeTime}\n` +
+    `Time: ${timeLabel}${durationLabel}\n` +
     `Party size: ${safePartySize}\n`;
 
   const html = `
@@ -140,7 +144,7 @@ const sendReservationConfirmationEmail = async ({
           <strong>Date:</strong> ${safeDate}
         </p>
         <p style="margin:0 0 10px; font-size:16px;">
-          <strong>Time:</strong> ${safeTime}
+          <strong>Time:</strong> ${timeLabel}${durationLabel}
         </p>
         <p style="margin:0; font-size:16px;">
           <strong>Party size:</strong> ${safePartySize}

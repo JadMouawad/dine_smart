@@ -27,16 +27,17 @@ async function getTableConfigByRestaurantId(db, restaurantId) {
   return db.query(query, [restaurantId]);
 }
 
-async function getBookedSeatsForSlot(db, restaurantId, reservationDate, reservationTime) {
+async function getBookedSeatsForSlot(db, restaurantId, reservationDate, reservationTime, durationMinutes = 120) {
   const query = `
     SELECT COALESCE(SUM(party_size), 0) AS booked_seats
     FROM reservations
     WHERE restaurant_id = $1
       AND reservation_date = $2
-      AND reservation_time = $3
-      AND status IN ('pending', 'accepted', 'confirmed');
+      AND status IN ('pending', 'accepted', 'confirmed')
+      AND reservation_time < ($3::time + ($4 * interval '1 minute'))
+      AND (reservation_time + (duration_minutes * interval '1 minute')) > $3::time;
   `;
-  return db.query(query, [restaurantId, reservationDate, reservationTime]);
+  return db.query(query, [restaurantId, reservationDate, reservationTime, durationMinutes]);
 }
 
 async function createReservation(db, data) {
@@ -52,6 +53,7 @@ async function createReservation(db, data) {
     status,
     voucherId,
     discountPercentage,
+    durationMinutes,
   } = data;
 
   const query = `
@@ -66,12 +68,13 @@ async function createReservation(db, data) {
       status,
       confirmation_id,
       voucher_id,
-      discount_percentage
+      discount_percentage,
+      duration_minutes
     )
     VALUES
-      ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     RETURNING id, user_id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time, party_size,
-              seating_preference, special_request, status, confirmation_id, voucher_id, discount_percentage, created_at, updated_at;
+              seating_preference, special_request, status, confirmation_id, voucher_id, discount_percentage, duration_minutes, created_at, updated_at;
   `;
 
   return db.query(query, [
@@ -86,13 +89,14 @@ async function createReservation(db, data) {
     confirmationId,
     voucherId || null,
     discountPercentage || null,
+    durationMinutes || 120,
   ]);
 }
 
 async function getReservationById(db, reservationId) {
   const query = `
     SELECT id, user_id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time, party_size,
-           seating_preference, special_request, status, confirmation_id, created_at, updated_at
+           seating_preference, special_request, status, confirmation_id, duration_minutes, created_at, updated_at
     FROM reservations
     WHERE id = $1;
   `;
@@ -102,7 +106,7 @@ async function getReservationById(db, reservationId) {
 async function getUserReservations(db, userId) {
   const query = `
     SELECT r.id, r.user_id, r.restaurant_id, r.reservation_date::text AS reservation_date, r.reservation_time::text AS reservation_time, r.party_size,
-           r.seating_preference, r.special_request, r.status, r.confirmation_id, r.created_at, r.updated_at,
+           r.seating_preference, r.special_request, r.status, r.confirmation_id, r.duration_minutes, r.created_at, r.updated_at,
            rest.name AS restaurant_name, rest.address AS restaurant_address
     FROM reservations r
     JOIN restaurants rest ON rest.id = r.restaurant_id
@@ -115,7 +119,7 @@ async function getUserReservations(db, userId) {
 async function getMostRecentReservationByUser(db, userId) {
   const query = `
     SELECT id, user_id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time,
-           party_size, status, created_at
+           party_size, status, duration_minutes, created_at
     FROM reservations
     WHERE user_id = $1
     ORDER BY created_at DESC
@@ -126,7 +130,7 @@ async function getMostRecentReservationByUser(db, userId) {
 
 async function getActiveUserReservationsForDate(db, userId, reservationDate) {
   const query = `
-    SELECT r.id, r.restaurant_id, r.reservation_time::text AS reservation_time, r.status
+    SELECT r.id, r.restaurant_id, r.reservation_time::text AS reservation_time, r.duration_minutes, r.status
     FROM reservations r
     WHERE r.user_id = $1
       AND r.reservation_date = $2
@@ -143,7 +147,7 @@ async function cancelReservation(db, reservationId) {
     WHERE id = $1
       AND status IN ('pending', 'accepted', 'confirmed')
     RETURNING id, user_id, restaurant_id, reservation_date::text AS reservation_date, reservation_time::text AS reservation_time, party_size,
-              seating_preference, special_request, status, confirmation_id, created_at, updated_at;
+              seating_preference, special_request, status, confirmation_id, duration_minutes, created_at, updated_at;
   `;
   return db.query(query, [reservationId]);
 }
@@ -151,7 +155,7 @@ async function cancelReservation(db, reservationId) {
 async function getOwnerReservations(db, ownerId) {
   const query = `
     SELECT r.id, r.user_id, r.restaurant_id, r.reservation_date::text AS reservation_date, r.reservation_time::text AS reservation_time,
-           r.party_size, r.seating_preference, r.special_request, r.status, r.confirmation_id, r.created_at, r.updated_at,
+           r.party_size, r.seating_preference, r.special_request, r.status, r.confirmation_id, r.duration_minutes, r.created_at, r.updated_at,
            rest.name AS restaurant_name, rest.address AS restaurant_address,
            u.full_name AS customer_name, u.email AS customer_email
     FROM reservations r
@@ -166,7 +170,7 @@ async function getOwnerReservations(db, ownerId) {
 async function getOwnerReservationById(db, { reservationId, ownerId }) {
   const query = `
     SELECT r.id, r.user_id, r.restaurant_id, r.reservation_date::text AS reservation_date, r.reservation_time::text AS reservation_time,
-           r.party_size, r.seating_preference, r.special_request, r.status, r.confirmation_id, r.created_at, r.updated_at,
+           r.party_size, r.seating_preference, r.special_request, r.status, r.confirmation_id, r.duration_minutes, r.created_at, r.updated_at,
            rest.name AS restaurant_name, rest.address AS restaurant_address,
            u.full_name AS customer_name, u.email AS customer_email
     FROM reservations r
@@ -189,7 +193,7 @@ async function updateOwnerReservationStatus(db, { reservationId, ownerId, status
         AND r.restaurant_id = rest.id
         AND rest.owner_id = $2
       RETURNING r.id, r.user_id, r.restaurant_id, r.reservation_date::text AS reservation_date, r.reservation_time::text AS reservation_time,
-                r.party_size, r.seating_preference, r.special_request, r.status, r.confirmation_id, r.created_at, r.updated_at
+                r.party_size, r.seating_preference, r.special_request, r.status, r.confirmation_id, r.duration_minutes, r.created_at, r.updated_at
     )
     SELECT updated.*,
            rest.name AS restaurant_name, rest.address AS restaurant_address,
@@ -209,21 +213,22 @@ async function deleteOwnerReservationById(db, { reservationId, ownerId }) {
       AND r.restaurant_id = rest.id
       AND rest.owner_id = $2
     RETURNING r.id, r.user_id, r.restaurant_id, r.reservation_date::text AS reservation_date, r.reservation_time::text AS reservation_time,
-              r.party_size, r.seating_preference, r.special_request, r.status, r.confirmation_id, r.created_at, r.updated_at;
+              r.party_size, r.seating_preference, r.special_request, r.status, r.confirmation_id, r.duration_minutes, r.created_at, r.updated_at;
   `;
   return db.query(query, [reservationId, ownerId]);
 }
 
-async function getReservationsForSlot(db, restaurantId, reservationDate, reservationTime) {
+async function getReservationsForSlot(db, restaurantId, reservationDate, reservationTime, durationMinutes = 120) {
   const query = `
-    SELECT party_size, seating_preference
+    SELECT party_size, seating_preference, duration_minutes
     FROM reservations
     WHERE restaurant_id = $1
       AND reservation_date = $2
-      AND reservation_time = $3
-      AND status IN ('pending', 'accepted', 'confirmed');
+      AND status IN ('pending', 'accepted', 'confirmed')
+      AND reservation_time < ($3::time + ($4 * interval '1 minute'))
+      AND (reservation_time + (duration_minutes * interval '1 minute')) > $3::time;
   `;
-  return db.query(query, [restaurantId, reservationDate, reservationTime]);
+  return db.query(query, [restaurantId, reservationDate, reservationTime, durationMinutes]);
 }
 
 async function getSlotAdjustments(db, restaurantId, reservationDate, reservationTime) {
