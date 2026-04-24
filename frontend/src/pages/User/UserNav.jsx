@@ -13,6 +13,7 @@ const NAV_TABS = [
 export default function UserNav({
   active,
   onChange,
+  onTabIntent,
   avatarSrc,
   user,
   onLogout,
@@ -33,6 +34,14 @@ export default function UserNav({
 
   function tabClass(tab) {
     return tab === active ? "is-active" : "";
+  }
+
+  function attachTabIntent(tabId) {
+    return {
+      onMouseEnter: () => onTabIntent?.(tabId),
+      onFocus: () => onTabIntent?.(tabId),
+      onTouchStart: () => onTabIntent?.(tabId),
+    };
   }
 
   return (
@@ -66,6 +75,7 @@ export default function UserNav({
                   key={id}
                   type="button"
                   className={`userMobileMenu__link${active === id ? " is-active" : ""}`}
+                  {...attachTabIntent(id)}
                   onClick={() => {
                     onChange(id);
                     setMobileOpen(false);
@@ -104,6 +114,7 @@ export default function UserNav({
             <button
               type="button"
               className={tabClass("search")}
+              {...attachTabIntent("search")}
               onClick={() => onChange("search")}
             >
               Search
@@ -112,6 +123,7 @@ export default function UserNav({
             <button
               type="button"
               className={tabClass("discover")}
+              {...attachTabIntent("discover")}
               onClick={() => onChange("discover")}
             >
               Events
@@ -123,6 +135,7 @@ export default function UserNav({
             <button
               type="button"
               className={tabClass("explore")}
+              {...attachTabIntent("explore")}
               onClick={() => onChange("explore")}
             >
               Explore
@@ -131,6 +144,7 @@ export default function UserNav({
             <button
               type="button"
               className={tabClass("reservations")}
+              {...attachTabIntent("reservations")}
               onClick={() => onChange("reservations")}
             >
               Reservations

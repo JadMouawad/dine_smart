@@ -1,17 +1,16 @@
-import React, { Suspense, lazy, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import UserNav from "./UserNav.jsx";
+import UserSearch from "./UserSearch.jsx";
+import UserProfile from "./UserProfile.jsx";
+import UserReservations from "./UserReservations.jsx";
+import UserDiscover from "./UserDiscover.jsx";
+import UserExplore from "./UserExplore.jsx";
 import { getProfile } from "../../services/profileService.js";
 import { getPublicEvents } from "../../services/restaurantService.js";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import ChatWidget from "../../components/ChatWidget.jsx";
-
-const UserSearch = lazy(() => import("./UserSearch.jsx"));
-const UserProfile = lazy(() => import("./UserProfile.jsx"));
-const UserReservations = lazy(() => import("./UserReservations.jsx"));
-const UserDiscover = lazy(() => import("./UserDiscover.jsx"));
-const UserExplore = lazy(() => import("./UserExplore.jsx"));
 
 const USER_SEEN_EVENT_IDS_KEY = "ds-user-seen-event-ids";
 
@@ -21,6 +20,12 @@ function normalizeEventId(eventItem) {
 
 export default function UserShell({ initialActive = "search" }) {
   const [active, setActive] = useState(initialActive);
+  const [openedTabs, setOpenedTabs] = useState(() => ({
+    search: initialActive === "search",
+    discover: initialActive === "discover",
+    reservations: initialActive === "reservations",
+    profile: initialActive === "profile",
+  }));
   const [restaurantToOpen, setRestaurantToOpen] = useState(null);
   const [chatCommand, setChatCommand] = useState(null);
   const [userAvatarUrl, setUserAvatarUrl] = useState("");
@@ -33,6 +38,14 @@ export default function UserShell({ initialActive = "search" }) {
   useEffect(() => {
     setActive(initialActive);
   }, [initialActive]);
+
+  useEffect(() => {
+    if (!["search", "discover", "reservations", "profile"].includes(active)) return;
+    setOpenedTabs((prev) => {
+      if (prev[active]) return prev;
+      return { ...prev, [active]: true };
+    });
+  }, [active]);
 
   useEffect(() => {
     if (!loading && (!user || user.role !== "user")) {
@@ -180,14 +193,8 @@ export default function UserShell({ initialActive = "search" }) {
       />
 
       <main className="userArea__main">
-        <Suspense
-          fallback={
-            <div className="placeholderPage">
-              <h1 className="placeholderPage__title">Loading section...</h1>
-            </div>
-          }
-        >
-          {active === "profile" && (
+        {openedTabs.profile && (
+          <div style={{ display: active === "profile" ? "block" : "none" }}>
             <UserProfile
               onAvatarPreviewChange={setUserAvatarUrl}
               onOpenRestaurant={(restaurant) => {
@@ -195,50 +202,60 @@ export default function UserShell({ initialActive = "search" }) {
                 setActive("search");
               }}
             />
-          )}
+          </div>
+        )}
 
-          {active === "search" && (
+        {openedTabs.search && (
+          <div style={{ display: active === "search" ? "block" : "none" }}>
             <UserSearch
               restaurantToOpen={restaurantToOpen}
               clearRestaurantToOpen={() => setRestaurantToOpen(null)}
               chatCommand={chatCommand}
               clearChatCommand={() => setChatCommand(null)}
             />
-          )}
+          </div>
+        )}
 
-          {active === "discover" && (
+        {openedTabs.discover && (
+          <div style={{ display: active === "discover" ? "block" : "none" }}>
             <UserDiscover
               onOpenRestaurant={(restaurant) => {
                 setRestaurantToOpen(restaurant);
                 setActive("search");
               }}
             />
+          </div>
+        )}
+
+        {active === "explore" && (
+          <div>
+          <UserExplore
+            onOpenRestaurant={(restaurant) => {
+              setRestaurantToOpen(restaurant);
+              setActive("search");
+            }}
+          />
+          </div>
+        )}
+
+        {openedTabs.reservations && (
+          <div style={{ display: active === "reservations" ? "block" : "none" }}>
+            <UserReservations />
+          </div>
+        )}
+
+        {active !== "profile" &&
+          active !== "search" &&
+          active !== "reservations" &&
+          active !== "discover" &&
+          active !== "explore" && (
+            <div className="placeholderPage">
+              <h1 className="placeholderPage__title">
+                {active.charAt(0).toUpperCase() + active.slice(1)}
+              </h1>
+              <p className="placeholderPage__text">This page will be built next.</p>
+            </div>
           )}
-
-          {active === "explore" && (
-            <UserExplore
-              onOpenRestaurant={(restaurant) => {
-                setRestaurantToOpen(restaurant);
-                setActive("search");
-              }}
-            />
-          )}
-
-          {active === "reservations" && <UserReservations />}
-
-          {active !== "profile" &&
-            active !== "search" &&
-            active !== "reservations" &&
-            active !== "discover" &&
-            active !== "explore" && (
-              <div className="placeholderPage">
-                <h1 className="placeholderPage__title">
-                  {active.charAt(0).toUpperCase() + active.slice(1)}
-                </h1>
-                <p className="placeholderPage__text">This page will be built next.</p>
-              </div>
-            )}
-        </Suspense>
       </main>
 
       <ConfirmDialog
