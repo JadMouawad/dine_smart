@@ -138,6 +138,8 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
   const [documentPreviewUrls, setDocumentPreviewUrls] = useState({});
   const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState("");
   const normalizeDeleteText = (value) => String(value || "")
     .trim()
     .replace(/^[\s"'“”]+|[\s"'“”]+$/g, "")
@@ -483,20 +485,45 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     return parsed.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
   }
 
+  function openDeleteModal() {
+    setDeleteAccountError("");
+    setDeleteConfirmationText("");
+    setShowDeleteModal(true);
+  }
+
+  function closeDeleteModal() {
+    if (deletingAccount) return;
+    setShowDeleteModal(false);
+    setDeleteAccountError("");
+  }
+
+  useEffect(() => {
+    if (!showDeleteModal || deletingAccount) return undefined;
+    function onKeyDown(event) {
+      if (event.key === "Escape") {
+        closeDeleteModal();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showDeleteModal, deletingAccount]);
+
   async function handleDeleteAccount() {
     if (deletingAccount) return;
     if (!isDeleteConfirmed) {
-      alert(`Please type ${ACCOUNT_DELETE_TEXT} to confirm.`);
+      setDeleteAccountError(`Please type ${ACCOUNT_DELETE_TEXT} to confirm.`);
       return;
     }
 
     setDeletingAccount(true);
+    setDeleteAccountError("");
     try {
       await deleteProfileAccount(deleteConfirmationText.trim());
+      setShowDeleteModal(false);
       logout();
       navigate("/");
     } catch (deleteError) {
-      alert(deleteError.message || "Failed to delete account.");
+      setDeleteAccountError(deleteError.message || "Failed to delete account.");
     } finally {
       setDeletingAccount(false);
     }
@@ -553,7 +580,17 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
 
       <div className="userProfileLayout ownerProfileLayout">
         <form className="formCard formCard--userProfile userProfileFormCard ownerProfileFormCard" onSubmit={onSubmit}>
-          <div className="formCard__title">Restaurant Settings</div>
+          <div className="ownerProfileSettingsHeader">
+            <div className="formCard__title">Restaurant Settings</div>
+            <button
+              type="button"
+              className="btn btn--ghost ownerDangerTriggerBtn"
+              onClick={openDeleteModal}
+              disabled={deletingAccount}
+            >
+              Delete Account
+            </button>
+          </div>
 
           <label className="field">
             <span>Restaurant name</span>
@@ -858,22 +895,40 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          <section className="formCard formCard--userProfile profileExtraCard ownerDangerCard">
-            <div className="formCard__title ownerDangerCard__title">Delete Account</div>
-            <div className="profileExtraCard__content">
-              <p className="userProfileFormHint ownerDangerCard__hint">
-                This permanently deletes your owner account and owned restaurant data.
-              </p>
-              <label className="field" style={{ marginTop: 6 }}>
-                <span>Type "{ACCOUNT_DELETE_TEXT}" to confirm</span>
-                <input
-                  type="text"
-                  value={deleteConfirmationText}
-                  onChange={(event) => setDeleteConfirmationText(event.target.value)}
-                  placeholder={ACCOUNT_DELETE_TEXT}
-                />
-              </label>
+      {showDeleteModal && (
+        <div className="modal is-open" role="dialog" aria-modal="true" aria-labelledby="owner-delete-modal-title">
+          <div className="modal__backdrop" onClick={closeDeleteModal} />
+          <div className="modal__panel confirmDialog ownerDeleteModal">
+            <h3 id="owner-delete-modal-title" className="confirmDialog__title ownerDangerCard__title">Delete Account</h3>
+            <p className="confirmDialog__message ownerDeleteModal__message">
+              This permanently deletes your owner account and owned restaurant data.
+            </p>
+            <label className="field ownerDeleteModal__field">
+              <span>Type "{ACCOUNT_DELETE_TEXT}" to confirm</span>
+              <input
+                type="text"
+                value={deleteConfirmationText}
+                onChange={(event) => {
+                  setDeleteConfirmationText(event.target.value);
+                  if (deleteAccountError) setDeleteAccountError("");
+                }}
+                placeholder={ACCOUNT_DELETE_TEXT}
+                autoFocus
+              />
+            </label>
+            {deleteAccountError && <div className="ownerDeleteModal__error">{deleteAccountError}</div>}
+            <div className="confirmDialog__actions">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={closeDeleteModal}
+                disabled={deletingAccount}
+              >
+                Cancel
+              </button>
               <button
                 type="button"
                 className="btn btn--ghost ownerDangerCard__btn"
@@ -883,9 +938,9 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                 {deletingAccount ? "Deleting..." : "Delete Account"}
               </button>
             </div>
-          </section>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

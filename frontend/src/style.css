@@ -7100,6 +7100,59 @@ margin: 0 auto;
   gap: 16px;
 }
 
+.ownerProfileSettingsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ownerProfileSettingsHeader .formCard__title {
+  margin-bottom: 0;
+}
+
+.ownerDangerTriggerBtn {
+  border-color: rgba(239, 68, 68, 0.62) !important;
+  color: #ffdcdc !important;
+  background: rgba(239, 68, 68, 0.2);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2) inset;
+  white-space: nowrap;
+}
+
+.ownerDangerTriggerBtn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.35);
+}
+
+.ownerDeleteModal__message {
+  margin-bottom: 12px;
+}
+
+.ownerDeleteModal__field {
+  margin-top: 4px;
+}
+
+.ownerDeleteModal__error {
+  margin-top: 10px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fecaca;
+  font-size: 14px;
+}
+
+.ownerDeleteModal .confirmDialog__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.ownerDeleteModal .confirmDialog__actions .btn {
+  width: 100%;
+  min-height: 42px;
+  justify-content: center;
+}
+
 .ownerProfileMediaCard .ownerProfileGrid__media {
   gap: 16px;
 }
@@ -7194,6 +7247,22 @@ margin: 0 auto;
   background: linear-gradient(135deg, rgba(254, 202, 202, 0.88), rgba(252, 165, 165, 0.9));
   border-color: rgba(248, 113, 113, 0.75) !important;
   color: rgba(127, 29, 29, 0.75) !important;
+}
+
+[data-theme="light"] .ownerDangerTriggerBtn {
+  border-color: rgba(220, 38, 38, 0.62) !important;
+  color: #991b1b !important;
+  background: rgba(254, 226, 226, 0.95);
+}
+
+[data-theme="light"] .ownerDangerTriggerBtn:hover:not(:disabled) {
+  background: rgba(254, 202, 202, 1);
+}
+
+[data-theme="light"] .ownerDeleteModal__error {
+  color: #7f1d1d;
+  background: rgba(254, 226, 226, 0.95);
+  border-color: rgba(220, 38, 38, 0.35);
 }
 
 .ownerProfileSummaryList {
