@@ -852,40 +852,34 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
               </div>
             </div>
           </div>
+
+          <section className="formCard formCard--userProfile profileExtraCard ownerDangerCard">
+            <div className="formCard__title ownerDangerCard__title">Delete Account</div>
+            <div className="profileExtraCard__content">
+              <p className="userProfileFormHint ownerDangerCard__hint">
+                This permanently deletes your owner account and owned restaurant data.
+              </p>
+              <label className="field" style={{ marginTop: 6 }}>
+                <span>Type "{ACCOUNT_DELETE_TEXT}" to confirm</span>
+                <input
+                  type="text"
+                  value={deleteConfirmationText}
+                  onChange={(event) => setDeleteConfirmationText(event.target.value)}
+                  placeholder={ACCOUNT_DELETE_TEXT}
+                />
+              </label>
+              <button
+                type="button"
+                className="btn btn--ghost ownerDangerCard__btn"
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount || deleteConfirmationText.trim() !== ACCOUNT_DELETE_TEXT}
+              >
+                {deletingAccount ? "Deleting..." : "Delete Account"}
+              </button>
+            </div>
+          </section>
         </div>
       </div>
-
-      <section
-        className="formCard ownerProfileViewCard"
-        style={{ marginTop: 16, borderColor: "rgba(229, 62, 62, 0.55)" }}
-      >
-        <div className="formCard__title" style={{ color: "#e53e3e" }}>Delete Account</div>
-        <p className="userProfileFormHint">
-          This permanently deletes your owner account and owned restaurant data.
-        </p>
-        <label className="field" style={{ marginTop: 10 }}>
-          <span>Type "{ACCOUNT_DELETE_TEXT}" to confirm</span>
-          <input
-            type="text"
-            value={deleteConfirmationText}
-            onChange={(event) => setDeleteConfirmationText(event.target.value)}
-            placeholder={ACCOUNT_DELETE_TEXT}
-          />
-        </label>
-        <button
-          type="button"
-          className="btn btn--ghost"
-          onClick={handleDeleteAccount}
-          disabled={deletingAccount || deleteConfirmationText.trim() !== ACCOUNT_DELETE_TEXT}
-          style={{
-            borderColor: "#e53e3e",
-            color: "#e53e3e",
-            marginTop: 8,
-          }}
-        >
-          {deletingAccount ? "Deleting..." : "Delete Account"}
-        </button>
-      </section>
     </div>
   );
 }

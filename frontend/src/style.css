@@ -7104,6 +7104,98 @@ margin: 0 auto;
   gap: 16px;
 }
 
+.ownerDangerCard {
+  border: 1px solid rgba(239, 68, 68, 0.62);
+  background:
+    linear-gradient(135deg, rgba(239, 68, 68, 0.14), rgba(239, 68, 68, 0.04)),
+    rgba(255, 255, 255, 0.02);
+  box-shadow:
+    0 0 0 1px rgba(239, 68, 68, 0.20) inset,
+    0 10px 26px rgba(120, 20, 20, 0.25);
+}
+
+.ownerDangerCard__title {
+  color: #ff7b7b;
+  text-shadow: 0 0 14px rgba(239, 68, 68, 0.35);
+}
+
+.ownerDangerCard__hint {
+  margin: 2px 0 0;
+  color: rgba(255, 210, 210, 0.9);
+}
+
+.ownerDangerCard__btn {
+  margin-top: 8px;
+  border-color: rgba(239, 68, 68, 0.85) !important;
+  color: #ffdcdc !important;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.45), rgba(185, 28, 28, 0.55));
+  box-shadow:
+    0 0 0 1px rgba(255, 140, 140, 0.25) inset,
+    0 8px 18px rgba(127, 29, 29, 0.35);
+}
+
+.ownerDangerCard__btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(248, 113, 113, 0.58), rgba(220, 38, 38, 0.66));
+  transform: translateY(-1px);
+}
+
+.ownerDangerCard__btn:disabled {
+  opacity: 0.55;
+}
+
+[data-theme="light"] .ownerDangerCard {
+  border: 1px solid rgba(220, 38, 38, 0.42);
+  background:
+    linear-gradient(135deg, rgba(254, 202, 202, 0.34), rgba(254, 242, 242, 0.96)),
+    rgba(255, 255, 255, 0.98);
+  box-shadow:
+    0 0 0 1px rgba(220, 38, 38, 0.14) inset,
+    0 10px 24px rgba(185, 28, 28, 0.10);
+}
+
+[data-theme="light"] .ownerDangerCard__title {
+  color: #b91c1c;
+  text-shadow: none;
+}
+
+[data-theme="light"] .ownerDangerCard__hint {
+  color: rgba(127, 29, 29, 0.96);
+}
+
+[data-theme="light"] .ownerDangerCard .field span {
+  color: rgba(127, 29, 29, 0.92);
+}
+
+[data-theme="light"] .ownerDangerCard .field input {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(185, 28, 28, 0.35);
+  color: #3b0a0a;
+}
+
+[data-theme="light"] .ownerDangerCard .field input::placeholder {
+  color: rgba(127, 29, 29, 0.55);
+}
+
+[data-theme="light"] .ownerDangerCard__btn {
+  color: #fff4f4 !important;
+  border-color: rgba(220, 38, 38, 0.88) !important;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.92), rgba(185, 28, 28, 0.96));
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.25) inset,
+    0 8px 16px rgba(185, 28, 28, 0.24);
+}
+
+[data-theme="light"] .ownerDangerCard__btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(248, 113, 113, 0.95), rgba(220, 38, 38, 0.98));
+}
+
+[data-theme="light"] .ownerDangerCard__btn:disabled {
+  opacity: 0.72;
+  background: linear-gradient(135deg, rgba(254, 202, 202, 0.88), rgba(252, 165, 165, 0.9));
+  border-color: rgba(248, 113, 113, 0.75) !important;
+  color: rgba(127, 29, 29, 0.75) !important;
+}
+
 .ownerProfileSummaryList {
   display: grid;
   gap: 14px;
