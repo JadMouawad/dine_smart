@@ -16,3 +16,10 @@ export async function redeemReward() {
     method: "POST",
   });
 }
+
+export async function deleteProfileAccount(confirmationText) {
+  return apiRequest("/profile", {
+    method: "DELETE",
+    body: JSON.stringify({ confirmationText }),
+  });
+}

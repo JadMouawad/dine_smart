@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext.jsx";
-import { getProfile, redeemReward, updateProfile } from "../../services/profileService.js";
+import { getProfile, redeemReward, updateProfile, deleteProfileAccount } from "../../services/profileService.js";
 import { getFavorites } from "../../services/favoriteService.js";
 import { getSearchHistory, clearSearchHistory } from "../../services/recentSearchService.js";
 import { FiEye, FiEyeOff } from "react-icons/fi";
@@ -13,7 +14,8 @@ import { DEFAULT_AVATAR } from "../../constants/avatar";
 import ThemedSelect from "../../components/ThemedSelect.jsx";
 
 export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant }) {
-  const { user, refreshUser } = useAuth();
+  const navigate = useNavigate();
+  const { user, refreshUser, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   const [favorites, setFavorites] = useState([]);
@@ -59,8 +61,11 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const [locationStatus, setLocationStatus] = useState("idle"); // idle | detecting | granted | denied
   const [profileLoading, setProfileLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const prevPointsRef = useRef(null);
   const prevUnlockedRef = useRef(false);
+  const ACCOUNT_DELETE_TEXT = "Goodbye DineSmart";
 
   // Load favorites from server
   useEffect(() => {
@@ -408,6 +413,26 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
     setShowConfirmNewPassword(false);
     setIsEditing(false);
     setLocationStatus("idle");
+  }
+
+  async function handleDeleteAccount() {
+    if (deletingAccount) return;
+    if (deleteConfirmationText.trim() !== ACCOUNT_DELETE_TEXT) {
+      toast.error(`Please type "${ACCOUNT_DELETE_TEXT}" exactly to confirm.`);
+      return;
+    }
+
+    setDeletingAccount(true);
+    try {
+      await deleteProfileAccount(deleteConfirmationText.trim());
+      toast.success("Your account was deleted.");
+      logout();
+      navigate("/");
+    } catch (err) {
+      toast.error(err.message || "Failed to delete account.");
+    } finally {
+      setDeletingAccount(false);
+    }
   }
 
   if (profileLoading) {
@@ -904,6 +929,35 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                 </button>
               </article>
             </div>
+          </section>
+
+          <section className="formCard formCard--userProfile profileExtraCard" style={{ borderColor: "rgba(229, 62, 62, 0.55)" }}>
+            <div className="formCard__title" style={{ color: "#e53e3e" }}>Delete Account</div>
+            <p className="userProfileFormHint">
+              This action is permanent and will remove your account data.
+            </p>
+            <label className="field" style={{ marginTop: 10 }}>
+              <span>Type "{ACCOUNT_DELETE_TEXT}" to confirm</span>
+              <input
+                type="text"
+                value={deleteConfirmationText}
+                onChange={(event) => setDeleteConfirmationText(event.target.value)}
+                placeholder={ACCOUNT_DELETE_TEXT}
+              />
+            </label>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={handleDeleteAccount}
+              disabled={deletingAccount || deleteConfirmationText.trim() !== ACCOUNT_DELETE_TEXT}
+              style={{
+                marginTop: 8,
+                borderColor: "#e53e3e",
+                color: "#e53e3e",
+              }}
+            >
+              {deletingAccount ? "Deleting..." : "Delete Account"}
+            </button>
           </section>
         </div>
       </div>

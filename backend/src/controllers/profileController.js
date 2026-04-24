@@ -115,8 +115,27 @@ const redeemReward = async (req, res) => {
   }
 };
 
+const deleteAccount = async (req, res) => {
+  try {
+    const result = await profileService.deleteProfileAccount({
+      userId: req.user.id,
+      confirmationText: req.body?.confirmationText ?? req.body?.confirmation_text,
+    });
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+    return res.status(200).json({
+      message: "Account deleted successfully.",
+      user: result.data,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   getProfile,
   updateProfile,
-  redeemReward
+  redeemReward,
+  deleteAccount,
 };

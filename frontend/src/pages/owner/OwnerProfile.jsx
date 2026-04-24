@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Map, { Marker, NavigationControl } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "../../auth/AuthContext.jsx";
+import { deleteProfileAccount } from "../../services/profileService.js";
 import { createRestaurant, getMyRestaurant, updateMyRestaurant } from "../../services/restaurantService";
 import { useTheme } from "../../auth/ThemeContext.jsx";
 import ThemedSelect from "../../components/ThemedSelect.jsx";
@@ -101,7 +103,10 @@ function dataUrlToBlobUrl(dataUrl) {
 }
 
 export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const ACCOUNT_DELETE_TEXT = "Goodbye DineSmart";
   const [restaurantName, setRestaurantName] = useState("");
   const [openingTime, setOpeningTime] = useState("");
   const [closingTime, setClosingTime] = useState("");
@@ -131,6 +136,8 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
   const onboardingFlag = typeof window !== "undefined" && localStorage.getItem("owner_onboarding") === "1";
   const forceEdit = onboardingParam || onboardingFlag;
   const [documentPreviewUrls, setDocumentPreviewUrls] = useState({});
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   // Mapbox controlled view state
   const [viewState, setViewState] = useState({
@@ -468,6 +475,25 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     const parsed = new Date(`2000-01-01T${raw.slice(0, 8)}`);
     if (Number.isNaN(parsed.getTime())) return raw.slice(0, 5);
     return parsed.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
+  }
+
+  async function handleDeleteAccount() {
+    if (deletingAccount) return;
+    if (deleteConfirmationText.trim() !== ACCOUNT_DELETE_TEXT) {
+      alert(`Please type "${ACCOUNT_DELETE_TEXT}" exactly to confirm.`);
+      return;
+    }
+
+    setDeletingAccount(true);
+    try {
+      await deleteProfileAccount(deleteConfirmationText.trim());
+      logout();
+      navigate("/");
+    } catch (deleteError) {
+      alert(deleteError.message || "Failed to delete account.");
+    } finally {
+      setDeletingAccount(false);
+    }
   }
 
   if (!initialLoadComplete) {
@@ -826,9 +852,40 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
               </div>
             </div>
           </div>
-
         </div>
       </div>
+
+      <section
+        className="formCard ownerProfileViewCard"
+        style={{ marginTop: 16, borderColor: "rgba(229, 62, 62, 0.55)" }}
+      >
+        <div className="formCard__title" style={{ color: "#e53e3e" }}>Delete Account</div>
+        <p className="userProfileFormHint">
+          This permanently deletes your owner account and owned restaurant data.
+        </p>
+        <label className="field" style={{ marginTop: 10 }}>
+          <span>Type "{ACCOUNT_DELETE_TEXT}" to confirm</span>
+          <input
+            type="text"
+            value={deleteConfirmationText}
+            onChange={(event) => setDeleteConfirmationText(event.target.value)}
+            placeholder={ACCOUNT_DELETE_TEXT}
+          />
+        </label>
+        <button
+          type="button"
+          className="btn btn--ghost"
+          onClick={handleDeleteAccount}
+          disabled={deletingAccount || deleteConfirmationText.trim() !== ACCOUNT_DELETE_TEXT}
+          style={{
+            borderColor: "#e53e3e",
+            color: "#e53e3e",
+            marginTop: 8,
+          }}
+        >
+          {deletingAccount ? "Deleting..." : "Delete Account"}
+        </button>
+      </section>
     </div>
   );
 }

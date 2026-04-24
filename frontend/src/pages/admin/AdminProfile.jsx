@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
-import { getProfile, updateProfile } from "../../services/profileService.js";
+import { getProfile, updateProfile, deleteProfileAccount } from "../../services/profileService.js";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useTheme } from "../../auth/ThemeContext.jsx";
 import ThemedSelect from "../../components/ThemedSelect.jsx";
@@ -22,8 +23,10 @@ const DEFAULT_AVATAR =
 </svg>`);
 
 export default function AdminProfile({ onAvatarPreviewChange }) {
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const ACCOUNT_DELETE_TEXT = "Goodbye DineSmart";
 
   const [profilePictureUrl, setProfilePictureUrl] = useState("");
   const [profilePictureDataUrl, setProfilePictureDataUrl] = useState("");
@@ -41,6 +44,8 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState("");
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -133,6 +138,27 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
       setShowConfirmNewPassword(false);
     } catch (err) {
       setProfileError(err.message || "Failed to save profile.");
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (deletingAccount) return;
+    if (deleteConfirmationText.trim() !== ACCOUNT_DELETE_TEXT) {
+      setProfileError(`Please type "${ACCOUNT_DELETE_TEXT}" exactly to confirm.`);
+      return;
+    }
+
+    setProfileError("");
+    setProfileSuccess("");
+    setDeletingAccount(true);
+    try {
+      await deleteProfileAccount(deleteConfirmationText.trim());
+      logout();
+      navigate("/");
+    } catch (err) {
+      setProfileError(err.message || "Failed to delete account.");
+    } finally {
+      setDeletingAccount(false);
     }
   }
 
@@ -312,6 +338,31 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
               Save Changes
             </button>
           </div>
+
+          <div className="formCard__divider" />
+
+          <section style={{ border: "1px solid rgba(229, 62, 62, 0.55)", borderRadius: 14, padding: 12 }}>
+            <div className="formCard__title" style={{ color: "#e53e3e", marginBottom: 8 }}>Delete Account</div>
+            <p className="userProfileFormHint">This action is permanent and cannot be undone.</p>
+            <label className="field" style={{ marginTop: 8 }}>
+              <span>Type "{ACCOUNT_DELETE_TEXT}" to confirm</span>
+              <input
+                type="text"
+                value={deleteConfirmationText}
+                onChange={(event) => setDeleteConfirmationText(event.target.value)}
+                placeholder={ACCOUNT_DELETE_TEXT}
+              />
+            </label>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={handleDeleteAccount}
+              disabled={deletingAccount || deleteConfirmationText.trim() !== ACCOUNT_DELETE_TEXT}
+              style={{ borderColor: "#e53e3e", color: "#e53e3e" }}
+            >
+              {deletingAccount ? "Deleting..." : "Delete Account"}
+            </button>
+          </section>
         </form>
 
         <div className="userProfileSide">

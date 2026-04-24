@@ -1,8 +1,10 @@
 const bcrypt = require("bcrypt");
+const pool = require("../config/db");
 const profileRepository = require("../repositories/profileRepository");
 const loyaltyService = require("./loyaltyService");
 
 const SALT_ROUNDS = 10;
+const ACCOUNT_DELETION_CONFIRMATION_TEXT = "Goodbye DineSmart";
 
 const resolveLoyaltyBadge = (reservationCount) => {
   if (reservationCount >= 30) return "Regular";
@@ -60,7 +62,56 @@ const updateProfile = async (userId, data) => {
   return await profileRepository.updateById(userId, updates);
 };
 
+const deleteProfileAccount = async ({ userId, confirmationText }) => {
+  const normalizedConfirmation = String(confirmationText || "").trim();
+  if (normalizedConfirmation !== ACCOUNT_DELETION_CONFIRMATION_TEXT) {
+    return {
+      success: false,
+      status: 400,
+      error: `Please type "${ACCOUNT_DELETION_CONFIRMATION_TEXT}" to confirm account deletion.`,
+    };
+  }
+
+  const parsedUserId = parseInt(userId, 10);
+  if (Number.isNaN(parsedUserId)) {
+    return { success: false, status: 400, error: "Invalid user ID" };
+  }
+
+  const existing = await profileRepository.getById(parsedUserId);
+  if (!existing) {
+    return { success: false, status: 404, error: "Profile not found" };
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(`DELETE FROM restaurants WHERE owner_id = $1`, [parsedUserId]);
+    const deletedUserResult = await client.query(
+      `DELETE FROM users WHERE id = $1 RETURNING id, full_name, email`,
+      [parsedUserId]
+    );
+    await client.query("COMMIT");
+
+    const deletedUser = deletedUserResult.rows[0] || null;
+    if (!deletedUser) {
+      return { success: false, status: 404, error: "Profile not found" };
+    }
+
+    return {
+      success: true,
+      status: 200,
+      data: deletedUser,
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   getProfile,
-  updateProfile
+  updateProfile,
+  deleteProfileAccount,
 };
