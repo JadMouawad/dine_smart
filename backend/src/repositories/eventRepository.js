@@ -136,8 +136,8 @@ const createOwnerEvent = async ({
   tags,
   locationOverride,
   isActive = true,
-}) => {
-  const result = await pool.query(
+}, db = pool) => {
+  const result = await db.query(
     `
       INSERT INTO events (
         restaurant_id,
@@ -195,6 +195,46 @@ const createOwnerEvent = async ({
     ]
   );
   return result.rows[0] || null;
+};
+
+const getConflictingReservationsForOwnerEvent = async ({
+  restaurantId,
+  startDate,
+  endDate,
+  startTime,
+  endTime,
+}, db = pool) => {
+  const result = await db.query(
+    `
+      SELECT
+        r.id,
+        r.user_id,
+        r.restaurant_id,
+        r.reservation_date::text AS reservation_date,
+        r.reservation_time::text AS reservation_time,
+        r.party_size,
+        r.seating_preference,
+        r.special_request,
+        r.status,
+        r.confirmation_id,
+        r.duration_minutes,
+        r.created_at,
+        r.updated_at,
+        rest.name AS restaurant_name,
+        u.full_name AS customer_name,
+        u.email AS customer_email
+      FROM reservations r
+      JOIN restaurants rest ON rest.id = r.restaurant_id
+      JOIN users u ON u.id = r.user_id
+      WHERE r.restaurant_id = $1
+        AND r.status IN ('pending', 'accepted', 'confirmed')
+        AND ((r.reservation_date::date + r.reservation_time) < ($4::date + $5::time))
+        AND ((r.reservation_date::date + r.reservation_time + make_interval(mins => COALESCE(r.duration_minutes, 120))) > ($2::date + $3::time))
+      ORDER BY r.reservation_date ASC, r.reservation_time ASC, r.created_at ASC
+    `,
+    [restaurantId, startDate, startTime, endDate, endTime]
+  );
+  return result.rows;
 };
 
 const updateOwnerEvent = async ({ ownerId, eventId, updates }) => {
@@ -751,6 +791,7 @@ module.exports = {
   getOwnerEvents,
   getOwnerEventById,
   createOwnerEvent,
+  getConflictingReservationsForOwnerEvent,
   updateOwnerEvent,
   deleteOwnerEvent,
   getPublicEvents,

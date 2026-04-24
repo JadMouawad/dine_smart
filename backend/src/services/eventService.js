@@ -1,7 +1,11 @@
 const db = require("../config/db");
 const eventRepository = require("../repositories/eventRepository");
+const ReservationModel = require("../models/reservation.model");
 const subscriptionService = require("./subscriptionService");
 const loyaltyService = require("./loyaltyService");
+const { sendReservationCancelledForEventEmail } = require("../utils/emailSender");
+
+const SLOT_STEP_MINUTES = 30;
 
 const parsePositiveInt = (value) => {
   const parsed = parseInt(value, 10);
@@ -32,6 +36,82 @@ const parseTime = (value) => {
   const normalized = String(value).trim();
   if (!/^\d{2}:\d{2}$/.test(normalized)) return null;
   return normalized;
+};
+
+const getTodayDateString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateTimeStamp = (dateValue, timeValue) => {
+  if (!dateValue || !timeValue) return null;
+  const stamp = new Date(`${dateValue}T${timeValue}:00`);
+  return Number.isNaN(stamp.getTime()) ? null : stamp;
+};
+
+const formatDateForEmail = (value) => {
+  const raw = String(value || "").trim();
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return raw;
+  const parsed = new Date(`${raw}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return raw;
+  return parsed.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+};
+
+const formatTimeForEmail = (value) => {
+  const [hoursStr = "0", minutesStr = "00"] = String(value || "").split(":");
+  const hours = parseInt(hoursStr, 10);
+  const minutes = parseInt(minutesStr, 10);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return String(value || "");
+  const normalizedHours = ((hours + 11) % 12) + 1;
+  const suffix = hours >= 12 ? "PM" : "AM";
+  return `${normalizedHours}:${String(minutes).padStart(2, "0")} ${suffix}`;
+};
+
+const toDateKey = (date) => date.toISOString().slice(0, 10);
+
+const toTimeKey = (date) => `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}:00`;
+
+const buildDisabledEventSlots = ({ startDate, endDate, startTime, endTime }) => {
+  const startStamp = parseDateTimeStamp(startDate, startTime);
+  const endStamp = parseDateTimeStamp(endDate, endTime);
+  if (!startStamp || !endStamp || endStamp <= startStamp) return [];
+
+  const slots = [];
+  const cursor = new Date(startStamp.getTime());
+
+  while (cursor < endStamp) {
+    slots.push({
+      reservationDate: toDateKey(cursor),
+      reservationTime: toTimeKey(cursor),
+    });
+    cursor.setMinutes(cursor.getMinutes() + SLOT_STEP_MINUTES);
+  }
+
+  return slots;
+};
+
+const sendCancelledReservationEmails = async ({ reservations, eventTitle }) => {
+  await Promise.all(
+    reservations.map(async (reservation) => {
+      if (!reservation.customer_email) return;
+      try {
+        await sendReservationCancelledForEventEmail({
+          to: reservation.customer_email,
+          userName: reservation.customer_name || "Guest",
+          restaurantName: reservation.restaurant_name,
+          reservationDate: formatDateForEmail(reservation.reservation_date),
+          reservationTime: formatTimeForEmail(reservation.reservation_time),
+          eventTitle,
+        });
+      } catch (error) {
+        console.warn(`Failed to send event cancellation email for reservation ${reservation.id}:`, error.message);
+      }
+    })
+  );
 };
 
 const parseAttendeeCount = (value) => {
@@ -66,6 +146,9 @@ const validateDateTimeRange = (startDate, startTime, endDate, endTime) => {
   const endT = parseTime(endTime);
   if (!start || !end) return { error: "start_date and end_date are required (YYYY-MM-DD)" };
   if (!startT || !endT) return { error: "start_time and end_time are required (HH:MM)" };
+  if (start < getTodayDateString()) {
+    return { error: "Events can only be created for today or a future date" };
+  }
   const startStamp = new Date(`${start}T${startT}:00Z`);
   const endStamp = new Date(`${end}T${endT}:00Z`);
   if (Number.isNaN(startStamp.getTime()) || Number.isNaN(endStamp.getTime())) {
@@ -140,22 +223,88 @@ const createOwnerEvent = async ({ ownerId, payload }) => {
   });
   if (!ownershipCheck.success) return ownershipCheck;
 
-  const created = await eventRepository.createOwnerEvent({
+  const conflicts = await eventRepository.getConflictingReservationsForOwnerEvent({
     restaurantId: ownershipCheck.restaurant.id,
-    title,
-    description,
-    imageUrl,
     startDate: dateTimeValidation.start,
     endDate: dateTimeValidation.end,
     startTime: dateTimeValidation.startTime,
     endTime: dateTimeValidation.endTime,
-    maxAttendees,
-    isFree,
-    price,
-    tags,
-    locationOverride,
-    isActive: parseBoolean(payload.is_active, true),
   });
+  const confirmImpact = parseBoolean(payload.confirm_impact, false) === true;
+
+  if (conflicts.length > 0 && !confirmImpact) {
+    return {
+      success: false,
+      status: 409,
+      error: "Creating this event will impact existing reservations.",
+      code: "EVENT_RESERVATION_CONFLICT",
+      details: {
+        affectedReservationsCount: conflicts.length,
+      },
+    };
+  }
+
+  const disabledSlots = buildDisabledEventSlots({
+    startDate: dateTimeValidation.start,
+    endDate: dateTimeValidation.end,
+    startTime: dateTimeValidation.startTime,
+    endTime: dateTimeValidation.endTime,
+  });
+
+  const client = await db.connect();
+  let created = null;
+  let cancelledReservations = [];
+  try {
+    await client.query("BEGIN");
+
+    created = await eventRepository.createOwnerEvent({
+      restaurantId: ownershipCheck.restaurant.id,
+      title,
+      description,
+      imageUrl,
+      startDate: dateTimeValidation.start,
+      endDate: dateTimeValidation.end,
+      startTime: dateTimeValidation.startTime,
+      endTime: dateTimeValidation.endTime,
+      maxAttendees,
+      isFree,
+      price,
+      tags,
+      locationOverride,
+      isActive: parseBoolean(payload.is_active, true),
+    }, client);
+
+    for (const slot of disabledSlots) {
+      await ReservationModel.upsertDisabledSlot(client, {
+        restaurantId: ownershipCheck.restaurant.id,
+        reservationDate: slot.reservationDate,
+        reservationTime: slot.reservationTime,
+        seatingPreference: "any",
+        reason: "Reserved for event",
+      });
+    }
+
+    for (const reservation of conflicts) {
+      const cancelledResult = await ReservationModel.cancelReservation(client, reservation.id);
+      if (cancelledResult.rows[0]) {
+        cancelledReservations.push(reservation);
+      }
+    }
+
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+
+  if (cancelledReservations.length > 0) {
+    await sendCancelledReservationEmails({
+      reservations: cancelledReservations,
+      eventTitle: created?.title || title,
+    });
+  }
 
   try {
     const restaurantName = ownershipCheck.restaurant.name || "Restaurant";

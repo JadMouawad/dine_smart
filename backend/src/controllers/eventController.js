@@ -6,7 +6,13 @@ const createOwnerEvent = async (req, res) => {
       ownerId: req.user.id,
       payload: req.body,
     });
-    if (!result.success) return res.status(result.status).json({ message: result.error });
+    if (!result.success) {
+      return res.status(result.status).json({
+        message: result.error,
+        code: result.code,
+        details: result.details,
+      });
+    }
     return res.status(result.status).json(result.data);
   } catch (error) {
     return res.status(500).json({ message: error.message });

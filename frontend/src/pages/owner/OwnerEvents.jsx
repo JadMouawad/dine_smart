@@ -120,6 +120,14 @@ function buildDateTime(date, time) {
   return Number.isNaN(stamp.getTime()) ? null : stamp;
 }
 
+function getTodayDateInputValue() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function getEventStatus(event) {
   const start = buildDateTime(normalizeDateInput(event.start_date), event.start_time || "00:00");
   const end = buildDateTime(normalizeDateInput(event.end_date), event.end_time || "23:59");
@@ -228,6 +236,7 @@ function sortManageReservations(list, sortBy) {
 }
 
 export default function OwnerEvents() {
+  const todayDate = getTodayDateInputValue();
   const [restaurant, setRestaurant] = useState(null);
   const [events, setEvents] = useState([]);
   const [eventReservations, setEventReservations] = useState([]);
@@ -239,6 +248,7 @@ export default function OwnerEvents() {
   const [success, setSuccess] = useState("");
   const [confirmDeleteEvent, setConfirmDeleteEvent] = useState(null);
   const [confirmDeleteEventReservation, setConfirmDeleteEventReservation] = useState(null);
+  const [confirmCreateEventImpact, setConfirmCreateEventImpact] = useState(null);
   const [deletingEventReservationId, setDeletingEventReservationId] = useState(null);
   const [detailsEvent, setDetailsEvent] = useState(null);
   const [attendees, setAttendees] = useState([]);
@@ -393,6 +403,14 @@ export default function OwnerEvents() {
     setForm(initialForm);
   }
 
+  function finishCreatedEvent(created, successMessage = "Event created.") {
+    setEvents((prev) => [created, ...prev]);
+    setSuccess(successMessage);
+    setConfirmCreateEventImpact(null);
+    resetForm();
+    setActiveSubTab("our-events");
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     if (!restaurant?.id) return;
@@ -407,6 +425,10 @@ export default function OwnerEvents() {
     }
     if (!form.start_date || !form.end_date) {
       setError("Start and end dates are required.");
+      return;
+    }
+    if (form.start_date < todayDate) {
+      setError("Events can only be created for today or a future date.");
       return;
     }
     if (!form.start_time || !form.end_time) {
@@ -441,13 +463,21 @@ export default function OwnerEvents() {
           restaurant_id: restaurant.id,
           ...payload,
         });
-        setEvents((prev) => [created, ...prev]);
-        setSuccess("Event created.");
+        finishCreatedEvent(created);
       }
-      resetForm();
-      setActiveSubTab("our-events");
     } catch (err) {
-      setError(err.message || "Failed to save event.");
+      if (!editingEventId && err?.payload?.code === "EVENT_RESERVATION_CONFLICT") {
+        setConfirmCreateEventImpact({
+          payload: {
+            restaurant_id: restaurant.id,
+            ...form,
+            max_attendees: form.max_attendees_unlimited ? "" : form.max_attendees,
+          },
+          affectedReservationsCount: Number(err?.payload?.details?.affectedReservationsCount || 0),
+        });
+      } else {
+        setError(err.message || "Failed to save event.");
+      }
     } finally {
       setSaving(false);
     }
@@ -641,6 +671,7 @@ export default function OwnerEvents() {
               <span>Start Date</span>
               <input
                 type="date"
+                min={todayDate}
                 value={form.start_date}
                 onChange={(e) => setForm((prev) => ({ ...prev, start_date: e.target.value }))}
                 required
@@ -650,6 +681,7 @@ export default function OwnerEvents() {
               <span>End Date</span>
               <input
                 type="date"
+                min={todayDate}
                 value={form.end_date}
                 onChange={(e) => setForm((prev) => ({ ...prev, end_date: e.target.value }))}
                 required
@@ -1069,6 +1101,41 @@ export default function OwnerEvents() {
           )}
         </section>
       )}
+
+      <ConfirmDialog
+        open={!!confirmCreateEventImpact}
+        title="Creating this event will impact existing reservations."
+        message={
+          confirmCreateEventImpact
+            ? `All reservations during this time slot will be automatically canceled.\nCustomers will not be able to make reservations during this period.\n\nDo you want to proceed?`
+            : ""
+        }
+        confirmLabel="Yes - create the event and cancel all reservations"
+        cancelLabel="No - keep existing reservations"
+        busy={saving}
+        busyLabel="Creating event..."
+        onCancel={() => setConfirmCreateEventImpact(null)}
+        onConfirm={async () => {
+          if (!confirmCreateEventImpact) return;
+          setSaving(true);
+          setError("");
+          setSuccess("");
+          try {
+            const created = await createOwnerEvent({
+              ...confirmCreateEventImpact.payload,
+              confirm_impact: true,
+            });
+            finishCreatedEvent(
+              created,
+              "Event created. Existing reservations during this time were cancelled and guests were notified by email."
+            );
+          } catch (err) {
+            setError(err.message || "Failed to save event.");
+          } finally {
+            setSaving(false);
+          }
+        }}
+      />
 
       <ConfirmDialog
         open={!!confirmDeleteEvent}

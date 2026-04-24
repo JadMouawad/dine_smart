@@ -312,6 +312,14 @@ const getDisabledSlotState = async ({
   };
 };
 
+const buildDisabledSlotErrorMessage = (disabledState) => {
+  const reason = String(disabledState?.disabledSlot?.reason || "").trim().toLowerCase();
+  if (reason.includes("event")) {
+    return "This time slot is reserved for an event. Reservations are not allowed during event hours. Please select a different time.";
+  }
+  return "This time slot has been disabled by the restaurant";
+};
+
 const getSlotAvailability = async ({
   restaurantId,
   reservationDate,
@@ -759,7 +767,7 @@ const createReservation = async ({
       return {
         success: false,
         status: 409,
-        error: "This time slot has been disabled by the restaurant",
+        error: buildDisabledSlotErrorMessage(availability),
         availableSeats: 0,
         suggestedTimes,
         disabled: true,
@@ -1836,7 +1844,7 @@ const updateReservation = async ({
     if (!availability.success) return availability;
 
     if (availability.isDisabled) {
-      return { success: false, status: 409, error: "This time slot has been disabled by the restaurant" };
+      return { success: false, status: 409, error: buildDisabledSlotErrorMessage(availability) };
     }
 
     if (!isWithinOperatingHours(normalizedTime, availability.restaurant.opening_time, availability.restaurant.closing_time, normalizedDuration)) {

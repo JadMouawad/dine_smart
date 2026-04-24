@@ -289,6 +289,49 @@ const sendReservationCancellationEmail = async ({
   await transporter.sendMail(mailOptions);
 };
 
+const sendReservationCancelledForEventEmail = async ({
+  to,
+  userName = "Guest",
+  restaurantName,
+  reservationDate,
+  reservationTime,
+  eventTitle,
+}) => {
+  const safeRestaurant = restaurantName || "your restaurant";
+  const safeDate = reservationDate || "the scheduled date";
+  const safeTime = reservationTime || "the scheduled time";
+  const safeEventTitle = eventTitle || "an event";
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Reservation update - DineSmart</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2>Reservation Cancelled</h2>
+      <p>Hi ${userName},</p>
+      <p>We wanted to let you know that your reservation at <strong>${safeRestaurant}</strong> has been cancelled because the restaurant scheduled <strong>${safeEventTitle}</strong> during that time.</p>
+      <p><strong>Date:</strong> ${safeDate}</p>
+      <p><strong>Time:</strong> ${safeTime}</p>
+      <p>We know plan changes are frustrating, and we’re sorry for the inconvenience. Please feel free to choose another available time slot in DineSmart.</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+      <p style="font-size: 12px; color: #888;">DineSmart - Reservation update</p>
+    </body>
+    </html>
+  `;
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    to,
+    subject: "Your DineSmart reservation was cancelled due to an event",
+    html,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
 const sendNoShowWarningEmail = async ({ to, userName = "Guest" }) => {
   const html = `
     <!DOCTYPE html>
@@ -578,6 +621,7 @@ module.exports = {
   sendReservationConfirmationEmail,
   sendReservationUpdatedEmail,
   sendReservationCancellationEmail,
+  sendReservationCancelledForEventEmail,
   sendNoShowWarningEmail,
   sendNoShowBanEmail,
   sendRestaurantApprovalEmail,
