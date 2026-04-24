@@ -7177,8 +7177,17 @@ margin: 0 auto;
 
 .accountDeleteModal .confirmDialog__actions .btn {
   width: 100%;
-  min-height: 42px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 14px;
+  line-height: 1;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
+  margin: 0;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .accountDeleteModal__confirmBtn {
@@ -7225,8 +7234,17 @@ margin: 0 auto;
 
 .ownerDeleteModal .confirmDialog__actions .btn {
   width: 100%;
-  min-height: 42px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 14px;
+  line-height: 1;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
+  margin: 0;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .ownerProfileMediaCard .ownerProfileGrid__media {
