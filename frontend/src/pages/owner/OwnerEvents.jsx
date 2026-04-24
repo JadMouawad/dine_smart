@@ -321,16 +321,31 @@ export default function OwnerEvents() {
     setLoading(true);
     setError("");
     try {
-      const ownedRestaurant = await getMyRestaurant();
-      setRestaurant(ownedRestaurant);
-
-      const [ownerEvents, ownerEventReservations] = await Promise.all([
-        getOwnerEvents().catch(() => []),
-        getOwnerEventReservations().catch(() => []),
+      const [restaurantResult, ownerEventsResult, ownerEventReservationsResult] = await Promise.allSettled([
+        getMyRestaurant(),
+        getOwnerEvents(),
+        getOwnerEventReservations(),
       ]);
 
-      setEvents(Array.isArray(ownerEvents) ? ownerEvents : []);
-      setEventReservations(Array.isArray(ownerEventReservations) ? ownerEventReservations : []);
+      setRestaurant(restaurantResult.status === "fulfilled" ? restaurantResult.value : null);
+      setEvents(
+        ownerEventsResult.status === "fulfilled" && Array.isArray(ownerEventsResult.value)
+          ? ownerEventsResult.value
+          : []
+      );
+      setEventReservations(
+        ownerEventReservationsResult.status === "fulfilled" && Array.isArray(ownerEventReservationsResult.value)
+          ? ownerEventReservationsResult.value
+          : []
+      );
+
+      if (
+        restaurantResult.status === "rejected" &&
+        ownerEventsResult.status === "rejected" &&
+        ownerEventReservationsResult.status === "rejected"
+      ) {
+        throw restaurantResult.reason || ownerEventsResult.reason || ownerEventReservationsResult.reason;
+      }
     } catch (err) {
       setError(err.message || "Failed to load events.");
       setEvents([]);
@@ -584,15 +599,6 @@ export default function OwnerEvents() {
       <div className="placeholderPage">
         <h1 className="placeholderPage__title">Events</h1>
         <p className="placeholderPage__text">Loading events...</p>
-      </div>
-    );
-  }
-
-  if (!restaurant) {
-    return (
-      <div className="placeholderPage">
-        <h1 className="placeholderPage__title">Events</h1>
-        <p className="placeholderPage__text">Create your restaurant profile first.</p>
       </div>
     );
   }
