@@ -779,10 +779,6 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                     </div>
                   )}
                 </div>
-                <label className="btn btn--gold imageCard__btn imageCard__btn--logo">
-                  Upload logo
-                  <input className="imageCard__input" type="file" accept="image/png, image/jpeg" onChange={onPickLogo} disabled={viewOnly} />
-                </label>
               </div>
 
               <div className="imageCard imageCard--equal">

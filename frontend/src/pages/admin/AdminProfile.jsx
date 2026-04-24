@@ -46,6 +46,8 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
   const [profileSuccess, setProfileSuccess] = useState("");
   const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState("");
   const normalizeDeleteText = (value) => String(value || "")
     .trim()
     .replace(/^[\s"'“”]+|[\s"'“”]+$/g, "")
@@ -150,23 +152,45 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
   async function handleDeleteAccount() {
     if (deletingAccount) return;
     if (!isDeleteConfirmed) {
-      setProfileError(`Please type ${ACCOUNT_DELETE_TEXT} to confirm.`);
+      setDeleteAccountError(`Please type ${ACCOUNT_DELETE_TEXT} to confirm.`);
       return;
     }
 
-    setProfileError("");
+    setDeleteAccountError("");
     setProfileSuccess("");
     setDeletingAccount(true);
     try {
       await deleteProfileAccount(deleteConfirmationText.trim());
+      setShowDeleteModal(false);
       logout();
       navigate("/");
     } catch (err) {
-      setProfileError(err.message || "Failed to delete account.");
+      setDeleteAccountError(err.message || "Failed to delete account.");
     } finally {
       setDeletingAccount(false);
     }
   }
+
+  function openDeleteModal() {
+    setDeleteConfirmationText("");
+    setDeleteAccountError("");
+    setShowDeleteModal(true);
+  }
+
+  function closeDeleteModal() {
+    if (deletingAccount) return;
+    setShowDeleteModal(false);
+    setDeleteAccountError("");
+  }
+
+  useEffect(() => {
+    if (!showDeleteModal || deletingAccount) return undefined;
+    function onKeyDown(event) {
+      if (event.key === "Escape") closeDeleteModal();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showDeleteModal, deletingAccount]);
 
   if (profileLoading) {
     return (
@@ -204,7 +228,17 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
 
       <div className="userProfileLayout">
         <form className="formCard formCard--userProfile userProfileFormCard" onSubmit={onSubmit}>
-          <div className="formCard__title">Account Settings</div>
+          <div className="accountSettingsHeader">
+            <div className="formCard__title">Account Settings</div>
+            <button
+              type="button"
+              className="btn btn--ghost accountDangerTriggerBtn"
+              onClick={openDeleteModal}
+              disabled={deletingAccount}
+            >
+              Delete Account
+            </button>
+          </div>
 
           <label className="field">
             <span>Full Name</span>
@@ -344,31 +378,6 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
               Save Changes
             </button>
           </div>
-
-          <div className="formCard__divider" />
-
-          <section style={{ border: "1px solid rgba(229, 62, 62, 0.55)", borderRadius: 14, padding: 12 }}>
-            <div className="formCard__title" style={{ color: "#e53e3e", marginBottom: 8 }}>Delete Account</div>
-            <p className="userProfileFormHint">This action is permanent and cannot be undone.</p>
-            <label className="field" style={{ marginTop: 8 }}>
-              <span>Type "{ACCOUNT_DELETE_TEXT}" to confirm</span>
-              <input
-                type="text"
-                value={deleteConfirmationText}
-                onChange={(event) => setDeleteConfirmationText(event.target.value)}
-                placeholder={ACCOUNT_DELETE_TEXT}
-              />
-            </label>
-            <button
-              type="button"
-              className="btn btn--ghost"
-              onClick={handleDeleteAccount}
-              disabled={deletingAccount || !isDeleteConfirmed}
-              style={{ borderColor: "#e53e3e", color: "#e53e3e" }}
-            >
-              {deletingAccount ? "Deleting..." : "Delete Account"}
-            </button>
-          </section>
         </form>
 
         <div className="userProfileSide">
@@ -391,6 +400,50 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
           </div>
         </div>
       </div>
+
+      {showDeleteModal && (
+        <div className="modal is-open" role="dialog" aria-modal="true" aria-labelledby="admin-delete-modal-title">
+          <div className="modal__backdrop" onClick={closeDeleteModal} />
+          <div className="modal__panel confirmDialog accountDeleteModal">
+            <h3 id="admin-delete-modal-title" className="confirmDialog__title accountDeleteModal__title">Delete Account</h3>
+            <p className="confirmDialog__message accountDeleteModal__message">
+              This action is permanent and cannot be undone.
+            </p>
+            <label className="field accountDeleteModal__field">
+              <span>Type "{ACCOUNT_DELETE_TEXT}" to confirm</span>
+              <input
+                type="text"
+                value={deleteConfirmationText}
+                onChange={(event) => {
+                  setDeleteConfirmationText(event.target.value);
+                  if (deleteAccountError) setDeleteAccountError("");
+                }}
+                placeholder={ACCOUNT_DELETE_TEXT}
+                autoFocus
+              />
+            </label>
+            {deleteAccountError && <div className="accountDeleteModal__error">{deleteAccountError}</div>}
+            <div className="confirmDialog__actions">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={closeDeleteModal}
+                disabled={deletingAccount}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn--ghost accountDeleteModal__confirmBtn"
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount || !isDeleteConfirmed}
+              >
+                {deletingAccount ? "Deleting..." : "Delete Account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

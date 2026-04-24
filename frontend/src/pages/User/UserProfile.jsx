@@ -63,6 +63,8 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const [isEditing, setIsEditing] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState("");
   const prevPointsRef = useRef(null);
   const prevUnlockedRef = useRef(false);
   const ACCOUNT_DELETE_TEXT = "Goodbye DineSmart";
@@ -421,21 +423,44 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
     setLocationStatus("idle");
   }
 
+  function openDeleteModal() {
+    setDeleteConfirmationText("");
+    setDeleteAccountError("");
+    setShowDeleteModal(true);
+  }
+
+  function closeDeleteModal() {
+    if (deletingAccount) return;
+    setShowDeleteModal(false);
+    setDeleteAccountError("");
+  }
+
+  useEffect(() => {
+    if (!showDeleteModal || deletingAccount) return undefined;
+    function onKeyDown(event) {
+      if (event.key === "Escape") closeDeleteModal();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showDeleteModal, deletingAccount]);
+
   async function handleDeleteAccount() {
     if (deletingAccount) return;
     if (!isDeleteConfirmed) {
-      toast.error(`Please type ${ACCOUNT_DELETE_TEXT} to confirm.`);
+      setDeleteAccountError(`Please type ${ACCOUNT_DELETE_TEXT} to confirm.`);
       return;
     }
 
     setDeletingAccount(true);
+    setDeleteAccountError("");
     try {
       await deleteProfileAccount(deleteConfirmationText.trim());
+      setShowDeleteModal(false);
       toast.success("Your account was deleted.");
       logout();
       navigate("/");
     } catch (err) {
-      toast.error(err.message || "Failed to delete account.");
+      setDeleteAccountError(err.message || "Failed to delete account.");
     } finally {
       setDeletingAccount(false);
     }
@@ -475,7 +500,17 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
 
       <div className="userProfileLayout">
         <form className="formCard formCard--userProfile userProfileFormCard" onSubmit={onSubmit}>
-          <div className="formCard__title">Account Settings</div>
+          <div className="accountSettingsHeader">
+            <div className="formCard__title">Account Settings</div>
+            <button
+              type="button"
+              className="btn btn--ghost accountDangerTriggerBtn"
+              onClick={openDeleteModal}
+              disabled={deletingAccount}
+            >
+              Delete Account
+            </button>
+          </div>
 
           <label className="field">
             <span>Full Name</span>
@@ -937,36 +972,52 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
             </div>
           </section>
 
-          <section className="formCard formCard--userProfile profileExtraCard" style={{ borderColor: "rgba(229, 62, 62, 0.55)" }}>
-            <div className="formCard__title" style={{ color: "#e53e3e" }}>Delete Account</div>
-            <p className="userProfileFormHint">
+        </div>
+      </div>
+
+      {showDeleteModal && (
+        <div className="modal is-open" role="dialog" aria-modal="true" aria-labelledby="user-delete-modal-title">
+          <div className="modal__backdrop" onClick={closeDeleteModal} />
+          <div className="modal__panel confirmDialog accountDeleteModal">
+            <h3 id="user-delete-modal-title" className="confirmDialog__title accountDeleteModal__title">Delete Account</h3>
+            <p className="confirmDialog__message accountDeleteModal__message">
               This action is permanent and will remove your account data.
             </p>
-            <label className="field" style={{ marginTop: 10 }}>
+            <label className="field accountDeleteModal__field">
               <span>Type "{ACCOUNT_DELETE_TEXT}" to confirm</span>
               <input
                 type="text"
                 value={deleteConfirmationText}
-                onChange={(event) => setDeleteConfirmationText(event.target.value)}
+                onChange={(event) => {
+                  setDeleteConfirmationText(event.target.value);
+                  if (deleteAccountError) setDeleteAccountError("");
+                }}
                 placeholder={ACCOUNT_DELETE_TEXT}
+                autoFocus
               />
             </label>
-            <button
-              type="button"
-              className="btn btn--ghost"
-              onClick={handleDeleteAccount}
+            {deleteAccountError && <div className="accountDeleteModal__error">{deleteAccountError}</div>}
+            <div className="confirmDialog__actions">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={closeDeleteModal}
+                disabled={deletingAccount}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn--ghost accountDeleteModal__confirmBtn"
+                onClick={handleDeleteAccount}
                 disabled={deletingAccount || !isDeleteConfirmed}
-              style={{
-                marginTop: 8,
-                borderColor: "#e53e3e",
-                color: "#e53e3e",
-              }}
-            >
-              {deletingAccount ? "Deleting..." : "Delete Account"}
-            </button>
-          </section>
+              >
+                {deletingAccount ? "Deleting..." : "Delete Account"}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {rewardCelebrationOpen && (
         <div className="rewardModalOverlay" role="dialog" aria-modal="true">
