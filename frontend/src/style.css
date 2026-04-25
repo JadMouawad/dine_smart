@@ -1983,6 +1983,7 @@ body.ds-nav-not-sticky .nav {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.55);
+  z-index: 0;
 }
 
 .modal__panel {
@@ -1997,6 +1998,8 @@ body.ds-nav-not-sticky .nav {
   backdrop-filter: blur(12px);
   max-height: calc(100vh - 40px);
   overflow-y: auto;
+  z-index: 1;
+  pointer-events: auto;
 }
 
 @media (max-width: 640px) {

@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS user_points_ledger (
   source_id INTEGER NOT NULL,
   points INTEGER NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT user_points_ledger_type_check CHECK (source_type IN ('reservation', 'event', 'reward_redeem')),
+  CONSTRAINT user_points_ledger_type_check CHECK (source_type IN ('reservation', 'event', 'reward_redeem', 'reservation_cancel', 'event_cancel')),
   CONSTRAINT user_points_ledger_unique UNIQUE (user_id, source_type, source_id)
 );
 

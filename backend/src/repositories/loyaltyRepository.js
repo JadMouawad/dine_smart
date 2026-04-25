@@ -31,20 +31,20 @@ const reversePointsForSource = async (
       SELECT 1
       FROM user_points_ledger
       WHERE user_id = $1
-        AND source_type = $2
+        AND source_type = $2::varchar(20)
         AND source_id = $3
         AND points > 0
       LIMIT 1
     ),
     inserted AS (
       INSERT INTO user_points_ledger (user_id, source_type, source_id, points)
-      SELECT $1, $4, $3, -$5
+      SELECT $1, $4::varchar(20), $3, -($5::int)
       WHERE EXISTS (SELECT 1 FROM original)
         AND NOT EXISTS (
           SELECT 1
           FROM user_points_ledger
           WHERE user_id = $1
-            AND source_type = $4
+            AND source_type = $4::varchar(20)
             AND source_id = $3
         )
       RETURNING points
