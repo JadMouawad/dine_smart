@@ -7,9 +7,9 @@ import {
   getOwnerEventAttendees,
   getOwnerEventReservations,
   getOwnerEvents,
-  markEventAttendeeNoShow,
   updateOwnerEvent,
 } from "../../services/restaurantService";
+import { markEventAttendeeNoShow } from "../../services/eventService";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
 import ThemedSelect from "../../components/ThemedSelect.jsx";
