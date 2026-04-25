@@ -3,7 +3,8 @@ const eventRepository = require("../repositories/eventRepository");
 const ReservationModel = require("../models/reservation.model");
 const subscriptionService = require("./subscriptionService");
 const loyaltyService = require("./loyaltyService");
-const { sendReservationCancelledForEventEmail } = require("../utils/emailSender");
+const { sendReservationCancelledForEventEmail, sendNoShowWarningEmail, sendNoShowBanEmail } = require("../utils/emailSender");
+const UserModel = require("../models/User");
 
 const SLOT_STEP_MINUTES = 30;
 
@@ -641,6 +642,57 @@ const getSavedEvents = async ({ userId }) => {
   return { success: true, status: 200, data: events };
 };
 
+const NO_SHOW_BAN_THRESHOLD = 3;
+const NO_SHOW_BAN_DAYS = 30;
+
+const markEventAttendeeNoShow = async ({ attendeeId, ownerId }) => {
+  const parsedAttendeeId = parseInt(attendeeId, 10);
+  const parsedOwnerId = parseInt(ownerId, 10);
+
+  if (Number.isNaN(parsedAttendeeId)) {
+    return { success: false, status: 400, error: "Invalid attendee ID" };
+  }
+
+  const updated = await eventRepository.markEventAttendeeNoShow({ attendeeId: parsedAttendeeId, ownerId: parsedOwnerId });
+  if (!updated) {
+    return { success: false, status: 404, error: "Attendee not found or already marked" };
+  }
+
+  const userId = updated.user_id;
+
+  const updatedUser = await UserModel.incrementNoShowCount(db, userId);
+  const noShowCount = updatedUser?.no_show_count ?? 0;
+
+  let bannedUntilLabel = null;
+  if (noShowCount >= NO_SHOW_BAN_THRESHOLD) {
+    const banDate = new Date();
+    banDate.setDate(banDate.getDate() + NO_SHOW_BAN_DAYS);
+    await UserModel.setBannedUntil(db, userId, banDate.toISOString().slice(0, 10));
+    bannedUntilLabel = banDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  }
+
+  const user = await UserModel.findById(db, userId);
+  if (user?.email) {
+    try {
+      if (bannedUntilLabel) {
+        await sendNoShowBanEmail({ to: user.email, userName: user.full_name || "Guest", bannedUntilLabel });
+      } else if (noShowCount === NO_SHOW_BAN_THRESHOLD - 1) {
+        await sendNoShowWarningEmail({ to: user.email, userName: user.full_name || "Guest" });
+      }
+    } catch (emailError) {
+      console.warn("Failed to send event no-show email:", emailError.message);
+    }
+  }
+
+  return {
+    success: true,
+    status: 200,
+    noShowCount,
+    banned: !!bannedUntilLabel,
+    bannedUntilLabel,
+  };
+};
+
 module.exports = {
   createOwnerEvent,
   getOwnerEvents,
@@ -657,4 +709,5 @@ module.exports = {
   cancelUserEventReservation,
   getOwnerEventReservations,
   deleteOwnerEventReservation,
+  markEventAttendeeNoShow,
 };

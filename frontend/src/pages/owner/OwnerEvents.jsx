@@ -7,6 +7,7 @@ import {
   getOwnerEventAttendees,
   getOwnerEventReservations,
   getOwnerEvents,
+  markEventAttendeeNoShow,
   updateOwnerEvent,
 } from "../../services/restaurantService";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
@@ -253,6 +254,7 @@ export default function OwnerEvents() {
   const [detailsEvent, setDetailsEvent] = useState(null);
   const [attendees, setAttendees] = useState([]);
   const [attendeesLoading, setAttendeesLoading] = useState(false);
+  const [noShowingAttendeeId, setNoShowingAttendeeId] = useState(null);
   const [activeSubTab, setActiveSubTab] = useState(() => {
     try {
       return localStorage.getItem(OWNER_EVENTS_SUBTAB_KEY) || "create";
@@ -523,6 +525,21 @@ export default function OwnerEvents() {
       setError(err.message || "Failed to delete event reservation.");
     } finally {
       setDeletingEventReservationId(null);
+    }
+  }
+
+  async function handleMarkNoShow(attendeeId) {
+    if (!detailsEvent) return;
+    setNoShowingAttendeeId(attendeeId);
+    try {
+      await markEventAttendeeNoShow(detailsEvent.id, attendeeId);
+      setAttendees((prev) =>
+        prev.map((a) => (a.id === attendeeId ? { ...a, status: "no-show" } : a))
+      );
+    } catch (err) {
+      setError(err.message || "Failed to mark no-show.");
+    } finally {
+      setNoShowingAttendeeId(null);
     }
   }
 
@@ -1205,6 +1222,18 @@ export default function OwnerEvents() {
                         <div className="eventAttendeeMeta">{att.email || ""}</div>
                       </div>
                       <div className="eventAttendeeCount">{att.attendees_count} people</div>
+                      {att.status === "no-show" ? (
+                        <span className="statusBadge statusBadge--no-show">No-show</span>
+                      ) : att.status === "confirmed" ? (
+                        <button
+                          className="btn btn--ghost"
+                          style={{ fontSize: "0.78rem", padding: "4px 10px" }}
+                          disabled={noShowingAttendeeId === att.id}
+                          onClick={() => handleMarkNoShow(att.id)}
+                        >
+                          {noShowingAttendeeId === att.id ? "Saving…" : "Mark no-show"}
+                        </button>
+                      ) : null}
                     </div>
                   ))}
                 </div>

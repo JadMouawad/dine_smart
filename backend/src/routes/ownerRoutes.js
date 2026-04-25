@@ -80,6 +80,14 @@ router.delete(
   eventController.deleteOwnerEvent
 );
 
+router.patch(
+  "/events/:eventId/attendees/:attendeeId/no-show",
+  authenticateToken,
+  authorizeRoles("owner"),
+  requireApprovedRestaurant,
+  eventController.markEventAttendeeNoShow
+);
+
 router.post(
   "/reviews/:id/respond",
   authenticateToken,

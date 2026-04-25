@@ -32,3 +32,7 @@ export function getUserEventReservations() {
 export function cancelUserEventReservation(eventId) {
   return apiRequest(`/events/${eventId}/reservations`, { method: "DELETE" });
 }
+
+export function markEventAttendeeNoShow(eventId, attendeeId) {
+  return apiRequest(`/owner/events/${eventId}/attendees/${attendeeId}/no-show`, { method: "PATCH" });
+}
