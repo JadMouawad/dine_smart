@@ -15248,3 +15248,96 @@ body.dark .slotDraftRemoveBtn:hover,
   border: 0 !important;
   background: transparent !important;
 }
+
+/* ===== User Discover + User Reservation Filter Enhancements ===== */
+
+.discoverEventsHeader__top,
+.userReservationsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.discoverEventsHeader__top {
+  margin-bottom: 18px;
+}
+
+.userReservationsHeader {
+  margin-bottom: 18px;
+}
+
+.dsCheckboxGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dsCheckOption {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(8, 13, 42, 0.55);
+  color: rgba(255, 255, 255, 0.86);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.dsCheckOption:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 39, 0.55);
+  color: #ffffff;
+}
+
+.dsCheckOption input {
+  width: 15px;
+  height: 15px;
+  accent-color: #C9A227;
+  cursor: pointer;
+}
+
+.dsCheckOption.is-checked {
+  background: rgba(201, 162, 39, 0.18);
+  border-color: rgba(201, 162, 39, 0.72);
+  color: #fff4cc;
+}
+
+[data-theme="light"] .dsCheckOption {
+  background: rgba(255, 251, 243, 0.9);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: #1A0E06;
+}
+
+[data-theme="light"] .dsCheckOption:hover {
+  border-color: rgba(175, 115, 45, 0.45);
+}
+
+[data-theme="light"] .dsCheckOption.is-checked {
+  background: rgba(201, 162, 39, 0.14);
+  border-color: rgba(201, 162, 39, 0.62);
+  color: rgba(140, 90, 10, 0.95);
+}
+
+@media (max-width: 640px) {
+  .discoverEventsHeader__top,
+  .userReservationsHeader {
+    align-items: stretch;
+  }
+
+  .discoverEventsHeader__top .searchFilterBtn,
+  .userReservationsHeader .searchFilterBtn {
+    width: 100%;
+    justify-content: center;
+  }
+}

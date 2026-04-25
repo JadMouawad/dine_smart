@@ -7,8 +7,20 @@ import { joinEvent, saveEvent } from "../../services/eventService";
 import LoadingSkeleton from "../../components/LoadingSkeleton.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
 import RecommendationCard from "../../components/RecommendationCard.jsx";
+import ThemedSelect from "../../components/ThemedSelect.jsx";
 import { toDateObject, startOfDay, formatDateRange } from "../../utils/dateUtils";
 import { getCrowdMeterMeta } from "../../utils/crowdMeter";
+
+const EVENT_CATEGORY_FILTER_OPTIONS = [
+  { value: "upcoming", label: "Upcoming Events" },
+  { value: "featured", label: "Featured Events" },
+];
+
+const EVENT_DATE_FILTER_OPTIONS = [
+  { value: "all", label: "Any Date" },
+  { value: "today", label: "Today" },
+  { value: "week", label: "This Week" },
+];
 
 function bucketEvents(events = []) {
   const today = startOfDay(new Date());
@@ -374,8 +386,14 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
   const [recommendations, setRecommendations] = useState([]);
   const [recommendationsLoading, setRecommendationsLoading] = useState(true);
   const [recommendationsError, setRecommendationsError] = useState("");
-  const [recommendationSource, setRecommendationSource] = useState("fallback");
-  const [activeFilter, setActiveFilter] = useState("all");
+  const [eventFiltersOpen, setEventFiltersOpen] = useState(false);
+  const [eventCategoryFilter, setEventCategoryFilter] = useState("upcoming");
+  const [eventDateFilter, setEventDateFilter] = useState("all");
+  const [eventQuickFilters, setEventQuickFilters] = useState({
+    free: false,
+    nearby: false,
+    top: false,
+  });
   const [activeEvent, setActiveEvent] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
@@ -400,15 +418,60 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
     return [...allEvents].slice(0, 6);
   }, [allEvents, feed?.recommended_events]);
 
+  const appliedEventFiltersCount = useMemo(() => {
+    let count = 0;
+    if (eventCategoryFilter !== "upcoming") count += 1;
+    if (eventDateFilter !== "all") count += 1;
+    if (eventQuickFilters.free) count += 1;
+    if (eventQuickFilters.nearby) count += 1;
+    if (eventQuickFilters.top) count += 1;
+    return count;
+  }, [eventCategoryFilter, eventDateFilter, eventQuickFilters]);
+
   const filteredEvents = useMemo(() => {
-    if (activeFilter === "all") return allEvents;
-    if (activeFilter === "today") return eventBuckets.today;
-    if (activeFilter === "week") return eventBuckets.thisWeek;
-    if (activeFilter === "free") return allEvents.filter((event) => event.is_free === true || event.price === 0 || event.price === "0");
-    if (activeFilter === "nearby") return allEvents.filter((event) => event.distance_km != null && Number(event.distance_km) <= 5);
-    if (activeFilter === "top") return [...allEvents].sort((a, b) => (b.popularity_score ?? 0) - (a.popularity_score ?? 0)).slice(0, 12);
-    return allEvents;
-  }, [activeFilter, allEvents, eventBuckets.today, eventBuckets.thisWeek]);
+    let events = eventCategoryFilter === "featured" ? featuredEvents : allEvents;
+
+    if (eventDateFilter === "today") {
+      const todayIds = new Set(eventBuckets.today.map((event) => event.id));
+      events = events.filter((event) => todayIds.has(event.id));
+    }
+
+    if (eventDateFilter === "week") {
+      const weekIds = new Set(eventBuckets.thisWeek.map((event) => event.id));
+      events = events.filter((event) => weekIds.has(event.id));
+    }
+
+    if (eventQuickFilters.free) {
+      events = events.filter(
+        (event) =>
+          event.is_free === true ||
+          event.price === 0 ||
+          event.price === "0"
+      );
+    }
+
+    if (eventQuickFilters.nearby) {
+      events = events.filter(
+        (event) => event.distance_km != null && Number(event.distance_km) <= 5
+      );
+    }
+
+    if (eventQuickFilters.top) {
+      events = [...events]
+        .sort((a, b) => (b.popularity_score ?? 0) - (a.popularity_score ?? 0))
+        .slice(0, 12);
+    }
+
+    return events;
+  }, [
+    allEvents,
+    featuredEvents,
+    eventBuckets.today,
+    eventBuckets.thisWeek,
+    eventCategoryFilter,
+    eventDateFilter,
+    eventQuickFilters,
+  ]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -469,12 +532,10 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
       .then((payload) => {
         if (cancelled) return;
         setRecommendations(Array.isArray(payload?.recommendations) ? payload.recommendations : []);
-        setRecommendationSource(payload?.source || "fallback");
       })
       .catch((err) => {
         if (cancelled) return;
         setRecommendations([]);
-        setRecommendationSource("fallback");
         setRecommendationsError(err.message || "Failed to load personalized recommendations.");
       })
       .finally(() => {
@@ -512,38 +573,6 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
     <div className="userSearchPage">
       <h1 className="userSearchPage__title">Events</h1>
 
-      <section className="discoverFeedSection">
-        <div className="discoverFeedSection__header">
-          <h2>Recommended for You</h2>
-          <span className="discoverSectionBadge">
-            {recommendationSource === "fallback" ? "Popular fallback" : "Personalized"}
-          </span>
-        </div>
-        {recommendationsLoading && effectiveRecommendations.length === 0 ? (
-          <LoadingSkeleton variant="card" count={3} />
-        ) : effectiveRecommendations.length > 0 ? (
-          <div className="restaurantGrid">
-            {effectiveRecommendations.map((recommendation) => (
-              <RecommendationCard
-                key={`recommended-${recommendation.id}`}
-                recommendation={recommendation}
-                onOpenRestaurant={onOpenRestaurant}
-              />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            title="No personalized recommendations yet"
-            message="Keep exploring restaurants and your recommendations will improve."
-          />
-        )}
-        {recommendationsError && (
-          <p className="discoverRecommendations__note">
-            {recommendationsError}
-          </p>
-        )}
-      </section>
-
       <SectionRestaurants
         title="Near You"
         badge="New Restaurant"
@@ -573,71 +602,167 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
 
       <section className="discoverEventsWrap">
         <div className="discoverEventsHeader">
-          <h2>Discover Events</h2>
-          <p>Hand‑picked experiences near you, with real‑time highlights.</p>
-        </div>
-        
+          <div className="discoverEventsHeader__top">
+            <div>
+              <h2>Discover Events</h2>
+              <p>Hand‑picked experiences near you, with real‑time highlights.</p>
+            </div>
 
-        <div className="discoverFilters">
-          {[
-            { key: "all", label: "All" },
-            { key: "today", label: "Today" },
-            { key: "week", label: "This Week" },
-            { key: "free", label: "Free" },
-            { key: "nearby", label: "Nearby" },
-            { key: "top", label: "Top Rated" },
-          ].map((filter) => (
             <button
-              key={filter.key}
               type="button"
-              className={`filterChip ${activeFilter === filter.key ? "filterChip--on" : ""}`}
-              onClick={() => setActiveFilter(filter.key)}
+              className={`searchFilterBtn ${eventFiltersOpen ? "is-active" : ""}`}
+              onClick={() => setEventFiltersOpen(true)}
             >
-              {filter.label}
+              ⚙ Filters
+              {appliedEventFiltersCount > 0 && (
+                <span className="searchFilterBtn__badge">
+                  {appliedEventFiltersCount}
+                </span>
+              )}
             </button>
-          ))}
+          </div>
         </div>
 
-        <section className="discoverEventSection">
-          <div className="discoverEventSection__title">Featured Events</div>
-          <div className="discoverEventsCarousel discoverEventsCarousel--featured">
-            {featuredEvents.length ? (
-              featuredEvents.map((event) => (
-                <EventCard
-                  key={`featured-${event.id}`}
-                  event={event}
-                  onOpenRestaurant={onOpenRestaurant}
-                  onViewDetails={(evt) => { setActiveEvent(evt); setDetailsOpen(true); }}
-                  onJoinEvent={(evt) => { setActiveEvent(evt); setJoinOpen(true); }}
-                />
-              ))
-            ) : (
-              <EmptyState title="No featured events" message="Check back soon for standout experiences." />
-            )}
-          </div>
-        </section>
+        {eventFiltersOpen && (
+          <>
+            <div
+              className="ownerReservationFiltersBackdrop"
+              onClick={() => setEventFiltersOpen(false)}
+            />
+
+            <div className="ownerReservationFiltersModal">
+              <div className="ownerReservationFiltersModal__head">
+                <div className="ownerReservationFiltersModal__title">Event Filters</div>
+
+                <button
+                  type="button"
+                  className="ownerReservationFiltersModal__close"
+                  onClick={() => setEventFiltersOpen(false)}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="ownerReservationFiltersModal__body">
+                <div className="ownerReservationFiltersSection">
+                  <div className="ownerReservationFiltersSection__title">Event Type</div>
+
+                  <ThemedSelect
+                    value={eventCategoryFilter}
+                    onChange={setEventCategoryFilter}
+                    options={EVENT_CATEGORY_FILTER_OPTIONS}
+                    ariaLabel="Filter events by type"
+                    fullWidth
+                  />
+                </div>
+
+                <div className="ownerReservationFiltersSection">
+                  <div className="ownerReservationFiltersSection__title">Date</div>
+
+                  <ThemedSelect
+                    value={eventDateFilter}
+                    onChange={setEventDateFilter}
+                    options={EVENT_DATE_FILTER_OPTIONS}
+                    ariaLabel="Filter events by date"
+                    fullWidth
+                  />
+                </div>
+
+                <div className="ownerReservationFiltersSection">
+                  <div className="ownerReservationFiltersSection__title">Quick Filters</div>
+
+                  <div className="dsCheckboxGrid">
+                    {[
+                      { key: "free", label: "Free" },
+                      { key: "nearby", label: "Nearby" },
+                      { key: "top", label: "Top Rated" },
+                    ].map((option) => (
+                      <label
+                        key={option.key}
+                        className={`dsCheckOption ${
+                          eventQuickFilters[option.key] ? "is-checked" : ""
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={eventQuickFilters[option.key]}
+                          onChange={(event) =>
+                            setEventQuickFilters((prev) => ({
+                              ...prev,
+                              [option.key]: event.target.checked,
+                            }))
+                          }
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="ownerReservationFiltersModal__footer">
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  onClick={() => {
+                    setEventCategoryFilter("upcoming");
+                    setEventDateFilter("all");
+                    setEventQuickFilters({
+                      free: false,
+                      nearby: false,
+                      top: false,
+                    });
+                  }}
+                >
+                  Reset
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn--gold"
+                  onClick={() => setEventFiltersOpen(false)}
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
         <section className="discoverEventSection">
-          <div className="discoverEventSection__title">Upcoming Events</div>
+          <div className="discoverEventSection__title">
+            {eventCategoryFilter === "featured" ? "Featured Events" : "Upcoming Events"}
+          </div>
+
           {filteredEvents.length ? (
             <div className="discoverEventsGrid">
               {filteredEvents.map((event) => (
                 <EventCard
-                  key={`upcoming-${event.id}`}
+                  key={`filtered-event-${event.id}`}
                   event={event}
                   onOpenRestaurant={onOpenRestaurant}
-                  onViewDetails={(evt) => { setActiveEvent(evt); setDetailsOpen(true); }}
-                  onJoinEvent={(evt) => { setActiveEvent(evt); setJoinOpen(true); }}
+                  onViewDetails={(evt) => {
+                    setActiveEvent(evt);
+                    setDetailsOpen(true);
+                  }}
+                  onJoinEvent={(evt) => {
+                    setActiveEvent(evt);
+                    setJoinOpen(true);
+                  }}
                 />
               ))}
             </div>
           ) : (
-            <EmptyState title="No upcoming events" message="Try a different filter or check back soon." />
+            <EmptyState
+              title="No events found"
+              message="Try changing your filters or check back soon."
+            />
           )}
         </section>
 
         <section className="discoverEventSection">
           <div className="discoverEventSection__title">Recommended for You</div>
+
           {recommendedEvents.length ? (
             <div className="discoverEventsGrid">
               {recommendedEvents.map((event) => (
@@ -645,15 +770,55 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
                   key={`rec-${event.id}`}
                   event={event}
                   onOpenRestaurant={onOpenRestaurant}
-                  onViewDetails={(evt) => { setActiveEvent(evt); setDetailsOpen(true); }}
-                  onJoinEvent={(evt) => { setActiveEvent(evt); setJoinOpen(true); }}
+                  onViewDetails={(evt) => {
+                    setActiveEvent(evt);
+                    setDetailsOpen(true);
+                  }}
+                  onJoinEvent={(evt) => {
+                    setActiveEvent(evt);
+                    setJoinOpen(true);
+                  }}
                 />
               ))}
             </div>
           ) : (
-            <EmptyState title="No recommendations yet" message="Engage with events to personalize this section." />
+            <EmptyState
+              title="No recommendations yet"
+              message="Engage with events to personalize this section."
+            />
           )}
         </section>
+      </section>
+
+      <section className="discoverFeedSection">
+        <div className="discoverFeedSection__header">
+          <h2>Recommended for You</h2>
+        </div>
+
+        {recommendationsLoading && effectiveRecommendations.length === 0 ? (
+          <LoadingSkeleton variant="card" count={3} />
+        ) : effectiveRecommendations.length > 0 ? (
+          <div className="restaurantGrid">
+            {effectiveRecommendations.map((recommendation) => (
+              <RecommendationCard
+                key={`recommended-${recommendation.id}`}
+                recommendation={recommendation}
+                onOpenRestaurant={onOpenRestaurant}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="No personalized recommendations yet"
+            message="Keep exploring restaurants and your recommendations will improve."
+          />
+        )}
+
+        {recommendationsError && (
+          <p className="discoverRecommendations__note">
+            {recommendationsError}
+          </p>
+        )}
       </section>
 
       {detailsOpen && (

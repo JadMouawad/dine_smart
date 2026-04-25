@@ -6,6 +6,7 @@ import { getUserEventReservations, cancelUserEventReservation } from "../../serv
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
 import EditReservationModal from "../../components/EditReservationModal.jsx";
+import ThemedSelect from "../../components/ThemedSelect.jsx";
 import { formatReservationDate, formatReservationTime, toReservationSortTimestamp, toReservationDateTime } from "../../utils/dateUtils";
 
 function toStatusClass(status) {
@@ -24,6 +25,28 @@ function formatStatusLabel(status) {
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
+const USER_RESERVATION_DATE_FILTER_OPTIONS = [
+  { value: "all", label: "All Reservations" },
+  { value: "upcoming", label: "Upcoming Reservations" },
+  { value: "past", label: "Past Reservations" },
+];
+
+const USER_RESERVATION_TYPE_FILTER_OPTIONS = [
+  { value: "all", label: "Tables + Events" },
+  { value: "tables", label: "Table Reservations" },
+  { value: "events", label: "Event Reservations" },
+];
+
+const USER_RESERVATION_STATUS_FILTER_OPTIONS = [
+  { value: "all", label: "All Statuses" },
+  { value: "pending", label: "Pending" },
+  { value: "accepted", label: "Accepted / Confirmed" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "rejected", label: "Rejected" },
+  { value: "completed", label: "Completed" },
+  { value: "no-show", label: "No-show" },
+];
+
 export default function UserReservations() {
   const { user } = useAuth();
   const [reservations, setReservations] = useState([]);
@@ -36,6 +59,11 @@ export default function UserReservations() {
   const [confirmEventReservation, setConfirmEventReservation] = useState(null);
   const [cancellingEventId, setCancellingEventId] = useState(null);
   const [clockNow, setClockNow] = useState(() => Date.now());
+
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [reservationDateFilter, setReservationDateFilter] = useState("all");
+  const [reservationTypeFilter, setReservationTypeFilter] = useState("all");
+  const [reservationStatusFilter, setReservationStatusFilter] = useState("all");
 
   useEffect(() => {
     if (!user?.id) return;
@@ -141,6 +169,62 @@ export default function UserReservations() {
     return grouped;
   }, [eventReservations, clockNow]);
 
+  const appliedReservationFiltersCount = useMemo(() => {
+    let count = 0;
+    if (reservationDateFilter !== "all") count += 1;
+    if (reservationTypeFilter !== "all") count += 1;
+    if (reservationStatusFilter !== "all") count += 1;
+    return count;
+  }, [reservationDateFilter, reservationTypeFilter, reservationStatusFilter]);
+
+  function matchesReservationStatus(reservation) {
+    if (reservationStatusFilter === "all") return true;
+
+    const normalized = String(reservation.status || "").toLowerCase();
+
+    if (reservationStatusFilter === "accepted") {
+      return normalized === "accepted" || normalized === "confirmed";
+    }
+
+    return normalized === reservationStatusFilter;
+  }
+
+  const filteredUpcomingReservations = useMemo(
+    () => upcoming.filter(matchesReservationStatus),
+    [upcoming, reservationStatusFilter]
+  );
+
+  const filteredPastReservations = useMemo(
+    () => past.filter(matchesReservationStatus),
+    [past, reservationStatusFilter]
+  );
+
+  const filteredUpcomingEvents = useMemo(
+    () => upcomingEvents.filter(matchesReservationStatus),
+    [upcomingEvents, reservationStatusFilter]
+  );
+
+  const filteredPastEvents = useMemo(
+    () => pastEvents.filter(matchesReservationStatus),
+    [pastEvents, reservationStatusFilter]
+  );
+
+  const showTableReservations =
+    reservationTypeFilter === "all" || reservationTypeFilter === "tables";
+
+  const showEventReservations =
+    reservationTypeFilter === "all" || reservationTypeFilter === "events";
+
+  const showUpcomingReservations =
+    reservationDateFilter === "all" || reservationDateFilter === "upcoming";
+
+  const showPastReservations =
+    reservationDateFilter === "all" || reservationDateFilter === "past";
+
+  const hasVisibleEventReservations =
+    (showUpcomingReservations && filteredUpcomingEvents.length > 0) ||
+    (showPastReservations && filteredPastEvents.length > 0);
+
   async function onCancelReservation(reservationId) {
     setError("");
     setCancellingId(reservationId);
@@ -205,146 +289,256 @@ export default function UserReservations() {
 
   return (
     <div className="userReservationsPage">
-      <h1 className="placeholderPage__title">Reservations</h1>
+      <div className="userReservationsHeader">
+        <h1 className="placeholderPage__title">Reservations</h1>
+
+        <button
+          type="button"
+          className={`searchFilterBtn ${filtersOpen ? "is-active" : ""}`}
+          onClick={() => setFiltersOpen(true)}
+        >
+          ⚙ Filters
+          {appliedReservationFiltersCount > 0 && (
+            <span className="searchFilterBtn__badge">
+              {appliedReservationFiltersCount}
+            </span>
+          )}
+        </button>
+      </div>
+
       {error && <div className="fieldError">{error}</div>}
 
-      <section className="reservationSection">
-        <h2 className="reservationSection__title">Upcoming Reservations</h2>
-        {upcoming.length === 0 ? (
-          <EmptyState
-            title="No upcoming reservations"
-            message="When you book a table, your upcoming reservations will appear here."
+      {filtersOpen && (
+        <>
+          <div
+            className="ownerReservationFiltersBackdrop"
+            onClick={() => setFiltersOpen(false)}
           />
-        ) : (
-          <div className="reservationList">
-            {upcoming.map((reservation) => (
-              <article className="reservationCard" key={reservation.id}>
-                <div className="reservationCard__top">
-                  <div className="reservationCard__name">{reservation.restaurant_name}</div>
-                  <span className={toStatusClass(reservation.status)}>{formatStatusLabel(reservation.status)}</span>
-                </div>
-                <div className="reservationCard__meta">
-                  {formatReservationDate(reservation)} at {formatReservationTime(reservation)}
-                </div>
-                <div className="reservationCard__meta">
-                  Party of {reservation.party_size} - Confirmation {reservation.confirmation_id}
-                </div>
-                {["pending", "accepted", "confirmed"].includes(String(reservation.status || "").toLowerCase()) && (
-                  <div className="reservationCard__actions">
-                    <button
-                      className="btn btn--secondary"
-                      type="button"
-                      onClick={() => setEditingReservation(reservation)}
-                    >
-                      Edit reservation
-                    </button>
-                    <button
-                      className="btn btn--ghost"
-                      type="button"
-                      disabled={cancellingId === reservation.id}
-                      onClick={() => setConfirmReservation(reservation)}
-                    >
-                      {cancellingId === reservation.id ? "Cancelling..." : "Cancel reservation"}
-                    </button>
+
+          <div className="ownerReservationFiltersModal">
+            <div className="ownerReservationFiltersModal__head">
+              <div className="ownerReservationFiltersModal__title">Reservation Filters</div>
+
+              <button
+                type="button"
+                className="ownerReservationFiltersModal__close"
+                onClick={() => setFiltersOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="ownerReservationFiltersModal__body">
+              <div className="ownerReservationFiltersSection">
+                <div className="ownerReservationFiltersSection__title">Date</div>
+
+                <ThemedSelect
+                  value={reservationDateFilter}
+                  onChange={setReservationDateFilter}
+                  options={USER_RESERVATION_DATE_FILTER_OPTIONS}
+                  ariaLabel="Filter reservations by date"
+                  fullWidth
+                />
+              </div>
+
+              <div className="ownerReservationFiltersSection">
+                <div className="ownerReservationFiltersSection__title">Reservation Type</div>
+
+                <ThemedSelect
+                  value={reservationTypeFilter}
+                  onChange={setReservationTypeFilter}
+                  options={USER_RESERVATION_TYPE_FILTER_OPTIONS}
+                  ariaLabel="Filter reservations by type"
+                  fullWidth
+                />
+              </div>
+
+              <div className="ownerReservationFiltersSection">
+                <div className="ownerReservationFiltersSection__title">Status</div>
+
+                <ThemedSelect
+                  value={reservationStatusFilter}
+                  onChange={setReservationStatusFilter}
+                  options={USER_RESERVATION_STATUS_FILTER_OPTIONS}
+                  ariaLabel="Filter reservations by status"
+                  fullWidth
+                />
+              </div>
+            </div>
+
+            <div className="ownerReservationFiltersModal__footer">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => {
+                  setReservationDateFilter("all");
+                  setReservationTypeFilter("all");
+                  setReservationStatusFilter("all");
+                }}
+              >
+                Reset
+              </button>
+
+              <button
+                type="button"
+                className="btn btn--gold"
+                onClick={() => setFiltersOpen(false)}
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {showTableReservations && showUpcomingReservations && (
+        <section className="reservationSection">
+          <h2 className="reservationSection__title">Upcoming Reservations</h2>
+          {filteredUpcomingReservations.length === 0 ? (
+            <EmptyState
+              title="No upcoming reservations"
+              message="When you book a table, your upcoming reservations will appear here."
+            />
+          ) : (
+            <div className="reservationList">
+              {filteredUpcomingReservations.map((reservation) => (
+                <article className="reservationCard" key={reservation.id}>
+                  <div className="reservationCard__top">
+                    <div className="reservationCard__name">{reservation.restaurant_name}</div>
+                    <span className={toStatusClass(reservation.status)}>{formatStatusLabel(reservation.status)}</span>
                   </div>
-                )}
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="reservationSection">
-        <h2 className="reservationSection__title">Past Reservations</h2>
-        {past.length === 0 ? (
-          <EmptyState
-            title="No past reservations"
-            message="Your past reservations will appear here once you have visited or cancelled a booking."
-          />
-        ) : (
-          <div className="reservationList">
-            {past.map((reservation) => (
-              <article className="reservationCard" key={reservation.id}>
-                <div className="reservationCard__top">
-                  <div className="reservationCard__name">{reservation.restaurant_name}</div>
-                  <span className={toStatusClass(reservation.status)}>{formatStatusLabel(reservation.status)}</span>
-                </div>
-                <div className="reservationCard__meta">
-                  {formatReservationDate(reservation)} at {formatReservationTime(reservation)}
-                </div>
-                <div className="reservationCard__meta">
-                  Party of {reservation.party_size} - Confirmation {reservation.confirmation_id}
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="reservationSection">
-        <h2 className="reservationSection__title">Event Reservations</h2>
-        {upcomingEvents.length === 0 && pastEvents.length === 0 ? (
-          <EmptyState
-            title="No event reservations"
-            message="Event bookings will appear here once you reserve an event."
-          />
-        ) : (
-          <>
-            {upcomingEvents.length > 0 && (
-              <div className="reservationList">
-                {upcomingEvents.map((reservation) => (
-                  <article className="reservationCard" key={`event-up-${reservation.id}`}>
-                    <div className="reservationCard__top">
-                      <div className="reservationCard__name">{reservation.event_title || "Event"}</div>
-                      <span className="statusBadge statusBadge--confirmed">Event</span>
-                    </div>
-                    <div className="reservationCard__meta">
-                      Restaurant: {reservation.restaurant_name || "N/A"}
-                    </div>
-                    <div className="reservationCard__meta">
-                      {formatEventDateTime(reservation)}
-                    </div>
-                    <div className="reservationCard__meta">
-                      Attendees: {reservation.attendees_count || 1}
-                    </div>
+                  <div className="reservationCard__meta">
+                    {formatReservationDate(reservation)} at {formatReservationTime(reservation)}
+                  </div>
+                  <div className="reservationCard__meta">
+                    Party of {reservation.party_size} - Confirmation {reservation.confirmation_id}
+                  </div>
+                  {["pending", "accepted", "confirmed"].includes(String(reservation.status || "").toLowerCase()) && (
                     <div className="reservationCard__actions">
+                      <button
+                        className="btn btn--secondary"
+                        type="button"
+                        onClick={() => setEditingReservation(reservation)}
+                      >
+                        Edit reservation
+                      </button>
                       <button
                         className="btn btn--ghost"
                         type="button"
-                        disabled={cancellingEventId === reservation.event_id}
-                        onClick={() => setConfirmEventReservation(reservation)}
+                        disabled={cancellingId === reservation.id}
+                        onClick={() => setConfirmReservation(reservation)}
                       >
-                        {cancellingEventId === reservation.event_id ? "Cancelling..." : "Cancel Reservation"}
+                        {cancellingId === reservation.id ? "Cancelling..." : "Cancel reservation"}
                       </button>
                     </div>
-                  </article>
-                ))}
-              </div>
-            )}
-            {pastEvents.length > 0 && (
-              <div className="reservationList">
-                {pastEvents.map((reservation) => (
-                  <article className="reservationCard" key={`event-past-${reservation.id}`}>
-                    <div className="reservationCard__top">
-                      <div className="reservationCard__name">{reservation.event_title || "Event"}</div>
-                      <span className="statusBadge statusBadge--completed">Past</span>
-                    </div>
-                    <div className="reservationCard__meta">
-                      Restaurant: {reservation.restaurant_name || "N/A"}
-                    </div>
-                    <div className="reservationCard__meta">
-                      {formatEventDateTime(reservation)}
-                    </div>
-                    <div className="reservationCard__meta">
-                      Attendees: {reservation.attendees_count || 1}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </section>
+                  )}
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {showTableReservations && showPastReservations && (
+        <section className="reservationSection">
+          <h2 className="reservationSection__title">Past Reservations</h2>
+          {filteredPastReservations.length === 0 ? (
+            <EmptyState
+              title="No past reservations"
+              message="Your past reservations will appear here once you have visited or cancelled a booking."
+            />
+          ) : (
+            <div className="reservationList">
+              {filteredPastReservations.map((reservation) => (
+                <article className="reservationCard" key={reservation.id}>
+                  <div className="reservationCard__top">
+                    <div className="reservationCard__name">{reservation.restaurant_name}</div>
+                    <span className={toStatusClass(reservation.status)}>{formatStatusLabel(reservation.status)}</span>
+                  </div>
+                  <div className="reservationCard__meta">
+                    {formatReservationDate(reservation)} at {formatReservationTime(reservation)}
+                  </div>
+                  <div className="reservationCard__meta">
+                    Party of {reservation.party_size} - Confirmation {reservation.confirmation_id}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {showEventReservations && (
+        <section className="reservationSection">
+          <h2 className="reservationSection__title">Event Reservations</h2>
+          {!hasVisibleEventReservations ? (
+            <EmptyState
+              title="No event reservations"
+              message="Event bookings will appear here once you reserve an event."
+            />
+          ) : (
+            <>
+              {showUpcomingReservations && filteredUpcomingEvents.length > 0 && (
+                <div className="reservationList">
+                  {filteredUpcomingEvents.map((reservation) => (
+                    <article className="reservationCard" key={`event-up-${reservation.id}`}>
+                      <div className="reservationCard__top">
+                        <div className="reservationCard__name">{reservation.event_title || "Event"}</div>
+                        <span className={toStatusClass(reservation.status)}>
+                          {formatStatusLabel(reservation.status)}
+                        </span>
+                      </div>
+                      <div className="reservationCard__meta">
+                        Restaurant: {reservation.restaurant_name || "N/A"}
+                      </div>
+                      <div className="reservationCard__meta">
+                        {formatEventDateTime(reservation)}
+                      </div>
+                      <div className="reservationCard__meta">
+                        Attendees: {reservation.attendees_count || 1}
+                      </div>
+                      <div className="reservationCard__actions">
+                        <button
+                          className="btn btn--ghost"
+                          type="button"
+                          disabled={cancellingEventId === reservation.event_id}
+                          onClick={() => setConfirmEventReservation(reservation)}
+                        >
+                          {cancellingEventId === reservation.event_id ? "Cancelling..." : "Cancel Reservation"}
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+
+              {showPastReservations && filteredPastEvents.length > 0 && (
+                <div className="reservationList">
+                  {filteredPastEvents.map((reservation) => (
+                    <article className="reservationCard" key={`event-past-${reservation.id}`}>
+                      <div className="reservationCard__top">
+                        <div className="reservationCard__name">{reservation.event_title || "Event"}</div>
+                        <span className={toStatusClass(reservation.status)}>
+                          {formatStatusLabel(reservation.status)}
+                        </span>
+                      </div>
+                      <div className="reservationCard__meta">
+                        Restaurant: {reservation.restaurant_name || "N/A"}
+                      </div>
+                      <div className="reservationCard__meta">
+                        {formatEventDateTime(reservation)}
+                      </div>
+                      <div className="reservationCard__meta">
+                        Attendees: {reservation.attendees_count || 1}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </section>
+      )}
 
       {editingReservation && (
         <EditReservationModal
