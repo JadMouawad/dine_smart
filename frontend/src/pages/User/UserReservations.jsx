@@ -249,6 +249,15 @@ export default function UserReservations() {
         })
       );
       setConfirmReservation(null);
+      window.dispatchEvent(
+        new CustomEvent("ds:loyalty-changed", {
+          detail: {
+            source: "reservation",
+            action: "cancelled",
+            reservationId,
+          },
+        })
+      );
       toast.success("Reservation cancelled. The restaurant has been updated.");
     } catch (err) {
       setError(err.message || "We couldn't cancel that reservation. Please try again.");
@@ -270,6 +279,15 @@ export default function UserReservations() {
       await cancelUserEventReservation(eventId);
       setEventReservations((prev) => prev.filter((reservation) => reservation.event_id !== eventId));
       setConfirmEventReservation(null);
+      window.dispatchEvent(
+        new CustomEvent("ds:loyalty-changed", {
+          detail: {
+            source: "event",
+            action: "cancelled",
+            eventId,
+          },
+        })
+      );
       toast.success("Event reservation cancelled.");
     } catch (err) {
       setError(err.message || "We couldn't cancel that event reservation. Please try again.");

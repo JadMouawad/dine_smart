@@ -201,15 +201,21 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       }
     }
 
+    function onLoyaltyChanged() {
+      loadProfile(false);
+    }
+
     const interval = window.setInterval(() => {
       if (document.visibilityState !== "visible") return;
       loadProfile(false);
     }, 30000);
 
     document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("ds:loyalty-changed", onLoyaltyChanged);
     return () => {
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("ds:loyalty-changed", onLoyaltyChanged);
     };
   }, [user?.id, isEditing]);
 

@@ -22,6 +22,44 @@ const awardPointsForSource = async (
   return result.rows[0] || { points: 0, awarded_points: 0 };
 };
 
+const reversePointsForSource = async (
+  { userId, sourceType, reversalSourceType, sourceId, points },
+  db = pool
+) => {
+  const query = `
+    WITH original AS (
+      SELECT 1
+      FROM user_points_ledger
+      WHERE user_id = $1
+        AND source_type = $2
+        AND source_id = $3
+        AND points > 0
+      LIMIT 1
+    ),
+    inserted AS (
+      INSERT INTO user_points_ledger (user_id, source_type, source_id, points)
+      SELECT $1, $4, $3, -$5
+      WHERE EXISTS (SELECT 1 FROM original)
+        AND NOT EXISTS (
+          SELECT 1
+          FROM user_points_ledger
+          WHERE user_id = $1
+            AND source_type = $4
+            AND source_id = $3
+        )
+      RETURNING points
+    )
+    UPDATE users
+    SET points = points + COALESCE((SELECT points FROM inserted), 0),
+        updated_at = NOW()
+    WHERE id = $1
+    RETURNING points,
+      COALESCE((SELECT ABS(points) FROM inserted), 0) AS reversed_points
+  `;
+  const result = await db.query(query, [userId, sourceType, sourceId, reversalSourceType, points]);
+  return result.rows[0] || { points: 0, reversed_points: 0 };
+};
+
 const getUserPoints = async (userId, db = pool) => {
   const result = await db.query(
     "SELECT points FROM users WHERE id = $1",
@@ -101,6 +139,7 @@ const deductPointsForReward = async (
 
 module.exports = {
   awardPointsForSource,
+  reversePointsForSource,
   getUserPoints,
   getRewardByCode,
   redeemReward,

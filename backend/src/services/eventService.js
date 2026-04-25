@@ -565,11 +565,30 @@ const cancelUserEventReservation = async ({ userId, eventId }) => {
   const parsedEventId = parsePositiveInt(eventId);
   if (!parsedEventId) return { success: false, status: 400, error: "Invalid event ID" };
 
-  const updated = await eventRepository.cancelEventAttendeeByUser({ eventId: parsedEventId, userId });
-  if (!updated) {
-    return { success: false, status: 404, error: "Event reservation not found" };
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+
+    const updated = await eventRepository.cancelEventAttendeeByUser({ eventId: parsedEventId, userId }, client);
+    if (!updated) {
+      await client.query("ROLLBACK");
+      return { success: false, status: 404, error: "Event reservation not found" };
+    }
+
+    await loyaltyService.reversePointsForEvent({
+      userId,
+      attendeeId: updated.id,
+      db: client,
+    });
+
+    await client.query("COMMIT");
+    return { success: true, status: 200, data: updated };
+  } catch (error) {
+    try { await client.query("ROLLBACK"); } catch {}
+    throw error;
+  } finally {
+    client.release();
   }
-  return { success: true, status: 200, data: updated };
 };
 
 const getOwnerEventReservations = async ({ ownerId }) => {

@@ -30,6 +30,32 @@ const awardPointsForEvent = async ({ userId, attendeeId, db }) => {
   );
 };
 
+const reversePointsForReservation = async ({ userId, reservationId, db }) => {
+  return await loyaltyRepository.reversePointsForSource(
+    {
+      userId,
+      sourceType: "reservation",
+      reversalSourceType: "reservation_cancel",
+      sourceId: reservationId,
+      points: POINTS_PER_RESTAURANT_RESERVATION,
+    },
+    db
+  );
+};
+
+const reversePointsForEvent = async ({ userId, attendeeId, db }) => {
+  return await loyaltyRepository.reversePointsForSource(
+    {
+      userId,
+      sourceType: "event",
+      reversalSourceType: "event_cancel",
+      sourceId: attendeeId,
+      points: POINTS_PER_EVENT_RESERVATION,
+    },
+    db
+  );
+};
+
 const getRewardStatus = async ({ userId, db }) => {
   const points = await loyaltyRepository.getUserPoints(userId, db);
   return await voucherService.getRewardStatus({ userId, points }, db);
@@ -48,6 +74,8 @@ module.exports = {
   REWARD_CODE,
   awardPointsForReservation,
   awardPointsForEvent,
+  reversePointsForReservation,
+  reversePointsForEvent,
   getRewardStatus,
   redeemReward,
 };
