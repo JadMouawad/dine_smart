@@ -43,6 +43,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const [loyaltyBadge, setLoyaltyBadge] = useState("Newcomer");
   const [points, setPoints] = useState(0);
   const [rewardStatus, setRewardStatus] = useState({ threshold: 100, unlocked: false, redeemed: false });
+  const [activeVoucher, setActiveVoucher] = useState(null);
   const [rewardCelebrationOpen, setRewardCelebrationOpen] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [subscriptionPreferences, setSubscriptionPreferences] = useState([]);
@@ -121,6 +122,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       setLoyaltyBadge(profile.loyaltyBadge ?? "Newcomer");
       setPoints(Number(profile.points ?? profile.rewards?.points ?? 0));
       setRewardStatus(profile.rewards ?? { threshold: 100, unlocked: false, redeemed: false });
+      setActiveVoucher(profile.rewards?.activeVoucher ?? null);
       setIsSubscribed(Boolean(profile.isSubscribed));
       setSubscriptionPreferences(prefArray);
       setSubscriptionSnapshot({ isSubscribed: Boolean(profile.isSubscribed), preferences: prefArray });
@@ -171,6 +173,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       setSubscriptionPreferences([]);
       setSubscriptionSnapshot({ isSubscribed: false, preferences: [] });
       setRewardStatus({ threshold: 100, unlocked: false, redeemed: false });
+      setActiveVoucher(null);
       setPoints(0);
       setEditingRequiredReviewId(null);
       setRequiredActionBusyId(null);
@@ -224,7 +227,10 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const rewardProgress = rewardThreshold > 0 ? Math.min(points, rewardThreshold) / rewardThreshold * 100 : 0;
   const rewardUnlocked = Boolean(rewardStatus?.unlocked);
   const rewardRedeemed = Boolean(rewardStatus?.redeemed);
-  const rewardStatusLabel = rewardRedeemed ? "Used" : rewardUnlocked ? "Unlocked" : "Locked";
+  const rewardStatusLabel = activeVoucher ? "Active" : rewardRedeemed ? "Used" : rewardUnlocked ? "Unlocked" : "Locked";
+  const activeVoucherExpiryLabel = activeVoucher?.expirationDate
+    ? new Date(activeVoucher.expirationDate).toLocaleDateString()
+    : "";
 
   const avatarSrc = useMemo(() => {
     return profilePictureDataUrl || profilePictureUrl || DEFAULT_AVATAR;
@@ -378,6 +384,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       const result = await redeemReward();
       if (result?.points != null) setPoints(result.points);
       if (result?.rewards) setRewardStatus(result.rewards);
+      setActiveVoucher(result?.rewards?.activeVoucher ?? null);
       if (result?.voucher?.unique_code) {
         toast.success(`Voucher ${result.voucher.unique_code} unlocked 🎉`);
       } else {
@@ -976,6 +983,20 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                 </button>
               </article>
             </div>
+
+            {activeVoucher && (
+              <article className="activeVoucherCard">
+                <div className="activeVoucherCard__badge">Active Voucher</div>
+                <div className="activeVoucherCard__code">{activeVoucher.code}</div>
+                <div className="activeVoucherCard__meta">
+                  {activeVoucher.discountPercentage}% off
+                  {activeVoucherExpiryLabel ? ` - Expires ${activeVoucherExpiryLabel}` : ""}
+                </div>
+                <p className="activeVoucherCard__hint">
+                  This voucher stays in your profile until it expires after one month.
+                </p>
+              </article>
+            )}
           </section>
 
         </div>

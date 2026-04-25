@@ -6246,6 +6246,15 @@ margin: 0 auto;
   gap: 12px;
 }
 
+.reservationList--events {
+  gap: 18px;
+}
+
+.reservationEventGroups {
+  display: grid;
+  gap: 18px;
+}
+
 .slotAdjustCard {
   margin-bottom: 22px;
 }
@@ -9387,6 +9396,46 @@ margin: 0 auto;
   min-width: 110px;
 }
 
+.activeVoucherCard {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  background: rgba(8, 14, 34, 0.5);
+  display: grid;
+  gap: 8px;
+}
+
+.activeVoucherCard__badge {
+  width: fit-content;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(201, 162, 39, 0.16);
+  color: #f2d98d;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.activeVoucherCard__code {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #fff;
+}
+
+.activeVoucherCard__meta {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.activeVoucherCard__hint {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.68);
+  line-height: 1.45;
+}
+
 .rewardModalOverlay {
   position: fixed;
   inset: 0;
@@ -9481,6 +9530,20 @@ margin: 0 auto;
 [data-theme="light"] .rewardCard {
   background: rgba(255, 251, 243, 0.85);
   border-color: rgba(175, 115, 45, 0.2);
+}
+
+[data-theme="light"] .activeVoucherCard {
+  background: rgba(255, 251, 243, 0.9);
+  border-color: rgba(175, 115, 45, 0.3);
+}
+
+[data-theme="light"] .activeVoucherCard__code {
+  color: rgba(26, 14, 6, 0.95);
+}
+
+[data-theme="light"] .activeVoucherCard__meta,
+[data-theme="light"] .activeVoucherCard__hint {
+  color: rgba(80, 45, 15, 0.72);
 }
 
 [data-theme="light"] .rewardModalCard {
@@ -10051,6 +10114,11 @@ margin: 0 auto;
 }
 
 .eventModal__actions--inline {
+  justify-content: center;
+}
+
+.eventModal__actions--inline .btn {
+  min-width: 250px;
   justify-content: center;
 }
 

@@ -495,9 +495,9 @@ export default function UserReservations() {
               message="Event bookings will appear here once you reserve an event."
             />
           ) : (
-            <>
+            <div className="reservationEventGroups">
               {showUpcomingReservations && filteredUpcomingEvents.length > 0 && (
-                <div className="reservationList">
+                <div className="reservationList reservationList--events">
                   {filteredUpcomingEvents.map((reservation) => (
                     <article className="reservationCard" key={`event-up-${reservation.id}`}>
                       <div className="reservationCard__top">
@@ -531,7 +531,7 @@ export default function UserReservations() {
               )}
 
               {showPastReservations && filteredPastEvents.length > 0 && (
-                <div className="reservationList">
+                <div className="reservationList reservationList--events">
                   {filteredPastEvents.map((reservation) => (
                     <article className="reservationCard" key={`event-past-${reservation.id}`}>
                       <div className="reservationCard__top">
@@ -553,7 +553,7 @@ export default function UserReservations() {
                   ))}
                 </div>
               )}
-            </>
+            </div>
           )}
         </section>
       )}

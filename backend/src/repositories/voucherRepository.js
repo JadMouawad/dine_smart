@@ -21,7 +21,7 @@ const getActiveVoucherByUser = async (
 ) => {
   const result = await db.query(
     `
-      SELECT id, user_id, discount_percentage, status, unique_code, expiration_date
+      SELECT id, user_id, discount_percentage, status, unique_code, expiration_date, used_at, created_at
       FROM vouchers
       WHERE user_id = $1
         AND status = 'ACTIVE'

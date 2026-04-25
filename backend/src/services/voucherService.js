@@ -75,6 +75,16 @@ const getRewardStatus = async ({ userId, points }, db) => {
     rewardCode: "voucher_10_off",
     unlocked: points >= POINTS_COST,
     redeemed: Boolean(active),
+    activeVoucher: active
+      ? {
+          id: active.id,
+          code: active.unique_code,
+          discountPercentage: active.discount_percentage,
+          status: active.status,
+          expirationDate: active.expiration_date,
+          createdAt: active.created_at,
+        }
+      : null,
   };
 };
 

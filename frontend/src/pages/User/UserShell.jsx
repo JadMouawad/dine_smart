@@ -223,6 +223,9 @@ export default function UserShell({ initialActive = "search" }) {
                 setRestaurantToOpen(restaurant);
                 setActive("search");
               }}
+              onViewBooking={() => {
+                setActive("reservations");
+              }}
             />
           </div>
         )}
