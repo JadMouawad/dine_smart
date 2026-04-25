@@ -174,7 +174,36 @@ function isEventExpired(event, referenceTime = Date.now()) {
   return eventEnd.getTime() < referenceTime;
 }
 
-function EventCard({ event, onOpenRestaurant, onViewDetails, onJoinEvent }) {
+function getEventCardLabels(event, { isFree, isTrending, isEndingSoon }) {
+  const labels = [];
+  const addLabel = (value, className = "") => {
+    const label = String(value || "").trim();
+    if (!label) return;
+    const exists = labels.some((item) => item.label.toLowerCase() === label.toLowerCase());
+    if (!exists) labels.push({ label, className });
+  };
+
+  if (isEndingSoon) addLabel("Ending Soon", "eventSearchCard__tag--warn");
+  if (isFree) addLabel("Free", "eventSearchCard__tag--free");
+  if (event.is_featured) addLabel("Featured", "eventSearchCard__tag--gold");
+  if (isTrending) addLabel("Trending", "eventSearchCard__tag--hot");
+
+  const rawLabels = [event.label, event.tag, event.category, event.event_label, event.eventLabel];
+  rawLabels.forEach((label) => addLabel(label, "eventSearchCard__tag--gold"));
+
+  const listLabels = [event.labels, event.tags, event.event_tags, event.eventTags];
+  listLabels.forEach((list) => {
+    if (!Array.isArray(list)) return;
+    list.forEach((item) => {
+      if (typeof item === "string") addLabel(item, "eventSearchCard__tag--gold");
+      else addLabel(item?.label || item?.name || item?.title, "eventSearchCard__tag--gold");
+    });
+  });
+
+  return labels;
+}
+
+function EventCard({ event, onViewDetails, onJoinEvent }) {
   const eventStart = buildEventDateTime(event.start_date || event.event_date || event.startDate, event.start_time);
   const eventEnd = buildEventEndDateTime(
     event.end_date || event.endDate || event.event_date || event.start_date || event.startDate,
@@ -187,59 +216,91 @@ function EventCard({ event, onOpenRestaurant, onViewDetails, onJoinEvent }) {
     : false;
   const isFree = event.is_free === true || event.price === 0 || event.price === "0";
   const isTrending = event.is_trending === true || (event.popularity_score ?? 0) >= 80;
-  const goingCount = event.going_count ?? event.attendee_count ?? event.people_going;
   const timeLabel = eventStart
     ? eventStart.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    : null;
+    : "Time TBA";
+  const dateLabel = formatDateRange(event.start_date || event.event_date || event.startDate, event.end_date || event.endDate);
+  const imageUrl = event.image_url || event.imageUrl || event.cover_url || event.coverUrl || "";
+  const labels = getEventCardLabels(event, { isFree, isTrending, isEndingSoon });
 
   return (
-    <article className="discoverEventCard discoverEventCard--rich" key={event.id}>
-      <div className="discoverEventCard__header">
-        <div>
-          <div className="discoverEventCard__title">{event.title}</div>
-          <div className="discoverEventCard__restaurant">{event.restaurant_name}</div>
+    <article
+      className="restaurantCard restaurantCard--search eventSearchCard"
+      key={event.id}
+      onClick={() => onViewDetails?.(event)}
+    >
+      <div className="restaurantCard__cover eventSearchCard__cover">
+        {imageUrl ? (
+          <img
+            className="restaurantCard__coverImg"
+            src={imageUrl}
+            alt={`${event.title || "Event"} cover`}
+            loading="lazy"
+          />
+        ) : (
+          <div className="restaurantCard__coverPlaceholder">Event</div>
+        )}
+
+        {labels.length > 0 && (
+          <div className="eventSearchCard__tags" aria-label="Event labels">
+            {labels.map((item) => (
+              <span
+                key={item.label}
+                className={`eventSearchCard__tag ${item.className}`}
+              >
+                {item.label}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="restaurantCard__body eventSearchCard__body">
+        <div className="restaurantCard__header">
+          <div>
+            <div className="restaurantCard__name eventSearchCard__title">
+              {event.title || "Untitled Event"}
+            </div>
+            <div className="restaurantCard__cuisine eventSearchCard__restaurant">
+              {event.restaurant_name || "Restaurant not set"}
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div className="discoverEventCard__dateRow">
-        <span>📅 {formatDateRange(event.start_date, event.end_date)}</span>
-        {timeLabel && <span>⏰ {timeLabel}</span>}
-      </div>
-
-      {event.description && (
-        <p className="discoverEventCard__desc discoverEventCard__desc--clamp">
-          {event.description}
+        <p className="eventSearchCard__description">
+          {event.description || "No description provided yet."}
         </p>
-      )}
 
-      <div className="discoverEventCard__tags">
-        {isFree && <span className="eventTag">Free</span>}
-        {isTrending && <span className="eventTag eventTag--hot">Trending</span>}
-        {isEndingSoon && <span className="eventTag eventTag--warn">Ending Soon</span>}
-      </div>
+        <div className="restaurantCard__metaLine eventSearchCard__metaLine">
+          📅 {dateLabel || "Date TBA"}
+        </div>
+        <div className="restaurantCard__metaLine eventSearchCard__metaLine">
+          ⏰ {timeLabel}
+        </div>
 
-      {goingCount != null && (
-        <div className="discoverEventCard__social">{goingCount} people going</div>
-      )}
-
-      {event.restaurant_id && (
-        <div className="discoverEventCard__actions discoverEventCard__actions--dual">
+        <div className="restaurantCard__actions eventSearchCard__actions">
           <button
-            className="btn btn--gold discoverEventCard__actionBtn discoverEventCard__actionBtn--primary"
+            className="btn btn--gold reserveMiniBtn eventSearchCard__actionBtn"
             type="button"
-            onClick={() => onJoinEvent?.(event)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onJoinEvent?.(event);
+            }}
           >
             Join Event
           </button>
           <button
-            className="btn btn--ghost discoverEventCard__actionBtn"
+            className="btn btn--ghost reserveMiniBtn eventSearchCard__actionBtn"
             type="button"
-            onClick={() => onViewDetails?.(event)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewDetails?.(event);
+            }}
           >
             View Details
           </button>
         </div>
-      )}
+      </div>
     </article>
   );
 }
@@ -839,7 +900,7 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
           </div>
 
           {filteredEvents.length ? (
-            <div className="discoverEventsGrid">
+            <div className="discoverEventsGrid discoverEventsGrid--restaurantSized">
               {filteredEvents.map((event) => (
                 <EventCard
                   key={`filtered-event-${event.id}`}
@@ -868,7 +929,7 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
           <div className="discoverEventSection__title">Recommended for You</div>
 
           {recommendedEvents.length ? (
-            <div className="discoverEventsGrid">
+            <div className="discoverEventsGrid discoverEventsGrid--restaurantSized">
               {recommendedEvents.map((event) => (
                 <EventCard
                   key={`rec-${event.id}`}
