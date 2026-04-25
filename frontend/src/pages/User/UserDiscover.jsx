@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext.jsx";
-import { getDiscoverFeed } from "../../services/restaurantService";
+import { getDiscoverFeed, getPublicEvents } from "../../services/restaurantService";
 import { getDiscoverRecommendations } from "../../services/recommendationService";
 import { joinEvent, saveEvent } from "../../services/eventService";
 import LoadingSkeleton from "../../components/LoadingSkeleton.jsx";
@@ -22,8 +22,37 @@ const EVENT_DATE_FILTER_OPTIONS = [
   { value: "week", label: "This Week" },
 ];
 
-function bucketEvents(events = []) {
-  const today = startOfDay(new Date());
+function getEventStartTimestamp(event) {
+  const start = buildEventDateTime(
+    event?.start_date || event?.event_date || event?.startDate,
+    event?.start_time
+  );
+  return start ? start.getTime() : Number.MAX_SAFE_INTEGER;
+}
+
+function mergeEventsById(...eventLists) {
+  const merged = new Map();
+
+  eventLists.forEach((list) => {
+    if (!Array.isArray(list)) return;
+
+    list.forEach((event) => {
+      if (!event) return;
+      const key = String(event.id ?? `${event.title || "event"}-${event.start_date || event.event_date || "date"}`);
+      const existing = merged.get(key) || {};
+      merged.set(key, { ...existing, ...event });
+    });
+  });
+
+  return Array.from(merged.values()).sort((a, b) => {
+    const timeDiff = getEventStartTimestamp(a) - getEventStartTimestamp(b);
+    if (timeDiff !== 0) return timeDiff;
+    return Number(b.id || 0) - Number(a.id || 0);
+  });
+}
+
+function bucketEvents(events = [], referenceDate = new Date()) {
+  const today = startOfDay(referenceDate);
   const msPerDay = 24 * 60 * 60 * 1000;
   const buckets = {
     today: [],
@@ -100,75 +129,178 @@ function buildEventDateTime(dateValue, timeValue) {
   const dateOnly = toDateObject(dateValue);
   if (!dateOnly) return null;
   if (!timeValue) return dateOnly;
-  const [h, m] = String(timeValue).split(":").map((v) => parseInt(v, 10));
-  if (Number.isNaN(h) || Number.isNaN(m)) return dateOnly;
+
+  const rawTime = String(timeValue).trim();
+  const match = rawTime.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (!match) return dateOnly;
+
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const seconds = parseInt(match[3] || "0", 10);
+  const meridiem = match[4]?.toUpperCase();
+
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) {
+    return dateOnly;
+  }
+
+  if (meridiem === "PM" && hours < 12) hours += 12;
+  if (meridiem === "AM" && hours === 12) hours = 0;
+
   const withTime = new Date(dateOnly);
-  withTime.setHours(h, m, 0, 0);
+  withTime.setHours(hours, minutes, seconds, 0);
   return withTime;
 }
 
-function EventCard({ event, onOpenRestaurant, onViewDetails, onJoinEvent }) {
+function buildEventEndDateTime(dateValue, timeValue) {
+  const endDate = buildEventDateTime(dateValue, timeValue);
+  if (!endDate) return null;
+
+  // If the backend only gives an end date without an end time,
+  // keep the event visible until the end of that day.
+  if (!timeValue) {
+    endDate.setHours(23, 59, 59, 999);
+  }
+
+  return endDate;
+}
+
+function isEventExpired(event, referenceTime = Date.now()) {
+  const eventEnd = buildEventEndDateTime(
+    event.end_date || event.endDate || event.event_date || event.start_date || event.startDate,
+    event.end_time
+  );
+
+  if (!eventEnd) return false;
+  return eventEnd.getTime() < referenceTime;
+}
+
+function getEventCardLabels(event, { isFree, isTrending, isEndingSoon }) {
+  const labels = [];
+  const addLabel = (value, className = "") => {
+    const label = String(value || "").trim();
+    if (!label) return;
+    const exists = labels.some((item) => item.label.toLowerCase() === label.toLowerCase());
+    if (!exists) labels.push({ label, className });
+  };
+
+  if (isEndingSoon) addLabel("Ending Soon", "eventSearchCard__tag--warn");
+  if (isFree) addLabel("Free", "eventSearchCard__tag--free");
+  if (event.is_featured) addLabel("Featured", "eventSearchCard__tag--gold");
+  if (isTrending) addLabel("Trending", "eventSearchCard__tag--hot");
+
+  const rawLabels = [event.label, event.tag, event.category, event.event_label, event.eventLabel];
+  rawLabels.forEach((label) => addLabel(label, "eventSearchCard__tag--gold"));
+
+  const listLabels = [event.labels, event.tags, event.event_tags, event.eventTags];
+  listLabels.forEach((list) => {
+    if (!Array.isArray(list)) return;
+    list.forEach((item) => {
+      if (typeof item === "string") addLabel(item, "eventSearchCard__tag--gold");
+      else addLabel(item?.label || item?.name || item?.title, "eventSearchCard__tag--gold");
+    });
+  });
+
+  return labels;
+}
+
+function EventCard({ event, onViewDetails, onJoinEvent }) {
   const eventStart = buildEventDateTime(event.start_date || event.event_date || event.startDate, event.start_time);
-  const eventEnd = buildEventDateTime(event.end_date || event.endDate, event.end_time);
+  const eventEnd = buildEventEndDateTime(
+    event.end_date || event.endDate || event.event_date || event.start_date || event.startDate,
+    event.end_time
+  );
   const now = new Date();
-  const isEndingSoon = eventEnd ? (eventEnd.getTime() - now.getTime()) <= 48 * 60 * 60 * 1000 : false;
+  const isEndingSoon = eventEnd
+    ? eventEnd.getTime() > now.getTime() &&
+      eventEnd.getTime() - now.getTime() <= 48 * 60 * 60 * 1000
+    : false;
   const isFree = event.is_free === true || event.price === 0 || event.price === "0";
   const isTrending = event.is_trending === true || (event.popularity_score ?? 0) >= 80;
-  const distanceLabel = event.distance_km != null ? `${event.distance_km} km away` : "Distance unavailable";
-  const goingCount = event.going_count ?? event.attendee_count ?? event.people_going;
   const timeLabel = eventStart
     ? eventStart.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    : null;
+    : "Time TBA";
+  const dateLabel = formatDateRange(event.start_date || event.event_date || event.startDate, event.end_date || event.endDate);
+  const imageUrl = event.image_url || event.imageUrl || event.cover_url || event.coverUrl || "";
+  const labels = getEventCardLabels(event, { isFree, isTrending, isEndingSoon });
 
   return (
-    <article className="discoverEventCard discoverEventCard--rich" key={event.id}>
-      <div className="discoverEventCard__header">
-        <div>
-          <div className="discoverEventCard__title">{event.title}</div>
-          <div className="discoverEventCard__restaurant">{event.restaurant_name}</div>
+    <article
+      className="restaurantCard restaurantCard--search eventSearchCard"
+      key={event.id}
+      onClick={() => onViewDetails?.(event)}
+    >
+      <div className="restaurantCard__cover eventSearchCard__cover">
+        {imageUrl ? (
+          <img
+            className="restaurantCard__coverImg"
+            src={imageUrl}
+            alt={`${event.title || "Event"} cover`}
+            loading="lazy"
+          />
+        ) : (
+          <div className="restaurantCard__coverPlaceholder">Event</div>
+        )}
+
+        {labels.length > 0 && (
+          <div className="eventSearchCard__tags" aria-label="Event labels">
+            {labels.map((item) => (
+              <span
+                key={item.label}
+                className={`eventSearchCard__tag ${item.className}`}
+              >
+                {item.label}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="restaurantCard__body eventSearchCard__body">
+        <div className="restaurantCard__header">
+          <div>
+            <div className="restaurantCard__name eventSearchCard__title">
+              {event.title || "Untitled Event"}
+            </div>
+            <div className="restaurantCard__cuisine eventSearchCard__restaurant">
+              {event.restaurant_name || "Restaurant not set"}
+            </div>
+          </div>
         </div>
-        <div className="discoverEventCard__metaChip">{distanceLabel}</div>
-      </div>
 
-      <div className="discoverEventCard__dateRow">
-        <span>📅 {formatDateRange(event.start_date, event.end_date)}</span>
-        {timeLabel && <span>⏰ {timeLabel}</span>}
-      </div>
-
-      {event.description && (
-        <p className="discoverEventCard__desc discoverEventCard__desc--clamp">
-          {event.description}
+        <p className="eventSearchCard__description">
+          {event.description || "No description provided yet."}
         </p>
-      )}
 
-      <div className="discoverEventCard__tags">
-        {isFree && <span className="eventTag">Free</span>}
-        {isTrending && <span className="eventTag eventTag--hot">Trending</span>}
-        {isEndingSoon && <span className="eventTag eventTag--warn">Ending Soon</span>}
-      </div>
+        <div className="restaurantCard__metaLine eventSearchCard__metaLine">
+          📅 {dateLabel || "Date TBA"}
+        </div>
+        <div className="restaurantCard__metaLine eventSearchCard__metaLine">
+          ⏰ {timeLabel}
+        </div>
 
-      {goingCount != null && (
-        <div className="discoverEventCard__social">{goingCount} people going</div>
-      )}
-
-      {event.restaurant_id && (
-        <div className="discoverEventCard__actions discoverEventCard__actions--dual">
+        <div className="restaurantCard__actions eventSearchCard__actions">
           <button
-            className="btn btn--gold discoverEventCard__actionBtn discoverEventCard__actionBtn--primary"
+            className="btn btn--gold reserveMiniBtn eventSearchCard__actionBtn"
             type="button"
-            onClick={() => onJoinEvent?.(event)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onJoinEvent?.(event);
+            }}
           >
             Join Event
           </button>
           <button
-            className="btn btn--ghost discoverEventCard__actionBtn"
+            className="btn btn--ghost reserveMiniBtn eventSearchCard__actionBtn"
             type="button"
-            onClick={() => onViewDetails?.(event)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewDetails?.(event);
+            }}
           >
             View Details
           </button>
         </div>
-      )}
+      </div>
     </article>
   );
 }
@@ -176,14 +308,16 @@ function EventCard({ event, onOpenRestaurant, onViewDetails, onJoinEvent }) {
 function EventDetailsModal({ event, onClose, onJoin, onSave, onShare }) {
   if (!event) return null;
   const startDate = buildEventDateTime(event.start_date || event.event_date || event.startDate, event.start_time);
-  const endDate = buildEventDateTime(event.end_date || event.endDate, event.end_time);
+  const endDate = buildEventEndDateTime(
+    event.end_date || event.endDate || event.event_date || event.start_date || event.startDate,
+    event.end_time
+  );
   const timeLabel = startDate
     ? startDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     : null;
   const durationLabel = startDate && endDate
     ? `${Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60))) } mins`
     : "Duration varies";
-  const distanceLabel = event.distance_km != null ? `${event.distance_km} km away` : "Distance unavailable";
   const isFree = event.is_free === true || event.price === 0 || event.price === "0";
   const goingCount = event.going_count ?? event.attendee_count ?? event.people_going;
   const mapToken = import.meta.env.VITE_MAPBOX_TOKEN;
@@ -207,7 +341,6 @@ function EventDetailsModal({ event, onClose, onJoin, onSave, onShare }) {
               <div className="eventModal__title">{event.title}</div>
               <div className="eventModal__restaurant">{event.restaurant_name}</div>
             </div>
-            <div className="eventModal__distance">{distanceLabel}</div>
           </div>
 
           <div className="eventModal__infoRow">
@@ -219,9 +352,11 @@ function EventDetailsModal({ event, onClose, onJoin, onSave, onShare }) {
           <div className="eventModal__tags">
             {isFree && <span className="eventTag">Free</span>}
             {(event.is_trending || (event.popularity_score ?? 0) >= 80) && <span className="eventTag eventTag--hot">Trending</span>}
-            {endDate && (endDate.getTime() - Date.now()) <= 48 * 60 * 60 * 1000 && (
-              <span className="eventTag eventTag--warn">Ending Soon</span>
-            )}
+            {endDate &&
+              endDate.getTime() > Date.now() &&
+              endDate.getTime() - Date.now() <= 48 * 60 * 60 * 1000 && (
+                <span className="eventTag eventTag--warn">Ending Soon</span>
+              )}
           </div>
 
           {goingCount != null && <div className="eventModal__social">{goingCount} people attending</div>}
@@ -383,6 +518,7 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [coords, setCoords] = useState({ latitude: null, longitude: null });
+  const [publicEvents, setPublicEvents] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [recommendationsLoading, setRecommendationsLoading] = useState(true);
   const [recommendationsError, setRecommendationsError] = useState("");
@@ -394,6 +530,7 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
     nearby: false,
     top: false,
   });
+  const [eventsNow, setEventsNow] = useState(() => Date.now());
   const [activeEvent, setActiveEvent] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
@@ -406,17 +543,31 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
   const effectiveLongitude = coords.longitude != null
     ? coords.longitude
     : (Number.isFinite(profileLongitude) ? profileLongitude : null);
-  const eventBuckets = bucketEvents(feed?.upcoming_events_nearby || []);
-  const allEvents = feed?.upcoming_events_nearby || [];
+  const rawAllEvents = useMemo(
+    () => mergeEventsById(feed?.upcoming_events_nearby, publicEvents),
+    [feed?.upcoming_events_nearby, publicEvents]
+  );
+  const allEvents = useMemo(
+    () => rawAllEvents.filter((event) => !isEventExpired(event, eventsNow)),
+    [rawAllEvents, eventsNow]
+  );
+  const eventBuckets = useMemo(
+    () => bucketEvents(allEvents, new Date(eventsNow)),
+    [allEvents, eventsNow]
+  );
   const featuredEvents = useMemo(() => {
     const sorted = [...allEvents].sort((a, b) => (b.popularity_score ?? 0) - (a.popularity_score ?? 0));
     return sorted.filter((event) => event.is_featured || (event.popularity_score ?? 0) >= 80).slice(0, 8);
   }, [allEvents]);
 
   const recommendedEvents = useMemo(() => {
-    if (feed?.recommended_events?.length) return feed.recommended_events;
+    const activeRecommendedEvents = Array.isArray(feed?.recommended_events)
+      ? feed.recommended_events.filter((event) => !isEventExpired(event, eventsNow))
+      : [];
+
+    if (activeRecommendedEvents.length) return activeRecommendedEvents;
     return [...allEvents].slice(0, 6);
-  }, [allEvents, feed?.recommended_events]);
+  }, [allEvents, feed?.recommended_events, eventsNow]);
 
   const appliedEventFiltersCount = useMemo(() => {
     let count = 0;
@@ -489,6 +640,14 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
     );
   }, []);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setEventsNow(Date.now());
+    }, 60 * 1000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
   async function loadDiscoverFeed() {
     setLoading(true);
     setError("");
@@ -497,7 +656,7 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
         latitude: effectiveLatitude,
         longitude: effectiveLongitude,
         distanceRadius: 25,
-        limit: 8,
+        limit: 20,
       });
       setFeed(data);
     } catch (err) {
@@ -516,6 +675,39 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
     })();
     return () => {
       cancelled = true;
+    };
+  }, [effectiveLatitude, effectiveLongitude]);
+
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPublicEvents() {
+      try {
+        const data = await getPublicEvents({
+          latitude: effectiveLatitude,
+          longitude: effectiveLongitude,
+          limit: 100,
+        });
+
+        if (!cancelled) {
+          setPublicEvents(Array.isArray(data) ? data : []);
+        }
+      } catch (_) {
+        if (!cancelled) setPublicEvents([]);
+      }
+    }
+
+    loadPublicEvents();
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      loadPublicEvents();
+    }, 20000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
     };
   }, [effectiveLatitude, effectiveLongitude]);
 
@@ -572,33 +764,6 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
   return (
     <div className="userSearchPage">
       <h1 className="userSearchPage__title">Events</h1>
-
-      <SectionRestaurants
-        title="Near You"
-        badge="New Restaurant"
-        restaurants={feed?.near_you}
-        onOpenRestaurant={onOpenRestaurant}
-      />
-
-      <SectionRestaurants
-        title="Popular Right Now"
-        badge="Popular Right Now"
-        restaurants={feed?.popular_right_now}
-        onOpenRestaurant={onOpenRestaurant}
-      />
-
-      <SectionRestaurants
-        title="Matches Preferences"
-        badge="Recommended For You"
-        restaurants={feed?.matches_preferences}
-        onOpenRestaurant={onOpenRestaurant}
-      />
-
-      <SectionRestaurants
-        title="Highly Rated"
-        restaurants={feed?.highly_rated}
-        onOpenRestaurant={onOpenRestaurant}
-      />
 
       <section className="discoverEventsWrap">
         <div className="discoverEventsHeader">
@@ -735,7 +900,7 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
           </div>
 
           {filteredEvents.length ? (
-            <div className="discoverEventsGrid">
+            <div className="discoverEventsGrid discoverEventsGrid--restaurantSized">
               {filteredEvents.map((event) => (
                 <EventCard
                   key={`filtered-event-${event.id}`}
@@ -764,7 +929,7 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
           <div className="discoverEventSection__title">Recommended for You</div>
 
           {recommendedEvents.length ? (
-            <div className="discoverEventsGrid">
+            <div className="discoverEventsGrid discoverEventsGrid--restaurantSized">
               {recommendedEvents.map((event) => (
                 <EventCard
                   key={`rec-${event.id}`}
