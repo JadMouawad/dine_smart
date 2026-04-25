@@ -12,6 +12,8 @@ import {
   getOwnerDisabledSlots,
   saveOwnerDisabledSlot,
 } from "../../services/reservationService";
+import { getOwnerEventReservations } from "../../services/restaurantService";
+import { markEventAttendeeNoShow } from "../../services/eventService";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
 import OwnerReservationCalendar from "../../components/OwnerReservationCalendar.jsx";
@@ -412,6 +414,14 @@ export default function OwnerReservations() {
   });
   const [chartRange, setChartRange] = useState("14d");
 
+  // Event attendees state
+  const [eventAttendees, setEventAttendees] = useState([]);
+  const [eventAttendeesLoading, setEventAttendeesLoading] = useState(false);
+  const [eventAttendeesError, setEventAttendeesError] = useState("");
+  const [noShowingAttendeeId, setNoShowingAttendeeId] = useState(null);
+  const [eventAttendeesView, setEventAttendeesView] = useState("upcoming");
+  const [eventAttendeesStatusFilter, setEventAttendeesStatusFilter] = useState("all");
+
   const appliedFiltersCount = useMemo(() => {
     let count = 0;
 
@@ -461,6 +471,41 @@ export default function OwnerReservations() {
   useEffect(() => {
     loadReservations();
   }, []);
+
+  async function loadEventAttendees() {
+    setEventAttendeesLoading(true);
+    setEventAttendeesError("");
+    try {
+      const data = await getOwnerEventReservations();
+      setEventAttendees(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setEventAttendeesError(err.message || "Failed to load event attendees.");
+    } finally {
+      setEventAttendeesLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (activeSection === "event-attendees") {
+      loadEventAttendees();
+    }
+  }, [activeSection]);
+
+  async function handleEventAttendeeNoShow(attendeeId) {
+    setNoShowingAttendeeId(attendeeId);
+    try {
+      const att = eventAttendees.find((a) => a.id === attendeeId);
+      await markEventAttendeeNoShow(att?.event_id, attendeeId);
+      setEventAttendees((prev) =>
+        prev.map((a) => (a.id === attendeeId ? { ...a, status: "no-show" } : a))
+      );
+      toast.success("Attendee marked as no-show.");
+    } catch (err) {
+      toast.error(err.message || "Failed to mark no-show.");
+    } finally {
+      setNoShowingAttendeeId(null);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -1079,6 +1124,14 @@ export default function OwnerReservations() {
           onClick={() => setActiveSection("reservations")}
         >
           Reservations
+        </button>
+
+        <button
+          type="button"
+          className={`ownerReservationSectionSwitcher__btn ${activeSection === "event-attendees" ? "is-active" : ""}`}
+          onClick={() => setActiveSection("event-attendees")}
+        >
+          Event Attendees
         </button>
       </div>
 
@@ -1726,6 +1779,133 @@ export default function OwnerReservations() {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {activeSection === "event-attendees" && (
+        <div className="ownerReservationPanel">
+          <div className="ownerReservationToolbar">
+            <div className="ownerReservationTabs">
+              <button
+                type="button"
+                className={`ownerReservationTabs__btn ${eventAttendeesView === "upcoming" ? "is-active" : ""}`}
+                onClick={() => setEventAttendeesView("upcoming")}
+              >
+                Upcoming
+              </button>
+              <button
+                type="button"
+                className={`ownerReservationTabs__btn ${eventAttendeesView === "past" ? "is-active" : ""}`}
+                onClick={() => setEventAttendeesView("past")}
+              >
+                Past
+              </button>
+              <button
+                type="button"
+                className={`ownerReservationTabs__btn ${eventAttendeesView === "all" ? "is-active" : ""}`}
+                onClick={() => setEventAttendeesView("all")}
+              >
+                All
+              </button>
+            </div>
+
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <select
+                className="themedSelect__control"
+                style={{ fontSize: "0.85rem", padding: "6px 10px", borderRadius: 6 }}
+                value={eventAttendeesStatusFilter}
+                onChange={(e) => setEventAttendeesStatusFilter(e.target.value)}
+              >
+                <option value="all">All statuses</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="no-show">No-show</option>
+              </select>
+
+              <button
+                type="button"
+                className="btn btn--ghost"
+                style={{ fontSize: "0.82rem", padding: "6px 12px" }}
+                onClick={loadEventAttendees}
+                disabled={eventAttendeesLoading}
+              >
+                {eventAttendeesLoading ? "Loading…" : "Refresh"}
+              </button>
+            </div>
+          </div>
+
+          {eventAttendeesError && <div className="fieldError">{eventAttendeesError}</div>}
+
+          {eventAttendeesLoading ? (
+            <div className="placeholderPage__text" style={{ padding: "2rem 0" }}>Loading event attendees…</div>
+          ) : (() => {
+            const now = new Date();
+            const filtered = eventAttendees.filter((att) => {
+              const eventDate = new Date(att.start_date || att.event_date || "");
+              const isUpcoming = !isNaN(eventDate) ? eventDate >= now : true;
+              if (eventAttendeesView === "upcoming" && !isUpcoming) return false;
+              if (eventAttendeesView === "past" && isUpcoming) return false;
+              if (eventAttendeesStatusFilter !== "all" && att.status !== eventAttendeesStatusFilter) return false;
+              return true;
+            });
+
+            if (!filtered.length) {
+              return (
+                <EmptyState
+                  title="No attendees found"
+                  message="No event attendees match the current filters."
+                />
+              );
+            }
+
+            return (
+              <div className="reservationCards">
+                {filtered.map((att) => {
+                  const isConfirmed = att.status === "confirmed";
+                  const isNoShow = att.status === "no-show";
+                  const eventDateLabel = att.start_date || att.event_date || "";
+                  const timeLabel = att.start_time ? att.start_time.slice(0, 5) : "";
+
+                  return (
+                    <article key={att.id} className="reservationCard">
+                      <div className="reservationCard__main">
+                        <div>
+                          <div className="reservationCard__name">{att.user_name || "Guest"}</div>
+                          <div className="reservationCard__meta">
+                            {att.event_title} · {eventDateLabel}{timeLabel ? ` · ${timeLabel}` : ""}
+                          </div>
+                          <div className="reservationCard__meta">
+                            {att.attendees_count} attendee{att.attendees_count !== 1 ? "s" : ""}
+                            {att.user_email ? ` · ${att.user_email}` : ""}
+                          </div>
+                        </div>
+                        <span className={`statusBadge statusBadge--${att.status}`}>{att.status}</span>
+                      </div>
+
+                      {isConfirmed && (
+                        <div className="reservationCard__actions">
+                          <button
+                            className="btn btn--ghost"
+                            type="button"
+                            disabled={noShowingAttendeeId === att.id}
+                            onClick={() => handleEventAttendeeNoShow(att.id)}
+                          >
+                            {noShowingAttendeeId === att.id ? "Saving…" : "Mark no-show"}
+                          </button>
+                        </div>
+                      )}
+
+                      {isNoShow && (
+                        <div className="reservationCard__actions">
+                          <span className="statusBadge statusBadge--no-show">No-show recorded</span>
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       )}
 
