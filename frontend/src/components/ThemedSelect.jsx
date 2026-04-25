@@ -48,8 +48,8 @@ export default function ThemedSelect({
   );
 
   useEffect(() => {
-    function handlePointerDown(event) {
-      if (!rootRef.current?.contains(event.target)) {
+    function handleDocumentClick(event) {
+      if (event.target instanceof Node && !rootRef.current?.contains(event.target)) {
         setOpen(false);
       }
     }
@@ -60,11 +60,11 @@ export default function ThemedSelect({
       }
     }
 
-    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("click", handleDocumentClick);
     document.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("click", handleDocumentClick);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
@@ -120,6 +120,7 @@ export default function ThemedSelect({
           className={`sortDropdown__menu themedSelect__menu ${menuClassName}`.trim()}
           role="listbox"
           style={menuStyle}
+          onMouseDown={(event) => event.stopPropagation()}
         >
           {searchable && (
             <div className="themedSelect__searchWrap">

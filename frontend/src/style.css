@@ -12003,6 +12003,12 @@ html[data-theme="light"] .quickFilterBtn {
   overflow-y: auto;
   display: grid;
   gap: 16px;
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+
+.ownerReservationFiltersModal .themedSelect__menu {
+  overscroll-behavior: auto;
 }
 
 .ownerReservationFiltersSection {
@@ -12210,6 +12216,8 @@ html[data-theme="light"] .quickFilterBtn {
   overflow-y: auto;
   display: grid;
   gap: 16px;
+  min-height: 0;
+  overscroll-behavior: contain;
 }
 
 .ownerReservationFiltersSection {
