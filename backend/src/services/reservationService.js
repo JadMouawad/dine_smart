@@ -945,6 +945,15 @@ const cancelReservation = async ({ reservationId, requestingUserId, requestingUs
     return { success: false, status: 409, error: "Reservation could not be cancelled" };
   }
 
+  try {
+    await loyaltyService.reversePointsForReservation({
+      userId: existingReservation.user_id,
+      reservationId: parsedReservationId,
+    });
+  } catch (error) {
+    console.warn("Failed to reverse loyalty points after cancellation:", error.message);
+  }
+
   const [reservationUser, restaurantResult] = await Promise.all([
     UserModel.findById(db, existingReservation.user_id),
     ReservationModel.getRestaurantById(db, existingReservation.restaurant_id),
