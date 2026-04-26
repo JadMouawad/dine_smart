@@ -499,6 +499,11 @@ html[data-theme="light"] .quickFilterBtn.is-active {
 [data-theme="light"] .restaurantCard__metaLine {
   color: rgba(80, 45, 15, 0.75);
 }
+[data-theme="light"] .restaurantCard__recommendedBadge {
+  color: rgba(106, 67, 16, 0.95);
+  border-color: rgba(175, 115, 45, 0.36);
+  background: linear-gradient(135deg, rgba(201, 162, 39, 0.24), rgba(201, 162, 39, 0.14));
+}
 [data-theme="light"] .crowdMeter {
   border-color: rgba(175, 115, 45, 0.22);
   background: rgba(255, 251, 243, 0.9);
@@ -2000,7 +2005,7 @@ body.ds-nav-not-sticky .nav {
 }
 
 .modal__backdrop {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.55);
   z-index: 0;
@@ -4902,6 +4907,26 @@ margin: 0 auto;
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
+}
+
+.restaurantCard__titleBlock {
+  display: grid;
+  grid-template-rows: auto 20px;
+  gap: 4px;
+}
+
+.restaurantCard__recommendedBadge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(255, 234, 176, 0.96);
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  background: rgba(201, 162, 39, 0.16);
 }
 
 .restaurantCard__metaLine {
@@ -9209,6 +9234,120 @@ margin: 0 auto;
 
 .passwordToggleBtn:hover {
   color: rgba(0, 0, 0, 1);
+}
+
+.passwordStrength {
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(201, 162, 39, 0.16);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.passwordStrength__topRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.passwordStrength__score {
+  font-weight: 800;
+}
+
+.passwordStrength__score--very-weak,
+.passwordStrength__score--weak {
+  color: #ff8d8d;
+}
+
+.passwordStrength__score--fair {
+  color: #ffd27a;
+}
+
+.passwordStrength__score--strong,
+.passwordStrength__score--excellent {
+  color: #7de3ad;
+}
+
+.passwordStrength__bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.passwordStrength__fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.24s ease;
+}
+
+.passwordStrength__fill--very-weak,
+.passwordStrength__fill--weak {
+  background: linear-gradient(90deg, #ff6b6b, #ff9b8a);
+}
+
+.passwordStrength__fill--fair {
+  background: linear-gradient(90deg, #f5b84d, #ffd86d);
+}
+
+.passwordStrength__fill--strong {
+  background: linear-gradient(90deg, #76d67d, #5dc9ac);
+}
+
+.passwordStrength__fill--excellent {
+  background: linear-gradient(90deg, #4fd28f, #48c8e8);
+}
+
+.passwordStrength__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 5px;
+}
+
+.passwordStrength__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.passwordStrength__item span:first-child {
+  width: 14px;
+  text-align: center;
+}
+
+.passwordStrength__item.is-met {
+  color: rgba(125, 227, 173, 0.94);
+}
+
+[data-theme="light"] .passwordStrength {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(175, 115, 45, 0.2);
+}
+
+[data-theme="light"] .passwordStrength__topRow {
+  color: rgba(85, 53, 24, 0.84);
+}
+
+[data-theme="light"] .passwordStrength__bar {
+  background: rgba(175, 115, 45, 0.16);
+}
+
+[data-theme="light"] .passwordStrength__item {
+  color: rgba(99, 69, 38, 0.75);
+}
+
+[data-theme="light"] .passwordStrength__item.is-met {
+  color: rgba(43, 132, 87, 0.9);
 }
 
 .authMapField {
