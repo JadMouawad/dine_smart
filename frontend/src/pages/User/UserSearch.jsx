@@ -46,8 +46,6 @@ function clearRecentSearches() {
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
-const DEFAULT_BEIRUT_GEO = { latitude: 33.8938, longitude: 35.5018 };
-
 function parseDietarySupport(value) {
   if (Array.isArray(value)) return value;
   if (typeof value !== "string") return [];
@@ -106,7 +104,7 @@ function getInitialFilters() {
 }
 
 // ── Memoized restaurant card ───────────────────────────────────────────────
-const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, isRecommended, onSelect, onFavorite, onReserve }) {
+const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, isRecommended, showDistance, onSelect, onFavorite, onReserve }) {
   const imageUrls = useMemo(() => getRestaurantGalleryUrls(r), [r]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const activeImageUrl = imageUrls[activeImageIndex] || "";
@@ -208,7 +206,7 @@ const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, isRe
         </div>
         <div className="restaurantCard__metaLine">{FILLED_STAR} {ratingDisplay} ({reviewCount})</div>
         <div className="restaurantCard__metaLine">
-          {r.distance_km != null ? `${r.distance_km} km away` : (r.address || "Location unavailable")}
+          {showDistance && r.distance_km != null ? `${r.distance_km} km away` : (r.address || "Location unavailable")}
         </div>
         <div className="restaurantCard__actions">
           <button
@@ -405,10 +403,13 @@ export default function UserSearch({
   }, [user?.latitude, user?.longitude]);
 
   const effectiveGeo = useMemo(() => {
+    if (!user?.id) return { latitude: null, longitude: null };
     if (geo.latitude != null && geo.longitude != null) return { latitude: geo.latitude, longitude: geo.longitude };
     if (profileGeo.latitude != null && profileGeo.longitude != null) return profileGeo;
-    return DEFAULT_BEIRUT_GEO;
-  }, [geo.latitude, geo.longitude, profileGeo]);
+    return { latitude: null, longitude: null };
+  }, [user?.id, geo.latitude, geo.longitude, profileGeo]);
+
+  const showRestaurantDistance = Boolean(user?.id && effectiveGeo.latitude != null && effectiveGeo.longitude != null);
   const recommendedRestaurantSet = useMemo(
     () => new Set(recommendedRestaurantIds.map((id) => String(id))),
     [recommendedRestaurantIds]
@@ -583,6 +584,10 @@ export default function UserSearch({
   }, [query, filters, effectiveGeo.latitude, effectiveGeo.longitude, refreshKey]);
 
   useEffect(() => {
+    if (!user?.id) {
+      setGeo({ latitude: null, longitude: null });
+      return;
+    }
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => setGeo({
@@ -592,7 +597,7 @@ export default function UserSearch({
       () => setGeo({ latitude: null, longitude: null }),
       { timeout: 7000 }
     );
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -971,6 +976,7 @@ export default function UserSearch({
               r={r}
               isFavorited={isFavorited(r.id)}
               isRecommended={recommendedRestaurantSet.has(String(r.id))}
+              showDistance={showRestaurantDistance}
               onSelect={(restaurant) => {
                 saveRecentSearch(lastQueryRef.current);
                 lastQueryRef.current = "";

@@ -1,5 +1,7 @@
 const nodemailer = require("nodemailer");
 
+const emailProvider = String(process.env.EMAIL_PROVIDER || "smtp").trim().toLowerCase();
+
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: parseInt(process.env.EMAIL_PORT || "587", 10),
@@ -13,6 +15,44 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS
   },
 });
+
+const getSenderAddress = () => process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com";
+
+const sendMail = async (mailOptions) => {
+  if (emailProvider === "resend") {
+    if (!process.env.RESEND_API_KEY) {
+      const error = new Error("RESEND_API_KEY is required when EMAIL_PROVIDER=resend");
+      error.code = "EMAIL_CONFIG";
+      throw error;
+    }
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: mailOptions.from,
+        to: Array.isArray(mailOptions.to) ? mailOptions.to : [mailOptions.to],
+        subject: mailOptions.subject,
+        html: mailOptions.html,
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      const error = new Error(`Resend email failed (${response.status}): ${body}`);
+      error.code = "EMAIL_PROVIDER";
+      error.responseCode = response.status;
+      throw error;
+    }
+
+    return response.json().catch(() => ({}));
+  }
+
+  return transporter.sendMail(mailOptions);
+};
 
 /**
  * Send verification email with link
@@ -46,13 +86,13 @@ const sendVerificationEmail = async (to, verificationLink, userName = "User") =>
   `;
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    from: getSenderAddress(),
     to,
     subject: "Verify your email - DineSmart",
     html
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendMail(mailOptions);
 };
 
 const sendPasswordResetEmail = async (to, resetLink, userName = "User") => {
@@ -80,13 +120,13 @@ const sendPasswordResetEmail = async (to, resetLink, userName = "User") => {
   `;
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    from: getSenderAddress(),
     to,
     subject: "Reset your DineSmart password",
     html,
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendMail(mailOptions);
 };
 
 const sendReservationConfirmationEmail = async ({
@@ -159,14 +199,14 @@ const sendReservationConfirmationEmail = async ({
   `;
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    from: getSenderAddress(),
     to,
     subject: "Reservation Confirmed",
     html,
     text: `Reservation Confirmed\n\n${textBody}`,
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendMail(mailOptions);
 };
 
 const sendReservationUpdatedEmail = async ({
@@ -238,14 +278,14 @@ const sendReservationUpdatedEmail = async ({
   `;
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    from: getSenderAddress(),
     to,
     subject: "Reservation Updated",
     html,
     text: `Reservation Updated\n\n${textBody}`,
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendMail(mailOptions);
 };
 
 const sendReservationCancellationEmail = async ({
@@ -284,13 +324,13 @@ const sendReservationCancellationEmail = async ({
   `;
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    from: getSenderAddress(),
     to,
     subject: "Your DineSmart reservation was cancelled",
     html,
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendMail(mailOptions);
 };
 
 const sendReservationCancelledForEventEmail = async ({
@@ -327,13 +367,13 @@ const sendReservationCancelledForEventEmail = async ({
   `;
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    from: getSenderAddress(),
     to,
     subject: "Your DineSmart reservation was cancelled due to an event",
     html,
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendMail(mailOptions);
 };
 
 const sendNoShowWarningEmail = async ({ to, userName = "Guest" }) => {
@@ -357,13 +397,13 @@ const sendNoShowWarningEmail = async ({ to, userName = "Guest" }) => {
   `;
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    from: getSenderAddress(),
     to,
     subject: "Important: Reservation no-show warning",
     html,
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendMail(mailOptions);
 };
 
 const sendNoShowBanEmail = async ({ to, userName = "Guest", bannedUntilLabel }) => {
@@ -387,13 +427,13 @@ const sendNoShowBanEmail = async ({ to, userName = "Guest", bannedUntilLabel }) 
   `;
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    from: getSenderAddress(),
     to,
     subject: "Your DineSmart booking access is temporarily restricted",
     html,
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendMail(mailOptions);
 };
 
 const sendRestaurantRejectionEmail = async ({
@@ -423,13 +463,13 @@ const sendRestaurantRejectionEmail = async ({
   `;
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    from: getSenderAddress(),
     to,
     subject: "Your restaurant submission update",
     html,
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendMail(mailOptions);
 };
 
 const sendRestaurantApprovalEmail = async ({
@@ -456,13 +496,13 @@ const sendRestaurantApprovalEmail = async ({
   `;
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    from: getSenderAddress(),
     to,
     subject: "Your restaurant has been approved",
     html,
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendMail(mailOptions);
 };
 
 const sendWaitlistSlotAvailableEmail = async ({
@@ -501,13 +541,13 @@ const sendWaitlistSlotAvailableEmail = async ({
   `;
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    from: getSenderAddress(),
     to,
     subject: "A reservation slot is available",
     html,
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendMail(mailOptions);
 };
 
 const sendSubscriptionUpdateEmail = async ({
@@ -538,14 +578,14 @@ const sendSubscriptionUpdateEmail = async ({
   `;
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    from: getSenderAddress(),
     to,
     subject: safeSubject,
     html,
     text: `${safeSubject}\n\nHi ${userName},\n\n${message}\n`,
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendMail(mailOptions);
 };
 
 const sendReviewModerationEmail = async ({
@@ -610,13 +650,13 @@ const sendReviewModerationEmail = async ({
   `;
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com",
+    from: getSenderAddress(),
     to,
     subject,
     html,
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendMail(mailOptions);
 };
 
 module.exports = {
@@ -634,3 +674,4 @@ module.exports = {
   sendSubscriptionUpdateEmail,
   sendReviewModerationEmail,
 };
+
