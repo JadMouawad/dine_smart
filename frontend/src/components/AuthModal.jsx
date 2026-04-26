@@ -567,7 +567,7 @@ export default function AuthModal({
                   <GoogleLogin
                     onSuccess={handleGoogleSuccess}
                     onError={handleGoogleError}
-                    text={mode === "signup" ? "signup_with" : "signin_with"}
+                    text="signup_with"
                     shape="pill"
                     theme="outline"
                     size="large"
