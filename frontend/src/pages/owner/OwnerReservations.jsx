@@ -1931,15 +1931,15 @@ export default function OwnerReservations() {
             ? `Reject reservation for ${confirmRejectReservation.customer_name || "this guest"}?`
             : ""
         }
-        confirmText="Reject"
-        cancelText="Cancel"
+        confirmLabel="Reject"
+        cancelLabel="No"
         destructive
         onConfirm={() => {
           if (confirmRejectReservation?.id) {
             handleAction(confirmRejectReservation.id, "reject");
           }
         }}
-        onClose={() => setConfirmRejectReservation(null)}
+        onCancel={() => setConfirmRejectReservation(null)}
       />
 
       <ConfirmDialog
