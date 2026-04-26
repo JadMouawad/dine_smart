@@ -15859,6 +15859,16 @@ body.dark .slotDraftRemoveBtn:hover,
   color: #fffaf0;
 }
 
+.eventSearchCard__tag--more {
+  min-width: 34px;
+  border-color: rgba(255, 255, 255, 0.36);
+  background: rgba(4, 7, 22, 0.78);
+  color: #ffffff;
+  box-shadow:
+    0 10px 22px rgba(4, 10, 32, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
 .eventSearchCard__body {
   min-height: 188px;
 }
@@ -15972,6 +15982,12 @@ body.dark .slotDraftRemoveBtn:hover,
   border-color: rgba(255, 255, 255, 0.30);
   background: linear-gradient(135deg, rgba(42, 34, 29, 0.94), rgba(18, 18, 22, 0.92));
   color: #fffaf0;
+}
+
+[data-theme="light"] .eventSearchCard__tag--more {
+  border-color: rgba(255, 255, 255, 0.36);
+  background: rgba(20, 20, 24, 0.88);
+  color: #ffffff;
 }
 
 /* Fix Discover Events header text in light mode */
