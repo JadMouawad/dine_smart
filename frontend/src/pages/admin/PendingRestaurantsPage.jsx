@@ -42,7 +42,7 @@ export default function PendingRestaurantsPage({ onPendingCountChange }) {
   useEffect(() => {
     getPendingDeletionRestaurants()
       .then((data) => setDeletionRequests(Array.isArray(data) ? data : []))
-      .catch(() => {});
+      .catch((err) => setError(err.message || "Failed to load deletion requests."));
   }, []);
 
   async function handleApproveDeletion(restaurantId) {
@@ -211,7 +211,7 @@ export default function PendingRestaurantsPage({ onPendingCountChange }) {
                   <div className="reservationCard__main">
                     <div>
                       <div className="reservationCard__name">{r.name}</div>
-                      <div className="reservationCard__meta">{r.address}{r.city ? `, ${r.city}` : ""}</div>
+                      <div className="reservationCard__meta">{r.address}</div>
                       <div className="reservationCard__meta">Owner: {r.owner_name} · {r.owner_email}</div>
                       <div className="reservationCard__meta">
                         Requested: {new Date(r.deletion_requested_at).toLocaleDateString()}

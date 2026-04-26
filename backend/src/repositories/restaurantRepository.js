@@ -353,7 +353,7 @@ const cancelRestaurantDeletionRequest = async (restaurantId) => {
 
 const getPendingDeletionRestaurants = async () => {
   const result = await pool.query(
-    `SELECT r.id, r.name, r.address, r.city, r.owner_id, r.deletion_requested_at,
+    `SELECT r.id, r.name, r.address, r.owner_id, r.deletion_requested_at,
             u.full_name AS owner_name, u.email AS owner_email
      FROM restaurants r
      JOIN users u ON u.id = r.owner_id
