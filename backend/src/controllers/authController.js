@@ -165,12 +165,19 @@ const googleSignIn = async (req, res) => {
 };
 
 const requestPasswordReset = async (req, res) => {
+  // Always respond with the same generic message and 200 status, regardless of
+  // whether the email exists or whether an internal error occurred. This
+  // prevents attackers from probing which emails are registered.
+  const genericResponse = {
+    message: "If an account with that email exists, a password reset link has been sent.",
+  };
   try {
-    const result = await authService.requestPasswordReset(req.body.email);
-    return res.status(200).json(result);
+    await authService.requestPasswordReset(req.body.email);
   } catch (err) {
-    return res.status(400).json({ message: err.message });
+    // Log server-side for debugging, but never surface details to the client.
+    console.error("[requestPasswordReset] internal error:", err.message);
   }
+  return res.status(200).json(genericResponse);
 };
 
 const resetPassword = async (req, res) => {
