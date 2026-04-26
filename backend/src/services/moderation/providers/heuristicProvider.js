@@ -48,7 +48,8 @@ const SPAM_PATTERNS = [
 ];
 
 const HARASSMENT_PATTERNS = [
-  /\b(?:idiot|moron|stupid|trash|garbage|loser|clown)\b/i,
+  /\b(?:idiot|moron|loser|clown)\b/i,
+  /\b(?:you|u|owner|staff|waiter|waitress|server|cashier|manager|chef|they|he|she)\b.{0,25}\b(?:stupid|trash|garbage|useless|thief|scammer|animals?)\b/i,
   /\b(?:kill yourself|kys|drop dead|go die)\b/i,
   /\b(?:i will|we will).{0,20}(?:hurt|attack|destroy|burn|beat)\b/i,
   /\b(?:owner|staff|waiter|manager|chef).{0,25}\b(?:is|are)\b.{0,25}\b(?:stupid|useless|thief|scammer|animals?)\b/i,
@@ -150,13 +151,10 @@ const classify = ({ text, rating }) => {
   }
 
   const fakeScoreSignals = [];
-  if (rating === 1 || rating === 5) {
-    if (tokens.length < 6) fakeScoreSignals.push(15);
-    if (tokens.length <= 3) fakeScoreSignals.push(25);
-  }
-  if (countPatternHits(rawText, [/\bbest ever\b/i, /\bworst ever\b/i, /\bscam\b/i, /\bfake reviews?\b/i]) > 0) {
-    fakeScoreSignals.push(20);
-  }
+  const fakeClaimHits = countPatternHits(rawText, [/\bscam\b/i, /\bfake reviews?\b/i, /\bpaid reviews?\b/i]);
+  const extremeClaimHits = countPatternHits(rawText, [/\bbest ever\b/i, /\bworst ever\b/i]);
+  if (fakeClaimHits > 0) fakeScoreSignals.push(35);
+  if (fakeClaimHits > 0 && extremeClaimHits > 0) fakeScoreSignals.push(15);
   if (fakeScoreSignals.length > 0) {
     const confidence = Math.min(92, 42 + fakeScoreSignals.reduce((sum, value) => sum + value, 0));
     signals.push({

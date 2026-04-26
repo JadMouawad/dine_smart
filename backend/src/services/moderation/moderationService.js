@@ -44,12 +44,6 @@ const mergeSignalsByFlagType = (signals) => {
   return Array.from(merged.values());
 };
 
-const scoreToDecision = (score) => {
-  if (score <= 30) return "approved";
-  if (score >= 85) return "rejected";
-  return "pending_review";
-};
-
 const persistSignals = async ({ reviewId, reviewUserId, signals }) => {
   for (const signal of signals) {
     await moderationModel.createFlaggedReview(db, {
@@ -174,18 +168,20 @@ const moderateReviewComment = async ({ reviewId, restaurantId, reviewUserId, rat
   const topSignal = [...enrichedSignals].sort((a, b) => b.confidence - a.confidence)[0] || null;
   const heuristicTopScore = clampScore(topSignal?.confidence);
   const overallScore = Math.max(aiScore, heuristicTopScore);
-  const decision = scoreToDecision(overallScore);
-  const status = decision === "approved" ? "approved" : "pending_review";
-  const needsManualReview = decision !== "approved";
+  const needsManualReview = enrichedSignals.some(
+    (signal) => signal.suggestedAction === SUGGESTED_ACTIONS.REQUIRES_REVIEW
+  );
+  const decision = needsManualReview ? "pending_review" : "approved";
+  const status = needsManualReview ? "pending_review" : "approved";
 
   let signalsToPersist = enrichedSignals
-    .filter((signal) => signal.suggestedAction !== SUGGESTED_ACTIONS.INFORMATION_ONLY || signal.confidence >= 35)
+    .filter((signal) => signal.suggestedAction === SUGGESTED_ACTIONS.REQUIRES_REVIEW)
     .map((signal) => ({
       ...signal,
       decision,
       score: overallScore,
-      status: needsManualReview ? "pending" : "resolved",
-      suggestedAction: needsManualReview ? SUGGESTED_ACTIONS.REQUIRES_REVIEW : signal.suggestedAction,
+      status: "pending",
+      suggestedAction: SUGGESTED_ACTIONS.REQUIRES_REVIEW,
     }));
 
   if (needsManualReview && signalsToPersist.length === 0) {
