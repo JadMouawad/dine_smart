@@ -7,7 +7,7 @@ const PRE_AUTH_THEME_KEY = "ds_theme_pre_auth";
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) || "dark";
+    const stored = localStorage.getItem(STORAGE_KEY) || "light";
     // Set synchronously so the attribute is on <html> before the first paint
     document.documentElement.setAttribute("data-theme", stored);
     return stored;
