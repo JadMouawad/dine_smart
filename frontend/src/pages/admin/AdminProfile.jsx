@@ -44,6 +44,14 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [profileSnapshot, setProfileSnapshot] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    countryCode: COUNTRY_OPTIONS[0].code,
+    profilePictureUrl: "",
+  });
   const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -60,19 +68,38 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
     setProfileLoading(true);
     getProfile()
       .then((profile) => {
-        setFullName(profile.fullName ?? profile.full_name ?? user.name ?? user.fullName ?? "");
-        setEmail(profile.email ?? user.email ?? "");
+        const resolvedName = profile.fullName ?? profile.full_name ?? user.name ?? user.fullName ?? "";
+        const resolvedEmail = profile.email ?? user.email ?? "";
         const phoneParts = splitPhoneNumber(profile.phone ?? "");
+        const resolvedAvatar = profile.profilePictureUrl ?? profile.profile_picture_url ?? "";
+        setFullName(resolvedName);
+        setEmail(resolvedEmail);
         setCountryCode(phoneParts.countryCode);
         setPhone(phoneParts.localNumber);
         setAccountProvider(String(profile.provider ?? user.provider ?? "local").toLowerCase());
-        setProfilePictureUrl(profile.profilePictureUrl ?? profile.profile_picture_url ?? "");
+        setProfilePictureUrl(resolvedAvatar);
+        setProfileSnapshot({
+          fullName: resolvedName,
+          email: resolvedEmail,
+          phone: phoneParts.localNumber,
+          countryCode: phoneParts.countryCode,
+          profilePictureUrl: resolvedAvatar,
+        });
       })
       .catch(() => {
-        setFullName(user.name ?? user.fullName ?? "");
-        setEmail(user.email ?? "");
+        const fallbackName = user.name ?? user.fullName ?? "";
+        const fallbackEmail = user.email ?? "";
+        setFullName(fallbackName);
+        setEmail(fallbackEmail);
         setAccountProvider(String(user.provider ?? "local").toLowerCase());
         setProfilePictureUrl("");
+        setProfileSnapshot({
+          fullName: fallbackName,
+          email: fallbackEmail,
+          phone: "",
+          countryCode: COUNTRY_OPTIONS[0].code,
+          profilePictureUrl: "",
+        });
       })
       .finally(() => setProfileLoading(false));
   }, [user?.id]);
@@ -139,14 +166,46 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
       const savedAvatar = updated?.profilePictureUrl ?? payload.profilePictureUrl;
       setProfilePictureUrl(savedAvatar);
       setProfilePictureDataUrl("");
+      setProfileSnapshot({
+        fullName: payload.fullName,
+        email: payload.email,
+        phone,
+        countryCode,
+        profilePictureUrl: savedAvatar,
+      });
       setProfileSuccess("Profile saved successfully.");
       setNewPassword("");
       setConfirmNewPassword("");
       setShowNewPassword(false);
       setShowConfirmNewPassword(false);
+      setIsEditing(false);
     } catch (err) {
       setProfileError(err.message || "Failed to save profile.");
     }
+  }
+
+  function startEditing(event) {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    setProfileError("");
+    setProfileSuccess("");
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    setProfileError("");
+    setProfileSuccess("");
+    setFullName(profileSnapshot.fullName);
+    setEmail(profileSnapshot.email);
+    setPhone(profileSnapshot.phone);
+    setCountryCode(profileSnapshot.countryCode);
+    setProfilePictureUrl(profileSnapshot.profilePictureUrl);
+    setProfilePictureDataUrl("");
+    setNewPassword("");
+    setConfirmNewPassword("");
+    setShowNewPassword(false);
+    setShowConfirmNewPassword(false);
+    setIsEditing(false);
   }
 
   async function handleDeleteAccount() {
@@ -219,6 +278,7 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
             type="file"
             accept="image/png, image/jpeg"
             onChange={onPickProfile}
+            disabled={!isEditing}
           />
         </label>
       </section>
@@ -230,14 +290,45 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
         <form className="formCard formCard--userProfile userProfileFormCard" onSubmit={onSubmit}>
           <div className="accountSettingsHeader">
             <div className="formCard__title">Account Settings</div>
-            <button
-              type="button"
-              className="btn btn--ghost accountDangerTriggerBtn"
-              onClick={openDeleteModal}
-              disabled={deletingAccount}
-            >
-              Delete Account
-            </button>
+            <div className="accountSettingsHeader__actions">
+              {!isEditing ? (
+                <>
+                  <button
+                    key="edit-profile"
+                    className="btn btn--gold accountSettingsHeader__actionBtn"
+                    type="button"
+                    onClick={startEditing}
+                  >
+                    Edit Profile
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--ghost accountDangerTriggerBtn accountSettingsHeader__actionBtn"
+                    onClick={openDeleteModal}
+                    disabled={deletingAccount}
+                  >
+                    Delete Account
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    key="save-profile"
+                    className="btn btn--gold accountSettingsHeader__actionBtn"
+                    type="submit"
+                  >
+                    Save
+                  </button>
+                  <button
+                    className="btn btn--ghost accountSettingsHeader__actionBtn"
+                    type="button"
+                    onClick={cancelEditing}
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           <label className="field">
@@ -248,6 +339,7 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
+              disabled={!isEditing}
             />
           </label>
 
@@ -259,6 +351,7 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={!isEditing}
             />
           </label>
 
@@ -293,6 +386,7 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
                 searchable
                 searchPlaceholder="Search country"
                 minMenuWidth="240px"
+                disabled={!isEditing}
               />
 
               <input
@@ -303,6 +397,7 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
                 placeholder="Enter number"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                disabled={!isEditing}
               />
             </div>
           </label>
@@ -325,12 +420,14 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     autoComplete="new-password"
+                    disabled={!isEditing}
                   />
                   <button
                     type="button"
                     className="passwordToggleBtn"
                     onClick={() => setShowNewPassword((prev) => !prev)}
                     aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+                    disabled={!isEditing}
                   >
                     {showNewPassword ? <FiEyeOff /> : <FiEye />}
                   </button>
@@ -346,12 +443,14 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
                     value={confirmNewPassword}
                     onChange={(e) => setConfirmNewPassword(e.target.value)}
                     autoComplete="new-password"
+                    disabled={!isEditing}
                   />
                   <button
                     type="button"
                     className="passwordToggleBtn"
                     onClick={() => setShowConfirmNewPassword((prev) => !prev)}
                     aria-label={showConfirmNewPassword ? "Hide confirm password" : "Show confirm password"}
+                    disabled={!isEditing}
                   >
                     {showConfirmNewPassword ? <FiEyeOff /> : <FiEye />}
                   </button>
@@ -373,11 +472,6 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
             </button>
           </div>
 
-          <div className="formCard__actions">
-            <button className="btn btn--gold btn--xl" type="submit">
-              Save Changes
-            </button>
-          </div>
         </form>
 
         <div className="userProfileSide">

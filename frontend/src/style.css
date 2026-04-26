@@ -7117,10 +7117,23 @@ margin: 0 auto;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  margin-bottom: -8px;
 }
 
 .ownerProfileSettingsHeader .formCard__title {
   margin-bottom: 0;
+}
+
+.ownerProfileSettingsHeader__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.ownerProfileSettingsHeader__actionBtn {
+  width: 132px;
 }
 
 .ownerDangerTriggerBtn {
@@ -7140,10 +7153,23 @@ margin: 0 auto;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  margin-bottom: -8px;
 }
 
 .accountSettingsHeader .formCard__title {
   margin-bottom: 0;
+}
+
+.accountSettingsHeader__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.accountSettingsHeader__actionBtn {
+  min-width: 108px;
 }
 
 .accountDangerTriggerBtn {

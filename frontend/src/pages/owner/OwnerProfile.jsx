@@ -471,10 +471,47 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     }
   }
 
-  function startEditing() {
+  function startEditing(event) {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
     setError("");
     setSuccess("");
     setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    if (!existingRestaurant) return;
+    const parsedAddress = splitAddressAndCity(existingRestaurant.address || "");
+    const lat = Number(existingRestaurant.latitude);
+    const lng = Number(existingRestaurant.longitude);
+    const storedGallery = normalizeGalleryUrls(existingRestaurant.gallery_urls || existingRestaurant.galleryUrls || []);
+    const legacyCover = String(existingRestaurant.cover_url || existingRestaurant.coverUrl || "").trim();
+
+    setError("");
+    setSuccess("");
+    setRestaurantName(existingRestaurant.name || "");
+    setCuisineType(existingRestaurant.cuisine || "");
+    setAddress(parsedAddress.address);
+    setCity(parsedAddress.city);
+    setOpeningTime(existingRestaurant.opening_time || "");
+    setClosingTime(existingRestaurant.closing_time || "");
+    setPriceRange(existingRestaurant.price_range || "");
+    setDietarySupport(Array.isArray(existingRestaurant.dietary_support) ? existingRestaurant.dietary_support : []);
+    setLogoDataUrl(existingRestaurant.logo_url || existingRestaurant.logoUrl || "");
+    setBusinessLicenseUrl(existingRestaurant.business_license_url || "");
+    setBusinessLicenseName(existingRestaurant.business_license_name || "");
+    setHealthCertificateUrl(existingRestaurant.health_certificate_url || "");
+    setHealthCertificateName(existingRestaurant.health_certificate_name || "");
+    setGalleryDataUrls(storedGallery.length ? storedGallery : (legacyCover ? [legacyCover] : []));
+    if (Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0)) {
+      setLatitude(lat);
+      setLongitude(lng);
+      setViewState({ longitude: lng, latitude: lat, zoom: 14 });
+    } else {
+      setLatitude(null);
+      setLongitude(null);
+    }
+    setIsEditing(false);
   }
 
   function formatProfileTime(value) {
@@ -582,14 +619,49 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
         <form className="formCard formCard--userProfile userProfileFormCard ownerProfileFormCard" onSubmit={onSubmit}>
           <div className="ownerProfileSettingsHeader">
             <div className="formCard__title">Restaurant Settings</div>
-            <button
-              type="button"
-              className="btn btn--ghost ownerDangerTriggerBtn"
-              onClick={openDeleteModal}
-              disabled={deletingAccount}
-            >
-              Delete Account
-            </button>
+            <div className="ownerProfileSettingsHeader__actions">
+              {viewOnly ? (
+                <>
+                  <button
+                    key="edit-profile"
+                    className="btn btn--gold ownerProfileSettingsHeader__actionBtn"
+                    type="button"
+                    onClick={startEditing}
+                  >
+                    Edit Profile
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--ghost ownerDangerTriggerBtn ownerProfileSettingsHeader__actionBtn"
+                    onClick={openDeleteModal}
+                    disabled={deletingAccount}
+                  >
+                    Delete Account
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    key="save-profile"
+                    className="btn btn--gold ownerProfileSettingsHeader__actionBtn"
+                    type="submit"
+                    disabled={loading}
+                  >
+                    {loading ? "Saving..." : "Save"}
+                  </button>
+                  {existingRestaurant && !isPendingApproval && (
+                    <button
+                      className="btn btn--ghost ownerProfileSettingsHeader__actionBtn"
+                      type="button"
+                      onClick={cancelEditing}
+                      disabled={loading}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
           <label className="field">
@@ -745,21 +817,10 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
             </div>
           </div>
 
-          {viewOnly ? (
-            <div className="formCard__actions">
-              <button className="btn btn--gold btn--xl" type="button" onClick={startEditing}>
-                Edit profile & photos
-              </button>
-            </div>
-          ) : (
+          {!viewOnly && (
             <>
               {error && <div className="ownerProfile__feedback ownerProfile__feedback--error">{error}</div>}
               {success && <div className="ownerProfile__feedback ownerProfile__feedback--success">{success}</div>}
-              <div className="formCard__actions">
-                <button className="btn btn--gold btn--xl" type="submit" disabled={loading}>
-                  {loading ? "Saving..." : "Save"}
-                </button>
-              </div>
             </>
           )}
         </form>

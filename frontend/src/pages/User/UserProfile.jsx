@@ -515,14 +515,19 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
         <form className="formCard formCard--userProfile userProfileFormCard" onSubmit={onSubmit}>
           <div className="accountSettingsHeader">
             <div className="formCard__title">Account Settings</div>
-            <button
-              type="button"
-              className="btn btn--ghost accountDangerTriggerBtn"
-              onClick={openDeleteModal}
-              disabled={deletingAccount}
-            >
-              Delete Account
-            </button>
+            <div className="accountSettingsHeader__actions">
+              <button className="btn btn--gold accountSettingsHeader__actionBtn" type="submit">
+                {isEditing ? "Save Changes" : "Edit Profile"}
+              </button>
+              <button
+                type="button"
+                className="btn btn--ghost accountDangerTriggerBtn accountSettingsHeader__actionBtn"
+                onClick={openDeleteModal}
+                disabled={deletingAccount}
+              >
+                Delete Account
+              </button>
+            </div>
           </div>
 
           <label className="field">
@@ -760,16 +765,13 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
             </div>
           </section>
 
-          <div className="formCard__actions">
-            <button className="btn btn--gold btn--xl" type="submit">
-              {isEditing ? "Save Changes" : "Edit Profile"}
-            </button>
-            {isEditing && (
+          {isEditing && (
+            <div className="formCard__actions">
               <button className="btn btn--ghost btn--xl" type="button" onClick={handleCancelEdit}>
                 Cancel
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </form>
 
         <div className="userProfileSide">
