@@ -2172,6 +2172,45 @@ body.ds-nav-not-sticky .nav {
   margin: 0 auto;
 }
 
+.modal__googleButtonShell {
+  position: relative;
+  width: min(360px, 100%);
+  height: 44px;
+}
+
+.modal__googleButtonFace {
+  width: 100%;
+  height: 44px;
+  border: 1px solid rgba(26, 14, 6, 0.18);
+  border-radius: 999px;
+  background: #fff;
+  color: rgba(26, 14, 6, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.modal__googleButtonIcon {
+  color: #4285f4;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.modal__googleButtonNative {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.modal__googleButtonNative > div {
+  width: 100% !important;
+}
+
 .btn--google {
   background: rgba(255, 255, 255, 0.92);
   color: rgba(15, 18, 28, 0.92);

@@ -573,16 +573,24 @@ export default function AuthModal({
                 </div>
 
                 <div className="modal__googleWrap">
-                  <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={handleGoogleError}
-                    text="signup_with"
-                    shape="pill"
-                    theme="outline"
-                    size="large"
-                    width="360"
-                    locale="en"
-                  />
+                  <div className="modal__googleButtonShell">
+                    <div className="modal__googleButtonFace" aria-hidden="true">
+                      <span className="modal__googleButtonIcon">G</span>
+                      <span>Sign up with Google</span>
+                    </div>
+                    <div className="modal__googleButtonNative">
+                      <GoogleLogin
+                        onSuccess={handleGoogleSuccess}
+                        onError={handleGoogleError}
+                        text="signup_with"
+                        shape="pill"
+                        theme="outline"
+                        size="large"
+                        width="360"
+                        locale="en"
+                      />
+                    </div>
+                  </div>
                 </div>
               </>
             )}
