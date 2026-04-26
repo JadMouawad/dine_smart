@@ -141,6 +141,9 @@ const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, isRe
   return (
     <article className="restaurantCard restaurantCard--search" onClick={() => onSelect(r)}>
       <div className="restaurantCard__cover">
+        {isRecommended && (
+          <span className="restaurantCard__recommendedBadge restaurantCard__recommendedBadge--cover">Recommended</span>
+        )}
         {activeImageUrl ? (
           <>
             <img className="restaurantCard__coverImg" src={activeImageUrl} alt={`${r.name} cover`} loading="lazy" />
@@ -186,9 +189,6 @@ const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, isRe
                 </span>
               )}
             </div>
-            {isRecommended && (
-              <span className="restaurantCard__recommendedBadge">Recommended</span>
-            )}
           </div>
           <button
             className={`favoriteHeartBtn ${isFavorited ? "is-active" : ""}`}

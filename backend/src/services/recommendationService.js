@@ -8,14 +8,28 @@ const OPENAI_MODEL = process.env.RECOMMENDATION_OPENAI_MODEL || "gpt-4o-mini";
 const GITHUB_MODEL = process.env.RECOMMENDATION_GITHUB_MODEL || "openai/gpt-4o-mini";
 const GITHUB_ENDPOINT = process.env.GITHUB_MODELS_ENDPOINT || "https://models.github.ai/inference";
 const MAX_CANDIDATES = Number(process.env.RECOMMENDATION_MAX_CANDIDATES || 24);
-const GITHUB_TIMEOUT_MS = Number(process.env.RECOMMENDATION_GITHUB_TIMEOUT_MS || 2600);
+const GITHUB_TIMEOUT_MS = Number(process.env.RECOMMENDATION_GITHUB_TIMEOUT_MS || 5000);
+const ENABLE_PROVIDER_FAILURE_LOGS = String(process.env.RECOMMENDATION_PROVIDER_FAILURE_LOGS || "").trim() === "1";
+const ENABLE_VERBOSE_SUMMARY_LOGS = String(process.env.RECOMMENDATION_VERBOSE_LOGS || "").trim() === "1";
+const PROVIDER_LOG_THROTTLE_MS = Number(process.env.RECOMMENDATION_PROVIDER_LOG_THROTTLE_MS || 10 * 60 * 1000);
+const PROVIDER_COOLDOWN_MS = {
+  quota_exceeded: Number(process.env.RECOMMENDATION_PROVIDER_COOLDOWN_QUOTA_MS || 60 * 60 * 1000),
+  timeout: Number(process.env.RECOMMENDATION_PROVIDER_COOLDOWN_TIMEOUT_MS || 15 * 60 * 1000),
+  auth_error: Number(process.env.RECOMMENDATION_PROVIDER_COOLDOWN_AUTH_MS || 30 * 60 * 1000),
+  provider_unavailable: Number(process.env.RECOMMENDATION_PROVIDER_COOLDOWN_UNAVAILABLE_MS || 10 * 60 * 1000),
+  provider_error: Number(process.env.RECOMMENDATION_PROVIDER_COOLDOWN_ERROR_MS || 5 * 60 * 1000),
+  empty_response: Number(process.env.RECOMMENDATION_PROVIDER_COOLDOWN_EMPTY_MS || 5 * 60 * 1000),
+  invalid_json: Number(process.env.RECOMMENDATION_PROVIDER_COOLDOWN_INVALID_JSON_MS || 5 * 60 * 1000),
+  empty_recommendations: Number(process.env.RECOMMENDATION_PROVIDER_COOLDOWN_EMPTY_RECS_MS || 5 * 60 * 1000),
+};
 
 const inMemoryCache = new Map();
+const providerRuntimeState = new Map();
 
 const openaiClient = process.env.OPENAI_API_KEY
   ? new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
-      timeout: Number(process.env.RECOMMENDATION_AI_TIMEOUT_MS || 2000),
+      timeout: Number(process.env.RECOMMENDATION_AI_TIMEOUT_MS || 5000),
     })
   : null;
 
@@ -48,6 +62,50 @@ const setCache = (key, value) => {
     value,
     expiresAt: Date.now() + CACHE_TTL_MS,
   });
+};
+
+const getProviderState = (providerName) => {
+  const existing = providerRuntimeState.get(providerName);
+  if (existing) return existing;
+
+  const created = {
+    cooldownUntil: 0,
+    cooldownCode: null,
+    lastLoggedAtByCode: {},
+  };
+  providerRuntimeState.set(providerName, created);
+  return created;
+};
+
+const getProviderCooldown = (providerName) => {
+  const state = getProviderState(providerName);
+  const remainingMs = Math.max(0, state.cooldownUntil - Date.now());
+  if (remainingMs <= 0) {
+    state.cooldownUntil = 0;
+    state.cooldownCode = null;
+    return { active: false, retryInMs: 0, code: null };
+  }
+  return { active: true, retryInMs: remainingMs, code: state.cooldownCode || "cooldown" };
+};
+
+const setProviderCooldown = (providerName, failureCode) => {
+  const cooldownMs = Number(PROVIDER_COOLDOWN_MS[failureCode] || 0);
+  if (!Number.isFinite(cooldownMs) || cooldownMs <= 0) return;
+
+  const state = getProviderState(providerName);
+  state.cooldownUntil = Math.max(state.cooldownUntil, Date.now() + cooldownMs);
+  state.cooldownCode = failureCode;
+};
+
+const shouldLogProviderFailure = (providerName, failureCode) => {
+  const state = getProviderState(providerName);
+  const now = Date.now();
+  const lastLoggedAt = Number(state.lastLoggedAtByCode[failureCode] || 0);
+  if (now - lastLoggedAt < PROVIDER_LOG_THROTTLE_MS) {
+    return false;
+  }
+  state.lastLoggedAtByCode[failureCode] = now;
+  return true;
 };
 
 const safeJsonParse = (raw) => {
@@ -465,6 +523,9 @@ const normalizeProviderError = ({ provider, error }) => {
 };
 
 const logProviderFailure = (failure) => {
+  if (!ENABLE_PROVIDER_FAILURE_LOGS) return;
+  if (!shouldLogProviderFailure(failure.provider, failure.code)) return;
+
   const base = `[Recommendations] ${failure.provider} ranking unavailable (${failure.code}` +
     `${failure.status != null ? `, status=${failure.status}` : ""}).`;
 
@@ -482,6 +543,7 @@ const runAiRecommendationSelection = async ({ preferenceProfile, candidates, lim
       provider: "none",
       attempted: false,
       providersAttempted: [],
+      providersSkipped: [],
       failures: [],
     };
   }
@@ -499,17 +561,38 @@ const runAiRecommendationSelection = async ({ preferenceProfile, candidates, lim
   ];
 
   const providersAttempted = [];
+  const providersSkipped = [];
   const failures = [];
 
   for (const provider of providers) {
     if (!provider.enabled) continue;
+
+    const cooldown = getProviderCooldown(provider.name);
+    if (cooldown.active) {
+      providersSkipped.push({
+        provider: provider.name,
+        reason: "cooldown",
+        code: cooldown.code,
+        retryInMs: cooldown.retryInMs,
+      });
+      continue;
+    }
 
     providersAttempted.push(provider.name);
 
     try {
       const raw = await provider.runner({ prompt });
       if (!raw) {
-        failures.push({ provider: provider.name, code: "empty_response", status: null, message: "No content returned", level: "warn" });
+        const failure = {
+          provider: provider.name,
+          code: "empty_response",
+          status: null,
+          message: "No content returned",
+          level: "info",
+        };
+        failures.push(failure);
+        setProviderCooldown(provider.name, failure.code);
+        logProviderFailure(failure);
         continue;
       }
 
@@ -521,37 +604,35 @@ const runAiRecommendationSelection = async ({ preferenceProfile, candidates, lim
           provider: provider.name,
           attempted: providersAttempted.length > 0,
           providersAttempted,
+          providersSkipped,
           failures,
         };
       }
 
-      failures.push({
+      const failure = {
         provider: provider.name,
         code: parsed ? "empty_recommendations" : "invalid_json",
         status: null,
         message: parsed ? "No valid recommendations" : "Invalid JSON response",
         level: "warn",
-      });
+      };
+      failures.push(failure);
+      setProviderCooldown(provider.name, failure.code);
+      logProviderFailure(failure);
     } catch (error) {
       const normalized = normalizeProviderError({ provider: provider.name, error });
       failures.push(normalized);
+      setProviderCooldown(provider.name, normalized.code);
       logProviderFailure(normalized);
     }
   }
-
-  failures
-    .filter((failure) => failure.code === "empty_response" || failure.code === "invalid_json" || failure.code === "empty_recommendations")
-    .forEach((failure) => {
-      const message = `[Recommendations] ${failure.provider} ranking unavailable (${failure.code}).`;
-      if (failure.level === "info") console.info(message);
-      else console.warn(message);
-    });
 
   return {
     recommendations: [],
     provider: "none",
     attempted: providersAttempted.length > 0,
     providersAttempted,
+    providersSkipped,
     failures,
   };
 };
@@ -672,6 +753,7 @@ const getRecommendations = async ({ userId, limit = 6, latitude = null, longitud
     provider: "none",
     attempted: false,
     providersAttempted: [],
+    providersSkipped: [],
     failures: [],
     skippedReason: shouldUseAiRanking ? null : "insufficient_signals",
   };
@@ -707,6 +789,12 @@ const getRecommendations = async ({ userId, limit = 6, latitude = null, longitud
       provider: aiSucceeded ? aiSelection.provider : "none",
       fallback_used: !aiSucceeded,
       providers_attempted: aiSelection.providersAttempted,
+      providers_skipped: (aiSelection.providersSkipped || []).map((entry) => ({
+        provider: entry.provider,
+        reason: entry.reason,
+        code: entry.code || null,
+        retry_in_ms: Number.isFinite(Number(entry.retryInMs)) ? Math.max(0, Math.round(Number(entry.retryInMs))) : null,
+      })),
       skipped_reason: aiSelection.skippedReason,
       failures: aiSelection.failures.map((failure) => ({
         provider: failure.provider,
@@ -728,14 +816,31 @@ const getRecommendations = async ({ userId, limit = 6, latitude = null, longitud
         .join("|")
     : "none";
 
-  console.info(
-    `[Recommendations] userId=${userId} source=${responsePayload.source} ` +
-    `candidates=${candidates.length} returned=${recommendations.length} ` +
-    `aiAttempted=${responsePayload.ai.attempted} aiSucceeded=${responsePayload.ai.succeeded} ` +
-    `fallbackUsed=${responsePayload.ai.fallback_used} providers=${responsePayload.ai.providers_attempted.join(",") || "none"} ` +
-    `failures=${failuresSummary} historySignals=${preferenceProfile.historySignals} ` +
-    `preferredCuisines=${preferenceProfile.preferredCuisines.join(",") || "none"}`
-  );
+  const skippedProvidersSummary = responsePayload.ai.providers_skipped.length > 0
+    ? responsePayload.ai.providers_skipped
+        .map((entry) => `${entry.provider}:${entry.code || entry.reason}`)
+        .join("|")
+    : "none";
+
+  const summaryParts = [
+    `[Recommendations] userId=${userId}`,
+    `source=${responsePayload.source}`,
+    `candidates=${candidates.length}`,
+    `returned=${recommendations.length}`,
+    `aiAttempted=${responsePayload.ai.attempted}`,
+    `aiSucceeded=${responsePayload.ai.succeeded}`,
+    `fallbackUsed=${responsePayload.ai.fallback_used}`,
+    `providers=${responsePayload.ai.providers_attempted.join(",") || "none"}`,
+    `historySignals=${preferenceProfile.historySignals}`,
+    `preferredCuisines=${preferenceProfile.preferredCuisines.join(",") || "none"}`,
+  ];
+
+  if (ENABLE_VERBOSE_SUMMARY_LOGS) {
+    summaryParts.push(`failures=${failuresSummary}`);
+    summaryParts.push(`providersSkipped=${skippedProvidersSummary}`);
+  }
+
+  console.info(summaryParts.join(" "));
 
   return responsePayload;
 };

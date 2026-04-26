@@ -4911,7 +4911,6 @@ margin: 0 auto;
 
 .restaurantCard__titleBlock {
   display: grid;
-  grid-template-rows: auto 20px;
   gap: 4px;
 }
 
@@ -4926,7 +4925,17 @@ margin: 0 auto;
   letter-spacing: 0.02em;
   color: rgba(255, 234, 176, 0.96);
   border: 1px solid rgba(201, 162, 39, 0.35);
-  background: rgba(201, 162, 39, 0.16);
+  background: rgba(201, 162, 39, 0.2);
+  pointer-events: none;
+}
+
+.restaurantCard__recommendedBadge--cover {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 4;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .restaurantCard__metaLine {
