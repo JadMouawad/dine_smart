@@ -933,6 +933,26 @@ html[data-theme="light"] .quickFilterBtn.is-active {
   border-color: rgba(201, 162, 39, 0.55);
   color: #5a3d00;
 }
+
+[data-theme="light"] .ownerEventPricingChips .ownerFilterChip--button,
+[data-theme="light"] .ownerEventTagChips .ownerFilterChip--button {
+  background: rgba(255, 248, 235, 0.88);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(26, 14, 6, 0.88);
+}
+[data-theme="light"] .ownerEventPricingChips .ownerFilterChip--button:hover,
+[data-theme="light"] .ownerEventTagChips .ownerFilterChip--button:hover {
+  border-color: rgba(201, 162, 39, 0.6);
+  box-shadow: 0 6px 14px rgba(201, 162, 39, 0.18);
+  color: rgba(26, 14, 6, 0.95);
+}
+[data-theme="light"] .ownerEventPricingChips .ownerFilterChip--button.is-active,
+[data-theme="light"] .ownerEventTagChips .ownerFilterChip--button.is-active {
+  background: rgba(201, 162, 39, 0.20);
+  border-color: rgba(201, 162, 39, 0.65);
+  color: #5a3d00;
+  box-shadow: 0 4px 12px rgba(201, 162, 39, 0.20);
+}
 [data-theme="light"] .ownerNavBtn {
   color: rgba(26, 14, 6, 0.75);
 }
