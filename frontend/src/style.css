@@ -3574,6 +3574,10 @@ input[type="date"] {
   .ownerProfileGrid__media {
     grid-template-rows: auto;
   }
+
+  .ownerProfileDocumentsGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .ownerArea__main {
@@ -7425,6 +7429,11 @@ margin: 0 auto;
 
 .ownerProfileMediaCard .ownerProfileGrid__media {
   gap: 16px;
+}
+
+.ownerProfileDocumentsGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
 }
 
 .ownerDangerCard {

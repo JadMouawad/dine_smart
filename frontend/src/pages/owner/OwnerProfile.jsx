@@ -1045,7 +1045,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
 
           <div className="formCard formCard--userProfile profileExtraCard ownerProfileMediaCard">
             <div className="formCard__title">Branding</div>
-            <div className="ownerProfileGrid__media">
+            <div className="ownerProfileGrid__media ownerProfileDocumentsGrid">
               <div className="imageCard imageCard--equal">
                 <div className="imageCard__title">Logo image</div>
                 <div className="imageCard__preview imageCard__preview--equal imageCard__preview--logo">
