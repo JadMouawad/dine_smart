@@ -15595,3 +15595,14 @@ body.dark .slotDraftRemoveBtn:hover,
   background: rgba(201, 162, 39, 0.15);
   color: rgba(140, 90, 10, 0.95);
 }
+
+/* Fix Discover Events header text in light mode */
+[data-theme="light"] .discoverEventsHeader h2,
+[data-theme="light"] .discoverEventsHeader__top h2 {
+  color: #3a220f;
+}
+
+[data-theme="light"] .discoverEventsHeader p,
+[data-theme="light"] .discoverEventsHeader__top p {
+  color: rgba(58, 34, 15, 0.72);
+}
