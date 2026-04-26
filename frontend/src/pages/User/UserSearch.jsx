@@ -999,6 +999,7 @@ export default function UserSearch({
           updateFilters(newFilters);
           setDrawerOpen(false);
         }}
+        onReset={() => getInitialFilters()}
       />
     </div>
   );

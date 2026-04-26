@@ -20,6 +20,7 @@ export default function SearchFilterDrawer({
   optionCounts,
   onClose,
   onApply,
+  onReset,
 }) {
   const panelRef = useRef(null);
   const [local, setLocal] = useState(initialFilters);
@@ -82,7 +83,7 @@ export default function SearchFilterDrawer({
   }
 
   function handleReset() {
-    setLocal(initialFilters);
+    setLocal(onReset ? onReset() : initialFilters);
   }
 
   return (
