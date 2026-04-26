@@ -37,6 +37,7 @@ export default function PendingRestaurantsPage({ onPendingCountChange }) {
   const [rejectError, setRejectError] = useState("");
   const [deletionRequests, setDeletionRequests] = useState([]);
   const [deletionBusyId, setDeletionBusyId] = useState(null);
+  const [activeTab, setActiveTab] = useState("approvals");
 
   useEffect(() => {
     getPendingDeletionRestaurants()
@@ -141,80 +142,107 @@ export default function PendingRestaurantsPage({ onPendingCountChange }) {
 
   return (
     <div className="adminPage">
-      <h1 className="ownerProfile__title">Pending Restaurant Approvals</h1>
-      <p className="adminPage__subtitle">
-        Review complete restaurant information before granting access. Business licenses are required for approval.
-      </p>
+      <h1 className="ownerProfile__title">Restaurants</h1>
+
       {success && <div className="inlineToast">{success}</div>}
       {error && <div className="fieldError">{error}</div>}
 
-      {emptyMessage ? (
-        <p className="placeholderPage__text">{emptyMessage}</p>
-      ) : (
-        <div className="adminCardList">
-          {restaurants.map((restaurant) => (
-            <RestaurantApprovalCard
-              key={restaurant.id}
-              restaurant={restaurant}
-              busy={busyId === restaurant.id}
-              onApprove={() => handleApprove(restaurant.id)}
-              onReject={() => {
-                setRejectTarget(restaurant);
-                setRejectReason("");
-                setRejectError("");
-              }}
-            />
-          ))}
-        </div>
+      <div className="ownerReservationSectionSwitcher" style={{ marginBottom: "1.5rem" }}>
+        <button
+          type="button"
+          className={`ownerReservationSectionSwitcher__btn ${activeTab === "approvals" ? "is-active" : ""}`}
+          onClick={() => setActiveTab("approvals")}
+        >
+          Pending Approvals
+          {restaurants.length > 0 && (
+            <span className="searchFilterBtn__badge" style={{ marginLeft: 6 }}>{restaurants.length}</span>
+          )}
+        </button>
+        <button
+          type="button"
+          className={`ownerReservationSectionSwitcher__btn ${activeTab === "deletions" ? "is-active" : ""}`}
+          onClick={() => setActiveTab("deletions")}
+        >
+          Deletion Requests
+          {deletionRequests.length > 0 && (
+            <span className="searchFilterBtn__badge" style={{ marginLeft: 6 }}>{deletionRequests.length}</span>
+          )}
+        </button>
+      </div>
+
+      {activeTab === "approvals" && (
+        <>
+          <p className="adminPage__subtitle" style={{ marginBottom: "1rem" }}>
+            Review complete restaurant information before granting access. Business licenses are required for approval.
+          </p>
+          {emptyMessage ? (
+            <p className="placeholderPage__text">{emptyMessage}</p>
+          ) : (
+            <div className="adminCardList">
+              {restaurants.map((restaurant) => (
+                <RestaurantApprovalCard
+                  key={restaurant.id}
+                  restaurant={restaurant}
+                  busy={busyId === restaurant.id}
+                  onApprove={() => handleApprove(restaurant.id)}
+                  onReject={() => {
+                    setRejectTarget(restaurant);
+                    setRejectReason("");
+                    setRejectError("");
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
-      <div style={{ marginTop: "2rem" }}>
-        <h2 className="ownerProfile__title" style={{ fontSize: "1.2rem", marginBottom: "0.5rem" }}>
-          Pending Restaurant Deletion Requests
-        </h2>
-        <p className="adminPage__subtitle" style={{ marginBottom: "1rem" }}>
-          Restaurants that have requested to be permanently deleted. Approve to delete or reject to cancel the request.
-        </p>
-        {deletionRequests.length === 0 ? (
-          <p className="placeholderPage__text">No pending deletion requests.</p>
-        ) : (
-          <div className="adminCardList">
-            {deletionRequests.map((r) => (
-              <div key={r.id} className="reservationCard" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <div className="reservationCard__main">
-                  <div>
-                    <div className="reservationCard__name">{r.name}</div>
-                    <div className="reservationCard__meta">{r.address}{r.city ? `, ${r.city}` : ""}</div>
-                    <div className="reservationCard__meta">Owner: {r.owner_name} · {r.owner_email}</div>
-                    <div className="reservationCard__meta">
-                      Requested: {new Date(r.deletion_requested_at).toLocaleDateString()}
+      {activeTab === "deletions" && (
+        <>
+          <p className="adminPage__subtitle" style={{ marginBottom: "1rem" }}>
+            Restaurants that have requested to be permanently deleted. Approve to delete or reject to cancel the request.
+          </p>
+          {deletionRequests.length === 0 ? (
+            <p className="placeholderPage__text">No pending deletion requests.</p>
+          ) : (
+            <div className="adminCardList">
+              {deletionRequests.map((r) => (
+                <div key={r.id} className="reservationCard" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div className="reservationCard__main">
+                    <div>
+                      <div className="reservationCard__name">{r.name}</div>
+                      <div className="reservationCard__meta">{r.address}{r.city ? `, ${r.city}` : ""}</div>
+                      <div className="reservationCard__meta">Owner: {r.owner_name} · {r.owner_email}</div>
+                      <div className="reservationCard__meta">
+                        Requested: {new Date(r.deletion_requested_at).toLocaleDateString()}
+                      </div>
                     </div>
+                    <span className="statusBadge statusBadge--pending">Pending Deletion</span>
                   </div>
-                  <span className="statusBadge statusBadge--pending">Pending Deletion</span>
+                  <div className="reservationCard__actions">
+                    <button
+                      className="btn btn--ghost ownerDangerCard__btn"
+                      type="button"
+                      disabled={deletionBusyId === r.id}
+                      onClick={() => handleApproveDeletion(r.id)}
+                    >
+                      {deletionBusyId === r.id ? "Working..." : "Approve & Delete"}
+                    </button>
+                    <button
+                      className="btn btn--ghost"
+                      type="button"
+                      disabled={deletionBusyId === r.id}
+                      onClick={() => handleRejectDeletion(r.id)}
+                    >
+                      Reject Request
+                    </button>
+                  </div>
                 </div>
-                <div className="reservationCard__actions">
-                  <button
-                    className="btn btn--ghost ownerDangerCard__btn"
-                    type="button"
-                    disabled={deletionBusyId === r.id}
-                    onClick={() => handleApproveDeletion(r.id)}
-                  >
-                    {deletionBusyId === r.id ? "Working..." : "Approve & Delete"}
-                  </button>
-                  <button
-                    className="btn btn--ghost"
-                    type="button"
-                    disabled={deletionBusyId === r.id}
-                    onClick={() => handleRejectDeletion(r.id)}
-                  >
-                    Reject Request
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
 
       {rejectTarget && (
         <div className="modal is-open" role="dialog" aria-modal="true">
