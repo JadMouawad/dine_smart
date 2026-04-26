@@ -421,7 +421,7 @@ export default function AuthModal({
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="********"
-                  minLength={PASSWORD_MIN_LENGTH}
+                  minLength={mode === "signup" ? PASSWORD_MIN_LENGTH : undefined}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   required
