@@ -1069,29 +1069,6 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
             <div className="formCard__title">Branding</div>
             <div className="ownerProfileGrid__media">
               <div className="imageCard imageCard--equal">
-                <div className="imageCard__title">Logo image</div>
-                <div className="imageCard__preview imageCard__preview--equal imageCard__preview--logo">
-                  {logoPreviewUrl ? (
-                    <>
-                      <img className="imageCard__img imageCard__img--logo" src={logoPreviewUrl} alt="Logo" />
-                      <button
-                        type="button"
-                        className="imageCard__removeBtn imageCard__removeBtn--floating"
-                        onClick={removeLogo}
-                        disabled={viewOnly}
-                      >
-                        Remove
-                      </button>
-                    </>
-                  ) : (
-                    <div className="imageCard__placeholder">
-                      <div className="imageCard__formats">PNG, JPG, or JPEG</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="imageCard imageCard--equal">
                 <div className="imageCard__title">Restaurant photos</div>
                 <div className="imageCard__preview imageCard__preview--equal">
                   {galleryPreviewUrls.length ? (
