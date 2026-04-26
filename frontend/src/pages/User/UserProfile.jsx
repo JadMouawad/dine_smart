@@ -228,11 +228,6 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
 
   const isGoogleAccount = accountProvider === "google";
   const passwordStrength = useMemo(() => evaluatePasswordStrength(newPassword), [newPassword]);
-  const hasPasswordDraft = !isGoogleAccount && Boolean(
-    oldPassword.trim() ||
-    newPassword.trim() ||
-    confirmNewPassword.trim()
-  );
   const rewardThreshold = rewardStatus?.threshold ?? 100;
   const rewardProgress = rewardThreshold > 0 ? Math.min(points, rewardThreshold) / rewardThreshold * 100 : 0;
   const rewardUnlocked = Boolean(rewardStatus?.unlocked);
@@ -310,16 +305,16 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
 
   async function onSubmit(e) {
     e.preventDefault();
+    if (!isEditing) {
+      setIsEditing(true);
+      return;
+    }
+
     const wantsPasswordChange = !isGoogleAccount && (
       oldPassword.trim() ||
       newPassword.trim() ||
       confirmNewPassword.trim()
     );
-
-    if (!isEditing && !wantsPasswordChange) {
-      setIsEditing(true);
-      return;
-    }
 
     if (wantsPasswordChange) {
       if (!oldPassword.trim()) {
@@ -566,7 +561,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
             <div className="formCard__title">Account Settings</div>
             <div className="accountSettingsHeader__actions">
               <button className="btn btn--gold accountSettingsHeader__actionBtn" type="submit">
-                {isEditing || hasPasswordDraft ? "Save Changes" : "Edit Profile"}
+                {isEditing ? "Save Changes" : "Edit Profile"}
               </button>
               <button
                 type="button"
@@ -710,12 +705,14 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                     value={oldPassword}
                     onChange={(e) => setOldPassword(e.target.value)}
                     autoComplete="current-password"
+                    disabled={!isEditing}
                   />
                   <button
                     type="button"
                     className="passwordToggleBtn"
                     onClick={() => setShowOldPassword((prev) => !prev)}
                     aria-label={showOldPassword ? "Hide current password" : "Show current password"}
+                    disabled={!isEditing}
                   >
                     {showOldPassword ? <FiEyeOff /> : <FiEye />}
                   </button>
@@ -731,12 +728,14 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     autoComplete="new-password"
+                    disabled={!isEditing}
                   />
                   <button
                     type="button"
                     className="passwordToggleBtn"
                     onClick={() => setShowNewPassword((prev) => !prev)}
                     aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+                    disabled={!isEditing}
                   >
                     {showNewPassword ? <FiEyeOff /> : <FiEye />}
                   </button>
@@ -753,12 +752,14 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                     value={confirmNewPassword}
                     onChange={(e) => setConfirmNewPassword(e.target.value)}
                     autoComplete="new-password"
+                    disabled={!isEditing}
                   />
                   <button
                     type="button"
                     className="passwordToggleBtn"
                     onClick={() => setShowConfirmNewPassword((prev) => !prev)}
                     aria-label={showConfirmNewPassword ? "Hide confirm password" : "Show confirm password"}
+                    disabled={!isEditing}
                   >
                     {showConfirmNewPassword ? <FiEyeOff /> : <FiEye />}
                   </button>

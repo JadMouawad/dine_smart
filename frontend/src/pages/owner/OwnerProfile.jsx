@@ -559,7 +559,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
 
   async function handleChangePassword(event) {
     event.preventDefault();
-    if (securityLoading || isGoogleAccount) return;
+    if (securityLoading || isGoogleAccount || !isEditing) return;
 
     setSecurityError("");
     setSecuritySuccess("");
@@ -972,14 +972,14 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                       value={oldPassword}
                       onChange={(event) => setOldPassword(event.target.value)}
                       autoComplete="current-password"
-                      disabled={securityLoading}
+                      disabled={!isEditing || securityLoading}
                     />
                     <button
                       type="button"
                       className="passwordToggleBtn"
                       onClick={() => setShowOldPassword((prev) => !prev)}
                       aria-label={showOldPassword ? "Hide current password" : "Show current password"}
-                      disabled={securityLoading}
+                      disabled={!isEditing || securityLoading}
                     >
                       {showOldPassword ? <FiEyeOff /> : <FiEye />}
                     </button>
@@ -995,14 +995,14 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                       value={newPassword}
                       onChange={(event) => setNewPassword(event.target.value)}
                       autoComplete="new-password"
-                      disabled={securityLoading}
+                      disabled={!isEditing || securityLoading}
                     />
                     <button
                       type="button"
                       className="passwordToggleBtn"
                       onClick={() => setShowNewPassword((prev) => !prev)}
                       aria-label={showNewPassword ? "Hide new password" : "Show new password"}
-                      disabled={securityLoading}
+                      disabled={!isEditing || securityLoading}
                     >
                       {showNewPassword ? <FiEyeOff /> : <FiEye />}
                     </button>
@@ -1019,14 +1019,14 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                       value={confirmNewPassword}
                       onChange={(event) => setConfirmNewPassword(event.target.value)}
                       autoComplete="new-password"
-                      disabled={securityLoading}
+                      disabled={!isEditing || securityLoading}
                     />
                     <button
                       type="button"
                       className="passwordToggleBtn"
                       onClick={() => setShowConfirmNewPassword((prev) => !prev)}
                       aria-label={showConfirmNewPassword ? "Hide confirm password" : "Show confirm password"}
-                      disabled={securityLoading}
+                      disabled={!isEditing || securityLoading}
                     >
                       {showConfirmNewPassword ? <FiEyeOff /> : <FiEye />}
                     </button>
@@ -1036,7 +1036,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                 {securityError && <div className="fieldError">{securityError}</div>}
                 {securitySuccess && <div className="formCard__success">{securitySuccess}</div>}
 
-                <button className="btn btn--gold" type="submit" disabled={securityLoading}>
+                <button className="btn btn--gold" type="submit" disabled={!isEditing || securityLoading}>
                   {securityLoading ? "Updating..." : "Change Password"}
                 </button>
               </form>
