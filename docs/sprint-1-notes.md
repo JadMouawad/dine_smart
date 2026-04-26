@@ -294,15 +294,15 @@ DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=yourpassword
-DB_NAME=dine_smart
+DB_NAME=dinesmart
 DB_SSL=false
-JWT_SECRET=your-secret-key-change-in-production
+JWT_SECRET=<generate-a-strong-random-secret>
 ```
 
 Or use DATABASE_URL:
 ```
-DATABASE_URL=postgresql://user:password@localhost:5432/dine_smart
-JWT_SECRET=your-secret-key-change-in-production
+DATABASE_URL=postgresql://user:password@localhost:5432/dinesmart
+JWT_SECRET=<generate-a-strong-random-secret>
 ```
 
 ---

@@ -12,6 +12,8 @@ export default function ContactSection() {
             src={EmailImage}
             alt="Contact DineSmart"
             className="contactSection__image"
+            loading="lazy"
+            decoding="async"
           />
         </div>
 
@@ -19,13 +21,13 @@ export default function ContactSection() {
           <div className="contactSection__eyebrow">Contact Us</div>
 
           <h2 className="contactSection__title">
-            Let’s bring smarter dining to your inbox.
+            Let's bring smarter dining to your inbox.
           </h2>
 
           <p className="contactSection__text">
             Have a question, an idea, a partnership opportunity, or simply want
-            to reach the DineSmart team? We’d love to hear from you. Do not
-            hesitate to contact us and we’ll get back to you as soon as possible.
+            to reach the DineSmart team? We'd love to hear from you. Do not
+            hesitate to contact us and we'll get back to you as soon as possible.
           </p>
 
           <a

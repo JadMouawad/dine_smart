@@ -40,7 +40,7 @@ export default function DiscoverCarousel({ onSelectCuisine }) {
                 onClick={() => onSelectCuisine?.(c.label)}
                 aria-label={`View ${c.label} restaurants`}
               >
-                <img src={c.src} alt={c.alt} />
+                <img src={c.src} alt={c.alt} loading="lazy" decoding="async" />
                 <span className="discover__label">{c.label}</span>
               </button>
             ))}

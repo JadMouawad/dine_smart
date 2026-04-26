@@ -237,8 +237,8 @@ DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=yourpassword
-DB_NAME=dine_smart
-JWT_SECRET=your-secret-key-change-in-production
+DB_NAME=dinesmart
+JWT_SECRET=<generate-a-strong-random-secret>
 EOF
 ```
 

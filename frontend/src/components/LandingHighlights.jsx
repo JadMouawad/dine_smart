@@ -20,6 +20,8 @@ export default function LandingHighlights({
                 src={ReservationImage}
                 alt="Book reservations"
                 className="landingHighlights__image landingHighlights__image--reservation"
+                loading="lazy"
+                decoding="async"
               />
             </div>
 
@@ -46,6 +48,8 @@ export default function LandingHighlights({
                 src={DineyImage}
                 alt="Chat with Diney"
                 className="landingHighlights__image landingHighlights__image--diney"
+                loading="lazy"
+                decoding="async"
               />
             </div>
 
@@ -72,6 +76,8 @@ export default function LandingHighlights({
                 src={MapImage}
                 alt="Explore on map"
                 className="landingHighlights__image landingHighlights__image--map"
+                loading="lazy"
+                decoding="async"
               />
             </div>
 

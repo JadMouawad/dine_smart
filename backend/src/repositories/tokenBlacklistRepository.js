@@ -2,7 +2,10 @@ const pool = require("../config/db");
 
 const add = async (jti, expiresAt) => {
   await pool.query(
-    `INSERT INTO token_blacklist (jti, expires_at) VALUES ($1, $2)`,
+    `INSERT INTO token_blacklist (jti, expires_at)
+     VALUES ($1, $2)
+     ON CONFLICT (jti) DO UPDATE
+     SET expires_at = GREATEST(token_blacklist.expires_at, EXCLUDED.expires_at)`,
     [jti, new Date(expiresAt * 1000)]
   );
 };
@@ -14,9 +17,9 @@ const isBlacklisted = async (jti) => {
       [jti]
     );
     return result.rows.length > 0;
-  } catch {
-    // If token_blacklist table is missing, treat token as valid (not blacklisted)
-    return false;
+  } catch (error) {
+    error.message = `Unable to verify token blacklist state: ${error.message}`;
+    throw error;
   }
 };
 

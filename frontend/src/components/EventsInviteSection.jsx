@@ -35,6 +35,8 @@ export default function EventsInviteSection({ onJoinEvents }) {
             src={SpeakerImage}
             alt="Discover restaurant events"
             className="eventsInviteSection__image"
+            loading="lazy"
+            decoding="async"
           />
         </div>
       </div>

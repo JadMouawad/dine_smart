@@ -344,6 +344,7 @@ export default function OwnerReservations() {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const [updatingId, setUpdatingId] = useState(null);
   const [confirmRejectReservation, setConfirmRejectReservation] = useState(null);
@@ -1101,6 +1102,7 @@ export default function OwnerReservations() {
       <h1 className="ownerProfile__title">Reservations</h1>
 
       {error && <div className="fieldError">{error}</div>}
+      {success && <div className="inlineToast">{success}</div>}
 
       <div className="ownerReservationSectionSwitcher">
         <button
