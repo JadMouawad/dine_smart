@@ -11,11 +11,6 @@ import ThemedSelect from "../../components/ThemedSelect.jsx";
 import { toDateObject, startOfDay, formatDateRange } from "../../utils/dateUtils";
 import { getCrowdMeterMeta } from "../../utils/crowdMeter";
 
-const EVENT_CATEGORY_FILTER_OPTIONS = [
-  { value: "upcoming", label: "Upcoming Events" },
-  { value: "featured", label: "Featured Events" },
-];
-
 const EVENT_DATE_FILTER_OPTIONS = [
   { value: "all", label: "Any Date" },
   { value: "today", label: "Today" },
@@ -523,7 +518,6 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
   const [recommendationsLoading, setRecommendationsLoading] = useState(true);
   const [recommendationsError, setRecommendationsError] = useState("");
   const [eventFiltersOpen, setEventFiltersOpen] = useState(false);
-  const [eventCategoryFilter, setEventCategoryFilter] = useState("upcoming");
   const [eventDateFilter, setEventDateFilter] = useState("all");
   const [eventQuickFilters, setEventQuickFilters] = useState({
     free: false,
@@ -555,32 +549,18 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
     () => bucketEvents(allEvents, new Date(eventsNow)),
     [allEvents, eventsNow]
   );
-  const featuredEvents = useMemo(() => {
-    const sorted = [...allEvents].sort((a, b) => (b.popularity_score ?? 0) - (a.popularity_score ?? 0));
-    return sorted.filter((event) => event.is_featured || (event.popularity_score ?? 0) >= 80).slice(0, 8);
-  }, [allEvents]);
-
-  const recommendedEvents = useMemo(() => {
-    const activeRecommendedEvents = Array.isArray(feed?.recommended_events)
-      ? feed.recommended_events.filter((event) => !isEventExpired(event, eventsNow))
-      : [];
-
-    if (activeRecommendedEvents.length) return activeRecommendedEvents;
-    return [...allEvents].slice(0, 6);
-  }, [allEvents, feed?.recommended_events, eventsNow]);
 
   const appliedEventFiltersCount = useMemo(() => {
     let count = 0;
-    if (eventCategoryFilter !== "upcoming") count += 1;
     if (eventDateFilter !== "all") count += 1;
     if (eventQuickFilters.free) count += 1;
     if (eventQuickFilters.nearby) count += 1;
     if (eventQuickFilters.top) count += 1;
     return count;
-  }, [eventCategoryFilter, eventDateFilter, eventQuickFilters]);
+  }, [eventDateFilter, eventQuickFilters]);
 
   const filteredEvents = useMemo(() => {
-    let events = eventCategoryFilter === "featured" ? featuredEvents : allEvents;
+    let events = allEvents;
 
     if (eventDateFilter === "today") {
       const todayIds = new Set(eventBuckets.today.map((event) => event.id));
@@ -616,10 +596,8 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
     return events;
   }, [
     allEvents,
-    featuredEvents,
     eventBuckets.today,
     eventBuckets.thisWeek,
-    eventCategoryFilter,
     eventDateFilter,
     eventQuickFilters,
   ]);
@@ -766,194 +744,149 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
       <h1 className="userSearchPage__title">Events</h1>
 
       <section className="discoverEventsWrap">
-        <div className="discoverEventsHeader">
-          <div className="discoverEventsHeader__top">
-            <div>
-              <h2>Discover Events</h2>
-              <p>Hand‑picked experiences near you, with real‑time highlights.</p>
+  <div className="discoverEventsHeader">
+    <div className="discoverEventsHeader__top">
+      <div>
+        <h2>Upcoming Events</h2>
+      </div>
+
+      <button
+        type="button"
+        className={`searchFilterBtn ${eventFiltersOpen ? "is-active" : ""}`}
+        onClick={() => setEventFiltersOpen(true)}
+      >
+        ⚙ Filters
+        {appliedEventFiltersCount > 0 && (
+          <span className="searchFilterBtn__badge">
+            {appliedEventFiltersCount}
+          </span>
+        )}
+      </button>
+    </div>
+  </div>
+
+  {eventFiltersOpen && (
+    <>
+      <div
+        className="ownerReservationFiltersBackdrop"
+        onClick={() => setEventFiltersOpen(false)}
+      />
+
+      <div className="ownerReservationFiltersModal">
+        <div className="ownerReservationFiltersModal__head">
+          <div className="ownerReservationFiltersModal__title">
+            Event Filters
+          </div>
+
+          <button
+            type="button"
+            className="ownerReservationFiltersModal__close"
+            onClick={() => setEventFiltersOpen(false)}
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="ownerReservationFiltersModal__body">
+          <div className="ownerReservationFiltersSection">
+            <div className="ownerReservationFiltersSection__title">Date</div>
+
+            <ThemedSelect
+              value={eventDateFilter}
+              onChange={setEventDateFilter}
+              options={EVENT_DATE_FILTER_OPTIONS}
+              ariaLabel="Filter events by date"
+              fullWidth
+            />
+          </div>
+
+          <div className="ownerReservationFiltersSection">
+            <div className="ownerReservationFiltersSection__title">
+              Quick Filters
             </div>
 
-            <button
-              type="button"
-              className={`searchFilterBtn ${eventFiltersOpen ? "is-active" : ""}`}
-              onClick={() => setEventFiltersOpen(true)}
-            >
-              ⚙ Filters
-              {appliedEventFiltersCount > 0 && (
-                <span className="searchFilterBtn__badge">
-                  {appliedEventFiltersCount}
-                </span>
-              )}
-            </button>
+            <div className="dsCheckboxGrid">
+              {[
+                { key: "free", label: "Free" },
+                { key: "nearby", label: "Nearby" },
+                { key: "top", label: "Top Rated" },
+              ].map((option) => (
+                <label
+                  key={option.key}
+                  className={`dsCheckOption ${
+                    eventQuickFilters[option.key] ? "is-checked" : ""
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={eventQuickFilters[option.key]}
+                    onChange={(event) =>
+                      setEventQuickFilters((prev) => ({
+                        ...prev,
+                        [option.key]: event.target.checked,
+                      }))
+                    }
+                  />
+                  <span>{option.label}</span>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
 
-        {eventFiltersOpen && (
-          <>
-            <div
-              className="ownerReservationFiltersBackdrop"
-              onClick={() => setEventFiltersOpen(false)}
-            />
+        <div className="ownerReservationFiltersModal__footer">
+          <button
+            type="button"
+            className="btn btn--ghost"
+            onClick={() => {
+              setEventDateFilter("all");
+              setEventQuickFilters({
+                free: false,
+                nearby: false,
+                top: false,
+              });
+            }}
+          >
+            Reset
+          </button>
 
-            <div className="ownerReservationFiltersModal">
-              <div className="ownerReservationFiltersModal__head">
-                <div className="ownerReservationFiltersModal__title">Event Filters</div>
+          <button
+            type="button"
+            className="btn btn--gold"
+            onClick={() => setEventFiltersOpen(false)}
+          >
+            Apply
+          </button>
+        </div>
+      </div>
+    </>
+  )}
 
-                <button
-                  type="button"
-                  className="ownerReservationFiltersModal__close"
-                  onClick={() => setEventFiltersOpen(false)}
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="ownerReservationFiltersModal__body">
-                <div className="ownerReservationFiltersSection">
-                  <div className="ownerReservationFiltersSection__title">Event Type</div>
-
-                  <ThemedSelect
-                    value={eventCategoryFilter}
-                    onChange={setEventCategoryFilter}
-                    options={EVENT_CATEGORY_FILTER_OPTIONS}
-                    ariaLabel="Filter events by type"
-                    fullWidth
-                  />
-                </div>
-
-                <div className="ownerReservationFiltersSection">
-                  <div className="ownerReservationFiltersSection__title">Date</div>
-
-                  <ThemedSelect
-                    value={eventDateFilter}
-                    onChange={setEventDateFilter}
-                    options={EVENT_DATE_FILTER_OPTIONS}
-                    ariaLabel="Filter events by date"
-                    fullWidth
-                  />
-                </div>
-
-                <div className="ownerReservationFiltersSection">
-                  <div className="ownerReservationFiltersSection__title">Quick Filters</div>
-
-                  <div className="dsCheckboxGrid">
-                    {[
-                      { key: "free", label: "Free" },
-                      { key: "nearby", label: "Nearby" },
-                      { key: "top", label: "Top Rated" },
-                    ].map((option) => (
-                      <label
-                        key={option.key}
-                        className={`dsCheckOption ${
-                          eventQuickFilters[option.key] ? "is-checked" : ""
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={eventQuickFilters[option.key]}
-                          onChange={(event) =>
-                            setEventQuickFilters((prev) => ({
-                              ...prev,
-                              [option.key]: event.target.checked,
-                            }))
-                          }
-                        />
-                        <span>{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="ownerReservationFiltersModal__footer">
-                <button
-                  type="button"
-                  className="btn btn--ghost"
-                  onClick={() => {
-                    setEventCategoryFilter("upcoming");
-                    setEventDateFilter("all");
-                    setEventQuickFilters({
-                      free: false,
-                      nearby: false,
-                      top: false,
-                    });
-                  }}
-                >
-                  Reset
-                </button>
-
-                <button
-                  type="button"
-                  className="btn btn--gold"
-                  onClick={() => setEventFiltersOpen(false)}
-                >
-                  Apply
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-
-        <section className="discoverEventSection">
-          <div className="discoverEventSection__title">
-            {eventCategoryFilter === "featured" ? "Featured Events" : "Upcoming Events"}
-          </div>
-
-          {filteredEvents.length ? (
-            <div className="discoverEventsGrid discoverEventsGrid--restaurantSized">
-              {filteredEvents.map((event) => (
-                <EventCard
-                  key={`filtered-event-${event.id}`}
-                  event={event}
-                  onOpenRestaurant={onOpenRestaurant}
-                  onViewDetails={(evt) => {
-                    setActiveEvent(evt);
-                    setDetailsOpen(true);
-                  }}
-                  onJoinEvent={(evt) => {
-                    setActiveEvent(evt);
-                    setJoinOpen(true);
-                  }}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              title="No events found"
-              message="Try changing your filters or check back soon."
-            />
-          )}
-        </section>
-
-        <section className="discoverEventSection">
-          <div className="discoverEventSection__title">Recommended for You</div>
-
-          {recommendedEvents.length ? (
-            <div className="discoverEventsGrid discoverEventsGrid--restaurantSized">
-              {recommendedEvents.map((event) => (
-                <EventCard
-                  key={`rec-${event.id}`}
-                  event={event}
-                  onOpenRestaurant={onOpenRestaurant}
-                  onViewDetails={(evt) => {
-                    setActiveEvent(evt);
-                    setDetailsOpen(true);
-                  }}
-                  onJoinEvent={(evt) => {
-                    setActiveEvent(evt);
-                    setJoinOpen(true);
-                  }}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              title="No recommendations yet"
-              message="Engage with events to personalize this section."
-            />
-          )}
-        </section>
-      </section>
+  {filteredEvents.length ? (
+    <div className="discoverEventsGrid discoverEventsGrid--restaurantSized">
+      {filteredEvents.map((event) => (
+        <EventCard
+          key={`filtered-event-${event.id}`}
+          event={event}
+          onOpenRestaurant={onOpenRestaurant}
+          onViewDetails={(evt) => {
+            setActiveEvent(evt);
+            setDetailsOpen(true);
+          }}
+          onJoinEvent={(evt) => {
+            setActiveEvent(evt);
+            setJoinOpen(true);
+          }}
+        />
+      ))}
+    </div>
+  ) : (
+    <EmptyState
+      title="No events found"
+      message="Try changing your filters or check back soon."
+    />
+  )}
+</section>
 
       <section className="discoverFeedSection">
         <div className="discoverFeedSection__header">
