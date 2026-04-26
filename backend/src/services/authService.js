@@ -107,7 +107,15 @@ const registerUser = async (fullName, email, password, roleId = 1, location = {}
     throw error;
   }
 
-  await emailVerificationService.createTokenAndSendEmail(user.id, email, fullName);
+  try {
+    await emailVerificationService.createTokenAndSendEmail(user.id, email, fullName);
+  } catch (error) {
+    await User.deleteUnverifiedLocalById(pool, user.id);
+    const message = error?.code === "ETIMEDOUT" || error?.code === "ESOCKET" || error?.code === "ENETUNREACH"
+      ? "We could not send the verification email. Please try again in a moment."
+      : "We could not send the verification email. Please check your email address and try again.";
+    throw new Error(message);
+  }
 
   return {};
 };

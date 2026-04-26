@@ -176,6 +176,18 @@ const clearBan = async (db, userId) => {
   return result.rows[0] || null;
 };
 
+const deleteUnverifiedLocalById = async (db, userId) => {
+  const query = `
+    DELETE FROM users
+    WHERE id = $1
+      AND provider = 'local'
+      AND is_verified = false
+    RETURNING id, full_name, email;
+  `;
+  const result = await db.query(query, [userId]);
+  return result.rows[0] || null;
+};
+
 module.exports = {
   findByEmail,
   findByPhone,
@@ -189,4 +201,5 @@ module.exports = {
   incrementNoShowCount,
   setBannedUntil,
   clearBan,
+  deleteUnverifiedLocalById,
 };
