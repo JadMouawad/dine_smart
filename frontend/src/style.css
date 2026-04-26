@@ -574,10 +574,10 @@ html[data-theme="light"] .quickFilterBtn.is-active {
   color: rgba(80, 45, 15, 0.78);
 }
 [data-theme="light"] .eventTag {
-  color: #173053;
-  border-color: rgba(38, 90, 154, 0.30);
-  background: linear-gradient(135deg, #dcecff 0%, #cbd8ff 100%);
-  box-shadow: 0 8px 18px rgba(45, 83, 130, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.70);
+  color: #fffaf0;
+  border-color: rgba(255, 255, 255, 0.28);
+  background: linear-gradient(135deg, rgba(42, 34, 29, 0.96), rgba(18, 18, 22, 0.94));
+  box-shadow: 0 8px 18px rgba(35, 25, 18, 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 [data-theme="light"] .eventTag--free {
   color: #17623d;
@@ -586,10 +586,10 @@ html[data-theme="light"] .quickFilterBtn.is-active {
   box-shadow: 0 8px 18px rgba(35, 120, 75, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.70);
 }
 [data-theme="light"] .eventTag--hot {
-  color: #fff7f7;
-  border-color: rgba(124, 32, 45, 0.28);
-  background: linear-gradient(135deg, #d14a45 0%, #a83135 54%, #7c202d 100%);
-  box-shadow: 0 8px 18px rgba(124, 32, 45, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  color: #fffaf0;
+  border-color: rgba(255, 220, 180, 0.28);
+  background: linear-gradient(135deg, rgba(55, 40, 33, 0.98), rgba(20, 20, 24, 0.95));
+  box-shadow: 0 8px 18px rgba(35, 25, 18, 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 [data-theme="light"] .eventTag--warn {
   color: #fff8f0;
@@ -10283,10 +10283,10 @@ margin: 0 auto;
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
-  border: 1px solid rgba(176, 211, 255, 0.62);
-  color: #f5fbff;
-  background: linear-gradient(135deg, rgba(39, 87, 169, 0.96), rgba(70, 55, 151, 0.92));
-  box-shadow: 0 8px 18px rgba(8, 18, 48, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.30);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #fffaf0;
+  background: linear-gradient(135deg, rgba(42, 34, 29, 0.96), rgba(18, 18, 22, 0.94));
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .eventTag--free {
@@ -10297,10 +10297,10 @@ margin: 0 auto;
 }
 
 .eventTag--hot {
-  border-color: rgba(255, 180, 180, 0.44);
-  color: #fff7f7;
-  background: linear-gradient(135deg, #c2413e 0%, #9f2f32 52%, #73202b 100%);
-  box-shadow: 0 8px 18px rgba(96, 20, 30, 0.30), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 220, 180, 0.34);
+  color: #fffaf0;
+  background: linear-gradient(135deg, rgba(55, 40, 33, 0.98), rgba(20, 20, 24, 0.95));
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .eventTag--warn {
@@ -15813,9 +15813,9 @@ body.dark .slotDraftRemoveBtn:hover,
   min-height: 24px;
   padding: 5px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(176, 211, 255, 0.55);
-  background: linear-gradient(135deg, rgba(28, 68, 143, 0.92), rgba(62, 48, 132, 0.88));
-  color: #f7fbff;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  background: linear-gradient(135deg, rgba(42, 34, 29, 0.92), rgba(18, 18, 22, 0.90));
+  color: #fffaf0;
   font-size: 10.5px;
   font-weight: 800;
   line-height: 1.1;
@@ -15839,16 +15839,16 @@ body.dark .slotDraftRemoveBtn:hover,
 }
 
 .eventSearchCard__tag--hot {
-  border-color: rgba(255, 178, 196, 0.68);
-  background: linear-gradient(135deg, rgba(213, 58, 88, 0.98), rgba(138, 43, 102, 0.92));
-  color: #fff5f7;
+  border-color: rgba(255, 220, 180, 0.40);
+  background: linear-gradient(135deg, rgba(55, 40, 33, 0.98), rgba(20, 20, 24, 0.95));
+  color: #fffaf0;
 }
 
 .eventSearchCard__tag--accent,
 .eventSearchCard__tag--gold {
-  border-color: rgba(176, 211, 255, 0.62);
-  background: linear-gradient(135deg, rgba(39, 87, 169, 0.96), rgba(70, 55, 151, 0.92));
-  color: #f7fbff;
+  border-color: rgba(255, 255, 255, 0.28);
+  background: linear-gradient(135deg, rgba(42, 34, 29, 0.96), rgba(18, 18, 22, 0.94));
+  color: #fffaf0;
 }
 
 .eventSearchCard__body {
@@ -15934,11 +15934,11 @@ body.dark .slotDraftRemoveBtn:hover,
 }
 
 [data-theme="light"] .eventSearchCard__tag {
-  border-color: rgba(38, 90, 154, 0.30);
-  background: linear-gradient(135deg, #dcecff 0%, #cbd8ff 100%);
-  color: #173053;
+  border-color: rgba(255, 255, 255, 0.30);
+  background: linear-gradient(135deg, rgba(42, 34, 29, 0.94), rgba(18, 18, 22, 0.92));
+  color: #fffaf0;
   text-shadow: none;
-  box-shadow: 0 8px 18px rgba(45, 83, 130, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.70);
+  box-shadow: 0 8px 18px rgba(35, 25, 18, 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 [data-theme="light"] .eventSearchCard__tag--free {
@@ -15954,16 +15954,16 @@ body.dark .slotDraftRemoveBtn:hover,
 }
 
 [data-theme="light"] .eventSearchCard__tag--hot {
-  border-color: rgba(174, 53, 87, 0.32);
-  background: linear-gradient(135deg, #ffe0e8 0%, #f9cce1 100%);
-  color: #8c2447;
+  border-color: rgba(255, 220, 180, 0.34);
+  background: linear-gradient(135deg, rgba(55, 40, 33, 0.98), rgba(20, 20, 24, 0.95));
+  color: #fffaf0;
 }
 
 [data-theme="light"] .eventSearchCard__tag--accent,
 [data-theme="light"] .eventSearchCard__tag--gold {
-  border-color: rgba(38, 90, 154, 0.30);
-  background: linear-gradient(135deg, #dcecff 0%, #cbd8ff 100%);
-  color: #173053;
+  border-color: rgba(255, 255, 255, 0.30);
+  background: linear-gradient(135deg, rgba(42, 34, 29, 0.94), rgba(18, 18, 22, 0.92));
+  color: #fffaf0;
 }
 
 /* Fix Discover Events header text in light mode */
