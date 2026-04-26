@@ -7450,7 +7450,7 @@ margin: 0 auto;
 }
 
 .ownerProfileDocumentsCard {
-  grid-column: 1 / -1;
+  grid-column: 1;
   margin-top: 0;
 }
 
