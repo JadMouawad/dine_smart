@@ -53,6 +53,30 @@ const clearExpiredBanIfNeeded = async (user) => {
   return cleared ? { ...user, banned_until: null } : user;
 };
 
+const buildAuthResponse = async (user) => {
+  const normalizedUser = await clearExpiredBanIfNeeded(user);
+  const token = jwt.sign(
+    { id: normalizedUser.id, email: normalizedUser.email, role: normalizedUser.role },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN, jwtid: crypto.randomUUID() }
+  );
+
+  return {
+    user: {
+      id: normalizedUser.id,
+      fullName: normalizedUser.full_name,
+      email: normalizedUser.email,
+      role: normalizedUser.role,
+      latitude: normalizedUser.latitude,
+      longitude: normalizedUser.longitude,
+      noShowCount: normalizedUser.no_show_count ?? 0,
+      bannedUntil: normalizedUser.banned_until || null,
+      themePreference: normalizedUser.theme_preference || "dark",
+    },
+    token,
+  };
+};
+
 /**
  * Register a new user (local only). Sends verification email. No JWT until email verified.
  * @param {string} fullName - User's full name
@@ -110,6 +134,12 @@ const registerUser = async (fullName, email, password, roleId = 1, location = {}
   try {
     await emailVerificationService.createTokenAndSendEmail(user.id, email, fullName);
   } catch (error) {
+    console.warn("Failed to send signup verification email:", {
+      code: error?.code,
+      command: error?.command,
+      responseCode: error?.responseCode,
+      message: error?.message,
+    });
     await User.deleteUnverifiedLocalById(pool, user.id);
     const message = error?.code === "ETIMEDOUT" || error?.code === "ESOCKET" || error?.code === "ENETUNREACH"
       ? "We could not send the verification email. Please try again in a moment."
@@ -144,28 +174,7 @@ const loginUser = async (email, password) => {
   if (user.is_suspended === true) {
     throw new Error("Your account has been suspended. Please contact support.");
   }
-  const normalizedUser = await clearExpiredBanIfNeeded(user);
-
-  const token = jwt.sign(
-    { id: user.id, email: user.email, role: user.role },
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN, jwtid: crypto.randomUUID() }
-  );
-
-  return {
-    user: {
-      id: normalizedUser.id,
-      fullName: normalizedUser.full_name,
-      email: normalizedUser.email,
-      role: normalizedUser.role,
-      latitude: normalizedUser.latitude,
-      longitude: normalizedUser.longitude,
-      noShowCount: normalizedUser.no_show_count ?? 0,
-      bannedUntil: normalizedUser.banned_until || null,
-      themePreference: normalizedUser.theme_preference || "dark",
-    },
-    token
-  };
+  return buildAuthResponse(user);
 };
 
 /**
@@ -208,28 +217,7 @@ const googleAuthUser = async (idToken, role) => {
   if (user.is_suspended === true) {
     throw new Error("Your account has been suspended. Please contact support.");
   }
-  const normalizedUser = await clearExpiredBanIfNeeded(user);
-
-  const token = jwt.sign(
-    { id: user.id, email: user.email, role: user.role },
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN, jwtid: crypto.randomUUID() }
-  );
-
-  return {
-    user: {
-      id: normalizedUser.id,
-      fullName: normalizedUser.full_name,
-      email: normalizedUser.email,
-      role: normalizedUser.role,
-      latitude: normalizedUser.latitude,
-      longitude: normalizedUser.longitude,
-      noShowCount: normalizedUser.no_show_count ?? 0,
-      bannedUntil: normalizedUser.banned_until || null,
-      themePreference: normalizedUser.theme_preference || "dark",
-    },
-    token
-  };
+  return buildAuthResponse(user);
 };
 
 const findUserByPhone = async (phone) => {

@@ -56,7 +56,7 @@ const register = async (req, res) => {
       }
       roleId = 3;
     }
-    await authService.registerUser(name, email, password, roleId, {
+    const result = await authService.registerUser(name, email, password, roleId, {
       latitude: hasLocation ? parsedLatitude : null,
       longitude: hasLocation ? parsedLongitude : null,
       phone: isAdminSignup ? null : `+${normalizedPhone}`,
@@ -64,7 +64,11 @@ const register = async (req, res) => {
       subscriptionPreferences,
     });
 
-    res.status(201).json({
+    if (result?.token) {
+      return res.status(201).json(result);
+    }
+
+    return res.status(201).json({
       message: "Verification email sent. Please verify your email."
     });
   } catch (err) {

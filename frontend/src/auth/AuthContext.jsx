@@ -184,6 +184,8 @@ export function AuthProvider({ children }) {
       longitude: location.longitude,
       phone: location.phone,
       adminSignupKey: location.adminSignupKey,
+      isSubscribed: location.isSubscribed,
+      subscriptionPreferences: location.subscriptionPreferences,
     });
     const newToken = data.token ?? data.accessToken;
 
