@@ -4733,6 +4733,7 @@ input[type="date"] {
 }
 
 .ownerProfileGrid__media .documentCard {
+  width: 100%;
   margin-top: 0;
   min-height: 58px;
   padding: 10px 12px;
@@ -4740,6 +4741,7 @@ input[type="date"] {
 }
 
 .ownerProfileGrid__media .documentCard__name {
+  min-width: 0;
   font-size: 13px;
   line-height: 1.35;
 }
@@ -7499,6 +7501,38 @@ margin: 0 auto;
 .ownerProfileDocumentsGrid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
+}
+
+.ownerProfileDocumentsCard .documentCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "name link"
+    "name remove";
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 8px;
+}
+
+.ownerProfileDocumentsCard .documentCard__name {
+  grid-area: name;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.ownerProfileDocumentsCard .documentCard__link {
+  grid-area: link;
+  white-space: nowrap;
+}
+
+.ownerProfileDocumentsCard .documentCard__removeBtn {
+  grid-area: remove;
+  justify-self: end;
+  white-space: nowrap;
 }
 
 .ownerDangerCard {
@@ -10740,10 +10774,29 @@ margin: 0 auto;
 
 /* Restaurant location pin on owner map */
 .ownerMapPin {
-  font-size: 28px;
-  line-height: 1;
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  border-radius: 50% 50% 50% 0;
+  background: linear-gradient(135deg, #f6c842, #d49b18);
   cursor: default;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+  transform: rotate(-45deg);
+  box-shadow:
+    0 0 0 1px rgba(18, 28, 83, 0.18) inset,
+    0 8px 20px rgba(13, 20, 57, 0.32);
+}
+
+.ownerMapPin::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  top: 8px;
+  left: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(18, 28, 83, 0.12);
 }
 
 .ownerProfileMapCoords {
