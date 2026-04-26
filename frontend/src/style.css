@@ -12499,6 +12499,18 @@ html[data-theme="light"] .quickFilterBtn {
   align-items: flex-start;
 }
 
+.reservationCard__main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.reservationCard__main > .statusBadge {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
 .reservationCard__statusWrap {
   flex-shrink: 0;
 }
@@ -12742,6 +12754,18 @@ html[data-theme="light"] .quickFilterBtn {
   align-items: flex-start;
 }
 
+.reservationCard__main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.reservationCard__main > .statusBadge {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
 .reservationCard__statusWrap {
   flex-shrink: 0;
 }
@@ -12751,6 +12775,17 @@ html[data-theme="light"] .quickFilterBtn {
   gap: 10px;
   margin-top: 14px;
   flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .reservationCard__main {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .reservationCard__main > .statusBadge {
+    margin-top: 0;
+  }
 }
 
 [data-theme="light"] .ownerReservationTabs__btn {
