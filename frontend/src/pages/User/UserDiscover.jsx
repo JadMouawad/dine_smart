@@ -2,14 +2,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { getDiscoverFeed, getPublicEvents } from "../../services/restaurantService";
-import { getDiscoverRecommendations } from "../../services/recommendationService";
 import { joinEvent, saveEvent } from "../../services/eventService";
 import LoadingSkeleton from "../../components/LoadingSkeleton.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
-import RecommendationCard from "../../components/RecommendationCard.jsx";
 import ThemedSelect from "../../components/ThemedSelect.jsx";
 import { toDateObject, startOfDay, formatDateRange } from "../../utils/dateUtils";
-import { getCrowdMeterMeta } from "../../utils/crowdMeter";
 
 const EVENT_DATE_FILTER_OPTIONS = [
   { value: "all", label: "Any Date" },
@@ -73,51 +70,6 @@ function bucketEvents(events = [], referenceDate = new Date()) {
   });
 
   return buckets;
-}
-
-function SectionRestaurants({ title, badge, restaurants, onOpenRestaurant }) {
-  if (!restaurants?.length) return null;
-
-  return (
-    <section className="discoverFeedSection">
-      <div className="discoverFeedSection__header">
-        <h2>{title}</h2>
-        {badge && <span className="discoverSectionBadge">{badge}</span>}
-      </div>
-      <div className="restaurantGrid">
-        {restaurants.map((restaurant) => (
-          (() => {
-            const crowd = getCrowdMeterMeta(restaurant);
-            return (
-          <article
-            key={`${title}-${restaurant.id}`}
-            className="restaurantCard discoverFeedCard"
-            onClick={() => onOpenRestaurant?.(restaurant)}
-          >
-            <div className="restaurantCard__body">
-              <div className="restaurantCard__nameRow">
-                <div className="restaurantCard__name">{restaurant.name}</div>
-                <div className="restaurantCard__ratingCol">
-                  <div className="restaurantCard__rating">Rating {restaurant.rating ?? "N/A"}</div>
-                </div>
-              </div>
-              <div className="restaurantCard__cuisine">{restaurant.cuisine || "Cuisine not set"}</div>
-              <div className={`crowdMeter crowdMeter--${crowd.level}`}>
-                <span className="crowdMeter__dot" />
-                <span>Live Crowd: {crowd.label}{crowd.pct != null ? ` (${crowd.pct}%)` : ""}</span>
-              </div>
-              <div className="discoverFeedCard__meta">
-                {restaurant.distance_km != null ? `${restaurant.distance_km} km away` : "Distance unavailable"}
-              </div>
-              {(restaurant.active_event_count || 0) > 0 && <div className="discoverFeedCard__badge">{restaurant.active_event_count} event(s)</div>}
-            </div>
-          </article>
-            );
-          })()
-        ))}
-      </div>
-    </section>
-  );
 }
 
 function buildEventDateTime(dateValue, timeValue) {
@@ -514,9 +466,6 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
   const [error, setError] = useState("");
   const [coords, setCoords] = useState({ latitude: null, longitude: null });
   const [publicEvents, setPublicEvents] = useState([]);
-  const [recommendations, setRecommendations] = useState([]);
-  const [recommendationsLoading, setRecommendationsLoading] = useState(true);
-  const [recommendationsError, setRecommendationsError] = useState("");
   const [eventFiltersOpen, setEventFiltersOpen] = useState(false);
   const [eventDateFilter, setEventDateFilter] = useState("all");
   const [eventQuickFilters, setEventQuickFilters] = useState({
@@ -689,38 +638,6 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
     };
   }, [effectiveLatitude, effectiveLongitude]);
 
-  useEffect(() => {
-    let cancelled = false;
-    setRecommendationsLoading(true);
-    setRecommendationsError("");
-
-    getDiscoverRecommendations({
-      latitude: effectiveLatitude,
-      longitude: effectiveLongitude,
-      limit: 6,
-    })
-      .then((payload) => {
-        if (cancelled) return;
-        setRecommendations(Array.isArray(payload?.recommendations) ? payload.recommendations : []);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setRecommendations([]);
-        setRecommendationsError(err.message || "Failed to load personalized recommendations.");
-      })
-      .finally(() => {
-        if (!cancelled) setRecommendationsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [effectiveLatitude, effectiveLongitude]);
-
-  const effectiveRecommendations = recommendations.length
-    ? recommendations
-    : (Array.isArray(feed?.recommended_for_you) ? feed.recommended_for_you : []);
-
   if (loading) {
     return (
       <div className="userSearchPage">
@@ -887,37 +804,6 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
     />
   )}
 </section>
-
-      <section className="discoverFeedSection">
-        <div className="discoverFeedSection__header">
-          <h2>Recommended for You</h2>
-        </div>
-
-        {recommendationsLoading && effectiveRecommendations.length === 0 ? (
-          <LoadingSkeleton variant="card" count={3} />
-        ) : effectiveRecommendations.length > 0 ? (
-          <div className="restaurantGrid">
-            {effectiveRecommendations.map((recommendation) => (
-              <RecommendationCard
-                key={`recommended-${recommendation.id}`}
-                recommendation={recommendation}
-                onOpenRestaurant={onOpenRestaurant}
-              />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            title="No personalized recommendations yet"
-            message="Keep exploring restaurants and your recommendations will improve."
-          />
-        )}
-
-        {recommendationsError && (
-          <p className="discoverRecommendations__note">
-            {recommendationsError}
-          </p>
-        )}
-      </section>
 
       {detailsOpen && (
         <EventDetailsModal

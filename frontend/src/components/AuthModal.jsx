@@ -8,6 +8,8 @@ import { useAuth } from "../auth/AuthContext";
 import { phoneExists } from "../services/authService";
 import ThemedSelect from "./ThemedSelect.jsx";
 import { COUNTRY_OPTIONS } from "../constants/countries.js";
+import PasswordStrengthMeter from "./PasswordStrengthMeter.jsx";
+import { PASSWORD_MIN_LENGTH, evaluatePasswordStrength, getPasswordValidationMessage } from "../utils/passwordStrength.js";
 
 export default function AuthModal({
   isOpen,
@@ -40,6 +42,7 @@ export default function AuthModal({
   const [signupSuccess, setSignupSuccess] = useState(false);
 
   const isRestaurantSignup = mode === "signup" && (forceRole === "owner" || accountType === "restaurant");
+  const passwordStrength = useMemo(() => evaluatePasswordStrength(password), [password]);
 
   const copy = useMemo(() => {
     if (mode === "signup") {
@@ -256,6 +259,9 @@ export default function AuthModal({
                     if (!normalizedPhone) throw new Error("Phone number is required");
                     if (normalizedPhone.length < 7) throw new Error("Please enter a valid phone number");
                   }
+                  if (!passwordStrength.isStrong) {
+                    throw new Error(getPasswordValidationMessage());
+                  }
                   if (password !== confirmPassword) {
                     throw new Error("Password and confirm password do not match");
                   }
@@ -415,7 +421,7 @@ export default function AuthModal({
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="********"
-                  minLength={6}
+                  minLength={PASSWORD_MIN_LENGTH}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   required
@@ -431,6 +437,9 @@ export default function AuthModal({
                   {showPassword ? <FiEyeOff /> : <FiEye />}
                 </button>
               </div>
+              {mode === "signup" && (
+                <PasswordStrengthMeter password={password} hideWhenEmpty />
+              )}
             </label>
 
             {mode === "signup" && (
@@ -440,7 +449,7 @@ export default function AuthModal({
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm your password"
-                    minLength={6}
+                    minLength={PASSWORD_MIN_LENGTH}
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
                     required

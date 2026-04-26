@@ -3,10 +3,13 @@ import Map, { Marker, NavigationControl } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
-import { deleteProfileAccount } from "../../services/profileService.js";
+import { FiEye, FiEyeOff } from "react-icons/fi";
+import { deleteProfileAccount, changePassword, getProfile } from "../../services/profileService.js";
 import { createRestaurant, getMyRestaurant, updateMyRestaurant, requestRestaurantDeletion } from "../../services/restaurantService";
 import { useTheme } from "../../auth/ThemeContext.jsx";
 import ThemedSelect from "../../components/ThemedSelect.jsx";
+import PasswordStrengthMeter from "../../components/PasswordStrengthMeter.jsx";
+import { evaluatePasswordStrength, getPasswordValidationMessage } from "../../utils/passwordStrength.js";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -104,7 +107,7 @@ function dataUrlToBlobUrl(dataUrl) {
 
 export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const ACCOUNT_DELETE_TEXT = "Goodbye DineSmart";
   const [restaurantName, setRestaurantName] = useState("");
@@ -136,6 +139,16 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
   const onboardingFlag = typeof window !== "undefined" && localStorage.getItem("owner_onboarding") === "1";
   const forceEdit = onboardingParam || onboardingFlag;
   const [documentPreviewUrls, setDocumentPreviewUrls] = useState({});
+  const [accountProvider, setAccountProvider] = useState(() => String(user?.provider || "local").toLowerCase());
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  const [securityLoading, setSecurityLoading] = useState(false);
+  const [securityError, setSecurityError] = useState("");
+  const [securitySuccess, setSecuritySuccess] = useState("");
   const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -151,6 +164,8 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     .replace(/\s+/g, " ")
     .toLowerCase();
   const isDeleteConfirmed = normalizeDeleteText(deleteConfirmationText) === normalizeDeleteText(ACCOUNT_DELETE_TEXT);
+  const isGoogleAccount = accountProvider === "google";
+  const passwordStrength = useMemo(() => evaluatePasswordStrength(newPassword), [newPassword]);
 
   // Mapbox controlled view state
   const [viewState, setViewState] = useState({
@@ -214,6 +229,28 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     if (!forceEdit) return;
     localStorage.removeItem("owner_onboarding");
   }, [forceEdit]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setAccountProvider("local");
+      return;
+    }
+
+    let mounted = true;
+    getProfile()
+      .then((profile) => {
+        if (!mounted) return;
+        setAccountProvider(String(profile?.provider || user?.provider || "local").toLowerCase());
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setAccountProvider(String(user?.provider || "local").toLowerCase());
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id, user?.provider]);
 
 
   const logoPreviewUrl = useMemo(
@@ -518,6 +555,54 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
       setLongitude(null);
     }
     setIsEditing(false);
+  }
+
+  async function handleChangePassword(event) {
+    event.preventDefault();
+    if (securityLoading || isGoogleAccount) return;
+
+    setSecurityError("");
+    setSecuritySuccess("");
+
+    if (!oldPassword.trim()) {
+      setSecurityError("Enter your current password.");
+      return;
+    }
+    if (!newPassword.trim()) {
+      setSecurityError("Enter a new password.");
+      return;
+    }
+    if (!confirmNewPassword.trim()) {
+      setSecurityError("Please confirm your new password.");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setSecurityError("New password and confirm password do not match.");
+      return;
+    }
+    if (!passwordStrength.isStrong) {
+      setSecurityError(getPasswordValidationMessage());
+      return;
+    }
+
+    setSecurityLoading(true);
+    try {
+      await changePassword({
+        oldPassword: oldPassword.trim(),
+        newPassword: newPassword.trim(),
+      });
+      setSecuritySuccess("Password changed successfully.");
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      setShowOldPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmNewPassword(false);
+    } catch (error) {
+      setSecurityError(error.message || "Failed to change password.");
+    } finally {
+      setSecurityLoading(false);
+    }
   }
 
   function formatProfileTime(value) {
@@ -870,6 +955,94 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
         </form>
 
         <div className="userProfileSide ownerProfileSide">
+          <div className="formCard formCard--userProfile profileExtraCard">
+            <div className="formCard__title">Account Security</div>
+            {isGoogleAccount ? (
+              <p className="userProfileFormHint">
+                You signed in with Google. Password changes are managed in your Google account.
+              </p>
+            ) : (
+              <form className="form" onSubmit={handleChangePassword}>
+                <label className="field">
+                  <span>Current password</span>
+                  <div className="passwordFieldWrap">
+                    <input
+                      type={showOldPassword ? "text" : "password"}
+                      placeholder="Enter current password"
+                      value={oldPassword}
+                      onChange={(event) => setOldPassword(event.target.value)}
+                      autoComplete="current-password"
+                      disabled={securityLoading}
+                    />
+                    <button
+                      type="button"
+                      className="passwordToggleBtn"
+                      onClick={() => setShowOldPassword((prev) => !prev)}
+                      aria-label={showOldPassword ? "Hide current password" : "Show current password"}
+                      disabled={securityLoading}
+                    >
+                      {showOldPassword ? <FiEyeOff /> : <FiEye />}
+                    </button>
+                  </div>
+                </label>
+
+                <label className="field">
+                  <span>New password</span>
+                  <div className="passwordFieldWrap">
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      placeholder="Enter new password"
+                      value={newPassword}
+                      onChange={(event) => setNewPassword(event.target.value)}
+                      autoComplete="new-password"
+                      disabled={securityLoading}
+                    />
+                    <button
+                      type="button"
+                      className="passwordToggleBtn"
+                      onClick={() => setShowNewPassword((prev) => !prev)}
+                      aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+                      disabled={securityLoading}
+                    >
+                      {showNewPassword ? <FiEyeOff /> : <FiEye />}
+                    </button>
+                  </div>
+                  <PasswordStrengthMeter password={newPassword} hideWhenEmpty />
+                </label>
+
+                <label className="field">
+                  <span>Confirm new password</span>
+                  <div className="passwordFieldWrap">
+                    <input
+                      type={showConfirmNewPassword ? "text" : "password"}
+                      placeholder="Confirm new password"
+                      value={confirmNewPassword}
+                      onChange={(event) => setConfirmNewPassword(event.target.value)}
+                      autoComplete="new-password"
+                      disabled={securityLoading}
+                    />
+                    <button
+                      type="button"
+                      className="passwordToggleBtn"
+                      onClick={() => setShowConfirmNewPassword((prev) => !prev)}
+                      aria-label={showConfirmNewPassword ? "Hide confirm password" : "Show confirm password"}
+                      disabled={securityLoading}
+                    >
+                      {showConfirmNewPassword ? <FiEyeOff /> : <FiEye />}
+                    </button>
+                  </div>
+                </label>
+
+                {securityError && <div className="fieldError">{securityError}</div>}
+                {securitySuccess && <div className="formCard__success">{securitySuccess}</div>}
+
+                <button className="btn btn--gold" type="submit" disabled={securityLoading}>
+                  {securityLoading ? "Updating..." : "Change Password"}
+                </button>
+              </form>
+            )}
+          </div>
+
           <div className="formCard formCard--userProfile profileExtraCard ownerProfileMediaCard">
             <div className="formCard__title">Branding</div>
             <div className="ownerProfileGrid__media">

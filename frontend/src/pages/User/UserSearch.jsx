@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { searchRestaurants, getRestaurantById } from "../../services/restaurantService";
+import { getDiscoverRecommendations } from "../../services/recommendationService.js";
 import { getFavorites, addFavorite, removeFavorite } from "../../services/favoriteService";
 import LoadingSkeleton from "../../components/LoadingSkeleton.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
@@ -105,7 +106,7 @@ function getInitialFilters() {
 }
 
 // ── Memoized restaurant card ───────────────────────────────────────────────
-const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, onSelect, onFavorite, onReserve }) {
+const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, isRecommended, onSelect, onFavorite, onReserve }) {
   const imageUrls = useMemo(() => getRestaurantGalleryUrls(r), [r]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const activeImageUrl = imageUrls[activeImageIndex] || "";
@@ -173,15 +174,20 @@ const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, onSe
       </div>
       <div className="restaurantCard__body">
         <div className="restaurantCard__header">
-          <div className="restaurantCard__name">
-            {r.name}
-            {r.certificate_verified && (
-              <span className="verifiedBadge" title="Verified Restaurant">
-                <svg className="verifiedBadge__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Verified">
-                  <circle cx="12" cy="12" r="12" fill="#1877F2"/>
-                  <path d="M7 12.5l3.5 3.5 6.5-7" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </span>
+          <div className="restaurantCard__titleBlock">
+            <div className="restaurantCard__name">
+              {r.name}
+              {r.certificate_verified && (
+                <span className="verifiedBadge" title="Verified Restaurant">
+                  <svg className="verifiedBadge__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Verified">
+                    <circle cx="12" cy="12" r="12" fill="#1877F2"/>
+                    <path d="M7 12.5l3.5 3.5 6.5-7" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </span>
+              )}
+            </div>
+            {isRecommended && (
+              <span className="restaurantCard__recommendedBadge">Recommended</span>
             )}
           </div>
           <button
@@ -255,6 +261,7 @@ export default function UserSearch({
 
   // Favorites (server-backed)
   const [favorites, setFavorites] = useState([]);
+  const [recommendedRestaurantIds, setRecommendedRestaurantIds] = useState([]);
 
   const scrollRestoreRef = useRef(null);
 
@@ -402,6 +409,10 @@ export default function UserSearch({
     if (profileGeo.latitude != null && profileGeo.longitude != null) return profileGeo;
     return DEFAULT_BEIRUT_GEO;
   }, [geo.latitude, geo.longitude, profileGeo]);
+  const recommendedRestaurantSet = useMemo(
+    () => new Set(recommendedRestaurantIds.map((id) => String(id))),
+    [recommendedRestaurantIds]
+  );
 
   const filteredRestaurants = useMemo(() => {
     const list = Array.isArray(restaurants) ? [...restaurants] : [];
@@ -589,6 +600,34 @@ export default function UserSearch({
       .then((data) => setFavorites(Array.isArray(data) ? data : []))
       .catch(() => setFavorites([]));
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setRecommendedRestaurantIds([]);
+      return;
+    }
+
+    let cancelled = false;
+    getDiscoverRecommendations({
+      latitude: effectiveGeo.latitude,
+      longitude: effectiveGeo.longitude,
+      limit: 12,
+    })
+      .then((payload) => {
+        if (cancelled) return;
+        const ids = Array.isArray(payload?.recommendations)
+          ? payload.recommendations.map((item) => Number(item?.id)).filter(Number.isFinite)
+          : [];
+        setRecommendedRestaurantIds(ids);
+      })
+      .catch(() => {
+        if (!cancelled) setRecommendedRestaurantIds([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, effectiveGeo.latitude, effectiveGeo.longitude]);
 
   useEffect(() => {
     const preset = String(initialCuisine || "").trim();
@@ -931,6 +970,7 @@ export default function UserSearch({
             <RestaurantCard
               r={r}
               isFavorited={isFavorited(r.id)}
+              isRecommended={recommendedRestaurantSet.has(String(r.id))}
               onSelect={(restaurant) => {
                 saveRecentSearch(lastQueryRef.current);
                 lastQueryRef.current = "";

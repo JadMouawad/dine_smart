@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
-import { getProfile, updateProfile, deleteProfileAccount } from "../../services/profileService.js";
+import { getProfile, updateProfile, deleteProfileAccount, changePassword } from "../../services/profileService.js";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useTheme } from "../../auth/ThemeContext.jsx";
 import ThemedSelect from "../../components/ThemedSelect.jsx";
 import { COUNTRY_OPTIONS, splitPhoneNumber } from "../../constants/countries.js";
+import PasswordStrengthMeter from "../../components/PasswordStrengthMeter.jsx";
+import { evaluatePasswordStrength, getPasswordValidationMessage } from "../../utils/passwordStrength.js";
 
 const DEFAULT_AVATAR =
   "data:image/svg+xml;utf8," +
@@ -37,8 +39,10 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
   const [accountProvider, setAccountProvider] = useState(() =>
     String(user?.provider || "local").toLowerCase()
   );
+  const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -105,6 +109,7 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
   }, [user?.id]);
 
   const isGoogleAccount = accountProvider === "google";
+  const passwordStrength = useMemo(() => evaluatePasswordStrength(newPassword), [newPassword]);
 
   const avatarSrc = useMemo(() => {
     return profilePictureDataUrl || profilePictureUrl || DEFAULT_AVATAR;
@@ -139,13 +144,31 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
     setProfileError("");
     setProfileSuccess("");
 
-    if (!isGoogleAccount && newPassword.trim()) {
+    const wantsPasswordChange = !isGoogleAccount && (
+      oldPassword.trim() ||
+      newPassword.trim() ||
+      confirmNewPassword.trim()
+    );
+
+    if (wantsPasswordChange) {
+      if (!oldPassword.trim()) {
+        setProfileError("Enter your current password to change it.");
+        return;
+      }
+      if (!newPassword.trim()) {
+        setProfileError("Enter a new password.");
+        return;
+      }
       if (!confirmNewPassword.trim()) {
         setProfileError("Please confirm your new password.");
         return;
       }
       if (newPassword !== confirmNewPassword) {
         setProfileError("New password and confirm password do not match.");
+        return;
+      }
+      if (!passwordStrength.isStrong) {
+        setProfileError(getPasswordValidationMessage());
         return;
       }
     }
@@ -157,11 +180,16 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
       profilePictureUrl: profilePictureDataUrl || profilePictureUrl || "",
     };
 
-    if (!isGoogleAccount && newPassword.trim()) {
-      payload.password = newPassword.trim();
-    }
-
+    let passwordChanged = false;
     try {
+      if (wantsPasswordChange) {
+        await changePassword({
+          oldPassword: oldPassword.trim(),
+          newPassword: newPassword.trim(),
+        });
+        passwordChanged = true;
+      }
+
       const updated = await updateProfile(payload);
       const savedAvatar = updated?.profilePictureUrl ?? payload.profilePictureUrl;
       setProfilePictureUrl(savedAvatar);
@@ -173,14 +201,16 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
         countryCode,
         profilePictureUrl: savedAvatar,
       });
-      setProfileSuccess("Profile saved successfully.");
+      setProfileSuccess(passwordChanged ? "Profile and password updated successfully." : "Profile saved successfully.");
+      setOldPassword("");
       setNewPassword("");
       setConfirmNewPassword("");
+      setShowOldPassword(false);
       setShowNewPassword(false);
       setShowConfirmNewPassword(false);
       setIsEditing(false);
     } catch (err) {
-      setProfileError(err.message || "Failed to save profile.");
+      setProfileError(err.message || (passwordChanged ? "Password changed but profile update failed." : "Failed to save profile."));
     }
   }
 
@@ -201,8 +231,10 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
     setCountryCode(profileSnapshot.countryCode);
     setProfilePictureUrl(profileSnapshot.profilePictureUrl);
     setProfilePictureDataUrl("");
+    setOldPassword("");
     setNewPassword("");
     setConfirmNewPassword("");
+    setShowOldPassword(false);
     setShowNewPassword(false);
     setShowConfirmNewPassword(false);
     setIsEditing(false);
@@ -412,6 +444,29 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
           ) : (
             <>
               <label className="field">
+                <span>Current password</span>
+                <div className="passwordFieldWrap">
+                  <input
+                    type={showOldPassword ? "text" : "password"}
+                    placeholder="Enter current password"
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    autoComplete="current-password"
+                    disabled={!isEditing}
+                  />
+                  <button
+                    type="button"
+                    className="passwordToggleBtn"
+                    onClick={() => setShowOldPassword((prev) => !prev)}
+                    aria-label={showOldPassword ? "Hide current password" : "Show current password"}
+                    disabled={!isEditing}
+                  >
+                    {showOldPassword ? <FiEyeOff /> : <FiEye />}
+                  </button>
+                </div>
+              </label>
+
+              <label className="field">
                 <span>New password (leave blank to keep current)</span>
                 <div className="passwordFieldWrap">
                   <input
@@ -432,6 +487,7 @@ export default function AdminProfile({ onAvatarPreviewChange }) {
                     {showNewPassword ? <FiEyeOff /> : <FiEye />}
                   </button>
                 </div>
+                <PasswordStrengthMeter password={newPassword} hideWhenEmpty />
               </label>
 
               <label className="field">

@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { requestPasswordReset, resetPassword } from "../services/authService.js";
+import PasswordStrengthMeter from "../components/PasswordStrengthMeter.jsx";
+import { PASSWORD_MIN_LENGTH, evaluatePasswordStrength, getPasswordValidationMessage } from "../utils/passwordStrength.js";
 
 function useQuery() {
   const location = useLocation();
@@ -18,6 +20,7 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const passwordStrength = useMemo(() => evaluatePasswordStrength(password), [password]);
 
   async function handleRequest(event) {
     event.preventDefault();
@@ -36,8 +39,8 @@ export default function ResetPasswordPage() {
 
   async function handleReset(event) {
     event.preventDefault();
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (!passwordStrength.isStrong) {
+      setError(getPasswordValidationMessage());
       return;
     }
     if (password !== confirmPassword) {
@@ -80,9 +83,10 @@ export default function ResetPasswordPage() {
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                minLength={6}
+                minLength={PASSWORD_MIN_LENGTH}
                 required
               />
+              <PasswordStrengthMeter password={password} hideWhenEmpty />
             </label>
             <label className="field">
               <span>Confirm password</span>
@@ -90,7 +94,7 @@ export default function ResetPasswordPage() {
                 type="password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                minLength={6}
+                minLength={PASSWORD_MIN_LENGTH}
                 required
               />
             </label>

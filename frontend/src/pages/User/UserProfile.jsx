@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext.jsx";
-import { getProfile, redeemReward, updateProfile, deleteProfileAccount } from "../../services/profileService.js";
+import { getProfile, redeemReward, updateProfile, deleteProfileAccount, changePassword } from "../../services/profileService.js";
 import { getFavorites } from "../../services/favoriteService.js";
 import { getSearchHistory, clearSearchHistory } from "../../services/recentSearchService.js";
 import { FiEye, FiEyeOff } from "react-icons/fi";
@@ -12,6 +12,8 @@ import { COUNTRY_OPTIONS, splitPhoneNumber } from "../../constants/countries.js"
 import { FILLED_STAR, EMPTY_STAR } from "../../constants/filters";
 import { DEFAULT_AVATAR } from "../../constants/avatar";
 import ThemedSelect from "../../components/ThemedSelect.jsx";
+import PasswordStrengthMeter from "../../components/PasswordStrengthMeter.jsx";
+import { evaluatePasswordStrength, getPasswordValidationMessage } from "../../utils/passwordStrength.js";
 
 export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant }) {
   const navigate = useNavigate();
@@ -35,8 +37,10 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState("+961");
   const [accountProvider, setAccountProvider] = useState(() => String(user?.provider || "local").toLowerCase());
+  const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
   const [reservationCount, setReservationCount] = useState(0);
@@ -223,6 +227,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
   }, [user?.id, isEditing]);
 
   const isGoogleAccount = accountProvider === "google";
+  const passwordStrength = useMemo(() => evaluatePasswordStrength(newPassword), [newPassword]);
   const rewardThreshold = rewardStatus?.threshold ?? 100;
   const rewardProgress = rewardThreshold > 0 ? Math.min(points, rewardThreshold) / rewardThreshold * 100 : 0;
   const rewardUnlocked = Boolean(rewardStatus?.unlocked);
@@ -304,13 +309,32 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       setIsEditing(true);
       return;
     }
-    if (!isGoogleAccount && newPassword.trim()) {
+
+    const wantsPasswordChange = !isGoogleAccount && (
+      oldPassword.trim() ||
+      newPassword.trim() ||
+      confirmNewPassword.trim()
+    );
+
+    if (wantsPasswordChange) {
+      if (!oldPassword.trim()) {
+        toast.error("Enter your current password to change it.");
+        return;
+      }
+      if (!newPassword.trim()) {
+        toast.error("Enter a new password.");
+        return;
+      }
       if (!confirmNewPassword.trim()) {
         toast.error("Please confirm your new password.");
         return;
       }
       if (newPassword !== confirmNewPassword) {
         toast.error("New password and confirm password do not match.");
+        return;
+      }
+      if (!passwordStrength.isStrong) {
+        toast.error(getPasswordValidationMessage());
         return;
       }
     }
@@ -323,17 +347,29 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       isSubscribed,
       subscriptionPreferences,
     };
-    if (!isGoogleAccount && newPassword.trim()) payload.password = newPassword.trim();
     if (savedLocation.latitude != null && savedLocation.longitude != null) {
       payload.latitude = savedLocation.latitude;
       payload.longitude = savedLocation.longitude;
     }
+
+    let passwordChanged = false;
     try {
+      if (wantsPasswordChange) {
+        await changePassword({
+          oldPassword: oldPassword.trim(),
+          newPassword: newPassword.trim(),
+        });
+        passwordChanged = true;
+      }
+
       const updated = await updateProfile(payload);
       const savedAvatar = updated?.profilePictureUrl ?? payload.profilePictureUrl;
       setProfilePictureUrl(savedAvatar);
       setProfilePictureDataUrl("");
-      if (subscriptionSnapshot.isSubscribed !== isSubscribed) {
+
+      if (passwordChanged) {
+        toast.success("Profile and password updated successfully.");
+      } else if (subscriptionSnapshot.isSubscribed !== isSubscribed) {
         toast.success(isSubscribed ? "You have successfully subscribed to updates." : "You have unsubscribed from updates.");
       } else {
         toast.success("Profile saved successfully.");
@@ -352,15 +388,21 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
         isSubscribed,
         subscriptionPreferences,
       });
+      setOldPassword("");
       setNewPassword("");
       setConfirmNewPassword("");
+      setShowOldPassword(false);
       setShowNewPassword(false);
       setShowConfirmNewPassword(false);
       setIsEditing(false);
       // Refresh user in context so Explore page picks up new coords
       refreshUser?.();
     } catch (err) {
-      toast.error(err.message || "Failed to save profile.");
+      if (passwordChanged) {
+        toast.error(err.message || "Password was changed but profile updates failed.");
+      } else {
+        toast.error(err.message || "Failed to save profile.");
+      }
     }
   }
 
@@ -428,8 +470,10 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
       isSubscribed: profileSnapshot.isSubscribed,
       preferences: profileSnapshot.subscriptionPreferences,
     });
+    setOldPassword("");
     setNewPassword("");
     setConfirmNewPassword("");
+    setShowOldPassword(false);
     setShowNewPassword(false);
     setShowConfirmNewPassword(false);
     setIsEditing(false);
@@ -653,6 +697,29 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
           ) : (
             <>
               <label className="field">
+                <span>Current password</span>
+                <div className="passwordFieldWrap">
+                  <input
+                    type={showOldPassword ? "text" : "password"}
+                    placeholder="Enter current password"
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    autoComplete="current-password"
+                    disabled={!isEditing}
+                  />
+                  <button
+                    type="button"
+                    className="passwordToggleBtn"
+                    onClick={() => setShowOldPassword((prev) => !prev)}
+                    aria-label={showOldPassword ? "Hide current password" : "Show current password"}
+                    disabled={!isEditing}
+                  >
+                    {showOldPassword ? <FiEyeOff /> : <FiEye />}
+                  </button>
+                </div>
+              </label>
+
+              <label className="field">
                 <span>New password (leave blank to keep current)</span>
                 <div className="passwordFieldWrap">
                   <input
@@ -673,6 +740,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                     {showNewPassword ? <FiEyeOff /> : <FiEye />}
                   </button>
                 </div>
+                <PasswordStrengthMeter password={newPassword} hideWhenEmpty />
               </label>
 
               <label className="field">

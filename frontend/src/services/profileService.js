@@ -11,6 +11,13 @@ export async function updateProfile(data) {
   });
 }
 
+export async function changePassword({ oldPassword, newPassword }) {
+  return apiRequest("/profile/change-password", {
+    method: "POST",
+    body: JSON.stringify({ oldPassword, newPassword }),
+  });
+}
+
 export async function redeemReward() {
   return apiRequest("/profile/rewards/redeem", {
     method: "POST",
