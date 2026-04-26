@@ -132,18 +132,18 @@ function getEventCardLabels(event, { isFree, isTrending, isEndingSoon }) {
 
   if (isEndingSoon) addLabel("Ending Soon", "eventSearchCard__tag--warn");
   if (isFree) addLabel("Free", "eventSearchCard__tag--free");
-  if (event.is_featured) addLabel("Featured", "eventSearchCard__tag--gold");
+  if (event.is_featured) addLabel("Featured", "eventSearchCard__tag--accent");
   if (isTrending) addLabel("Trending", "eventSearchCard__tag--hot");
 
   const rawLabels = [event.label, event.tag, event.category, event.event_label, event.eventLabel];
-  rawLabels.forEach((label) => addLabel(label, "eventSearchCard__tag--gold"));
+  rawLabels.forEach((label) => addLabel(label, "eventSearchCard__tag--accent"));
 
   const listLabels = [event.labels, event.tags, event.event_tags, event.eventTags];
   listLabels.forEach((list) => {
     if (!Array.isArray(list)) return;
     list.forEach((item) => {
-      if (typeof item === "string") addLabel(item, "eventSearchCard__tag--gold");
-      else addLabel(item?.label || item?.name || item?.title, "eventSearchCard__tag--gold");
+      if (typeof item === "string") addLabel(item, "eventSearchCard__tag--accent");
+      else addLabel(item?.label || item?.name || item?.title, "eventSearchCard__tag--accent");
     });
   });
 
@@ -297,7 +297,7 @@ function EventDetailsModal({ event, onClose, onJoin, onSave, onShare }) {
           </div>
 
           <div className="eventModal__tags">
-            {isFree && <span className="eventTag">Free</span>}
+            {isFree && <span className="eventTag eventTag--free">Free</span>}
             {(event.is_trending || (event.popularity_score ?? 0) >= 80) && <span className="eventTag eventTag--hot">Trending</span>}
             {endDate &&
               endDate.getTime() > Date.now() &&

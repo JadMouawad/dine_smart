@@ -574,10 +574,16 @@ html[data-theme="light"] .quickFilterBtn.is-active {
   color: rgba(80, 45, 15, 0.78);
 }
 [data-theme="light"] .eventTag {
-  color: #241404;
-  border-color: rgba(138, 82, 10, 0.28);
-  background: linear-gradient(135deg, #ffe08a 0%, #f3b842 55%, #d68a17 100%);
-  box-shadow: 0 8px 18px rgba(96, 54, 10, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.66);
+  color: #173053;
+  border-color: rgba(38, 90, 154, 0.30);
+  background: linear-gradient(135deg, #dcecff 0%, #cbd8ff 100%);
+  box-shadow: 0 8px 18px rgba(45, 83, 130, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.70);
+}
+[data-theme="light"] .eventTag--free {
+  color: #17623d;
+  border-color: rgba(32, 132, 75, 0.34);
+  background: linear-gradient(135deg, #dff8e6 0%, #c5efd2 100%);
+  box-shadow: 0 8px 18px rgba(35, 120, 75, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.70);
 }
 [data-theme="light"] .eventTag--hot {
   color: #fff7f7;
@@ -586,10 +592,10 @@ html[data-theme="light"] .quickFilterBtn.is-active {
   box-shadow: 0 8px 18px rgba(124, 32, 45, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 [data-theme="light"] .eventTag--warn {
-  color: #241404;
-  border-color: rgba(138, 82, 10, 0.30);
-  background: linear-gradient(135deg, #ffe49e 0%, #f5c04c 55%, #d89019 100%);
-  box-shadow: 0 8px 18px rgba(96, 54, 10, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.66);
+  color: #fff8f0;
+  border-color: rgba(154, 45, 31, 0.30);
+  background: linear-gradient(135deg, #dd6b30 0%, #ad3c37 100%);
+  box-shadow: 0 8px 18px rgba(154, 66, 31, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 [data-theme="light"] .discoverEventCard__metaChip {
   color: rgba(80, 45, 15, 0.78);
@@ -10266,18 +10272,28 @@ margin: 0 auto;
 }
 
 .eventTag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 999px;
   min-height: 25px;
   padding: 5px 11px;
   font-size: 11px;
   line-height: 1;
   font-weight: 800;
-  letter-spacing: 0.035em;
+  letter-spacing: 0;
   text-transform: uppercase;
-  border: 1px solid rgba(255, 229, 157, 0.70);
-  color: #241404;
-  background: linear-gradient(135deg, #ffe08a 0%, #f0b63b 55%, #cf8618 100%);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.50);
+  border: 1px solid rgba(176, 211, 255, 0.62);
+  color: #f5fbff;
+  background: linear-gradient(135deg, rgba(39, 87, 169, 0.96), rgba(70, 55, 151, 0.92));
+  box-shadow: 0 8px 18px rgba(8, 18, 48, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.30);
+}
+
+.eventTag--free {
+  border-color: rgba(163, 245, 188, 0.64);
+  color: #edfff2;
+  background: linear-gradient(135deg, #16834d 0%, #0f6c55 100%);
+  box-shadow: 0 8px 18px rgba(8, 82, 54, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 
 .eventTag--hot {
@@ -15778,55 +15794,61 @@ body.dark .slotDraftRemoveBtn:hover,
 
 .eventSearchCard__tags {
   position: absolute;
-  top: 8px;
-  left: 8px;
-  right: 8px;
+  top: 10px;
+  left: 10px;
+  right: 10px;
   z-index: 3;
   display: flex;
   align-items: flex-start;
-  gap: 6px;
+  gap: 7px;
   flex-wrap: wrap;
   pointer-events: none;
 }
 
 .eventSearchCard__tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   max-width: 100%;
-  padding: 4px 9px;
+  min-height: 24px;
+  padding: 5px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  background: rgba(6, 10, 34, 0.72);
-  color: rgba(255, 255, 255, 0.94);
-  font-size: 10px;
+  border: 1px solid rgba(176, 211, 255, 0.55);
+  background: linear-gradient(135deg, rgba(28, 68, 143, 0.92), rgba(62, 48, 132, 0.88));
+  color: #f7fbff;
+  font-size: 10.5px;
   font-weight: 800;
   line-height: 1.1;
-  text-transform: capitalize;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  text-transform: uppercase;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.22);
+  box-shadow:
+    0 10px 22px rgba(4, 10, 32, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 
 .eventSearchCard__tag--free {
-  border-color: rgba(123, 228, 149, 0.55);
-  background: rgba(35, 140, 75, 0.32);
-  color: #eaffef;
+  border-color: rgba(163, 245, 188, 0.72);
+  background: linear-gradient(135deg, rgba(28, 139, 78, 0.96), rgba(16, 105, 82, 0.92));
+  color: #f0fff4;
 }
 
 .eventSearchCard__tag--warn {
-  border-color: rgba(251, 191, 36, 0.65);
-  background: rgba(201, 162, 39, 0.30);
-  color: #fff4cc;
+  border-color: rgba(255, 200, 151, 0.72);
+  background: linear-gradient(135deg, rgba(219, 107, 48, 0.98), rgba(173, 60, 55, 0.92));
+  color: #fff8f0;
 }
 
 .eventSearchCard__tag--hot {
-  border-color: rgba(255, 126, 126, 0.55);
-  background: rgba(160, 35, 35, 0.28);
-  color: #ffe1e1;
+  border-color: rgba(255, 178, 196, 0.68);
+  background: linear-gradient(135deg, rgba(213, 58, 88, 0.98), rgba(138, 43, 102, 0.92));
+  color: #fff5f7;
 }
 
+.eventSearchCard__tag--accent,
 .eventSearchCard__tag--gold {
-  border-color: rgba(201, 162, 39, 0.60);
-  background: rgba(201, 162, 39, 0.24);
-  color: #fff4cc;
+  border-color: rgba(176, 211, 255, 0.62);
+  background: linear-gradient(135deg, rgba(39, 87, 169, 0.96), rgba(70, 55, 151, 0.92));
+  color: #f7fbff;
 }
 
 .eventSearchCard__body {
@@ -15912,34 +15934,36 @@ body.dark .slotDraftRemoveBtn:hover,
 }
 
 [data-theme="light"] .eventSearchCard__tag {
-  border-color: rgba(175, 115, 45, 0.25);
-  background: rgba(255, 251, 243, 0.82);
-  color: #1A0E06;
-  box-shadow: 0 8px 18px rgba(150, 90, 30, 0.12);
+  border-color: rgba(38, 90, 154, 0.30);
+  background: linear-gradient(135deg, #dcecff 0%, #cbd8ff 100%);
+  color: #173053;
+  text-shadow: none;
+  box-shadow: 0 8px 18px rgba(45, 83, 130, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.70);
 }
 
 [data-theme="light"] .eventSearchCard__tag--free {
-  border-color: rgba(47, 143, 79, 0.30);
-  background: rgba(47, 143, 79, 0.12);
-  color: #2f8f4f;
+  border-color: rgba(32, 132, 75, 0.34);
+  background: linear-gradient(135deg, #dff8e6 0%, #c5efd2 100%);
+  color: #17623d;
 }
 
 [data-theme="light"] .eventSearchCard__tag--warn {
-  border-color: rgba(201, 162, 39, 0.45);
-  background: rgba(201, 162, 39, 0.18);
-  color: rgba(140, 90, 10, 0.95);
+  border-color: rgba(195, 81, 45, 0.34);
+  background: linear-gradient(135deg, #ffe6cf 0%, #ffd5c2 100%);
+  color: #8f321d;
 }
 
 [data-theme="light"] .eventSearchCard__tag--hot {
-  border-color: rgba(183, 59, 59, 0.26);
-  background: rgba(183, 59, 59, 0.10);
-  color: #a02f2f;
+  border-color: rgba(174, 53, 87, 0.32);
+  background: linear-gradient(135deg, #ffe0e8 0%, #f9cce1 100%);
+  color: #8c2447;
 }
 
+[data-theme="light"] .eventSearchCard__tag--accent,
 [data-theme="light"] .eventSearchCard__tag--gold {
-  border-color: rgba(201, 162, 39, 0.45);
-  background: rgba(201, 162, 39, 0.15);
-  color: rgba(140, 90, 10, 0.95);
+  border-color: rgba(38, 90, 154, 0.30);
+  background: linear-gradient(135deg, #dcecff 0%, #cbd8ff 100%);
+  color: #173053;
 }
 
 /* Fix Discover Events header text in light mode */
