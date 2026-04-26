@@ -2179,6 +2179,8 @@ body.ds-nav-not-sticky .nav {
 }
 
 .modal__googleButtonFace {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 44px;
   border: 1px solid rgba(26, 14, 6, 0.18);
@@ -2194,21 +2196,27 @@ body.ds-nav-not-sticky .nav {
 }
 
 .modal__googleButtonIcon {
-  color: #4285f4;
-  font-size: 20px;
-  font-weight: 800;
-  line-height: 1;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
 }
 
 .modal__googleButtonNative {
   position: absolute;
   inset: 0;
-  opacity: 0;
+  z-index: 2;
+  opacity: 0.01;
   overflow: hidden;
 }
 
 .modal__googleButtonNative > div {
   width: 100% !important;
+  height: 44px !important;
+}
+
+.modal__googleButtonNative iframe {
+  width: 100% !important;
+  height: 44px !important;
 }
 
 .btn--google {
