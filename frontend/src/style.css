@@ -5002,6 +5002,24 @@ margin: 0 auto;
   font-weight: 600;
 }
 
+.restaurantCard__locationLine {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.restaurantCard__address {
+  min-width: 0;
+  flex: 1;
+}
+
+.restaurantCard__distance {
+  flex: 0 0 auto;
+  text-align: right;
+  white-space: nowrap;
+}
+
 .crowdMeter {
   margin-top: 2px;
   display: inline-flex;

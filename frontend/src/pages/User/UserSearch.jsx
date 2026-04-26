@@ -205,8 +205,15 @@ const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, isRe
           <span>Live Crowd: {crowd.label}{crowd.pct != null ? ` (${crowd.pct}%)` : ""}</span>
         </div>
         <div className="restaurantCard__metaLine">{FILLED_STAR} {ratingDisplay} ({reviewCount})</div>
-        <div className="restaurantCard__metaLine">
-          {showDistance && r.distance_km != null ? `${r.distance_km} km away` : (r.address || "Location unavailable")}
+        <div className={`restaurantCard__metaLine ${showDistance && r.distance_km != null ? "restaurantCard__locationLine" : ""}`}>
+          {showDistance && r.distance_km != null ? (
+            <>
+              <span className="restaurantCard__address">{r.address || "Location unavailable"}</span>
+              <span className="restaurantCard__distance">{r.distance_km} km away</span>
+            </>
+          ) : (
+            r.address || "Location unavailable"
+          )}
         </div>
         <div className="restaurantCard__actions">
           <button
