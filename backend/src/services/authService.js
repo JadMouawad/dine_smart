@@ -226,7 +226,7 @@ const findUserByPhone = async (phone) => {
 };
 
 const buildPasswordResetLink = (token) => {
-  const baseUrl = (process.env.FRONTEND_BASE_URL || "http://localhost:5173").replace(/\/+$/, "");
+  const baseUrl = (process.env.FRONTEND_URL || process.env.FRONTEND_BASE_URL || "http://localhost:5173").replace(/\/+$/, "");
   return `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
 };
 
