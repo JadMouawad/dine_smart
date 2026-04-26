@@ -23,7 +23,7 @@ const getById = async (userId) => {
 
 /**
  * Update user profile (allowlisted fields only)
- * Accepts fullName, email, phone, profilePictureUrl, password (hashed by caller)
+ * Accepts fullName, email, phone, profilePictureUrl, location and preferences
  */
 const updateById = async (userId, data) => {
   const updates = {};
@@ -35,7 +35,6 @@ const updateById = async (userId, data) => {
   if (data.longitude !== undefined) updates.longitude = data.longitude;
   if (data.profilePictureUrl !== undefined) updates.profile_picture_url = data.profilePictureUrl;
   if (data.themePreference !== undefined) updates.theme_preference = data.themePreference;
-  if (data.password !== undefined) updates.password = data.password;
   if (data.isSubscribed !== undefined) updates.is_subscribed = data.isSubscribed;
   if (data.subscriptionPreferences !== undefined) updates.subscription_preferences = data.subscriptionPreferences;
   if (data.subscription_preferences !== undefined) updates.subscription_preferences = data.subscription_preferences;

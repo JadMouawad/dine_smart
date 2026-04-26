@@ -5,6 +5,7 @@ const profileController = require("../controllers/profileController");
 
 router.get("/", requireAuth, profileController.getProfile);
 router.put("/", requireAuth, profileController.updateProfile);
+router.post("/change-password", requireAuth, profileController.changePassword);
 router.delete("/", requireAuth, profileController.deleteAccount);
 router.post("/rewards/redeem", requireAuth, profileController.redeemReward);
 

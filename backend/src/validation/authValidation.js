@@ -1,14 +1,10 @@
+const { getPasswordValidationMessage } = require("./passwordValidation");
+
 // Validate email using a simple regex pattern
 const isValidEmail = (email) => {
   // Basic email format check
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
-};
-
-// Validate password rules
-const isValidPassword = (password) => {
-  // Password must be at least 6 characters long
-  return password && password.length >= 6;
 };
 
 // Validation for registration input
@@ -25,8 +21,9 @@ const validateRegister = (name, email, password) => {
   if (!isValidEmail(email)) {
     return "Invalid email format";
   }
-  if (!isValidPassword(password)) {
-    return "Password must be at least 6 characters long";
+  const passwordError = getPasswordValidationMessage(password);
+  if (passwordError) {
+    return passwordError;
   }
   return null;
 };

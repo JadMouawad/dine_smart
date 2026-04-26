@@ -61,34 +61,20 @@ const getDiscoverFeed = async ({ userId, query }) => {
     }),
   ]);
 
-  const [matchesPreferences, recommendationPayload] = await Promise.all([
-    discoverRepository.getMatchesPreferences({
-      preferredCuisines,
-      latitude: hasCoords ? latitude : null,
-      longitude: hasCoords ? longitude : null,
-      radiusKm: hasCoords ? distanceRadius : null,
-      limit,
-    }),
-    recommendationService.getRecommendations({
-      userId,
-      limit: Math.min(limit, 6),
-      latitude: hasCoords ? latitude : null,
-      longitude: hasCoords ? longitude : null,
-    }),
-  ]);
+  const matchesPreferences = await discoverRepository.getMatchesPreferences({
+    preferredCuisines,
+    latitude: hasCoords ? latitude : null,
+    longitude: hasCoords ? longitude : null,
+    radiusKm: hasCoords ? distanceRadius : null,
+    limit,
+  });
 
   return {
-    recommended_for_you: recommendationPayload.recommendations,
     near_you: nearYou,
     popular_right_now: popularRightNow,
     matches_preferences: matchesPreferences,
     upcoming_events_nearby: upcomingEventsNearby,
     highly_rated: highlyRated,
-    recommendations_meta: {
-      source: recommendationPayload.source,
-      cached: recommendationPayload.cached,
-      profile: recommendationPayload.profile,
-    },
   };
 };
 

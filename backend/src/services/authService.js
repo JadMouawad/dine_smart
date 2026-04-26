@@ -15,6 +15,7 @@ const pool = require("../config/db");
 const User = require("../models/User");
 const emailVerificationService = require("./emailVerificationService");
 const { sendPasswordResetEmail } = require("../utils/emailSender");
+const { getPasswordValidationMessage } = require("../validation/passwordValidation");
 
 const SALT_ROUNDS = 10;
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
@@ -63,6 +64,11 @@ const registerUser = async (fullName, email, password, roleId = 1, location = {}
   const existingUser = await User.findByEmail(pool, email);
   if (existingUser) {
     throw new Error("Email already registered");
+  }
+
+  const passwordValidationError = getPasswordValidationMessage(password);
+  if (passwordValidationError) {
+    throw new Error(passwordValidationError);
   }
 
   const normalizedPhone = location.phone
@@ -280,7 +286,8 @@ const resetPassword = async ({ token, newPassword }) => {
   const password = String(newPassword || "");
 
   if (!rawToken) throw new Error("Reset token is required");
-  if (password.length < 6) throw new Error("Password must be at least 6 characters");
+  const passwordValidationError = getPasswordValidationMessage(password);
+  if (passwordValidationError) throw new Error(passwordValidationError);
 
   const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
   const tokenResult = await pool.query(

@@ -2,6 +2,7 @@ const bcrypt = require("bcrypt");
 const pool = require("../config/db");
 const profileRepository = require("../repositories/profileRepository");
 const loyaltyService = require("./loyaltyService");
+const { getPasswordValidationMessage } = require("../validation/passwordValidation");
 
 const SALT_ROUNDS = 10;
 const ACCOUNT_DELETION_CONFIRMATION_TEXT = "Goodbye DineSmart";
@@ -48,11 +49,7 @@ const updateProfile = async (userId, data) => {
     const parsedLongitude = Number(updates.longitude);
     updates.longitude = Number.isFinite(parsedLongitude) ? parsedLongitude : null;
   }
-  if (updates.password != null && updates.password !== "") {
-    updates.password = await bcrypt.hash(updates.password, SALT_ROUNDS);
-  } else {
-    delete updates.password;
-  }
+  delete updates.password;
   if (updates.isSubscribed !== undefined) {
     const normalized = String(updates.isSubscribed).trim().toLowerCase();
     updates.isSubscribed = normalized === "true" || updates.isSubscribed === true;
@@ -65,6 +62,93 @@ const updateProfile = async (userId, data) => {
     }
   }
   return await profileRepository.updateById(userId, updates);
+};
+
+const changePassword = async ({ userId, oldPassword, newPassword }) => {
+  const currentPassword = String(oldPassword || "");
+  const nextPassword = String(newPassword || "");
+
+  if (!currentPassword || !nextPassword) {
+    return {
+      success: false,
+      status: 400,
+      error: "Old password and new password are required.",
+    };
+  }
+
+  const result = await pool.query(
+    `
+      SELECT id, provider, password
+      FROM users
+      WHERE id = $1
+      LIMIT 1
+    `,
+    [userId]
+  );
+
+  const account = result.rows[0] || null;
+  if (!account) {
+    return {
+      success: false,
+      status: 404,
+      error: "Profile not found",
+    };
+  }
+
+  if (!account.password) {
+    return {
+      success: false,
+      status: 400,
+      error: "This account uses Google sign-in. Password changes are managed in Google.",
+    };
+  }
+
+  const oldPasswordMatches = await bcrypt.compare(currentPassword, account.password);
+  if (!oldPasswordMatches) {
+    return {
+      success: false,
+      status: 400,
+      error: "Old password is incorrect.",
+    };
+  }
+
+  const passwordValidationError = getPasswordValidationMessage(nextPassword);
+  if (passwordValidationError) {
+    return {
+      success: false,
+      status: 400,
+      error: passwordValidationError,
+    };
+  }
+
+  const sameAsCurrent = await bcrypt.compare(nextPassword, account.password);
+  if (sameAsCurrent) {
+    return {
+      success: false,
+      status: 400,
+      error: "New password must be different from the current password.",
+    };
+  }
+
+  const hashedPassword = await bcrypt.hash(nextPassword, SALT_ROUNDS);
+  await pool.query(
+    `
+      UPDATE users
+      SET password = $1,
+          provider = 'local',
+          updated_at = NOW()
+      WHERE id = $2
+    `,
+    [hashedPassword, userId]
+  );
+
+  return {
+    success: true,
+    status: 200,
+    data: {
+      message: "Password changed successfully.",
+    },
+  };
 };
 
 const deleteProfileAccount = async ({ userId, confirmationText }) => {
@@ -119,5 +203,6 @@ const deleteProfileAccount = async ({ userId, confirmationText }) => {
 module.exports = {
   getProfile,
   updateProfile,
+  changePassword,
   deleteProfileAccount,
 };
