@@ -258,6 +258,11 @@ export default function OwnerMenu() {
     }
   }
 
+  function removeItemImage() {
+    setItemImageDataUrl("");
+    setEditingItemImageUrl("");
+  }
+
   function goToItemDetails(e) {
     e.preventDefault();
     if (!selectedSectionId) return;
@@ -289,9 +294,7 @@ export default function OwnerMenu() {
             ? {
                 ...it,
                 ...payload,
-                // keep old image if you didn't pick a new one
-                imagePreviewUrl:
-                  payload.imagePreviewUrl || it.imagePreviewUrl || "",
+                imagePreviewUrl: payload.imagePreviewUrl,
               }
             : it
         )
@@ -721,11 +724,20 @@ export default function OwnerMenu() {
 
                     <div className="imageCard__preview imageCard__preview--equal">
                       {itemImagePreviewUrl ? (
-                        <img
-                          className="imageCard__img"
-                          src={itemImagePreviewUrl}
-                          alt="Item"
-                        />
+                        <>
+                          <img
+                            className="imageCard__img"
+                            src={itemImagePreviewUrl}
+                            alt="Item"
+                          />
+                          <button
+                            type="button"
+                            className="imageCard__removeBtn imageCard__removeBtn--floating"
+                            onClick={removeItemImage}
+                          >
+                            Remove
+                          </button>
+                        </>
                       ) : (
                         <div className="imageCard__placeholder">
                           <div className="imageCard__formats">

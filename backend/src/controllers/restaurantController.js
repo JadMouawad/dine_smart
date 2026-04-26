@@ -54,8 +54,16 @@ const updateMyRestaurant = async (req, res) => {
     const hasMenuUpdate = incomingMenu !== undefined;
     const previousMenu = normalizeMenuSections(restaurant.menu_sections || restaurant.menu || []);
 
+    const updatePayload = { ...req.body };
+    if (
+      Object.prototype.hasOwnProperty.call(req.body, "health_certificate_url") &&
+      String(req.body.health_certificate_url || "") !== String(restaurant.health_certificate_url || "")
+    ) {
+      updatePayload.certificate_verified = false;
+    }
+
     const updated = await restaurantService.updateRestaurant(restaurant.id, {
-      ...req.body,
+      ...updatePayload,
     });
 
     if (hasMenuUpdate) {

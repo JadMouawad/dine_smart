@@ -3239,6 +3239,17 @@ body {
   background: rgba(0, 0, 0, 0.72);
 }
 
+.imageCard__removeBtn--floating {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+}
+
+.documentCard__removeBtn {
+  flex: 0 0 auto;
+}
+
 .imageCard__placeholder {
   text-align: center;
   color: rgba(255, 255, 255, 0.75);
@@ -7199,6 +7210,13 @@ margin: 0 auto;
 
 .userProfileHero__uploadBtn {
   white-space: nowrap;
+}
+
+.profileHeroUploadActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .userProfile__feedbackError,
