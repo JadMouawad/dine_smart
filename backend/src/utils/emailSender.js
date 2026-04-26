@@ -383,6 +383,71 @@ const sendReservationCancellationEmail = async ({
   await sendMail(mailOptions);
 };
 
+const sendReservationRejectionEmail = async ({
+  to,
+  userName = "Guest",
+  restaurantName,
+  reservationDate,
+  reservationTime,
+  reservationEndTime,
+  durationMinutes,
+  partySize,
+  confirmationId,
+}) => {
+  const safeRestaurant = restaurantName || "the restaurant";
+  const safeDate = reservationDate || "N/A";
+  const safeTime = reservationTime || "N/A";
+  const timeLabel = reservationEndTime ? `${safeTime} - ${reservationEndTime}` : safeTime;
+  const durationLabel = durationMinutes ? ` (${durationMinutes >= 60 ? `${durationMinutes / 60}h` : `${durationMinutes}min`})` : "";
+  const safePartySize = partySize != null ? partySize : "N/A";
+  const confirmationLine = confirmationId
+    ? `<p><strong>Confirmation ID:</strong> ${confirmationId}</p>`
+    : "";
+
+  const textBody =
+    `Hi ${userName},\n\n` +
+    `Your reservation request at ${safeRestaurant} was rejected by the restaurant.\n\n` +
+    `Restaurant: ${safeRestaurant}\n` +
+    `Date: ${safeDate}\n` +
+    `Time: ${timeLabel}${durationLabel}\n` +
+    `Party size: ${safePartySize}\n` +
+    (confirmationId ? `Confirmation ID: ${confirmationId}\n` : "") +
+    `\nYou can choose another available time or restaurant on DineSmart.`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Reservation rejected - DineSmart</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2>Reservation Rejected</h2>
+      <p>Hi ${userName},</p>
+      <p>Your reservation request at <strong>${safeRestaurant}</strong> was rejected by the restaurant.</p>
+      ${confirmationLine}
+      <p><strong>Restaurant:</strong> ${safeRestaurant}</p>
+      <p><strong>Date:</strong> ${safeDate}</p>
+      <p><strong>Time:</strong> ${timeLabel}${durationLabel}</p>
+      <p><strong>Party size:</strong> ${safePartySize}</p>
+      <p>You can choose another available time or restaurant on DineSmart.</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+      <p style="font-size: 12px; color: #888;">DineSmart - Reservation update</p>
+    </body>
+    </html>
+  `;
+
+  const mailOptions = {
+    from: getSenderAddress(),
+    to,
+    subject: "Your DineSmart reservation was rejected",
+    html,
+    text: `Reservation Rejected\n\n${textBody}`,
+  };
+
+  await sendMail(mailOptions);
+};
+
 const sendReservationCancelledForEventEmail = async ({
   to,
   userName = "Guest",
@@ -715,6 +780,7 @@ module.exports = {
   sendReservationConfirmationEmail,
   sendReservationUpdatedEmail,
   sendReservationCancellationEmail,
+  sendReservationRejectionEmail,
   sendReservationCancelledForEventEmail,
   sendNoShowWarningEmail,
   sendNoShowBanEmail,

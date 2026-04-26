@@ -10,6 +10,7 @@ const voucherService = require("./voucherService");
 const {
   sendReservationConfirmationEmail,
   sendReservationCancellationEmail,
+  sendReservationRejectionEmail,
   sendReservationUpdatedEmail,
   sendNoShowWarningEmail,
   sendNoShowBanEmail,
@@ -1129,6 +1130,28 @@ const updateReservationStatusForOwner = async ({ reservationId, ownerId, action 
   }
 
   if (nextStatus === "rejected") {
+    try {
+      const durationMins = parseInt(updated.duration_minutes, 10) || 120;
+      const startMins = parseTimeToMinutes(updated.reservation_time);
+      const endTimeLabel = startMins != null ? formatTimeForEmail(toTimeValue(startMins + durationMins)) : null;
+
+      if (updated.customer_email) {
+        await sendReservationRejectionEmail({
+          to: updated.customer_email,
+          userName: updated.customer_name || "Guest",
+          restaurantName: updated.restaurant_name || "the restaurant",
+          reservationDate: formatDateForEmail(updated.reservation_date),
+          reservationTime: formatTimeForEmail(updated.reservation_time),
+          reservationEndTime: endTimeLabel,
+          durationMinutes: durationMins,
+          partySize: updated.party_size,
+          confirmationId: updated.confirmation_id,
+        });
+      }
+    } catch (error) {
+      console.warn("Failed to send reservation rejection email:", error.message);
+    }
+
     try {
       await notifyWaitlistForSlot({
         restaurantId: updated.restaurant_id,
