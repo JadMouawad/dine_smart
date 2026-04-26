@@ -572,8 +572,8 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     }
   }
 
-  const RESTAURANT_DELETE_TEXT = "DELETE RESTAURANT";
-  const isRestaurantDeleteConfirmed = restaurantDeleteConfirmText.trim().toUpperCase() === RESTAURANT_DELETE_TEXT;
+  const RESTAURANT_DELETE_TEXT = "Goodbye DineSmart";
+  const isRestaurantDeleteConfirmed = restaurantDeleteConfirmText.trim() === RESTAURANT_DELETE_TEXT;
 
   async function handleRequestRestaurantDeletion() {
     if (!isRestaurantDeleteConfirmed) {
@@ -1008,12 +1008,12 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
               This will send a deletion request to the admin. Your restaurant will be permanently deleted once approved. You can still use your account while the request is pending.
             </p>
             <label className="field ownerDeleteModal__field">
-              <span>Type "DELETE RESTAURANT" to confirm</span>
+              <span>Type "Goodbye DineSmart" to confirm</span>
               <input
                 type="text"
                 value={restaurantDeleteConfirmText}
                 onChange={(e) => { setRestaurantDeleteConfirmText(e.target.value); if (restaurantDeleteError) setRestaurantDeleteError(""); }}
-                placeholder="DELETE RESTAURANT"
+                placeholder="Goodbye DineSmart"
                 autoFocus
               />
             </label>
