@@ -166,6 +166,28 @@ const findRestaurantByName = async (name) => {
   return fuzzyRestaurant || null;
 };
 
+const requestRestaurantDeletion = async ({ ownerId }) => {
+  const result = await restaurantRepository.requestRestaurantDeletion(ownerId);
+  if (!result) return { success: false, status: 404, error: "Restaurant not found." };
+  return { success: true, status: 200, data: result };
+};
+
+const getPendingDeletionRestaurants = async () => {
+  return await restaurantRepository.getPendingDeletionRestaurants();
+};
+
+const approveRestaurantDeletion = async ({ restaurantId }) => {
+  const deleted = await restaurantRepository.deleteRestaurant(restaurantId);
+  if (!deleted) return { success: false, status: 404, error: "Restaurant not found." };
+  return { success: true, status: 200, data: deleted };
+};
+
+const rejectRestaurantDeletion = async ({ restaurantId }) => {
+  const result = await restaurantRepository.cancelRestaurantDeletionRequest(restaurantId);
+  if (!result) return { success: false, status: 404, error: "Restaurant not found." };
+  return { success: true, status: 200, data: result };
+};
+
 module.exports = {
   createRestaurant,
   getAllRestaurants,
@@ -178,4 +200,8 @@ module.exports = {
   getTableConfigByRestaurantId,
   upsertTableConfigByRestaurantId,
   findRestaurantByName,
+  requestRestaurantDeletion,
+  getPendingDeletionRestaurants,
+  approveRestaurantDeletion,
+  rejectRestaurantDeletion,
 };
