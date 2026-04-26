@@ -36,3 +36,7 @@ export function cancelUserEventReservation(eventId) {
 export function markEventAttendeeNoShow(eventId, attendeeId) {
   return apiRequest(`/owner/events/${eventId}/attendees/${attendeeId}/no-show`, { method: "PATCH" });
 }
+
+export function markEventAttendeeCompleted(eventId, attendeeId) {
+  return apiRequest(`/owner/events/${eventId}/attendees/${attendeeId}/complete`, { method: "PATCH" });
+}

@@ -205,6 +205,21 @@ const markEventAttendeeNoShow = async (req, res) => {
   }
 };
 
+const markEventAttendeeCompleted = async (req, res) => {
+  try {
+    const result = await eventService.markEventAttendeeCompleted({
+      attendeeId: req.params.attendeeId,
+      ownerId: req.user.id,
+    });
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createOwnerEvent,
   getOwnerEvents,
@@ -222,4 +237,5 @@ module.exports = {
   getOwnerEventReservations,
   deleteOwnerEventReservation,
   markEventAttendeeNoShow,
+  markEventAttendeeCompleted,
 };

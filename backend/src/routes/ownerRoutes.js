@@ -88,6 +88,14 @@ router.patch(
   eventController.markEventAttendeeNoShow
 );
 
+router.patch(
+  "/events/:eventId/attendees/:attendeeId/complete",
+  authenticateToken,
+  authorizeRoles("owner"),
+  requireApprovedRestaurant,
+  eventController.markEventAttendeeCompleted
+);
+
 router.post(
   "/reviews/:id/respond",
   authenticateToken,

@@ -13,7 +13,7 @@ import {
   saveOwnerDisabledSlot,
 } from "../../services/reservationService";
 import { getOwnerEventReservations } from "../../services/restaurantService";
-import { markEventAttendeeNoShow } from "../../services/eventService";
+import { markEventAttendeeNoShow, markEventAttendeeCompleted } from "../../services/eventService";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
 import OwnerReservationCalendar from "../../components/OwnerReservationCalendar.jsx";
@@ -419,6 +419,7 @@ export default function OwnerReservations() {
   const [eventAttendeesLoading, setEventAttendeesLoading] = useState(false);
   const [eventAttendeesError, setEventAttendeesError] = useState("");
   const [noShowingAttendeeId, setNoShowingAttendeeId] = useState(null);
+  const [completingAttendeeId, setCompletingAttendeeId] = useState(null);
   const [eventAttendeesView, setEventAttendeesView] = useState("upcoming");
   const [eventAttendeesStatusFilter, setEventAttendeesStatusFilter] = useState("all");
 
@@ -504,6 +505,22 @@ export default function OwnerReservations() {
       toast.error(err.message || "Failed to mark no-show.");
     } finally {
       setNoShowingAttendeeId(null);
+    }
+  }
+
+  async function handleEventAttendeeCompleted(attendeeId) {
+    setCompletingAttendeeId(attendeeId);
+    try {
+      const att = eventAttendees.find((a) => a.id === attendeeId);
+      await markEventAttendeeCompleted(att?.event_id, attendeeId);
+      setEventAttendees((prev) =>
+        prev.map((a) => (a.id === attendeeId ? { ...a, status: "completed" } : a))
+      );
+      toast.success("Attendee marked as completed.");
+    } catch (err) {
+      toast.error(err.message || "Failed to mark completed.");
+    } finally {
+      setCompletingAttendeeId(null);
     }
   }
 
@@ -1809,29 +1826,21 @@ export default function OwnerReservations() {
               </button>
             </div>
 
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <select
-                className="themedSelect__control"
-                style={{ fontSize: "0.85rem", padding: "6px 10px", borderRadius: 6 }}
-                value={eventAttendeesStatusFilter}
-                onChange={(e) => setEventAttendeesStatusFilter(e.target.value)}
-              >
-                <option value="all">All statuses</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="cancelled">Cancelled</option>
-                <option value="no-show">No-show</option>
-              </select>
-
-              <button
-                type="button"
-                className="btn btn--ghost"
-                style={{ fontSize: "0.82rem", padding: "6px 12px" }}
-                onClick={loadEventAttendees}
-                disabled={eventAttendeesLoading}
-              >
-                {eventAttendeesLoading ? "Loading…" : "Refresh"}
-              </button>
-            </div>
+            <ThemedSelect
+              value={eventAttendeesStatusFilter}
+              onChange={setEventAttendeesStatusFilter}
+              options={[
+                { value: "all", label: "All statuses" },
+                { value: "confirmed", label: "Confirmed" },
+                { value: "completed", label: "Completed" },
+                { value: "cancelled", label: "Cancelled" },
+                { value: "no-show", label: "No-show" },
+              ]}
+              ariaLabel="Filter by status"
+              align="right"
+              minMenuWidth="160px"
+              fullWidth={false}
+            />
           </div>
 
           {eventAttendeesError && <div className="fieldError">{eventAttendeesError}</div>}
@@ -1862,9 +1871,10 @@ export default function OwnerReservations() {
               <div className="reservationCards">
                 {filtered.map((att) => {
                   const isConfirmed = att.status === "confirmed";
-                  const isNoShow = att.status === "no-show";
                   const eventDateLabel = att.start_date || att.event_date || "";
                   const timeLabel = att.start_time ? att.start_time.slice(0, 5) : "";
+
+                  const isBusy = noShowingAttendeeId === att.id || completingAttendeeId === att.id;
 
                   return (
                     <article key={att.id} className="reservationCard">
@@ -1887,17 +1897,19 @@ export default function OwnerReservations() {
                           <button
                             className="btn btn--ghost"
                             type="button"
-                            disabled={noShowingAttendeeId === att.id}
+                            disabled={isBusy}
+                            onClick={() => handleEventAttendeeCompleted(att.id)}
+                          >
+                            {completingAttendeeId === att.id ? "Saving…" : "Mark completed"}
+                          </button>
+                          <button
+                            className="btn btn--ghost"
+                            type="button"
+                            disabled={isBusy}
                             onClick={() => handleEventAttendeeNoShow(att.id)}
                           >
-                            {noShowingAttendeeId === att.id ? "Saving…" : "Mark no-show"}
+                            {noShowingAttendeeId === att.id ? "Saving…" : "No-show"}
                           </button>
-                        </div>
-                      )}
-
-                      {isNoShow && (
-                        <div className="reservationCard__actions">
-                          <span className="statusBadge statusBadge--no-show">No-show recorded</span>
                         </div>
                       )}
                     </article>
