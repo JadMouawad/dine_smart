@@ -168,14 +168,16 @@ export default function PendingRestaurantsPage({ onPendingCountChange }) {
         </div>
       )}
 
-      {deletionRequests.length > 0 && (
-        <div style={{ marginTop: "2rem" }}>
-          <h2 className="ownerProfile__title" style={{ fontSize: "1.2rem", marginBottom: "0.5rem" }}>
-            Pending Restaurant Deletion Requests
-          </h2>
-          <p className="adminPage__subtitle" style={{ marginBottom: "1rem" }}>
-            The following restaurants have requested to be permanently deleted. Approve to delete them or reject to cancel the request.
-          </p>
+      <div style={{ marginTop: "2rem" }}>
+        <h2 className="ownerProfile__title" style={{ fontSize: "1.2rem", marginBottom: "0.5rem" }}>
+          Pending Restaurant Deletion Requests
+        </h2>
+        <p className="adminPage__subtitle" style={{ marginBottom: "1rem" }}>
+          Restaurants that have requested to be permanently deleted. Approve to delete or reject to cancel the request.
+        </p>
+        {deletionRequests.length === 0 ? (
+          <p className="placeholderPage__text">No pending deletion requests.</p>
+        ) : (
           <div className="adminCardList">
             {deletionRequests.map((r) => (
               <div key={r.id} className="reservationCard" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -211,8 +213,8 @@ export default function PendingRestaurantsPage({ onPendingCountChange }) {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {rejectTarget && (
         <div className="modal is-open" role="dialog" aria-modal="true">
