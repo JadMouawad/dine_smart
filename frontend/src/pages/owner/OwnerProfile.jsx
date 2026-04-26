@@ -902,6 +902,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
               </div>
             </div>
             <button type="button" className="appearanceToggle" onClick={toggleTheme}>
+              <span className="appearanceToggle__icon">{theme === "dark" ? "☀️" : "🌙"}</span>
               {theme === "dark" ? "Light mode" : "Dark mode"}
             </button>
           </div>
