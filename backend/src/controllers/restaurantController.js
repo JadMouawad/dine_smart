@@ -4,9 +4,30 @@ const restaurantService = require("../services/restaurantService");
 const subscriptionService = require("../services/subscriptionService");
 const { extractMenuItems, normalizeMenuSections } = require("../utils/menuUtils");
 
+// Fields that owners must never be allowed to set/change directly via their own
+// restaurant endpoints. These are reserved for admin moderation flows.
+const OWNER_FORBIDDEN_FIELDS = [
+  "is_verified",
+  "approval_status",
+  "rejection_reason",
+  "owner_id",
+  "ownerId",
+  "certificate_verified",
+];
+
+const stripPrivilegedFields = (payload) => {
+  if (!payload || typeof payload !== "object") return {};
+  const sanitized = { ...payload };
+  for (const field of OWNER_FORBIDDEN_FIELDS) {
+    delete sanitized[field];
+  }
+  return sanitized;
+};
+
 const createRestaurant = async (req, res) => {
   try {
-    const data = { ...req.body, ownerId: req.user.id };
+    const sanitized = stripPrivilegedFields(req.body);
+    const data = { ...sanitized, ownerId: req.user.id };
     const restaurant = await restaurantService.createRestaurant(data);
     res.status(201).json(restaurant);
   } catch (err) {
@@ -54,7 +75,7 @@ const updateMyRestaurant = async (req, res) => {
     const hasMenuUpdate = incomingMenu !== undefined;
     const previousMenu = normalizeMenuSections(restaurant.menu_sections || restaurant.menu || []);
 
-    const updatePayload = { ...req.body };
+    const updatePayload = stripPrivilegedFields(req.body);
     if (
       Object.prototype.hasOwnProperty.call(req.body, "health_certificate_url") &&
       String(req.body.health_certificate_url || "") !== String(restaurant.health_certificate_url || "")
@@ -138,7 +159,17 @@ const updateMyRestaurant = async (req, res) => {
 
 const updateRestaurant = async (req, res) => {
   try {
-    const updated = await restaurantService.updateRestaurant(req.params.id, req.body);
+    const restaurantId = parseInt(req.params.id, 10);
+    if (Number.isNaN(restaurantId)) {
+      return res.status(400).json({ message: "Invalid restaurant ID" });
+    }
+    // Ownership check: an owner may only update their own restaurant.
+    const owned = await restaurantService.getRestaurantByIdAndOwnerId(restaurantId, req.user.id);
+    if (!owned) {
+      return res.status(403).json({ message: "Forbidden: You can only manage your own restaurant" });
+    }
+    const sanitized = stripPrivilegedFields(req.body);
+    const updated = await restaurantService.updateRestaurant(restaurantId, sanitized);
     res.json(updated);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -147,7 +178,16 @@ const updateRestaurant = async (req, res) => {
 
 const deleteRestaurant = async (req, res) => {
   try {
-    const deleted = await restaurantService.deleteRestaurant(req.params.id);
+    const restaurantId = parseInt(req.params.id, 10);
+    if (Number.isNaN(restaurantId)) {
+      return res.status(400).json({ message: "Invalid restaurant ID" });
+    }
+    // Ownership check: an owner may only delete their own restaurant.
+    const owned = await restaurantService.getRestaurantByIdAndOwnerId(restaurantId, req.user.id);
+    if (!owned) {
+      return res.status(403).json({ message: "Forbidden: You can only manage your own restaurant" });
+    }
+    const deleted = await restaurantService.deleteRestaurant(restaurantId);
     res.json(deleted);
   } catch (err) {
     res.status(500).json({ message: err.message });
