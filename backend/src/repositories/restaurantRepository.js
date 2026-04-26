@@ -110,8 +110,9 @@ const createRestaurant = async (data) => {
     ...(includeHealthCertificateUrl ? [data.health_certificate_url || null] : []),
     ...(includeHealthCertificateName ? [data.health_certificate_name || null] : []),
     ownerId,
-    false,
-    "pending",
+    false,        // is_verified
+    false,        // certificate_verified
+    "pending",    // approval_status
   ];
 
   const placeholders = values.map((_, index) =>
