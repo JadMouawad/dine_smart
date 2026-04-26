@@ -96,6 +96,24 @@ const updateProfile = async (req, res) => {
   }
 };
 
+const changePassword = async (req, res) => {
+  try {
+    const result = await profileService.changePassword({
+      userId: req.user.id,
+      oldPassword: req.body?.oldPassword,
+      newPassword: req.body?.newPassword,
+    });
+
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.error });
+    }
+
+    return res.status(200).json(result.data);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
 const redeemReward = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -136,6 +154,7 @@ const deleteAccount = async (req, res) => {
 module.exports = {
   getProfile,
   updateProfile,
+  changePassword,
   redeemReward,
   deleteAccount,
 };
