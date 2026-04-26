@@ -221,10 +221,11 @@ export default function PendingRestaurantsPage({ onPendingCountChange }) {
                   </div>
                   <div className="reservationCard__actions">
                     <button
-                      className="btn btn--ghost ownerDangerCard__btn"
+                      className="btn btn--ghost"
                       type="button"
                       disabled={deletionBusyId === r.id}
                       onClick={() => handleApproveDeletion(r.id)}
+                      style={{ color: "var(--color-danger, #e05252)" }}
                     >
                       {deletionBusyId === r.id ? "Working..." : "Approve & Delete"}
                     </button>
