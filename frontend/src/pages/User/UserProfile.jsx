@@ -5,6 +5,7 @@ import { useAuth } from "../../auth/AuthContext.jsx";
 import { getProfile, redeemReward, updateProfile, deleteProfileAccount, changePassword } from "../../services/profileService.js";
 import { getFavorites } from "../../services/favoriteService.js";
 import { getSearchHistory, clearSearchHistory } from "../../services/recentSearchService.js";
+import { updateReview } from "../../services/reviewService.js";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useTheme } from "../../auth/ThemeContext.jsx";
 import { COUNTRY_OPTIONS, splitPhoneNumber } from "../../constants/countries.js";
@@ -443,11 +444,17 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
     }
   }
 
-  async function handleUpdateRequiredReview(reviewId) {
+  async function handleUpdateRequiredReview(review) {
     if (requiredActionBusyId) return;
+    const reviewId = review?.id;
+    if (!reviewId || !review?.restaurantId) {
+      toast.error("Unable to update this review because its restaurant is missing.");
+      return;
+    }
+
     setRequiredActionBusyId(reviewId);
     try {
-      await updateReview(reviewId, {
+      await updateReview(review.restaurantId, reviewId, {
         rating: requiredEditRating,
         comment: requiredEditComment.trim(),
       });
@@ -929,7 +936,7 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
                             <button
                               type="button"
                               className="btn btn--primary"
-                              onClick={() => handleUpdateRequiredReview(rev.id)}
+                              onClick={() => handleUpdateRequiredReview(rev)}
                               disabled={requiredActionBusyId === rev.id}
                             >
                               {requiredActionBusyId === rev.id ? "Saving..." : "Update Review"}

@@ -9,16 +9,30 @@ $repoRoot = $PSScriptRoot
 $backendPath = Join-Path $repoRoot "backend"
 $frontendPath = Join-Path $repoRoot "frontend"
 
-# Step 1: Create backend .env file
-Write-Host "Creating backend .env file..." -ForegroundColor Yellow
-
-# NOTE: Update DB_PASSWORD and JWT_SECRET if needed
-$backendEnv = "NODE_ENV=development`nPORT=3000`nDB_HOST=localhost`nDB_PORT=5432`nDB_USER=postgres`nDB_PASSWORD=123456`nDB_NAME=dinesmart`nJWT_SECRET=some-secret-key-change-in-production"
-
+# Step 1: Create backend .env file when missing
 $envPath = Join-Path $backendPath ".env"
-New-Item -Path $backendPath -Name ".env" -ItemType File -Force | Out-Null
-Set-Content -Path $envPath -Value $backendEnv -Force
-Write-Host ".env file created" -ForegroundColor Green
+if (-not (Test-Path $envPath)) {
+  Write-Host "Creating backend .env file..." -ForegroundColor Yellow
+  [byte[]]$secretBytes = New-Object byte[] 32
+  [System.Security.Cryptography.RandomNumberGenerator]::Fill($secretBytes)
+  $jwtSecret = [Convert]::ToBase64String($secretBytes)
+  $backendEnv = @"
+NODE_ENV=development
+PORT=3000
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=
+DB_NAME=dinesmart
+JWT_SECRET=$jwtSecret
+FRONTEND_URL=http://localhost:5173
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+"@
+  Set-Content -Path $envPath -Value $backendEnv -NoNewline
+  Write-Host ".env file created with a generated JWT secret" -ForegroundColor Green
+} else {
+  Write-Host "backend/.env already exists; leaving it unchanged" -ForegroundColor Green
+}
 Write-Host ""
 
 # Step 2: Backend setup

@@ -1,6 +1,7 @@
 // backend/src/controllers/authController.js
 
 const authService = require("../services/authService");
+const { extractToken, verifyToken } = require("../utils/authTokens");
 const { validateRegister, validateLogin } = require("../validation/authValidation");
 
 const parseCoordinate = (value) => {
@@ -126,16 +127,11 @@ const tokenBlacklistRepository = require("../repositories/tokenBlacklistReposito
 
 const logout = async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (authHeader) {
-      const token = authHeader.split(" ")[1];
-      if (token) {
-        const jwt = require("jsonwebtoken");
-        const jwtSecret = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-        const decoded = jwt.verify(token, jwtSecret);
-        if (decoded.jti && decoded.exp) {
-          await tokenBlacklistRepository.add(decoded.jti, decoded.exp);
-        }
+    const token = extractToken(req.headers.authorization);
+    if (token) {
+      const decoded = await verifyToken(token);
+      if (decoded.jti && decoded.exp) {
+        await tokenBlacklistRepository.add(decoded.jti, decoded.exp);
       }
     }
     res.status(200).json({ message: "Logged out successfully" });

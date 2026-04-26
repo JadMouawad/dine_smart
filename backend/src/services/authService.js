@@ -12,13 +12,13 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
 const pool = require("../config/db");
+const { getJwtSecret } = require("../config/security");
 const User = require("../models/User");
 const emailVerificationService = require("./emailVerificationService");
 const { sendPasswordResetEmail } = require("../utils/emailSender");
 const { getPasswordValidationMessage } = require("../validation/passwordValidation");
 
 const SALT_ROUNDS = 10;
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 const JWT_EXPIRES_IN = "7d";
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
@@ -57,7 +57,7 @@ const buildAuthResponse = async (user) => {
   const normalizedUser = await clearExpiredBanIfNeeded(user);
   const token = jwt.sign(
     { id: normalizedUser.id, email: normalizedUser.email, role: normalizedUser.role },
-    JWT_SECRET,
+    getJwtSecret(),
     { expiresIn: JWT_EXPIRES_IN, jwtid: crypto.randomUUID() }
   );
 
@@ -336,7 +336,7 @@ const resetPassword = async ({ token, newPassword }) => {
  */
 const verifyToken = (token) => {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, getJwtSecret());
   } catch (error) {
     throw new Error("Invalid or expired token");
   }
@@ -348,7 +348,7 @@ const verifyToken = (token) => {
 const generateTokenForUser = (user) => {
   return jwt.sign(
     { id: user.id, email: user.email, role: user.role },
-    JWT_SECRET,
+    getJwtSecret(),
     { expiresIn: JWT_EXPIRES_IN, jwtid: crypto.randomUUID() }
   );
 };
