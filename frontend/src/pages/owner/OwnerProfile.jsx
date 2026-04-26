@@ -254,17 +254,13 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
 
 
   const logoPreviewUrl = useMemo(
-    () => logoDataUrl || existingRestaurant?.logo_url || existingRestaurant?.logoUrl || "",
-    [logoDataUrl, existingRestaurant]
+    () => logoDataUrl || "",
+    [logoDataUrl]
   );
 
   const galleryPreviewUrls = useMemo(() => {
-    if (galleryDataUrls.length > 0) return normalizeGalleryUrls(galleryDataUrls);
-    const existingGallery = normalizeGalleryUrls(existingRestaurant?.gallery_urls || existingRestaurant?.galleryUrls || []);
-    if (existingGallery.length > 0) return existingGallery;
-    const legacyCover = String(existingRestaurant?.cover_url || existingRestaurant?.coverUrl || "").trim();
-    return legacyCover ? [legacyCover] : [];
-  }, [galleryDataUrls, existingRestaurant]);
+    return normalizeGalleryUrls(galleryDataUrls);
+  }, [galleryDataUrls]);
 
   const coverPreviewUrl = galleryPreviewUrls[0] || "";
   const activeGalleryPhoto = galleryPreviewUrls[activeGalleryIndex] || "";
@@ -337,6 +333,10 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     }
   }
 
+  function removeLogo() {
+    setLogoDataUrl("");
+  }
+
   async function onPickGallery(event) {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
@@ -389,6 +389,11 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     }
   }
 
+  function removeBusinessLicense() {
+    setBusinessLicenseUrl("");
+    setBusinessLicenseName("");
+  }
+
   async function onPickHealthCertificate(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
@@ -405,6 +410,11 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     } finally {
       event.target.value = "";
     }
+  }
+
+  function removeHealthCertificate() {
+    setHealthCertificateUrl("");
+    setHealthCertificateName("");
   }
 
   function removeGalleryPhoto(indexToRemove) {
@@ -712,16 +722,28 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
             <span className="metaPill">Hours: {heroHours}</span>
           </div>
         </div>
-        <label className="btn btn--gold userProfileHero__uploadBtn">
-          Upload logo
-          <input
-            className="imageCard__input"
-            type="file"
-            accept="image/png, image/jpeg"
-            onChange={onPickLogo}
-            disabled={viewOnly}
-          />
-        </label>
+        <div className="profileHeroUploadActions">
+          <label className="btn btn--gold userProfileHero__uploadBtn">
+            Upload logo
+            <input
+              className="imageCard__input"
+              type="file"
+              accept="image/png, image/jpeg"
+              onChange={onPickLogo}
+              disabled={viewOnly}
+            />
+          </label>
+          {logoPreviewUrl && (
+            <button
+              type="button"
+              className="btn btn--ghost userProfileHero__uploadBtn"
+              onClick={removeLogo}
+              disabled={viewOnly}
+            >
+              Remove logo
+            </button>
+          )}
+        </div>
       </section>
 
       {!existingRestaurant && initialLoadComplete && error && (
@@ -1050,7 +1072,17 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                 <div className="imageCard__title">Logo image</div>
                 <div className="imageCard__preview imageCard__preview--equal imageCard__preview--logo">
                   {logoPreviewUrl ? (
-                    <img className="imageCard__img imageCard__img--logo" src={logoPreviewUrl} alt="Logo" />
+                    <>
+                      <img className="imageCard__img imageCard__img--logo" src={logoPreviewUrl} alt="Logo" />
+                      <button
+                        type="button"
+                        className="imageCard__removeBtn imageCard__removeBtn--floating"
+                        onClick={removeLogo}
+                        disabled={viewOnly}
+                      >
+                        Remove
+                      </button>
+                    </>
                   ) : (
                     <div className="imageCard__placeholder">
                       <div className="imageCard__formats">PNG, JPG, or JPEG</div>
@@ -1131,6 +1163,14 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                           Preview file
                         </a>
                       )}
+                      <button
+                        type="button"
+                        className="imageCard__removeBtn documentCard__removeBtn"
+                        onClick={removeBusinessLicense}
+                        disabled={viewOnly}
+                      >
+                        Remove file
+                      </button>
                     </div>
                   ) : (
                     <div className="imageCard__placeholder">
@@ -1155,6 +1195,14 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                           Preview file
                         </a>
                       )}
+                      <button
+                        type="button"
+                        className="imageCard__removeBtn documentCard__removeBtn"
+                        onClick={removeHealthCertificate}
+                        disabled={viewOnly}
+                      >
+                        Remove file
+                      </button>
                     </div>
                   ) : (
                     <div className="imageCard__placeholder">

@@ -303,6 +303,11 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
     reader.readAsDataURL(file);
   }
 
+  function removeProfilePicture() {
+    setProfilePictureDataUrl("");
+    setProfilePictureUrl("");
+  }
+
   async function onSubmit(e) {
     e.preventDefault();
     if (!isEditing) {
@@ -543,16 +548,28 @@ export default function UserProfile({ onAvatarPreviewChange, onOpenRestaurant })
             <span className="metaPill">Reservations: {reservationCount}</span>
           </div>
         </div>
-        <label className="btn btn--gold userProfileHero__uploadBtn">
-          Upload picture
-          <input
-            className="imageCard__input"
-            type="file"
-            accept="image/png, image/jpeg"
-            onChange={onPickProfile}
-            disabled={!isEditing}
-          />
-        </label>
+        <div className="profileHeroUploadActions">
+          <label className="btn btn--gold userProfileHero__uploadBtn">
+            Upload picture
+            <input
+              className="imageCard__input"
+              type="file"
+              accept="image/png, image/jpeg"
+              onChange={onPickProfile}
+              disabled={!isEditing}
+            />
+          </label>
+          {(profilePictureDataUrl || profilePictureUrl) && (
+            <button
+              type="button"
+              className="btn btn--ghost userProfileHero__uploadBtn"
+              onClick={removeProfilePicture}
+              disabled={!isEditing}
+            >
+              Remove picture
+            </button>
+          )}
+        </div>
       </section>
 
       <div className="userProfileLayout">

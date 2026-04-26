@@ -87,6 +87,7 @@ const createRestaurant = async (data) => {
     ...(includeHealthCertificateName ? ["health_certificate_name"] : []),
     "owner_id",
     "is_verified",
+    "certificate_verified",
     "approval_status",
   ];
 

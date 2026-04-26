@@ -557,6 +557,10 @@ export default function OwnerEvents() {
     reader.readAsDataURL(file);
   }
 
+  function removeEventImage() {
+    setForm((prev) => ({ ...prev, image_url: "" }));
+  }
+
   const filteredEvents = useMemo(() => {
     const filtered = events.filter((event) => {
       const status = getEventStatus(event);
@@ -661,7 +665,16 @@ export default function OwnerEvents() {
             <div className="imageCard imageCard--equal ownerEventImageCard">
               <div className="imageCard__preview imageCard__preview--equal ownerEventImagePreview">
                 {form.image_url ? (
-                  <img className="imageCard__img ownerEventImageImg" src={form.image_url} alt="Event" />
+                  <>
+                    <img className="imageCard__img ownerEventImageImg" src={form.image_url} alt="Event" />
+                    <button
+                      type="button"
+                      className="imageCard__removeBtn imageCard__removeBtn--floating"
+                      onClick={removeEventImage}
+                    >
+                      Remove
+                    </button>
+                  </>
                 ) : (
                   <div className="imageCard__placeholder">PNG, JPG, or JPEG</div>
                 )}
