@@ -10442,6 +10442,14 @@ margin: 0 auto;
   color: rgba(255, 255, 255, 0.8);
 }
 
+.eventModal__tags {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 12px;
+  row-gap: 10px;
+  align-items: center;
+}
+
 .eventModal__description {
   color: rgba(255, 255, 255, 0.82);
   line-height: 1.5;
@@ -15861,12 +15869,13 @@ body.dark .slotDraftRemoveBtn:hover,
 
 .eventSearchCard__tag--more {
   min-width: 34px;
-  border-color: rgba(255, 255, 255, 0.36);
-  background: rgba(4, 7, 22, 0.78);
+  border-color: rgba(255, 255, 255, 0.30);
+  background: #050713;
   color: #ffffff;
   box-shadow:
-    0 10px 22px rgba(4, 10, 32, 0.36),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    0 10px 22px rgba(0, 0, 0, 0.48),
+    0 0 0 1px rgba(5, 7, 19, 0.46),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .eventSearchCard__body {
@@ -15985,8 +15994,8 @@ body.dark .slotDraftRemoveBtn:hover,
 }
 
 [data-theme="light"] .eventSearchCard__tag--more {
-  border-color: rgba(255, 255, 255, 0.36);
-  background: rgba(20, 20, 24, 0.88);
+  border-color: rgba(255, 255, 255, 0.30);
+  background: #050713;
   color: #ffffff;
 }
 
