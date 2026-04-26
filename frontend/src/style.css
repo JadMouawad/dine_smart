@@ -1556,6 +1556,10 @@ a {
   padding: 32px 32px 0;
 }
 
+.card--searchView {
+  max-width: 1400px;
+}
+
 /* Nav */
 .nav {
   position: relative;

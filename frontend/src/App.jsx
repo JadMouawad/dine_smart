@@ -77,7 +77,7 @@ function AppContent() {
       <Background />
 
       <main className="page">
-        <section className="card" aria-label="DineSmart landing">
+        <section className={`card${landingView === "search" ? " card--searchView" : ""}`} aria-label="DineSmart landing">
           <Nav
             user={user}
             loading={loading}
