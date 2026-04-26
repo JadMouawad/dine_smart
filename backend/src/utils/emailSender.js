@@ -1,15 +1,13 @@
 const nodemailer = require("nodemailer");
 
-const emailProvider = String(process.env.EMAIL_PROVIDER || "smtp").trim().toLowerCase();
+const emailProvider = String(process.env.EMAIL_PROVIDER || "brevo").trim().toLowerCase();
 
+// SMTP transporter (fallback — Railway blocks outbound SMTP, prefer brevo/resend)
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: parseInt(process.env.EMAIL_PORT || "587", 10),
   secure: process.env.EMAIL_SECURE === "true",
   family: 4,
-  connectionTimeout: parseInt(process.env.EMAIL_CONNECTION_TIMEOUT_MS || "10000", 10),
-  greetingTimeout: parseInt(process.env.EMAIL_GREETING_TIMEOUT_MS || "10000", 10),
-  socketTimeout: parseInt(process.env.EMAIL_SOCKET_TIMEOUT_MS || "15000", 10),
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
@@ -22,9 +20,54 @@ const transporter = nodemailer.createTransport({
   socketTimeout: 10000,
 });
 
-const getSenderAddress = () => process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.com";
+const getSenderAddress = () => process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@dinesmart.live";
 
 const sendMail = async (mailOptions) => {
+  // --- Brevo (formerly Sendinblue) HTTP API ---
+  if (emailProvider === "brevo") {
+    if (!process.env.BREVO_API_KEY) {
+      const error = new Error("BREVO_API_KEY is required when EMAIL_PROVIDER=brevo");
+      error.code = "EMAIL_CONFIG";
+      throw error;
+    }
+
+    const senderAddress = mailOptions.from || getSenderAddress();
+    // Parse "Name <email>" or plain email
+    const emailMatch = String(senderAddress).match(/<(.+)>/);
+    const senderEmail = emailMatch ? emailMatch[1] : senderAddress;
+    const senderName = emailMatch
+      ? String(senderAddress).replace(/<.+>/, "").trim()
+      : "DineSmart";
+
+    const toAddresses = Array.isArray(mailOptions.to) ? mailOptions.to : [mailOptions.to];
+
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": process.env.BREVO_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: { name: senderName || "DineSmart", email: senderEmail },
+        to: toAddresses.map((addr) => ({ email: addr })),
+        subject: mailOptions.subject,
+        htmlContent: mailOptions.html,
+        textContent: mailOptions.text,
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      const error = new Error(`Brevo email failed (${response.status}): ${body}`);
+      error.code = "EMAIL_PROVIDER";
+      error.responseCode = response.status;
+      throw error;
+    }
+
+    return response.json().catch(() => ({}));
+  }
+
+  // --- Resend HTTP API ---
   if (emailProvider === "resend") {
     if (!process.env.RESEND_API_KEY) {
       const error = new Error("RESEND_API_KEY is required when EMAIL_PROVIDER=resend");
@@ -57,6 +100,7 @@ const sendMail = async (mailOptions) => {
     return response.json().catch(() => ({}));
   }
 
+  // --- SMTP (nodemailer) ---
   return transporter.sendMail(mailOptions);
 };
 
