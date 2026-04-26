@@ -658,7 +658,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                   >
                     Edit Profile
                   </button>
-                  {existingRestaurant && (
+                  {existingRestaurant ? (
                     restaurantDeletionRequested ? (
                       <span className="statusBadge statusBadge--pending ownerProfileSettingsHeader__status">
                         Deletion Pending
@@ -667,24 +667,21 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                       <button
                         type="button"
                         className="btn btn--ghost ownerDangerTriggerBtn ownerProfileSettingsHeader__actionBtn"
-                        onClick={() => {
-                          setRestaurantDeleteError("");
-                          setRestaurantDeleteConfirmText("");
-                          setShowRestaurantDeleteModal(true);
-                        }}
+                        onClick={() => { setRestaurantDeleteError(""); setRestaurantDeleteConfirmText(""); setShowRestaurantDeleteModal(true); }}
                       >
-                        Delete Restaurant
+                        Delete Account
                       </button>
                     )
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn--ghost ownerDangerTriggerBtn ownerProfileSettingsHeader__actionBtn"
+                      onClick={openDeleteModal}
+                      disabled={deletingAccount}
+                    >
+                      Delete Account
+                    </button>
                   )}
-                  <button
-                    type="button"
-                    className="btn btn--ghost ownerDangerTriggerBtn ownerProfileSettingsHeader__actionBtn"
-                    onClick={openDeleteModal}
-                    disabled={deletingAccount}
-                  >
-                    Delete Account
-                  </button>
                 </>
               ) : (
                 <>
@@ -1006,7 +1003,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
         <div className="modal is-open" role="dialog" aria-modal="true">
           <div className="modal__backdrop" onClick={() => { if (!requestingRestaurantDeletion) setShowRestaurantDeleteModal(false); }} />
           <div className="modal__panel confirmDialog ownerDeleteModal">
-            <h3 className="confirmDialog__title ownerDangerCard__title">Delete Restaurant</h3>
+            <h3 className="confirmDialog__title ownerDangerCard__title">Delete Account</h3>
             <p className="confirmDialog__message ownerDeleteModal__message">
               This will send a deletion request to the admin. Your restaurant will be permanently deleted once approved. You can still use your account while the request is pending.
             </p>
