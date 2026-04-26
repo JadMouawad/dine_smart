@@ -342,7 +342,8 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
   const maxRating = toFiniteNumberOrNull(filters.maxRating);
   const rawPriceRanges = filters.priceRanges ?? filters.priceRange ?? [];
   const priceRanges = Array.isArray(rawPriceRanges) ? rawPriceRanges.filter(Boolean) : [];
-  const verifiedOnly = filters.verifiedOnly !== false;
+  const approvedOnly = filters.approvedOnly !== false;
+  const certificateVerifiedOnly = filters.certificateVerifiedOnly === true;
   const dietarySupport = Array.isArray(filters.dietarySupport) ? filters.dietarySupport.filter(Boolean) : [];
   const openNow = filters.openNow === true;
   const availabilityDate = filters.availabilityDate ? String(filters.availabilityDate).trim() : null;
@@ -361,9 +362,13 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
   const joins = [];
   const selectExtras = [];
 
-  if (verifiedOnly) {
+  if (approvedOnly) {
     conditions.push("r.is_verified = true");
     conditions.push("r.approval_status = 'approved'");
+  }
+
+  if (certificateVerifiedOnly) {
+    conditions.push("r.certificate_verified = true");
   }
 
   if (onlyLebanon) {

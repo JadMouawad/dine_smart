@@ -94,7 +94,7 @@ function getInitialFilters() {
     priceRange: [],
     dietarySupport: [],
     openNow: false,
-    verifiedOnly: true,
+    verifiedOnly: false,
     availabilityDate: "",
     availabilityTime: "",
     distanceEnabled: false,

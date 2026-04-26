@@ -89,8 +89,7 @@ const searchRestaurants = async (req, res) => {
     const dietarySupport = normalizeDietarySupport(parseArray(req.query.dietary_support));
     const availabilitySlot = parseAvailabilitySlot(req.query.availability_slot);
 
-    // Public search remains gated to approved restaurants.
-    const verifiedOnly = true;
+    const certificateVerifiedOnly = parseBoolean(req.query.verified_only, false) === true;
 
     const results = await searchService.searchRestaurants({
       query,
@@ -99,7 +98,8 @@ const searchRestaurants = async (req, res) => {
         minRating: parseNumber(req.query.min_rating, null),
         maxRating: parseNumber(req.query.max_rating, null),
         priceRanges,
-        verifiedOnly,
+        approvedOnly: true,
+        certificateVerifiedOnly,
         dietarySupport,
         openNow: parseBoolean(req.query.open_now, null),
         availabilityDate: req.query.availability_date ? String(req.query.availability_date).trim() : (availabilitySlot?.date || null),
