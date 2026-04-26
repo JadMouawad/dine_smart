@@ -693,6 +693,22 @@ const markEventAttendeeNoShow = async ({ attendeeId, ownerId }) => {
   };
 };
 
+const markEventAttendeeCompleted = async ({ attendeeId, ownerId }) => {
+  const parsedAttendeeId = parseInt(attendeeId, 10);
+  const parsedOwnerId = parseInt(ownerId, 10);
+
+  if (Number.isNaN(parsedAttendeeId)) {
+    return { success: false, status: 400, error: "Invalid attendee ID" };
+  }
+
+  const updated = await eventRepository.markEventAttendeeCompleted({ attendeeId: parsedAttendeeId, ownerId: parsedOwnerId });
+  if (!updated) {
+    return { success: false, status: 404, error: "Attendee not found or already marked" };
+  }
+
+  return { success: true, status: 200, data: updated };
+};
+
 module.exports = {
   createOwnerEvent,
   getOwnerEvents,
@@ -710,4 +726,5 @@ module.exports = {
   getOwnerEventReservations,
   deleteOwnerEventReservation,
   markEventAttendeeNoShow,
+  markEventAttendeeCompleted,
 };

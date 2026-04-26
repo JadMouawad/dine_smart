@@ -745,6 +745,21 @@ const markEventAttendeeNoShow = async ({ attendeeId, ownerId }, db = pool) => {
   return result.rows[0] || null;
 };
 
+const markEventAttendeeCompleted = async ({ attendeeId, ownerId }, db = pool) => {
+  const result = await db.query(`
+    UPDATE event_attendees ea
+    SET status = 'completed', updated_at = NOW()
+    FROM events e
+    JOIN restaurants r ON r.id = e.restaurant_id
+    WHERE ea.id = $1
+      AND ea.event_id = e.id
+      AND r.owner_id = $2
+      AND ea.status = 'confirmed'
+    RETURNING ea.id, ea.event_id, ea.user_id, ea.attendees_count, ea.status
+  `, [attendeeId, ownerId]);
+  return result.rows[0] || null;
+};
+
 const saveEventForUser = async ({ eventId, userId }) => {
   await pool.query(
     `
@@ -827,6 +842,7 @@ module.exports = {
   getOwnerEventReservationById,
   deleteEventReservationById,
   markEventAttendeeNoShow,
+  markEventAttendeeCompleted,
   saveEventForUser,
   removeSavedEventForUser,
   getSavedEventsByUser,
