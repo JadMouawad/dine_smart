@@ -3,6 +3,9 @@ import {
   approvePendingRestaurant,
   getPendingRestaurants,
   rejectPendingRestaurant,
+  getPendingDeletionRestaurants,
+  approveRestaurantDeletion,
+  rejectRestaurantDeletion,
 } from "../../services/adminService";
 
 function dataUrlToBlobUrl(dataUrl) {
@@ -32,6 +35,38 @@ export default function PendingRestaurantsPage({ onPendingCountChange }) {
   const [rejectTarget, setRejectTarget] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectError, setRejectError] = useState("");
+  const [deletionRequests, setDeletionRequests] = useState([]);
+  const [deletionBusyId, setDeletionBusyId] = useState(null);
+
+  useEffect(() => {
+    getPendingDeletionRestaurants()
+      .then((data) => setDeletionRequests(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
+
+  async function handleApproveDeletion(restaurantId) {
+    setDeletionBusyId(restaurantId);
+    try {
+      await approveRestaurantDeletion(restaurantId);
+      setDeletionRequests((prev) => prev.filter((r) => r.id !== restaurantId));
+    } catch (err) {
+      setError(err.message || "Failed to approve deletion.");
+    } finally {
+      setDeletionBusyId(null);
+    }
+  }
+
+  async function handleRejectDeletion(restaurantId) {
+    setDeletionBusyId(restaurantId);
+    try {
+      await rejectRestaurantDeletion(restaurantId);
+      setDeletionRequests((prev) => prev.filter((r) => r.id !== restaurantId));
+    } catch (err) {
+      setError(err.message || "Failed to reject deletion.");
+    } finally {
+      setDeletionBusyId(null);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -130,6 +165,52 @@ export default function PendingRestaurantsPage({ onPendingCountChange }) {
               }}
             />
           ))}
+        </div>
+      )}
+
+      {deletionRequests.length > 0 && (
+        <div style={{ marginTop: "2rem" }}>
+          <h2 className="ownerProfile__title" style={{ fontSize: "1.2rem", marginBottom: "0.5rem" }}>
+            Pending Restaurant Deletion Requests
+          </h2>
+          <p className="adminPage__subtitle" style={{ marginBottom: "1rem" }}>
+            The following restaurants have requested to be permanently deleted. Approve to delete them or reject to cancel the request.
+          </p>
+          <div className="adminCardList">
+            {deletionRequests.map((r) => (
+              <div key={r.id} className="reservationCard" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div className="reservationCard__main">
+                  <div>
+                    <div className="reservationCard__name">{r.name}</div>
+                    <div className="reservationCard__meta">{r.address}{r.city ? `, ${r.city}` : ""}</div>
+                    <div className="reservationCard__meta">Owner: {r.owner_name} · {r.owner_email}</div>
+                    <div className="reservationCard__meta">
+                      Requested: {new Date(r.deletion_requested_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <span className="statusBadge statusBadge--pending">Pending Deletion</span>
+                </div>
+                <div className="reservationCard__actions">
+                  <button
+                    className="btn btn--ghost ownerDangerCard__btn"
+                    type="button"
+                    disabled={deletionBusyId === r.id}
+                    onClick={() => handleApproveDeletion(r.id)}
+                  >
+                    {deletionBusyId === r.id ? "Working..." : "Approve & Delete"}
+                  </button>
+                  <button
+                    className="btn btn--ghost"
+                    type="button"
+                    disabled={deletionBusyId === r.id}
+                    onClick={() => handleRejectDeletion(r.id)}
+                  >
+                    Reject Request
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

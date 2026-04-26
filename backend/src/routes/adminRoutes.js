@@ -35,5 +35,9 @@ router.put("/restaurants/:id/unverify", adminController.unverifyRestaurant);
 
 router.get("/export/csv", adminController.exportStatsCsv);
 
+router.get("/restaurants/deletion-requests", adminController.getPendingDeletionRestaurants);
+router.post("/restaurants/:id/deletion-requests/approve", adminController.approveRestaurantDeletion);
+router.post("/restaurants/:id/deletion-requests/reject", adminController.rejectRestaurantDeletion);
+
 module.exports = router;
 

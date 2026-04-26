@@ -1,4 +1,5 @@
 const adminService = require("../services/adminService");
+const restaurantService = require("../services/restaurantService");
 
 const getStats = async (req, res) => {
   try {
@@ -277,5 +278,37 @@ module.exports = {
   getRestaurantsWithHealthCertificates,
   verifyRestaurant,
   unverifyRestaurant,
+  getPendingDeletionRestaurants,
+  approveRestaurantDeletion,
+  rejectRestaurantDeletion,
 };
+
+async function getPendingDeletionRestaurants(req, res) {
+  try {
+    const data = await restaurantService.getPendingDeletionRestaurants();
+    return res.status(200).json(data);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+}
+
+async function approveRestaurantDeletion(req, res) {
+  try {
+    const result = await restaurantService.approveRestaurantDeletion({ restaurantId: req.params.id });
+    if (!result.success) return res.status(result.status).json({ message: result.error });
+    return res.status(200).json({ message: "Restaurant deleted." });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+}
+
+async function rejectRestaurantDeletion(req, res) {
+  try {
+    const result = await restaurantService.rejectRestaurantDeletion({ restaurantId: req.params.id });
+    if (!result.success) return res.status(result.status).json({ message: result.error });
+    return res.status(200).json({ message: "Deletion request cancelled." });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+}
 

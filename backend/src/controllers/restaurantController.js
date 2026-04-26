@@ -238,4 +238,15 @@ module.exports = {
   deleteRestaurant,
   getOwnerRestaurantTableConfig,
   upsertOwnerRestaurantTableConfig,
+  requestRestaurantDeletion,
 };
+
+async function requestRestaurantDeletion(req, res) {
+  try {
+    const result = await restaurantService.requestRestaurantDeletion({ ownerId: req.user.id });
+    if (!result.success) return res.status(result.status).json({ message: result.error });
+    return res.status(200).json(result.data);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+}

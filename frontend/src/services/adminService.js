@@ -129,3 +129,15 @@ export async function bulkModerateFlaggedReviews({
   });
 }
 
+
+export async function getPendingDeletionRestaurants() {
+  return apiRequest("/admin/restaurants/deletion-requests", { method: "GET" });
+}
+
+export async function approveRestaurantDeletion(restaurantId) {
+  return apiRequest(`/admin/restaurants/${restaurantId}/deletion-requests/approve`, { method: "POST" });
+}
+
+export async function rejectRestaurantDeletion(restaurantId) {
+  return apiRequest(`/admin/restaurants/${restaurantId}/deletion-requests/reject`, { method: "POST" });
+}

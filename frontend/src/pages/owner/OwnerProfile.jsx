@@ -4,7 +4,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { deleteProfileAccount } from "../../services/profileService.js";
-import { createRestaurant, getMyRestaurant, updateMyRestaurant } from "../../services/restaurantService";
+import { createRestaurant, getMyRestaurant, updateMyRestaurant, requestRestaurantDeletion } from "../../services/restaurantService";
 import { useTheme } from "../../auth/ThemeContext.jsx";
 import ThemedSelect from "../../components/ThemedSelect.jsx";
 
@@ -140,6 +140,11 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteAccountError, setDeleteAccountError] = useState("");
+  const [showRestaurantDeleteModal, setShowRestaurantDeleteModal] = useState(false);
+  const [restaurantDeleteConfirmText, setRestaurantDeleteConfirmText] = useState("");
+  const [restaurantDeleteError, setRestaurantDeleteError] = useState("");
+  const [requestingRestaurantDeletion, setRequestingRestaurantDeletion] = useState(false);
+  const [restaurantDeletionRequested, setRestaurantDeletionRequested] = useState(false);
   const normalizeDeleteText = (value) => String(value || "")
     .trim()
     .replace(/^[\s"'“”]+|[\s"'“”]+$/g, "")
@@ -158,6 +163,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     getMyRestaurant()
       .then((restaurant) => {
         setExistingRestaurant(restaurant);
+        setRestaurantDeletionRequested(Boolean(restaurant?.deletion_requested));
         setIsEditing(forceEdit || String(restaurant?.approval_status || "").toLowerCase() === "pending");
         setRestaurantName(restaurant.name || "");
         setCuisineType(restaurant.cuisine || "");
@@ -566,6 +572,28 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
     }
   }
 
+  const RESTAURANT_DELETE_TEXT = "DELETE RESTAURANT";
+  const isRestaurantDeleteConfirmed = restaurantDeleteConfirmText.trim().toUpperCase() === RESTAURANT_DELETE_TEXT;
+
+  async function handleRequestRestaurantDeletion() {
+    if (!isRestaurantDeleteConfirmed) {
+      setRestaurantDeleteError(`Please type ${RESTAURANT_DELETE_TEXT} to confirm.`);
+      return;
+    }
+    setRequestingRestaurantDeletion(true);
+    setRestaurantDeleteError("");
+    try {
+      await requestRestaurantDeletion();
+      setRestaurantDeletionRequested(true);
+      setShowRestaurantDeleteModal(false);
+      setRestaurantDeleteConfirmText("");
+    } catch (err) {
+      setRestaurantDeleteError(err.message || "Failed to submit deletion request.");
+    } finally {
+      setRequestingRestaurantDeletion(false);
+    }
+  }
+
   if (!initialLoadComplete) {
     return (
       <div className="userProfile">
@@ -630,6 +658,25 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                   >
                     Edit Profile
                   </button>
+                  {existingRestaurant && (
+                    restaurantDeletionRequested ? (
+                      <span className="statusBadge statusBadge--pending ownerProfileSettingsHeader__status">
+                        Deletion Pending
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn--ghost ownerDangerTriggerBtn ownerProfileSettingsHeader__actionBtn"
+                        onClick={() => {
+                          setRestaurantDeleteError("");
+                          setRestaurantDeleteConfirmText("");
+                          setShowRestaurantDeleteModal(true);
+                        }}
+                      >
+                        Delete Restaurant
+                      </button>
+                    )
+                  )}
                   <button
                     type="button"
                     className="btn btn--ghost ownerDangerTriggerBtn ownerProfileSettingsHeader__actionBtn"
@@ -954,6 +1001,47 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
           </div>
         </div>
       </div>
+
+      {showRestaurantDeleteModal && (
+        <div className="modal is-open" role="dialog" aria-modal="true">
+          <div className="modal__backdrop" onClick={() => { if (!requestingRestaurantDeletion) setShowRestaurantDeleteModal(false); }} />
+          <div className="modal__panel confirmDialog ownerDeleteModal">
+            <h3 className="confirmDialog__title ownerDangerCard__title">Delete Restaurant</h3>
+            <p className="confirmDialog__message ownerDeleteModal__message">
+              This will send a deletion request to the admin. Your restaurant will be permanently deleted once approved. You can still use your account while the request is pending.
+            </p>
+            <label className="field ownerDeleteModal__field">
+              <span>Type "DELETE RESTAURANT" to confirm</span>
+              <input
+                type="text"
+                value={restaurantDeleteConfirmText}
+                onChange={(e) => { setRestaurantDeleteConfirmText(e.target.value); if (restaurantDeleteError) setRestaurantDeleteError(""); }}
+                placeholder="DELETE RESTAURANT"
+                autoFocus
+              />
+            </label>
+            {restaurantDeleteError && <div className="ownerDeleteModal__error">{restaurantDeleteError}</div>}
+            <div className="confirmDialog__actions">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => setShowRestaurantDeleteModal(false)}
+                disabled={requestingRestaurantDeletion}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn--ghost ownerDangerCard__btn"
+                onClick={handleRequestRestaurantDeletion}
+                disabled={requestingRestaurantDeletion || !isRestaurantDeleteConfirmed}
+              >
+                {requestingRestaurantDeletion ? "Submitting..." : "Submit Deletion Request"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDeleteModal && (
         <div className="modal is-open" role="dialog" aria-modal="true" aria-labelledby="owner-delete-modal-title">

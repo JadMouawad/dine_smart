@@ -198,3 +198,7 @@ export async function deleteSavedSearchFilter(savedSearchId) {
     method: "DELETE",
   });
 }
+
+export async function requestRestaurantDeletion() {
+  return apiRequest("/owner/restaurant/deletion-request", { method: "POST" });
+}

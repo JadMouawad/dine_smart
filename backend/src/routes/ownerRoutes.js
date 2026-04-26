@@ -97,6 +97,13 @@ router.patch(
 );
 
 router.post(
+  "/restaurant/deletion-request",
+  authenticateToken,
+  authorizeRoles("owner"),
+  restaurantController.requestRestaurantDeletion
+);
+
+router.post(
   "/reviews/:id/respond",
   authenticateToken,
   authorizeRoles("owner"),

@@ -328,6 +328,40 @@ const deleteRestaurant = async (id) => {
   );
   return result.rows[0];
 };
+
+const requestRestaurantDeletion = async (ownerId) => {
+  const result = await pool.query(
+    `UPDATE restaurants
+     SET deletion_requested = TRUE, deletion_requested_at = NOW()
+     WHERE owner_id = $1
+     RETURNING id, name, deletion_requested, deletion_requested_at`,
+    [ownerId]
+  );
+  return result.rows[0] || null;
+};
+
+const cancelRestaurantDeletionRequest = async (restaurantId) => {
+  const result = await pool.query(
+    `UPDATE restaurants
+     SET deletion_requested = FALSE, deletion_requested_at = NULL
+     WHERE id = $1
+     RETURNING id`,
+    [restaurantId]
+  );
+  return result.rows[0] || null;
+};
+
+const getPendingDeletionRestaurants = async () => {
+  const result = await pool.query(
+    `SELECT r.id, r.name, r.address, r.city, r.owner_id, r.deletion_requested_at,
+            u.full_name AS owner_name, u.email AS owner_email
+     FROM restaurants r
+     JOIN users u ON u.id = r.owner_id
+     WHERE r.deletion_requested = TRUE
+     ORDER BY r.deletion_requested_at ASC`
+  );
+  return result.rows;
+};
 const searchRestaurants = async (query, cuisines = [], filters = {}) => {
   const trimmed = (query || "").trim();
   const cuisineList = Array.isArray(cuisines) ? cuisines.filter(Boolean) : [cuisines].filter(Boolean);
@@ -873,4 +907,7 @@ module.exports = {
   upsertTableConfigByRestaurantId,
   getApprovedRestaurantLookupCandidates,
   findRestaurantByName,
+  requestRestaurantDeletion,
+  cancelRestaurantDeletionRequest,
+  getPendingDeletionRestaurants,
 };
