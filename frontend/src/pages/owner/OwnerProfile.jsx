@@ -1148,73 +1148,73 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="formCard formCard--userProfile profileExtraCard ownerProfileMediaCard">
-            <div className="formCard__title">Documents</div>
-            <div className="ownerProfileGrid__media ownerProfileDocumentsGrid">
-              <div className="imageCard imageCard--equal">
-                <div className="imageCard__title">Business license</div>
-                <div className="imageCard__preview imageCard__preview--equal">
-                  {businessLicenseName ? (
-                    <div className="documentCard">
-                      <div className="documentCard__name">{businessLicenseName}</div>
-                      {businessLicenseUrl && (
-                        <a className="documentCard__link" href={getPreviewHref(businessLicenseUrl, "business-license")} target="_blank" rel="noreferrer">
-                          Preview file
-                        </a>
-                      )}
-                      <button
-                        type="button"
-                        className="imageCard__removeBtn documentCard__removeBtn"
-                        onClick={removeBusinessLicense}
-                        disabled={viewOnly}
-                      >
-                        Remove file
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="imageCard__placeholder">
-                      <div className="imageCard__formats">PDF, PNG, or JPG</div>
-                    </div>
-                  )}
-                </div>
-                <label className="btn btn--gold imageCard__btn">
-                  Upload license
-                  <input className="imageCard__input" type="file" accept="application/pdf,image/png,image/jpeg" onChange={onPickBusinessLicense} disabled={viewOnly} />
-                </label>
+        <div className="formCard formCard--userProfile profileExtraCard ownerProfileMediaCard ownerProfileDocumentsCard">
+          <div className="formCard__title">Documents</div>
+          <div className="ownerProfileGrid__media ownerProfileDocumentsGrid">
+            <div className="imageCard imageCard--equal">
+              <div className="imageCard__title">Business license</div>
+              <div className="imageCard__preview imageCard__preview--equal">
+                {businessLicenseName ? (
+                  <div className="documentCard">
+                    <div className="documentCard__name">{businessLicenseName}</div>
+                    {businessLicenseUrl && (
+                      <a className="documentCard__link" href={getPreviewHref(businessLicenseUrl, "business-license")} target="_blank" rel="noreferrer">
+                        Preview file
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      className="imageCard__removeBtn documentCard__removeBtn"
+                      onClick={removeBusinessLicense}
+                      disabled={viewOnly}
+                    >
+                      Remove file
+                    </button>
+                  </div>
+                ) : (
+                  <div className="imageCard__placeholder">
+                    <div className="imageCard__formats">PDF, PNG, or JPG</div>
+                  </div>
+                )}
               </div>
+              <label className="btn btn--gold imageCard__btn">
+                Upload license
+                <input className="imageCard__input" type="file" accept="application/pdf,image/png,image/jpeg" onChange={onPickBusinessLicense} disabled={viewOnly} />
+              </label>
+            </div>
 
-              <div className="imageCard imageCard--equal">
-                <div className="imageCard__title">Health certificate</div>
-                <div className="imageCard__preview imageCard__preview--equal">
-                  {healthCertificateName ? (
-                    <div className="documentCard">
-                      <div className="documentCard__name">{healthCertificateName}</div>
-                      {healthCertificateUrl && (
-                        <a className="documentCard__link" href={getPreviewHref(healthCertificateUrl, "health-certificate")} target="_blank" rel="noreferrer">
-                          Preview file
-                        </a>
-                      )}
-                      <button
-                        type="button"
-                        className="imageCard__removeBtn documentCard__removeBtn"
-                        onClick={removeHealthCertificate}
-                        disabled={viewOnly}
-                      >
-                        Remove file
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="imageCard__placeholder">
-                      <div className="imageCard__formats">PDF, PNG, or JPG</div>
-                    </div>
-                  )}
-                </div>
-                <label className="btn btn--gold imageCard__btn">
-                  Upload certificate
-                  <input className="imageCard__input" type="file" accept="application/pdf,image/png,image/jpeg" onChange={onPickHealthCertificate} disabled={viewOnly} />
-                </label>
+            <div className="imageCard imageCard--equal">
+              <div className="imageCard__title">Health certificate</div>
+              <div className="imageCard__preview imageCard__preview--equal">
+                {healthCertificateName ? (
+                  <div className="documentCard">
+                    <div className="documentCard__name">{healthCertificateName}</div>
+                    {healthCertificateUrl && (
+                      <a className="documentCard__link" href={getPreviewHref(healthCertificateUrl, "health-certificate")} target="_blank" rel="noreferrer">
+                        Preview file
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      className="imageCard__removeBtn documentCard__removeBtn"
+                      onClick={removeHealthCertificate}
+                      disabled={viewOnly}
+                    >
+                      Remove file
+                    </button>
+                  </div>
+                ) : (
+                  <div className="imageCard__placeholder">
+                    <div className="imageCard__formats">PDF, PNG, or JPG</div>
+                  </div>
+                )}
               </div>
+              <label className="btn btn--gold imageCard__btn">
+                Upload certificate
+                <input className="imageCard__input" type="file" accept="application/pdf,image/png,image/jpeg" onChange={onPickHealthCertificate} disabled={viewOnly} />
+              </label>
             </div>
           </div>
         </div>

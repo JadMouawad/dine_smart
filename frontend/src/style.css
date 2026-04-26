@@ -7449,6 +7449,11 @@ margin: 0 auto;
   gap: 16px;
 }
 
+.ownerProfileDocumentsCard {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
 .ownerProfileDocumentsGrid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
