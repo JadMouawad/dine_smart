@@ -11423,6 +11423,7 @@ html[data-theme="light"] .quickFilterBtn {
 .adminAiCard {
   display: grid;
   gap: 14px;
+  margin-top: 14px;
 }
 
 .adminAiCard__text {
