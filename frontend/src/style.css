@@ -4813,12 +4813,20 @@ input[type="date"] {
 .userSearchPage__title {
   text-align: center;
   margin: 8px 0 18px;
-  font-size: clamp(38px, 4vw, 58px);
-  font-weight: 400;
-  font-family: 'Dancing Script', cursive;
+  font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-size: clamp(32px, 3.3vw, 46px);
+  font-weight: 800;
   line-height: 1.04;
   letter-spacing: -0.03em;
   color: var(--text);
+}
+
+/* Script variant — used only on the Search Restaurants page heading. */
+.userSearchPage__title--script {
+  font-family: 'Dancing Script', cursive;
+  font-size: clamp(38px, 4vw, 58px);
+  font-weight: 400;
+  letter-spacing: -0.03em;
 }
 
 .searchBarCard {
