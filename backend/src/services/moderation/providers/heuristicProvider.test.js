@@ -1,8 +1,16 @@
 const assert = require("node:assert/strict");
 const { FLAG_TYPES } = require("../constants");
+const { mergeThresholds, suggestAction } = require("../policyEngine");
 const { classify } = require("./heuristicProvider");
 
 const hasFlagType = (signals, flagType) => signals.some((signal) => signal.flagType === flagType);
+const getSignal = (signals, flagType) => signals.find((signal) => signal.flagType === flagType);
+const requiresReview = (signal) =>
+  suggestAction({
+    flagType: signal.flagType,
+    confidence: signal.confidence,
+    thresholds: mergeThresholds(),
+  }) === "REQUIRES_REVIEW";
 
 const testCases = [
   {
@@ -50,6 +58,38 @@ const testCases = [
         rating: 1,
       });
       assert.equal(hasFlagType(signals, FLAG_TYPES.FAKE_REVIEW), true);
+    },
+  },
+  {
+    name: "allows short friendly reviews",
+    run: () => {
+      const signals = classify({ text: "recommended!!", rating: 5 });
+      assert.equal(signals.length, 0);
+    },
+  },
+  {
+    name: "requires review for obfuscated profanity",
+    run: () => {
+      const signals = classify({ text: "underrated, but fu!ck sh!t", rating: 5 });
+      const profanitySignal = getSignal(signals, FLAG_TYPES.PROFANITY);
+      assert.ok(profanitySignal);
+      assert.equal(requiresReview(profanitySignal), true);
+    },
+  },
+  {
+    name: "requires review for direct personal insults",
+    run: () => {
+      const signals = classify({ text: "The waiter is an idiot", rating: 1 });
+      const harassmentSignal = getSignal(signals, FLAG_TYPES.HARASSMENT);
+      assert.ok(harassmentSignal);
+      assert.equal(requiresReview(harassmentSignal), true);
+    },
+  },
+  {
+    name: "allows harsh food criticism when it is not a personal attack",
+    run: () => {
+      const signals = classify({ text: "The food was trash", rating: 1 });
+      assert.equal(hasFlagType(signals, FLAG_TYPES.HARASSMENT), false);
     },
   },
 ];

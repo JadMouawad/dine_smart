@@ -29,10 +29,10 @@ const DEFAULT_THRESHOLDS = {
   HIGH: 90,
   MEDIUM: 50,
   perType: {
-    PROFANITY: { review: 85, soft: 45 },
-    HARASSMENT: { review: 80, soft: 45 },
+    PROFANITY: { review: 65, soft: 45 },
+    HARASSMENT: { review: 70, soft: 45 },
     SPAM: { review: 75, soft: 40 },
-    FAKE_REVIEW: { review: 82, soft: 55 },
+    FAKE_REVIEW: { review: 90, soft: 60 },
     MISLEADING: { review: 88, soft: 50 },
     INAPPROPRIATE_CONTENT: { review: 80, soft: 45 },
   },
