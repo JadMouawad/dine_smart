@@ -682,8 +682,34 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
     orderBy = "ORDER BY r.name ASC, r.rating DESC NULLS LAST";
   }
 
+  const restaurantSummaryColumns = [
+    "r.id",
+    "r.name",
+    "r.description",
+    "r.cuisine",
+    "r.address",
+    "r.phone",
+    "r.rating",
+    "r.latitude",
+    "r.longitude",
+    "r.price_range",
+    "r.dietary_support",
+    "r.opening_time",
+    "r.closing_time",
+    "r.is_verified",
+    "r.certificate_verified",
+    "r.approval_status",
+    "CASE WHEN length(COALESCE(r.logo_url, '')) <= 200000 THEN r.logo_url ELSE NULL END AS logo_url",
+    "CASE WHEN length(COALESCE(r.cover_url, '')) <= 200000 THEN r.cover_url ELSE NULL END AS cover_url",
+    `CASE
+      WHEN r.gallery_urls IS NULL THEN ARRAY[]::text[]
+      WHEN array_length(r.gallery_urls, 1) > 0 AND length(COALESCE(r.gallery_urls[1], '')) <= 200000 THEN ARRAY[r.gallery_urls[1]]
+      ELSE ARRAY[]::text[]
+    END AS gallery_urls`,
+  ];
+
   const sql = `
-    SELECT r.*, ${selectExtras.join(", ")}
+    SELECT ${restaurantSummaryColumns.join(", ")}, ${selectExtras.join(", ")}
     FROM restaurants r
     ${joins.join("\n")}
     ${whereClause}

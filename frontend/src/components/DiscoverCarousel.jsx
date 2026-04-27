@@ -1,13 +1,13 @@
 import React from "react";
-import american from "../assets/cuisines/american.png";
-import middleEastern from "../assets/cuisines/middle-eastern.png";
-import french from "../assets/cuisines/french.png";
-import mexican from "../assets/cuisines/mexican.png";
-import chinese from "../assets/cuisines/chinese.png";
-import japanese from "../assets/cuisines/japanese.png";
-import italian from "../assets/cuisines/italian.png";
-import indian from "../assets/cuisines/indian.png";
-import international from "../assets/cuisines/international.png";
+import american from "../assets/cuisines/american.webp";
+import middleEastern from "../assets/cuisines/middle-eastern.webp";
+import french from "../assets/cuisines/french.webp";
+import mexican from "../assets/cuisines/mexican.webp";
+import chinese from "../assets/cuisines/chinese.webp";
+import japanese from "../assets/cuisines/japanese.webp";
+import italian from "../assets/cuisines/italian.webp";
+import indian from "../assets/cuisines/indian.webp";
+import international from "../assets/cuisines/international.webp";
 
 const CUISINES = [
   { src: american, label: "American", alt: "American" },

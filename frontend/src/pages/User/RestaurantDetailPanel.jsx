@@ -29,6 +29,8 @@ import ThemedSelect from "../../components/ThemedSelect.jsx";
  */
 export default function RestaurantDetailPanel({
   restaurant,
+  menuLoading = false,
+  menuLoadError = "",
   isFavorited,
   onToggleFavorite,
   requireAuth,
@@ -58,7 +60,7 @@ export default function RestaurantDetailPanel({
   const [reviewError, setReviewError] = useState("");
   const [reviewSuccess, setReviewSuccess] = useState("");
   const [reviewPosting, setReviewPosting] = useState(false);
-  const [reviewRatingDropdownOpen, setReviewRatingDropdownOpen] = useState(false);
+  const [, setReviewRatingDropdownOpen] = useState(false);
   const [deleteReviewTarget, setDeleteReviewTarget] = useState(null);
   const [deleteReviewBusy, setDeleteReviewBusy] = useState(false);
   const [flagReviewTarget, setFlagReviewTarget] = useState(null);
@@ -167,9 +169,13 @@ export default function RestaurantDetailPanel({
   }, [currentRestaurant?.id, reservationSlot?.date, reservationSlot?.time]);
 
   const restaurantMenu = useMemo(() => {
-    const raw = currentRestaurant?.menu_sections ?? currentRestaurant?.menu;
+    const raw =
+      currentRestaurant?.menu_sections ??
+      currentRestaurant?.menu ??
+      restaurant?.menu_sections ??
+      restaurant?.menu;
     return Array.isArray(raw) ? raw : [];
-  }, [currentRestaurant]);
+  }, [currentRestaurant, restaurant]);
 
   useEffect(() => {
     if (!restaurantMenu.length) {
@@ -637,6 +643,10 @@ export default function RestaurantDetailPanel({
                 </div>
               ))}
             </div>
+          ) : menuLoading ? (
+            <div className="menuSectionEmpty">Loading menu...</div>
+          ) : menuLoadError ? (
+            <div className="menuSectionEmpty">{menuLoadError}</div>
           ) : (
             <div className="menuSectionEmpty">No menu uploaded yet.</div>
           )}

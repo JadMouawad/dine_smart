@@ -6,15 +6,15 @@ import { useAuth } from "./auth/AuthContext.jsx";
 import Background from "./components/Background.jsx";
 import Nav from "./components/Nav.jsx";
 import Hero from "./components/Hero.jsx";
-import DiscoverCarousel from "./components/DiscoverCarousel.jsx";
 import MobileMenu from "./components/MobileMenu.jsx";
-import AuthModal from "./components/AuthModal.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
-import LandingHighlights from "./components/LandingHighlights.jsx";
-import EventsInviteSection from "./components/EventsInviteSection.jsx";
-import ContactSection from "./components/ContactSection.jsx";
 
 // Code-split heavy areas — only loaded when the user navigates there
+const AuthModal = lazy(() => import("./components/AuthModal.jsx"));
+const DiscoverCarousel = lazy(() => import("./components/DiscoverCarousel.jsx"));
+const LandingHighlights = lazy(() => import("./components/LandingHighlights.jsx"));
+const EventsInviteSection = lazy(() => import("./components/EventsInviteSection.jsx"));
+const ContactSection = lazy(() => import("./components/ContactSection.jsx"));
 const OwnerShell = lazy(() => import("./pages/owner/OwnerShell.jsx"));
 const UserShell = lazy(() => import("./pages/User/UserShell.jsx"));
 const AdminShell = lazy(() => import("./pages/admin/AdminShell.jsx"));
@@ -99,29 +99,31 @@ function AppContent() {
                 <Hero onGettingStarted={() => openModal("signup")} />
               </section>
 
-              <section id="discover">
-                <DiscoverCarousel
-                  onSelectCuisine={(cuisineLabel) => {
-                    setSearchPresetCuisine(cuisineLabel);
-                    setSearchPresetToken((prev) => prev + 1);
-                    goToSection("search", "search");
-                  }}
+              <Suspense fallback={null}>
+                <section id="discover">
+                  <DiscoverCarousel
+                    onSelectCuisine={(cuisineLabel) => {
+                      setSearchPresetCuisine(cuisineLabel);
+                      setSearchPresetToken((prev) => prev + 1);
+                      goToSection("search", "search");
+                    }}
+                  />
+                </section>
+
+                <LandingHighlights
+                  onBookNow={() => openModal("signup")}
+                  onAskDiney={() => openModal("signup")}
+                  onExploreMap={() => openModal("signup")}
                 />
-              </section>
 
-              <LandingHighlights
-                onBookNow={() => openModal("signup")}
-                onAskDiney={() => openModal("signup")}
-                onExploreMap={() => openModal("signup")}
-              />
+                <section id="events-invite">
+                  <EventsInviteSection onJoinEvents={() => openModal("signup")} />
+                </section>
 
-              <section id="events-invite">
-                <EventsInviteSection onJoinEvents={() => openModal("signup")} />
-              </section>
-
-              <section id="contact">
-                <ContactSection />
-              </section>
+                <section id="contact">
+                  <ContactSection />
+                </section>
+              </Suspense>
             </>
           )}
 
@@ -158,12 +160,16 @@ function AppContent() {
         onGoContact={() => goToSection("full", "contact")}
       />
 
-      <AuthModal
-        isOpen={modalOpen}
-        mode={mode}
-        onClose={closeModal}
-        onToggleMode={toggleMode}
-      />
+      {modalOpen && (
+        <Suspense fallback={null}>
+          <AuthModal
+            isOpen={modalOpen}
+            mode={mode}
+            onClose={closeModal}
+            onToggleMode={toggleMode}
+          />
+        </Suspense>
+      )}
     </>
   );
 }

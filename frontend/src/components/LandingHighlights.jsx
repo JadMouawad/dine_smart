@@ -1,8 +1,8 @@
 import React from "react";
 import { HiArrowRight } from "react-icons/hi2";
-import DineyImage from "../assets/landing/Diney.png";
-import ReservationImage from "../assets/landing/FrontReservation.png";
-import MapImage from "../assets/landing/FrontMap.png";
+import DineyImage from "../assets/landing/Diney.webp";
+import ReservationImage from "../assets/landing/FrontReservation.webp";
+import MapImage from "../assets/landing/FrontMap.webp";
 
 export default function LandingHighlights({
   onBookNow,

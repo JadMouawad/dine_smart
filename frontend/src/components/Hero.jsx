@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { gsap } from "gsap";
-import dish from "../assets/dish.png";
+import dish from "../assets/dish.webp";
 
 export default function Hero({ onGettingStarted }) {
   const titleRef = useRef(null);
