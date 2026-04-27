@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import * as recentSearchService from "../../services/recentSearchService";
-import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { searchRestaurants, getRestaurantById } from "../../services/restaurantService";
@@ -107,22 +106,13 @@ function getInitialFilters() {
 const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, isRecommended, showDistance, onSelect, onFavorite, onReserve }) {
   const imageUrls = useMemo(() => getRestaurantGalleryUrls(r), [r]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const activeImageUrl = imageUrls[activeImageIndex] || "";
+  const safeActiveImageIndex = imageUrls.length
+    ? Math.max(0, Math.min(activeImageIndex, imageUrls.length - 1))
+    : 0;
+  const activeImageUrl = imageUrls[safeActiveImageIndex] || "";
   const crowd = useMemo(() => getCrowdMeterMeta(r), [r]);
   const reviewCount = useMemo(() => getSafeReviewCount(r?.review_count), [r]);
   const ratingDisplay = r?.rating ?? "N/A";
-
-  useEffect(() => {
-    if (!imageUrls.length) {
-      setActiveImageIndex(0);
-      return;
-    }
-    setActiveImageIndex((prev) => {
-      if (prev < 0) return 0;
-      if (prev >= imageUrls.length) return imageUrls.length - 1;
-      return prev;
-    });
-  }, [imageUrls]);
 
   const showPrevImage = (event) => {
     event.stopPropagation();
@@ -164,7 +154,7 @@ const RestaurantCard = React.memo(function RestaurantCard({ r, isFavorited, isRe
                   ›
                 </button>
                 <div className="restaurantCard__coverIndex">
-                  {activeImageIndex + 1}/{imageUrls.length}
+                  {safeActiveImageIndex + 1}/{imageUrls.length}
                 </div>
               </>
             )}
@@ -259,8 +249,6 @@ export default function UserSearch({
   const [filters, setFilters] = useState(getInitialFilters());
 
   // Sort
-  const [sortOpen, setSortOpen] = useState(false);
-
   // Geo
   const [geo, setGeo] = useState({ latitude: null, longitude: null });
 
@@ -389,6 +377,31 @@ export default function UserSearch({
 
   function isFavorited(restaurantId) { return favorites.some((r) => r.id === restaurantId); }
 
+  function openRestaurantDetails(restaurant, { reserve = false } = {}) {
+    if (!restaurant?.id) {
+      setSelectedRestaurant(restaurant);
+      return;
+    }
+
+    setRestaurantNotFound(false);
+    setSelectedRestaurant(restaurant);
+    if (reserve) {
+      setReservationIntentToken((prev) => prev + 1);
+    }
+
+    getRestaurantById(restaurant.id)
+      .then((fullRestaurant) => {
+        setSelectedRestaurant((current) =>
+          current && String(current.id) === String(restaurant.id)
+            ? fullRestaurant
+            : current
+        );
+      })
+      .catch(() => {
+        // Keep the lightweight search result open if the details request fails.
+      });
+  }
+
   function toggleFavorite(restaurant) {
     const alreadyFavorited = isFavorited(restaurant.id);
     setFavorites((prev) =>
@@ -416,7 +429,12 @@ export default function UserSearch({
     return { latitude: null, longitude: null };
   }, [user?.id, geo.latitude, geo.longitude, profileGeo]);
 
-  const showRestaurantDistance = Boolean(user?.id && effectiveGeo.latitude != null && effectiveGeo.longitude != null);
+  const showRestaurantDistance = Boolean(
+    user?.id &&
+    filters.distanceEnabled &&
+    effectiveGeo.latitude != null &&
+    effectiveGeo.longitude != null
+  );
   const recommendedRestaurantSet = useMemo(
     () => new Set(recommendedRestaurantIds.map((id) => String(id))),
     [recommendedRestaurantIds]
@@ -562,8 +580,8 @@ export default function UserSearch({
       verifiedOnly: filters.verifiedOnly,
       availabilityDate: filters.availabilityDate || null,
       availabilityTime: filters.availabilityTime || null,
-      latitude: effectiveGeo.latitude,
-      longitude: effectiveGeo.longitude,
+      latitude: filters.distanceEnabled ? effectiveGeo.latitude : null,
+      longitude: filters.distanceEnabled ? effectiveGeo.longitude : null,
       distanceRadius: filters.distanceEnabled ? filters.distanceRadius : null,
       sortBy: filters.sortBy,
     };
@@ -595,6 +613,7 @@ export default function UserSearch({
       setGeo({ latitude: null, longitude: null });
       return;
     }
+    if (!filters.distanceEnabled) return;
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => setGeo({
@@ -604,7 +623,7 @@ export default function UserSearch({
       () => setGeo({ latitude: null, longitude: null }),
       { timeout: 7000 }
     );
-  }, [user?.id]);
+  }, [user?.id, filters.distanceEnabled]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -652,7 +671,7 @@ export default function UserSearch({
     setRestaurantNotFound(false);
 
     if (restaurantToOpen.name != null) {
-      setSelectedRestaurant(restaurantToOpen);
+      openRestaurantDetails(restaurantToOpen);
       clearRestaurantToOpen?.();
       return;
     }
@@ -943,7 +962,6 @@ export default function UserSearch({
             value={filters.sortBy}
             onChange={(nextValue) => {
               updateFilters((prev) => ({ ...prev, sortBy: nextValue }));
-              setSortOpen(false);
             }}
             options={sortOptions}
             placeholder="Top Rated"
@@ -972,12 +990,9 @@ export default function UserSearch({
           />
         ) : null}
 
-        {!restaurantsLoading && filteredRestaurants.map((r, i) => (
-          <motion.div
+        {!restaurantsLoading && filteredRestaurants.map((r) => (
+          <div
             key={r.id}
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.28, delay: i * 0.04, ease: "easeOut" }}
           >
             <RestaurantCard
               r={r}
@@ -987,7 +1002,7 @@ export default function UserSearch({
               onSelect={(restaurant) => {
                 saveRecentSearch(lastQueryRef.current);
                 lastQueryRef.current = "";
-                setSelectedRestaurant(restaurant);
+                openRestaurantDetails(restaurant);
               }}
               onFavorite={(restaurant) => {
                 if (!requireAuth()) return;
@@ -995,10 +1010,10 @@ export default function UserSearch({
               }}
               onReserve={(restaurant) => {
                 if (!requireAuth()) return;
-                setSelectedRestaurant(restaurant);
+                openRestaurantDetails(restaurant, { reserve: true });
               }}
             />
-          </motion.div>
+          </div>
         ))}
       </div>
 
