@@ -5,6 +5,22 @@ import ThemedSelect from "../../components/ThemedSelect.jsx";
 
 const CURRENCIES = ["USD", "LBP", "EUR"];
 
+function DragHandIcon() {
+  return (
+    <svg
+      className="menuReorderHandle__icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M8 11V6.5a1.5 1.5 0 0 1 3 0V11" />
+      <path d="M11 11V5.5a1.5 1.5 0 0 1 3 0V11" />
+      <path d="M14 11V7a1.5 1.5 0 0 1 3 0v5" />
+      <path d="M17 12.5V10a1.5 1.5 0 0 1 3 0v4.5c0 4.1-2.7 6.5-7 6.5h-1.4c-2.6 0-4.1-1-5.6-3.1L3.7 14.5a1.65 1.65 0 0 1 2.7-1.9L8 14.3V11" />
+    </svg>
+  );
+}
+
 function moveBefore(list, activeId, overId) {
   if (!activeId || !overId || activeId === overId) return list;
 
@@ -489,7 +505,7 @@ export default function OwnerMenu() {
                     onDragEnd={finishDrag}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    ::
+                    <DragHandIcon />
                   </button>
                   <button className="btn btn--gold ownerMenuSectionBtn">
                     {s.name}
@@ -574,7 +590,7 @@ export default function OwnerMenu() {
                         onDragEnd={finishDrag}
                         onClick={(e) => e.stopPropagation()}
                       >
-                        ::
+                        <DragHandIcon />
                       </button>
 
                       <div className="kebabWrap kebabWrap--item">

@@ -817,12 +817,15 @@ html[data-theme="light"] .quickFilterBtn.is-active {
   box-shadow: 0 6px 18px rgba(130, 80, 10, 0.08);
 }
 [data-theme="light"] .menuReorderHandle {
-  background: rgba(255, 251, 243, 0.88);
-  border-color: rgba(175, 115, 45, 0.24);
-  color: rgba(80, 45, 15, 0.72);
+  background:
+    linear-gradient(135deg, rgba(255, 251, 243, 0.96), rgba(244, 230, 188, 0.84));
+  border-color: rgba(201, 162, 39, 0.34);
+  color: rgba(150, 110, 18, 0.95);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 8px 20px rgba(130, 80, 10, 0.12);
 }
 [data-theme="light"] .menuReorderHandle--item {
-  background: rgba(255, 251, 243, 0.92);
+  background:
+    linear-gradient(135deg, rgba(255, 251, 243, 0.98), rgba(244, 230, 188, 0.9));
 }
 [data-theme="light"] .menuItemCard__name {
   color: rgba(26, 14, 6, 0.92);
@@ -4398,13 +4401,11 @@ input[type="date"] {
   width: 36px;
   height: 36px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(0, 0, 0, 0.18);
-  color: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(201, 162, 39, 0.24);
+  background:
+    linear-gradient(135deg, rgba(30, 43, 114, 0.86), rgba(10, 18, 66, 0.88));
+  color: rgba(245, 210, 82, 0.95);
   cursor: grab;
-  font-weight: 900;
-  letter-spacing: -2px;
-  line-height: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4413,11 +4414,23 @@ input[type="date"] {
   transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
+.menuReorderHandle__icon {
+  width: 19px;
+  height: 19px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 5px rgba(201, 162, 39, 0.28));
+}
+
 .menuReorderHandle:hover,
 .menuReorderHandle:focus-visible {
   transform: translateY(-1px);
-  border-color: rgba(201, 162, 39, 0.42);
-  box-shadow: 0 0 18px rgba(201, 162, 39, 0.16);
+  border-color: rgba(245, 210, 82, 0.58);
+  box-shadow: 0 0 18px rgba(201, 162, 39, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   outline: none;
 }
 
@@ -4433,7 +4446,8 @@ input[type="date"] {
   height: 30px;
   border-radius: 10px;
   z-index: 4;
-  background: rgba(3, 8, 32, 0.72);
+  background:
+    linear-gradient(135deg, rgba(30, 43, 114, 0.94), rgba(8, 14, 46, 0.94));
 }
 
 .menuSectionBlock.is-dragging,
