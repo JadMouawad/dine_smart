@@ -14,6 +14,39 @@ import { FILLED_STAR, EMPTY_STAR } from "../../constants/filters";
 import { DEFAULT_AVATAR } from "../../constants/avatar";
 import ThemedSelect from "../../components/ThemedSelect.jsx";
 
+function MenuLoadingExperience() {
+  return (
+    <div className="menuLoadingExperience" role="status" aria-live="polite">
+      <div className="menuLoadingExperience__plate" aria-hidden="true">
+        <span className="menuLoadingExperience__steam menuLoadingExperience__steam--one" />
+        <span className="menuLoadingExperience__steam menuLoadingExperience__steam--two" />
+        <span className="menuLoadingExperience__steam menuLoadingExperience__steam--three" />
+      </div>
+      <div className="menuLoadingExperience__copy">
+        <div className="menuLoadingExperience__eyebrow">Menu loading</div>
+        <div className="menuLoadingExperience__title">Fetching your next meal...</div>
+        <div className="menuLoadingExperience__text">Checking today's dishes and plating the favorites.</div>
+      </div>
+      <div className="menuLoadingExperience__rail" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </div>
+    </div>
+  );
+}
+
+function RestaurantHeroMediaLoading({ restaurantName }) {
+  return (
+    <div className="restaurantHeroMediaLoading" role="status" aria-live="polite">
+      <div className="restaurantHeroMediaLoading__shine" aria-hidden="true" />
+      <div className="restaurantHeroMediaLoading__content">
+        <span className="restaurantHeroMediaLoading__label">Preparing {restaurantName || "restaurant"} photos...</span>
+      </div>
+    </div>
+  );
+}
+
 /**
  * RestaurantDetailPanel
  *
@@ -29,6 +62,7 @@ import ThemedSelect from "../../components/ThemedSelect.jsx";
  */
 export default function RestaurantDetailPanel({
   restaurant,
+  detailsLoading = false,
   menuLoading = false,
   menuLoadError = "",
   isFavorited,
@@ -222,18 +256,14 @@ export default function RestaurantDetailPanel({
       .map((url) => String(url || "").trim())
       .filter(Boolean);
 
-    if (cleanedGallery.length) return cleanedGallery;
-
-    const fallbackImage = [
+    const coverImages = [
       currentRestaurant?.coverUrl,
       currentRestaurant?.cover_url,
-      currentRestaurant?.logoUrl,
-      currentRestaurant?.logo_url,
     ]
       .map((url) => String(url || "").trim())
-      .find(Boolean);
+      .filter(Boolean);
 
-    return fallbackImage ? [fallbackImage] : [];
+    return [...new Set([...coverImages, ...cleanedGallery])];
   }, [currentRestaurant]);
 
   useEffect(() => {
@@ -519,6 +549,8 @@ export default function RestaurantDetailPanel({
                 </>
               )}
             </>
+          ) : detailsLoading ? (
+            <RestaurantHeroMediaLoading restaurantName={currentRestaurant.name} />
           ) : (
             <div className="restaurantProfileHero__placeholder">DineSmart • {currentRestaurant.name}</div>
           )}
@@ -644,7 +676,7 @@ export default function RestaurantDetailPanel({
               ))}
             </div>
           ) : menuLoading ? (
-            <div className="menuSectionEmpty">Loading menu...</div>
+            <MenuLoadingExperience />
           ) : menuLoadError ? (
             <div className="menuSectionEmpty">{menuLoadError}</div>
           ) : (

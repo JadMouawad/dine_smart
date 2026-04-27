@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useState } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "./auth/AuthContext.jsx";
 
@@ -31,6 +31,13 @@ const PageLoader = () => (
   </div>
 );
 
+function getAuthenticatedHomePath(user) {
+  if (!user) return "";
+  if (user.role === "owner") return "/owner/profile";
+  if (user.role === "admin") return "/admin/dashboard";
+  return "/user";
+}
+
 function AppContent() {
   const [modalOpen, setModalOpen] = useState(false);
   const [mode, setMode] = useState("signup");
@@ -41,6 +48,8 @@ function AppContent() {
 
   const { user, loading, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const authenticatedHomePath = getAuthenticatedHomePath(user);
 
   const openModal = useCallback((nextMode) => {
     setMode(nextMode);
@@ -66,11 +75,24 @@ function AppContent() {
     const hash = location.hash?.replace("#", "");
     if (!hash) return;
 
-    if (hash === "search") goToSection("search", "search");
-    else if (hash === "discover" || hash === "hero" || hash === "contact") {
-      goToSection("full", hash);
-    }
+    const frame = window.requestAnimationFrame(() => {
+      if (hash === "search") goToSection("search", "search");
+      else if (hash === "discover" || hash === "hero" || hash === "contact") {
+        goToSection("full", hash);
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [location.hash, goToSection]);
+
+  useEffect(() => {
+    if (loading || !authenticatedHomePath || location.pathname !== "/") return;
+    navigate(authenticatedHomePath, { replace: true });
+  }, [loading, authenticatedHomePath, location.pathname, navigate]);
+
+  if (!loading && authenticatedHomePath && location.pathname === "/") {
+    return <PageLoader />;
+  }
 
   return (
     <>
