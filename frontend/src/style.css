@@ -16171,22 +16171,50 @@ body.dark .slotDraftRemoveBtn:hover,
     padding: 16px 14px 0;
   }
 
-  /* ---- Navigation ---- */
+  /* ---- Navigation: minimal, brand + floating burger only ---- */
   .nav {
-    padding: 12px 12px;
-    flex-wrap: wrap;
-    gap: 10px;
+    padding: 8px 10px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    min-height: 0 !important;
+    height: auto !important;
   }
+
+  /* Kill the pill bar background entirely, push burger to the right */
+  .nav__pill,
+  .nav__pill--scrolled {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    flex: 1 1 auto !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    position: static !important;
+    transform: none !important;
+  }
+  .nav__pill::after { display: none !important; }
 
   .brand {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
   }
-
   .brand__name {
-    font-size: 18px;
+    font-size: 16px;
+  }
+  .brand__mark,
+  .logo-img {
+    width: 32px !important;
+    height: 32px !important;
   }
 
-  /* Hide desktop links + actions on phone — burger handles it */
+  /* Hide desktop links + extra actions on phone — burger handles it */
   .nav__links,
   .nav__actions {
     display: none !important;
@@ -16198,11 +16226,7 @@ body.dark .slotDraftRemoveBtn:hover,
     justify-content: center;
     align-items: center;
     margin-left: auto;
-  }
-
-  .nav__pill {
-    width: 100%;
-    border-radius: 18px;
+    padding: 8px !important;
   }
 
   /* Mobile menu panel always full width */
@@ -16245,18 +16269,23 @@ body.dark .slotDraftRemoveBtn:hover,
     justify-content: center;
   }
 
-  .hero__right {
-    padding: 0;
+  /* Hide the decorative right scene on phone — saves a huge blank gap */
+  .hero__right,
+  .scene,
+  .dish,
+  .bowl,
+  .gold-wave {
+    display: none !important;
   }
 
-  .scene {
-    height: 240px;
-  }
-
-  .dish {
-    width: clamp(220px, 78vw, 360px);
-    right: -30px;
-    top: 10px;
+  /* GSAP intro animation can leave the right column hidden on mobile,
+     which also stalls the timeline → desc/cta stuck at opacity 0.
+     Force the hero text visible so users always see it. */
+  .hero__title,
+  .hero__desc,
+  .hero__cta {
+    opacity: 1 !important;
+    transform: none !important;
   }
 
   /* ---- Buttons: full width by default on phone ---- */
