@@ -241,6 +241,8 @@ export default function UserSearch({
 
   // Detail view
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  const [selectedRestaurantDetailsLoading, setSelectedRestaurantDetailsLoading] = useState(false);
+  const [selectedRestaurantDetailsError, setSelectedRestaurantDetailsError] = useState("");
   const [restaurantNotFound, setRestaurantNotFound] = useState(false);
   const [reservationIntentToken, setReservationIntentToken] = useState(0);
 
@@ -265,6 +267,7 @@ export default function UserSearch({
   const searchBarRef = useRef(null);
   const dropdownRef = useRef(null);
   const lastQueryRef = useRef("");
+  const selectedRestaurantRequestRef = useRef(0);
 
   // Load recent searches (DB for logged-in, localStorage for guests)
   useEffect(() => {
@@ -380,25 +383,40 @@ export default function UserSearch({
   function openRestaurantDetails(restaurant, { reserve = false } = {}) {
     if (!restaurant?.id) {
       setSelectedRestaurant(restaurant);
+      setSelectedRestaurantDetailsLoading(false);
+      setSelectedRestaurantDetailsError("");
       return;
     }
 
+    const requestId = selectedRestaurantRequestRef.current + 1;
+    selectedRestaurantRequestRef.current = requestId;
     setRestaurantNotFound(false);
     setSelectedRestaurant(restaurant);
+    setSelectedRestaurantDetailsLoading(true);
+    setSelectedRestaurantDetailsError("");
     if (reserve) {
       setReservationIntentToken((prev) => prev + 1);
     }
 
     getRestaurantById(restaurant.id)
       .then((fullRestaurant) => {
+        if (selectedRestaurantRequestRef.current !== requestId) return;
         setSelectedRestaurant((current) =>
           current && String(current.id) === String(restaurant.id)
             ? fullRestaurant
             : current
         );
+        setSelectedRestaurantDetailsError("");
       })
       .catch(() => {
+        if (selectedRestaurantRequestRef.current !== requestId) return;
+        setSelectedRestaurantDetailsError("Menu is temporarily unavailable.");
         // Keep the lightweight search result open if the details request fails.
+      })
+      .finally(() => {
+        if (selectedRestaurantRequestRef.current === requestId) {
+          setSelectedRestaurantDetailsLoading(false);
+        }
       });
   }
 
@@ -669,6 +687,9 @@ export default function UserSearch({
   useEffect(() => {
     if (!restaurantToOpen) return;
     setRestaurantNotFound(false);
+    selectedRestaurantRequestRef.current += 1;
+    setSelectedRestaurantDetailsLoading(false);
+    setSelectedRestaurantDetailsError("");
 
     if (restaurantToOpen.name != null) {
       openRestaurantDetails(restaurantToOpen);
@@ -677,10 +698,22 @@ export default function UserSearch({
     }
 
     const id = restaurantToOpen.id ?? restaurantToOpen;
+    const requestId = selectedRestaurantRequestRef.current;
     getRestaurantById(id)
-      .then((r) => setSelectedRestaurant(r))
-      .catch(() => setRestaurantNotFound(true))
-      .finally(() => clearRestaurantToOpen?.());
+      .then((r) => {
+        if (selectedRestaurantRequestRef.current !== requestId) return;
+        setSelectedRestaurant(r);
+        setSelectedRestaurantDetailsError("");
+      })
+      .catch(() => {
+        if (selectedRestaurantRequestRef.current === requestId) setRestaurantNotFound(true);
+      })
+      .finally(() => {
+        if (selectedRestaurantRequestRef.current === requestId) {
+          setSelectedRestaurantDetailsLoading(false);
+        }
+        clearRestaurantToOpen?.();
+      });
   }, [restaurantToOpen, clearRestaurantToOpen]);
 
   useEffect(() => {
@@ -694,6 +727,8 @@ export default function UserSearch({
       if (type === "search_restaurants" || type === "apply_filters") {
         setRestaurantNotFound(false);
         setSelectedRestaurant(null);
+        setSelectedRestaurantDetailsLoading(false);
+        setSelectedRestaurantDetailsError("");
         setQuery(typeof payload.query === "string" ? payload.query : "");
         setFilters({
           ...getInitialFilters(),
@@ -713,7 +748,10 @@ export default function UserSearch({
       const openReservation = type === "book_table";
       const openResolvedRestaurant = (restaurant) => {
         if (cancelled) return;
+        selectedRestaurantRequestRef.current += 1;
         setSelectedRestaurant(restaurant);
+        setSelectedRestaurantDetailsLoading(false);
+        setSelectedRestaurantDetailsError("");
         if (openReservation) {
           setReservationIntentToken((prev) => prev + 1);
         }
@@ -840,12 +878,20 @@ export default function UserSearch({
     return (
       <RestaurantDetailPanel
         restaurant={selectedRestaurant}
+        menuLoading={selectedRestaurantDetailsLoading}
+        menuLoadError={selectedRestaurantDetailsError}
         isFavorited={isFavorited}
         onToggleFavorite={toggleFavorite}
         requireAuth={requireAuth}
         reservationIntentToken={reservationIntentToken}
         onRestaurantUpdated={handleRestaurantUpdated}
-        onBack={() => { setSelectedRestaurant(null); setRestaurantNotFound(false); }}
+        onBack={() => {
+          selectedRestaurantRequestRef.current += 1;
+          setSelectedRestaurant(null);
+          setSelectedRestaurantDetailsLoading(false);
+          setSelectedRestaurantDetailsError("");
+          setRestaurantNotFound(false);
+        }}
       />
     );
   }
