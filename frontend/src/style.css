@@ -816,6 +816,17 @@ html[data-theme="light"] .quickFilterBtn.is-active {
   border-color: rgba(175, 115, 45, 0.18);
   box-shadow: 0 6px 18px rgba(130, 80, 10, 0.08);
 }
+[data-theme="light"] .menuReorderHandle {
+  background:
+    linear-gradient(135deg, rgba(255, 251, 243, 0.96), rgba(244, 230, 188, 0.84));
+  border-color: rgba(201, 162, 39, 0.34);
+  color: rgba(150, 110, 18, 0.95);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 8px 20px rgba(130, 80, 10, 0.12);
+}
+[data-theme="light"] .menuReorderHandle--item {
+  background:
+    linear-gradient(135deg, rgba(255, 251, 243, 0.98), rgba(244, 230, 188, 0.9));
+}
 [data-theme="light"] .menuItemCard__name {
   color: rgba(26, 14, 6, 0.92);
 }
@@ -4295,8 +4306,10 @@ input[type="date"] {
 
 .ownerMenuSectionInfo {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -4311,6 +4324,8 @@ input[type="date"] {
 }
 
 .ownerMenuSectionCount {
+  flex-basis: 100%;
+  margin-left: 46px;
   color: rgba(255, 255, 255, 0.68);
   font-size: 12px;
   font-weight: 600;
@@ -4379,6 +4394,67 @@ input[type="date"] {
   gap: 12px;
   align-items: center;
   position: relative;
+  transition: opacity 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.menuReorderHandle {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(201, 162, 39, 0.24);
+  background:
+    linear-gradient(135deg, rgba(30, 43, 114, 0.86), rgba(10, 18, 66, 0.88));
+  color: rgba(245, 210, 82, 0.95);
+  cursor: grab;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  user-select: none;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.menuReorderHandle__icon {
+  width: 19px;
+  height: 19px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 5px rgba(201, 162, 39, 0.28));
+}
+
+.menuReorderHandle:hover,
+.menuReorderHandle:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(245, 210, 82, 0.58);
+  box-shadow: 0 0 18px rgba(201, 162, 39, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  outline: none;
+}
+
+.menuReorderHandle:active {
+  cursor: grabbing;
+}
+
+.menuReorderHandle--item {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  z-index: 4;
+  background:
+    linear-gradient(135deg, rgba(30, 43, 114, 0.94), rgba(8, 14, 46, 0.94));
+}
+
+.menuSectionBlock.is-dragging,
+.menuItemCard.is-dragging {
+  opacity: 0.48;
+  border-color: rgba(201, 162, 39, 0.56);
+  box-shadow: 0 0 22px rgba(201, 162, 39, 0.18);
 }
 
 .menuItemCard__media {
@@ -4450,6 +4526,7 @@ input[type="date"] {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
     rgba(12, 19, 79, 0.2);
+  transition: opacity 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .menuSectionEmpty {
@@ -4494,6 +4571,7 @@ input[type="date"] {
 
   .menuItemCard {
     grid-template-columns: 1fr;
+    padding-top: 48px;
   }
 
   .menuItemCard__media {
@@ -4503,6 +4581,10 @@ input[type="date"] {
 
   .menuSectionHeader {
     align-items: start;
+  }
+
+  .ownerMenuSectionCount {
+    margin-left: 0;
   }
 
   .menuItemImageCard .imageCard__preview--equal {

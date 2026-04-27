@@ -1,20 +1,27 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import OwnerNav from "./OwnerNav.jsx";
-import OwnerProfile from "./OwnerProfile.jsx";
-import OwnerMenu from "./OwnerMenu.jsx";
-import RestaurantTableConfig from "./RestaurantTableConfig.jsx";
-import OwnerEvents from "./OwnerEvents.jsx";
-import OwnerReviews from "./OwnerReviews.jsx";
-import OwnerReservations from "./OwnerReservations.jsx";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import { getMyRestaurant } from "../../services/restaurantService.js";
 import { getOwnerReservations } from "../../services/reservationService.js";
 import { getReviewsByRestaurantId } from "../../services/reviewService.js";
 
+const OwnerProfile = lazy(() => import("./OwnerProfile.jsx"));
+const OwnerMenu = lazy(() => import("./OwnerMenu.jsx"));
+const RestaurantTableConfig = lazy(() => import("./RestaurantTableConfig.jsx"));
+const OwnerEvents = lazy(() => import("./OwnerEvents.jsx"));
+const OwnerReviews = lazy(() => import("./OwnerReviews.jsx"));
+const OwnerReservations = lazy(() => import("./OwnerReservations.jsx"));
+
 const OWNER_SEEN_RESERVATIONS_KEY = "ds-owner-seen-reservation-ids";
 const OWNER_SEEN_REVIEWS_KEY = "ds-owner-seen-review-ids";
+
+const TabLoader = () => (
+  <div className="placeholderPage">
+    <p className="placeholderPage__text">Loading...</p>
+  </div>
+);
 
 function normalizeReservationId(reservation) {
   return String(reservation?.id ?? "");
@@ -214,7 +221,9 @@ export default function OwnerShell() {
               license here while the rest of the owner tools stay locked.
             </p>
           </div>
-          <OwnerProfile onLogoPreviewChange={setRestaurantLogoUrl} onSaved={fetchApprovalStatus} />
+          <Suspense fallback={<TabLoader />}>
+            <OwnerProfile onLogoPreviewChange={setRestaurantLogoUrl} onSaved={fetchApprovalStatus} />
+          </Suspense>
         </main>
       </div>
     );
@@ -259,19 +268,21 @@ export default function OwnerShell() {
           </div>
         )}
 
-        {active === "profile" && (
-          <OwnerProfile onLogoPreviewChange={setRestaurantLogoUrl} onSaved={fetchApprovalStatus} />
-        )}
+        <Suspense fallback={<TabLoader />}>
+          {active === "profile" && (
+            <OwnerProfile onLogoPreviewChange={setRestaurantLogoUrl} onSaved={fetchApprovalStatus} />
+          )}
 
-        {active === "menu" && <OwnerMenu />}
+          {active === "menu" && <OwnerMenu />}
 
-        {active === "table-config" && <RestaurantTableConfig />}
+          {active === "table-config" && <RestaurantTableConfig />}
 
-        {active === "events" && <OwnerEvents />}
+          {active === "events" && <OwnerEvents />}
 
-        {active === "reviews" && <OwnerReviews />}
+          {active === "reviews" && <OwnerReviews />}
 
-        {active === "reservations" && <OwnerReservations />}
+          {active === "reservations" && <OwnerReservations />}
+        </Suspense>
 
         {active !== "profile" &&
           active !== "menu" &&
