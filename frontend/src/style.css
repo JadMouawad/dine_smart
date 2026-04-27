@@ -16229,13 +16229,61 @@ body.dark .slotDraftRemoveBtn:hover,
     padding: 8px !important;
   }
 
-  /* Mobile menu panel always full width */
+  /* Mobile menu: clean drop-down panel under the burger */
+  .mobileMenu {
+    background: rgba(0, 0, 0, 0.35);
+  }
   .mobileMenu__panel {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    left: 8px !important;
+    right: 8px !important;
+    top: 60px !important;
+    margin: 0 !important;
+    padding: 14px !important;
+    border-radius: 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px;
+  }
+  .mobileMenu__top {
+    margin-bottom: 6px !important;
+  }
+  .mobileMenu__link {
+    display: block !important;
     width: 100% !important;
-    max-width: 100% !important;
-    left: 0 !important;
-    right: 0 !important;
-    border-radius: 0 0 18px 18px;
+    text-align: left !important;
+    padding: 14px 12px !important;
+    font-size: 16px !important;
+    border-radius: 10px !important;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .mobileMenu__actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    padding-top: 12px !important;
+  }
+  .mobileMenu__actions .btn {
+    width: 100%;
+  }
+
+  /* Same for the logged-in UserNav menu */
+  .userMobileMenu__panel {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    left: 8px !important;
+    right: 8px !important;
+    top: 60px !important;
+    padding: 14px !important;
+    border-radius: 16px !important;
+  }
+  .userMobileMenu__link {
+    width: 100% !important;
+    text-align: left !important;
+    padding: 14px 12px !important;
+    font-size: 16px !important;
   }
 
   /* ---- Hero ---- */
@@ -16269,10 +16317,23 @@ body.dark .slotDraftRemoveBtn:hover,
     justify-content: center;
   }
 
-  /* Hide the decorative right scene on phone — saves a huge blank gap */
-  .hero__right,
-  .scene,
-  .dish,
+  /* Keep the steak/dish but small and tucked under the text — no huge gap */
+  .hero__right {
+    padding: 0 !important;
+    margin-top: 8px;
+  }
+  .scene {
+    height: 200px !important;
+    overflow: hidden !important;
+  }
+  .dish {
+    width: 80vw !important;
+    max-width: 320px !important;
+    right: 50% !important;
+    transform: translateX(50%) rotate(-1deg) !important;
+    top: 0 !important;
+    opacity: 1 !important;
+  }
   .bowl,
   .gold-wave {
     display: none !important;
@@ -16403,13 +16464,29 @@ body.dark .slotDraftRemoveBtn:hover,
     max-width: 100%;
   }
 
-  /* ---- Restaurant cards / generic grid wrappers: 1 column ---- */
+  /* ---- Restaurant / generic card grids: 2 columns on phone ---- */
   [class$="__grid"],
   [class$="__cards"],
   [class$="__list"],
   [class*="grid--"],
   [class*="cards--"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  /* Layout/sidebar grids that MUST stay single column — override the 2-col rule above */
+  .landingHighlights__grid,
+  .filterDrawer__grid,
+  .updatesPrefs__grid,
+  .ownerProfile__grid,
+  .restaurantApprovalCard__grid {
     grid-template-columns: 1fr !important;
+  }
+
+  /* Shrink default RestaurantCard inline padding so two fit cleanly */
+  [class*="restaurant"] [style*="padding"],
+  [class*="Restaurant"] [style*="padding"] {
+    padding: 10px !important;
   }
 
   /* ---- Discover carousel: tighter ---- */
