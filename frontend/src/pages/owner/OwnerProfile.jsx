@@ -1,6 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
-import Map, { Marker, NavigationControl } from "react-map-gl/mapbox";
-import "mapbox-gl/dist/mapbox-gl.css";
+import React, { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { FiEye, FiEyeOff } from "react-icons/fi";
@@ -11,7 +9,7 @@ import ThemedSelect from "../../components/ThemedSelect.jsx";
 import PasswordStrengthMeter from "../../components/PasswordStrengthMeter.jsx";
 import { evaluatePasswordStrength, getPasswordValidationMessage } from "../../utils/passwordStrength.js";
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+const OwnerLocationMap = lazy(() => import("../../components/OwnerLocationMap.jsx"));
 
 const CUISINES = [
   "American",
@@ -946,22 +944,16 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
             </div>
 
             <div className="ownerProfileMapPicker">
-              <Map
-                {...viewState}
-                onMove={(evt) => setViewState(evt.viewState)}
-                onClick={viewOnly ? undefined : handleMapClick}
-                mapboxAccessToken={MAPBOX_TOKEN}
-                style={{ width: "100%", height: "100%" }}
-                mapStyle="mapbox://styles/mapbox/streets-v12"
-                cursor={viewOnly ? "grab" : "crosshair"}
-              >
-                <NavigationControl position="top-right" />
-                {latitude != null && longitude != null && (
-                  <Marker longitude={longitude} latitude={latitude} anchor="bottom">
-                    <div className="ownerMapPin" title={`${latitude}, ${longitude}`} aria-label="Restaurant location pin" />
-                  </Marker>
-                )}
-              </Map>
+              <Suspense fallback={<div className="menuSectionEmpty">Loading map...</div>}>
+                <OwnerLocationMap
+                  viewState={viewState}
+                  onMove={(evt) => setViewState(evt.viewState)}
+                  onClick={handleMapClick}
+                  latitude={latitude}
+                  longitude={longitude}
+                  viewOnly={viewOnly}
+                />
+              </Suspense>
             </div>
 
             <div className="ownerProfileMapCoords">
