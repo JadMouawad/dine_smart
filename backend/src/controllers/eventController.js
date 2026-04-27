@@ -35,7 +35,7 @@ const updateOwnerEvent = async (req, res) => {
       eventId: req.params.id,
       payload: req.body,
     });
-    if (!result.success) return res.status(result.status).json({ message: result.error });
+    if (!result.success) return res.status(result.status).json({ message: result.error, details: result.details });
     return res.status(result.status).json(result.data);
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -48,7 +48,7 @@ const deleteOwnerEvent = async (req, res) => {
       ownerId: req.user.id,
       eventId: req.params.id,
     });
-    if (!result.success) return res.status(result.status).json({ message: result.error });
+    if (!result.success) return res.status(result.status).json({ message: result.error, details: result.details });
     return res.status(result.status).json(result.data);
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -94,7 +94,7 @@ const joinEvent = async (req, res) => {
       eventId: req.params.id,
       payload: req.body || {},
     });
-    if (!result.success) return res.status(result.status).json({ message: result.error });
+    if (!result.success) return res.status(result.status).json({ message: result.error, details: result.details });
     return res.status(result.status).json(result.data);
   } catch (error) {
     return res.status(500).json({ message: error.message });

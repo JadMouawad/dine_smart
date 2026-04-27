@@ -10594,6 +10594,19 @@ margin: 0 auto;
   cursor: pointer;
 }
 
+.eventCounter button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.eventCapacityHint {
+  margin-top: -6px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+
 [data-theme="light"] .eventModalOverlay {
   background: rgba(245, 236, 220, 0.78);
 }
@@ -10649,6 +10662,10 @@ margin: 0 auto;
 
 [data-theme="light"] .eventCounter button {
   color: rgba(26, 14, 6, 0.95);
+}
+
+[data-theme="light"] .eventCapacityHint {
+  color: rgba(80, 45, 15, 0.72);
 }
 
 .eventSuccessIcon {

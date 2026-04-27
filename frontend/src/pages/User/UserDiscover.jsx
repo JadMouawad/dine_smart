@@ -365,6 +365,18 @@ function JoinEventModal({ event, onClose, onConfirm }) {
   const [attendees, setAttendees] = useState(1);
   const [notes, setNotes] = useState("");
   const [seating, setSeating] = useState("Any");
+  const maxAttendees = Number(event?.max_attendees);
+  const goingCount = Number(event?.going_count ?? event?.attendee_count ?? event?.people_going ?? 0);
+  const remainingAttendees = Number.isFinite(maxAttendees)
+    ? Math.max(maxAttendees - (Number.isFinite(goingCount) ? goingCount : 0), 0)
+    : null;
+  const attendeeLimit = remainingAttendees == null ? 20 : Math.min(20, remainingAttendees);
+  const isFull = attendeeLimit <= 0;
+
+  useEffect(() => {
+    setAttendees((current) => Math.min(Math.max(current, 1), Math.max(attendeeLimit, 1)));
+  }, [attendeeLimit]);
+
   if (!event) return null;
 
   return (
@@ -378,11 +390,26 @@ function JoinEventModal({ event, onClose, onConfirm }) {
           <div className="eventFormRow">
             <span>Attendees</span>
             <div className="eventCounter">
-              <button type="button" onClick={() => setAttendees((v) => Math.max(1, v - 1))}>−</button>
+              <button
+                type="button"
+                disabled={attendees <= 1 || isFull}
+                onClick={() => setAttendees((v) => Math.max(1, v - 1))}
+              >-</button>
               <span>{attendees}</span>
-              <button type="button" onClick={() => setAttendees((v) => v + 1)}>+</button>
+              <button
+                type="button"
+                disabled={isFull || attendees >= attendeeLimit}
+                onClick={() => setAttendees((v) => Math.min(attendeeLimit, v + 1))}
+              >+</button>
             </div>
           </div>
+          {remainingAttendees != null && (
+            <div className="eventCapacityHint">
+              {isFull
+                ? "This event is full."
+                : `${remainingAttendees} attendee ${remainingAttendees === 1 ? "spot" : "spots"} remaining`}
+            </div>
+          )}
 
           <div className="eventFormRow">
             <span>Seating</span>
@@ -399,7 +426,12 @@ function JoinEventModal({ event, onClose, onConfirm }) {
           </label>
 
           <div className="eventModal__actions">
-            <button className="btn btn--gold" type="button" onClick={() => onConfirm({ attendees, seating, notes })}>
+            <button
+              className="btn btn--gold"
+              type="button"
+              disabled={isFull}
+              onClick={() => onConfirm({ attendees, seating, notes })}
+            >
               Confirm & Join
             </button>
             <button className="btn btn--ghost" type="button" onClick={onClose}>Cancel</button>

@@ -518,10 +518,22 @@ const joinEvent = async ({ userId, eventId, payload }) => {
     const capacity = await eventRepository.getEventCapacitySummary({ eventId: parsedEventId }, client);
     if (capacity?.max_attendees) {
       const currentBooked = Number(capacity.booked || 0);
+      const remainingAttendees = Math.max(Number(capacity.max_attendees) - currentBooked, 0);
       const proposedTotal = currentBooked + attendeesCount;
       if (proposedTotal > capacity.max_attendees) {
         await client.query("ROLLBACK");
-        return { success: false, status: 409, error: "Event is at full capacity" };
+        return {
+          success: false,
+          status: 409,
+          error: remainingAttendees > 0
+            ? `Only ${remainingAttendees} attendee ${remainingAttendees === 1 ? "spot is" : "spots are"} left for this event.`
+            : "Event is at full capacity.",
+          details: {
+            maxAttendees: Number(capacity.max_attendees),
+            booked: currentBooked,
+            remainingAttendees,
+          },
+        };
       }
     }
 
