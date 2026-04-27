@@ -1335,6 +1335,10 @@ html[data-theme="light"] .quickFilterBtn.is-active {
   color: rgba(26, 14, 6, 0.92);
 }
 
+[data-theme="light"] .userDashboardLoading__title {
+  color: rgba(26, 14, 6, 0.92);
+}
+
 /* Admin pagination text */
 [data-theme="light"] .adminPagination {
   color: rgba(26, 14, 6, 0.70);
@@ -3414,6 +3418,43 @@ body {
 .placeholderPage__text {
   margin: 0;
   color: rgba(255, 255, 255, 0.75);
+}
+
+.userDashboardLoading {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  text-align: center;
+}
+
+.userDashboardLoading__title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.userDashboardLoading__letter {
+  display: inline-block;
+  animation: dashboardLoadingWave 1.15s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes dashboardLoadingWave {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  45% {
+    transform: translateY(-10px);
+  }
 }
 
 @media (max-width: 980px) {

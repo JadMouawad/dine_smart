@@ -14,10 +14,28 @@ const UserDiscover = lazy(() => import("./UserDiscover.jsx"));
 const UserExplore = lazy(() => import("./UserExplore.jsx"));
 
 const USER_SEEN_EVENT_IDS_KEY = "ds-user-seen-event-ids";
+const DASHBOARD_LOADING_TEXT = "Loading your dashboard...";
 
 const TabLoader = () => (
   <div className="placeholderPage">
     <p className="placeholderPage__text">Loading...</p>
+  </div>
+);
+
+const DashboardLoader = () => (
+  <div className="placeholderPage userDashboardLoading" aria-live="polite" aria-busy="true">
+    <h1 className="placeholderPage__title userDashboardLoading__title" aria-label={DASHBOARD_LOADING_TEXT}>
+      {DASHBOARD_LOADING_TEXT.split("").map((character, index) => (
+        <span
+          key={`${character}-${index}`}
+          className="userDashboardLoading__letter"
+          style={{ animationDelay: `${index * 0.045}s` }}
+          aria-hidden="true"
+        >
+          {character === " " ? "\u00a0" : character}
+        </span>
+      ))}
+    </h1>
   </div>
 );
 
@@ -165,11 +183,7 @@ export default function UserShell({ initialActive = "search" }) {
   }, [user?.id, user?.latitude, user?.longitude, active]);
 
   if (loading) {
-    return (
-      <div className="placeholderPage">
-        <h1 className="placeholderPage__title">Loading your dashboard...</h1>
-      </div>
-    );
+    return <DashboardLoader />;
   }
   if (!user || user.role !== "user") return null;
 
