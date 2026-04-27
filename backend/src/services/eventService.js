@@ -202,8 +202,12 @@ const createOwnerEvent = async ({ ownerId, payload }) => {
     return { success: false, status: 400, error: dateTimeValidation.error };
   }
 
+  const hasUnlimitedAttendees = parseBoolean(payload.max_attendees_unlimited, false);
   let maxAttendees = null;
-  if (payload.max_attendees != null && payload.max_attendees !== "") {
+  if (!hasUnlimitedAttendees && (payload.max_attendees == null || payload.max_attendees === "")) {
+    return { success: false, status: 400, error: "max_attendees is required" };
+  }
+  if (!hasUnlimitedAttendees) {
     maxAttendees = parsePositiveInt(payload.max_attendees);
     if (!maxAttendees) {
       return { success: false, status: 400, error: "max_attendees must be a positive number" };
@@ -353,10 +357,14 @@ const updateOwnerEvent = async ({ ownerId, eventId, payload }) => {
   }
   if (payload.description != null) updates.description = String(payload.description).trim() || null;
   if (payload.image_url != null) updates.image_url = String(payload.image_url).trim() || null;
-  if (payload.max_attendees != null) {
-    if (payload.max_attendees === "") {
+  if (payload.max_attendees != null || payload.max_attendees_unlimited != null) {
+    const hasUnlimitedAttendees = parseBoolean(payload.max_attendees_unlimited, false);
+    if (hasUnlimitedAttendees) {
       updates.max_attendees = null;
     } else {
+      if (payload.max_attendees == null || payload.max_attendees === "") {
+        return { success: false, status: 400, error: "max_attendees is required" };
+      }
       const parsedMax = parsePositiveInt(payload.max_attendees);
       if (!parsedMax) return { success: false, status: 400, error: "max_attendees must be a positive number" };
       updates.max_attendees = parsedMax;

@@ -460,6 +460,10 @@ export default function OwnerEvents() {
       setError("Price is required for paid events.");
       return;
     }
+    if (!form.max_attendees_unlimited && (!form.max_attendees || Number(form.max_attendees) <= 0)) {
+      setError("Max attendees is required.");
+      return;
+    }
 
     setSaving(true);
     setError("");
@@ -742,6 +746,7 @@ export default function OwnerEvents() {
                 onChange={(e) => setForm((prev) => ({ ...prev, max_attendees: e.target.value, max_attendees_unlimited: false }))}
                 placeholder="e.g. 30"
                 disabled={form.max_attendees_unlimited}
+                required={!form.max_attendees_unlimited}
               />
               <label className="ownerEventMaxToggle">
                 <input
