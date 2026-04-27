@@ -735,12 +735,12 @@ export default function OwnerEvents() {
               <span>Max Attendees</span>
               <input
                 className={form.max_attendees_unlimited ? "ownerEventMaxInput ownerEventMaxInput--unlimited" : "ownerEventMaxInput"}
-                type="number"
+                type={form.max_attendees_unlimited ? "text" : "number"}
                 min="1"
                 step="1"
-                value={form.max_attendees}
+                value={form.max_attendees_unlimited ? "Infinity" : form.max_attendees}
                 onChange={(e) => setForm((prev) => ({ ...prev, max_attendees: e.target.value, max_attendees_unlimited: false }))}
-                placeholder={form.max_attendees_unlimited ? "∞" : "e.g. 30"}
+                placeholder="e.g. 30"
                 disabled={form.max_attendees_unlimited}
               />
               <label className="ownerEventMaxToggle">
@@ -753,7 +753,7 @@ export default function OwnerEvents() {
                     max_attendees: e.target.checked ? "" : prev.max_attendees,
                   }))}
                 />
-                Unlimited <span className="ownerEventInfinity">(∞)</span>
+                Infinity
               </label>
             </label>
             <label className="field ownerEventPricingField">

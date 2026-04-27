@@ -8337,21 +8337,25 @@ margin: 0 auto;
   cursor: pointer;
 }
 
+.ownerEventMaxInput--unlimited:disabled {
+  color: rgba(255, 255, 255, 0.92);
+  -webkit-text-fill-color: currentColor;
+  font-weight: 800;
+  opacity: 1;
+}
+
 .ownerEventMaxToggle input {
   width: 16px;
   height: 16px;
   accent-color: #c9a227;
 }
 
-.ownerEventMaxInput--unlimited::placeholder {
-  font-size: 22px;
-  line-height: 1;
+[data-theme="light"] .ownerEventMaxToggle {
+  color: rgba(26, 14, 6, 0.88);
 }
 
-.ownerEventInfinity {
-  font-size: 15px;
-  line-height: 1;
-  font-weight: 800;
+[data-theme="light"] .ownerEventMaxInput--unlimited:disabled {
+  color: rgba(26, 14, 6, 0.92);
 }
 
 
