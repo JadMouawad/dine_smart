@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import * as recentSearchService from "../../services/recentSearchService";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext.jsx";
@@ -18,6 +19,7 @@ import ThemedSelect from "../../components/ThemedSelect.jsx";
 // ── Recent Searches (localStorage) ────────────────────────────────────────
 const RECENT_KEY = "dinesmart_recent_searches";
 const MAX_RECENT = 5;
+const RESTAURANT_DETAIL_HISTORY_KEY = "dinesmartRestaurantDetailId";
 
 function getRecentSearches() {
   try {
@@ -79,6 +81,13 @@ function getRestaurantGalleryUrls(restaurant) {
     .find(Boolean);
 
   return fallbackImage ? [fallbackImage] : [];
+}
+
+function withoutRestaurantDetailHistory(state) {
+  if (!state || typeof state !== "object") return {};
+  const nextState = { ...state };
+  delete nextState[RESTAURANT_DETAIL_HISTORY_KEY];
+  return nextState;
 }
 
 function getSafeReviewCount(value) {
@@ -230,6 +239,10 @@ export default function UserSearch({
   initialCuisineToken = 0,
 }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = location.state && typeof location.state === "object" ? location.state : {};
+  const detailHistoryRestaurantId = locationState[RESTAURANT_DETAIL_HISTORY_KEY] ?? null;
 
   // Search state
   const [query, setQuery] = useState("");
@@ -380,12 +393,46 @@ export default function UserSearch({
 
   function isFavorited(restaurantId) { return favorites.some((r) => r.id === restaurantId); }
 
-  function openRestaurantDetails(restaurant, { reserve = false } = {}) {
+  function pushRestaurantDetailHistory(restaurantId) {
+    if (restaurantId == null) return false;
+    const nextId = String(restaurantId);
+    if (String(detailHistoryRestaurantId || "") === nextId) return false;
+    navigate(".", {
+      replace: false,
+      state: {
+        ...locationState,
+        [RESTAURANT_DETAIL_HISTORY_KEY]: nextId,
+      },
+    });
+    return true;
+  }
+
+  function replaceRestaurantDetailHistory() {
+    if (detailHistoryRestaurantId == null) return;
+    navigate(".", {
+      replace: true,
+      state: withoutRestaurantDetailHistory(locationState),
+    });
+  }
+
+  function clearSelectedRestaurantDetails() {
+    selectedRestaurantRequestRef.current += 1;
+    setSelectedRestaurant(null);
+    setSelectedRestaurantDetailsLoading(false);
+    setSelectedRestaurantDetailsError("");
+    setRestaurantNotFound(false);
+  }
+
+  function openRestaurantDetails(restaurant, { reserve = false, pushHistory = true } = {}) {
     if (!restaurant?.id) {
       setSelectedRestaurant(restaurant);
       setSelectedRestaurantDetailsLoading(false);
       setSelectedRestaurantDetailsError("");
       return;
+    }
+
+    if (pushHistory) {
+      pushRestaurantDetailHistory(restaurant.id);
     }
 
     const requestId = selectedRestaurantRequestRef.current + 1;
@@ -419,6 +466,53 @@ export default function UserSearch({
         }
       });
   }
+
+  function handleRestaurantDetailBack() {
+    if (detailHistoryRestaurantId != null) {
+      navigate(-1);
+      return;
+    }
+    clearSelectedRestaurantDetails();
+  }
+
+  useEffect(() => {
+    const stateRestaurantId = detailHistoryRestaurantId != null
+      ? String(detailHistoryRestaurantId)
+      : "";
+
+    if (!stateRestaurantId) {
+      if (selectedRestaurant) clearSelectedRestaurantDetails();
+      return;
+    }
+
+    if (selectedRestaurant && String(selectedRestaurant.id) === stateRestaurantId) return;
+
+    const lightweightRestaurant = restaurants.find((entry) => String(entry?.id) === stateRestaurantId);
+    if (lightweightRestaurant) {
+      openRestaurantDetails(lightweightRestaurant, { pushHistory: false });
+      return;
+    }
+
+    const requestId = selectedRestaurantRequestRef.current + 1;
+    selectedRestaurantRequestRef.current = requestId;
+    setRestaurantNotFound(false);
+    setSelectedRestaurantDetailsLoading(true);
+    setSelectedRestaurantDetailsError("");
+
+    getRestaurantById(stateRestaurantId)
+      .then((restaurant) => {
+        if (selectedRestaurantRequestRef.current !== requestId) return;
+        setSelectedRestaurant(restaurant);
+      })
+      .catch(() => {
+        if (selectedRestaurantRequestRef.current === requestId) setRestaurantNotFound(true);
+      })
+      .finally(() => {
+        if (selectedRestaurantRequestRef.current === requestId) {
+          setSelectedRestaurantDetailsLoading(false);
+        }
+      });
+  }, [detailHistoryRestaurantId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function toggleFavorite(restaurant) {
     const alreadyFavorited = isFavorited(restaurant.id);
@@ -698,6 +792,11 @@ export default function UserSearch({
     }
 
     const id = restaurantToOpen.id ?? restaurantToOpen;
+    if (id != null && pushRestaurantDetailHistory(id)) {
+      clearRestaurantToOpen?.();
+      return;
+    }
+    setSelectedRestaurantDetailsLoading(true);
     const requestId = selectedRestaurantRequestRef.current;
     getRestaurantById(id)
       .then((r) => {
@@ -714,7 +813,7 @@ export default function UserSearch({
         }
         clearRestaurantToOpen?.();
       });
-  }, [restaurantToOpen, clearRestaurantToOpen]);
+  }, [restaurantToOpen, clearRestaurantToOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!chatCommand?.type) return;
@@ -726,6 +825,7 @@ export default function UserSearch({
 
       if (type === "search_restaurants" || type === "apply_filters") {
         setRestaurantNotFound(false);
+        replaceRestaurantDetailHistory();
         setSelectedRestaurant(null);
         setSelectedRestaurantDetailsLoading(false);
         setSelectedRestaurantDetailsError("");
@@ -748,6 +848,7 @@ export default function UserSearch({
       const openReservation = type === "book_table";
       const openResolvedRestaurant = (restaurant) => {
         if (cancelled) return;
+        if (restaurant?.id) pushRestaurantDetailHistory(restaurant.id);
         selectedRestaurantRequestRef.current += 1;
         setSelectedRestaurant(restaurant);
         setSelectedRestaurantDetailsLoading(false);
@@ -782,7 +883,7 @@ export default function UserSearch({
     return () => {
       cancelled = true;
     };
-  }, [chatCommand, clearChatCommand]);
+  }, [chatCommand, clearChatCommand]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (scrollRestoreRef.current == null) return;
@@ -878,6 +979,7 @@ export default function UserSearch({
     return (
       <RestaurantDetailPanel
         restaurant={selectedRestaurant}
+        detailsLoading={selectedRestaurantDetailsLoading}
         menuLoading={selectedRestaurantDetailsLoading}
         menuLoadError={selectedRestaurantDetailsError}
         isFavorited={isFavorited}
@@ -885,13 +987,7 @@ export default function UserSearch({
         requireAuth={requireAuth}
         reservationIntentToken={reservationIntentToken}
         onRestaurantUpdated={handleRestaurantUpdated}
-        onBack={() => {
-          selectedRestaurantRequestRef.current += 1;
-          setSelectedRestaurant(null);
-          setSelectedRestaurantDetailsLoading(false);
-          setSelectedRestaurantDetailsError("");
-          setRestaurantNotFound(false);
-        }}
+        onBack={handleRestaurantDetailBack}
       />
     );
   }

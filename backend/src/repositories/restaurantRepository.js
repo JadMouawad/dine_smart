@@ -700,10 +700,10 @@ const searchRestaurants = async (query, cuisines = [], filters = {}) => {
     "r.certificate_verified",
     "r.approval_status",
     "CASE WHEN length(COALESCE(r.logo_url, '')) <= 200000 THEN r.logo_url ELSE NULL END AS logo_url",
-    "CASE WHEN length(COALESCE(r.cover_url, '')) <= 200000 THEN r.cover_url ELSE NULL END AS cover_url",
+    "r.cover_url",
     `CASE
       WHEN r.gallery_urls IS NULL THEN ARRAY[]::text[]
-      WHEN array_length(r.gallery_urls, 1) > 0 AND length(COALESCE(r.gallery_urls[1], '')) <= 200000 THEN ARRAY[r.gallery_urls[1]]
+      WHEN array_length(r.gallery_urls, 1) > 0 THEN ARRAY[r.gallery_urls[1]]
       ELSE ARRAY[]::text[]
     END AS gallery_urls`,
   ];

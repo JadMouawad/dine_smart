@@ -942,6 +942,24 @@ html[data-theme="light"] .quickFilterBtn.is-active {
 [data-theme="light"] .restaurantProfileHero__img {
   background: rgba(255, 244, 220, 0.60);
 }
+[data-theme="light"] .restaurantHeroMediaLoading {
+  background:
+    linear-gradient(135deg, rgba(255, 252, 245, 0.96), rgba(239, 222, 188, 0.94)),
+    rgba(255, 248, 235, 0.9);
+}
+[data-theme="light"] .restaurantHeroMediaLoading::before,
+[data-theme="light"] .restaurantHeroMediaLoading::after {
+  background: rgba(130, 80, 10, 0.12);
+}
+[data-theme="light"] .restaurantHeroMediaLoading__shine {
+  background: linear-gradient(105deg, transparent 20%, rgba(175, 115, 45, 0.18) 42%, transparent 64%);
+}
+[data-theme="light"] .restaurantHeroMediaLoading__content {
+  background: linear-gradient(0deg, rgba(255, 248, 235, 0.82), transparent);
+}
+[data-theme="light"] .restaurantHeroMediaLoading__label {
+  color: rgba(80, 45, 15, 0.76);
+}
 [data-theme="light"] .restaurantProfileHero__carouselArrow {
   background: rgba(255, 251, 243, 0.92);
   border-color: rgba(175, 115, 45, 0.28);
@@ -1065,6 +1083,46 @@ html[data-theme="light"] .quickFilterBtn.is-active {
 }
 [data-theme="light"] .menuSectionEmpty {
   color: rgba(80, 45, 15, 0.65);
+}
+
+[data-theme="light"] .menuLoadingExperience {
+  border-color: rgba(175, 115, 45, 0.18);
+  background:
+    linear-gradient(135deg, rgba(255, 252, 245, 0.96), rgba(248, 235, 207, 0.92)),
+    rgba(255, 248, 235, 0.9);
+  box-shadow: 0 16px 32px rgba(130, 80, 10, 0.12);
+}
+
+[data-theme="light"] .menuLoadingExperience::before {
+  background: linear-gradient(100deg, transparent 0%, rgba(175, 115, 45, 0.15) 42%, transparent 72%);
+}
+
+[data-theme="light"] .menuLoadingExperience__plate {
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.88) 0 24%, transparent 25%),
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.76) 0 50%, rgba(201, 145, 51, 0.84) 51% 57%, rgba(255, 246, 229, 0.96) 58% 100%);
+  box-shadow: inset 0 1px 12px rgba(255, 255, 255, 0.8), 0 10px 22px rgba(130, 80, 10, 0.16);
+}
+
+[data-theme="light"] .menuLoadingExperience__steam {
+  background: rgba(121, 82, 31, 0.55);
+}
+
+[data-theme="light"] .menuLoadingExperience__eyebrow {
+  color: rgba(155, 96, 24, 0.92);
+}
+
+[data-theme="light"] .menuLoadingExperience__title {
+  color: rgba(44, 27, 12, 0.94);
+}
+
+[data-theme="light"] .menuLoadingExperience__text {
+  color: rgba(80, 45, 15, 0.66);
+}
+
+[data-theme="light"] .menuLoadingExperience__rail span {
+  background: linear-gradient(90deg, rgba(130, 80, 10, 0.1), rgba(201, 145, 51, 0.3), rgba(130, 80, 10, 0.1));
+  background-size: 200% 100%;
 }
 
 /* ── Kebab menu ── */
@@ -4538,6 +4596,166 @@ input[type="date"] {
   padding: 6px 2px;
 }
 
+.menuLoadingExperience {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(18, 28, 48, 0.92), rgba(45, 38, 26, 0.88)),
+    rgba(10, 14, 30, 0.84);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.18);
+}
+
+.menuLoadingExperience::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0.12) 42%, transparent 72%);
+  transform: translateX(-100%);
+  animation: menuLoadingSweep 1.8s ease-in-out infinite;
+}
+
+.menuLoadingExperience__plate {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.18) 0 24%, transparent 25%),
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.08) 0 50%, rgba(220, 170, 72, 0.86) 51% 57%, rgba(255, 255, 255, 0.10) 58% 100%);
+  box-shadow: inset 0 1px 12px rgba(255, 255, 255, 0.12), 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.menuLoadingExperience__steam {
+  position: absolute;
+  bottom: 42px;
+  left: 50%;
+  width: 3px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+  filter: blur(0.2px);
+  animation: menuSteamRise 1.35s ease-in-out infinite;
+}
+
+.menuLoadingExperience__steam--one {
+  margin-left: -13px;
+  animation-delay: 0s;
+}
+
+.menuLoadingExperience__steam--two {
+  height: 28px;
+  margin-left: -1px;
+  animation-delay: 0.18s;
+}
+
+.menuLoadingExperience__steam--three {
+  margin-left: 11px;
+  animation-delay: 0.34s;
+}
+
+.menuLoadingExperience__copy {
+  min-width: 0;
+}
+
+.menuLoadingExperience__eyebrow {
+  margin-bottom: 4px;
+  color: rgba(241, 195, 91, 0.9);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.menuLoadingExperience__title {
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.menuLoadingExperience__text {
+  margin-top: 5px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.menuLoadingExperience__rail {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.menuLoadingExperience__rail span {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.12), rgba(241, 195, 91, 0.28), rgba(255, 255, 255, 0.12));
+  background-size: 200% 100%;
+  animation: menuLoadingRail 1.2s linear infinite;
+}
+
+.menuLoadingExperience__rail span:nth-child(2) {
+  width: 78%;
+  animation-delay: 0.12s;
+}
+
+.menuLoadingExperience__rail span:nth-child(3) {
+  width: 52%;
+  animation-delay: 0.24s;
+}
+
+@keyframes menuLoadingSweep {
+  0% { transform: translateX(-100%); }
+  55%, 100% { transform: translateX(100%); }
+}
+
+@keyframes menuSteamRise {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scaleY(0.75);
+  }
+  35% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-16px) scaleY(1.15);
+  }
+}
+
+@keyframes menuLoadingRail {
+  to { background-position: -200% 0; }
+}
+
+@media (max-width: 640px) {
+  .menuLoadingExperience {
+    grid-template-columns: 1fr;
+    justify-items: start;
+    padding: 16px;
+  }
+
+  .menuLoadingExperience__plate {
+    width: 58px;
+    height: 58px;
+  }
+
+  .menuLoadingExperience__title {
+    font-size: 18px;
+  }
+}
+
 .menuSectionEmpty--page {
   text-align: center;
   padding: 16px 14px;
@@ -6894,6 +7112,79 @@ margin: 0 auto;
   color: rgba(255, 255, 255, 0.92);
   text-align: center;
   padding: 14px;
+}
+
+.restaurantHeroMediaLoading {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(15, 25, 46, 0.96), rgba(48, 38, 26, 0.94)),
+    rgba(8, 13, 43, 0.7);
+}
+
+.restaurantHeroMediaLoading::before,
+.restaurantHeroMediaLoading::after {
+  content: "";
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.restaurantHeroMediaLoading::before {
+  top: 24px;
+  width: 54%;
+}
+
+.restaurantHeroMediaLoading::after {
+  top: 52px;
+  width: 34%;
+}
+
+.restaurantHeroMediaLoading__shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.16) 42%, transparent 64%);
+  transform: translateX(-100%);
+  animation: restaurantHeroMediaSweep 1.5s ease-in-out infinite;
+}
+
+.restaurantHeroMediaLoading__content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 18px 20px;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.34), transparent);
+}
+
+.restaurantHeroMediaLoading__label {
+  display: inline-flex;
+  max-width: 100%;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+@keyframes restaurantHeroMediaSweep {
+  0% { transform: translateX(-100%); }
+  60%, 100% { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .restaurantHeroMediaLoading__shine,
+  .menuLoadingExperience::before,
+  .menuLoadingExperience__steam,
+  .menuLoadingExperience__rail span {
+    animation: none;
+  }
 }
 
 .restaurantProfileHero__carouselArrow {
