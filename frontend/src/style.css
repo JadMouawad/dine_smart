@@ -8261,6 +8261,17 @@ margin: 0 auto;
   accent-color: #c9a227;
 }
 
+.ownerEventMaxInput--unlimited::placeholder {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.ownerEventInfinity {
+  font-size: 15px;
+  line-height: 1;
+  font-weight: 800;
+}
+
 
 .ownerEventFormActions {
   display: flex;
