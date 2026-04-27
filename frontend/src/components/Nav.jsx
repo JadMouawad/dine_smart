@@ -9,6 +9,8 @@ export default function Nav({
   onLogin,
   onSignup,
   onOpenMobile,
+  onCloseMobile,
+  isMobileOpen = false,
   onGoSearch,
   onGoHero,
   onGoDiscover,
@@ -114,11 +116,12 @@ export default function Nav({
         </div>
 
         <button
-          className="nav__burger"
+          className={`nav__burger${isMobileOpen ? " is-open" : ""}`}
           id="burger"
           type="button"
-          aria-label="Open menu"
-          onClick={onOpenMobile}
+          aria-label={isMobileOpen ? "Close menu" : "Open menu"}
+          aria-expanded={isMobileOpen}
+          onClick={isMobileOpen ? onCloseMobile : onOpenMobile}
         >
           <span></span>
           <span></span>

@@ -500,9 +500,10 @@ html[data-theme="light"] .quickFilterBtn.is-active {
   color: rgba(80, 45, 15, 0.75);
 }
 [data-theme="light"] .restaurantCard__recommendedBadge {
-  color: rgba(106, 67, 16, 0.95);
-  border-color: rgba(175, 115, 45, 0.36);
-  background: linear-gradient(135deg, rgba(201, 162, 39, 0.24), rgba(201, 162, 39, 0.14));
+  color: #231405;
+  border-color: rgba(138, 82, 10, 0.32);
+  background: linear-gradient(135deg, #ffe08a 0%, #f4b640 48%, #d88916 100%);
+  box-shadow: 0 8px 18px rgba(96, 54, 10, 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.64);
 }
 [data-theme="light"] .crowdMeter {
   border-color: rgba(175, 115, 45, 0.22);
@@ -571,6 +572,30 @@ html[data-theme="light"] .quickFilterBtn.is-active {
 }
 [data-theme="light"] .discoverEventCard__dateRow {
   color: rgba(80, 45, 15, 0.78);
+}
+[data-theme="light"] .eventTag {
+  color: #fffaf0;
+  border-color: rgba(255, 255, 255, 0.28);
+  background: linear-gradient(135deg, rgba(42, 34, 29, 0.96), rgba(18, 18, 22, 0.94));
+  box-shadow: 0 8px 18px rgba(35, 25, 18, 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+[data-theme="light"] .eventTag--free {
+  color: #17623d;
+  border-color: rgba(32, 132, 75, 0.34);
+  background: linear-gradient(135deg, #dff8e6 0%, #c5efd2 100%);
+  box-shadow: 0 8px 18px rgba(35, 120, 75, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.70);
+}
+[data-theme="light"] .eventTag--hot {
+  color: #fffaf0;
+  border-color: rgba(255, 220, 180, 0.28);
+  background: linear-gradient(135deg, rgba(55, 40, 33, 0.98), rgba(20, 20, 24, 0.95));
+  box-shadow: 0 8px 18px rgba(35, 25, 18, 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+[data-theme="light"] .eventTag--warn {
+  color: #fff8f0;
+  border-color: rgba(154, 45, 31, 0.30);
+  background: linear-gradient(135deg, #dd6b30 0%, #ad3c37 100%);
+  box-shadow: 0 8px 18px rgba(154, 66, 31, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 [data-theme="light"] .discoverEventCard__metaChip {
   color: rgba(80, 45, 15, 0.78);
@@ -4708,6 +4733,7 @@ input[type="date"] {
 }
 
 .ownerProfileGrid__media .documentCard {
+  width: 100%;
   margin-top: 0;
   min-height: 58px;
   padding: 10px 12px;
@@ -4715,6 +4741,7 @@ input[type="date"] {
 }
 
 .ownerProfileGrid__media .documentCard__name {
+  min-width: 0;
   font-size: 13px;
   line-height: 1.35;
 }
@@ -4788,9 +4815,20 @@ input[type="date"] {
 .userSearchPage__title {
   text-align: center;
   margin: 8px 0 18px;
+  font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-size: clamp(32px, 3.3vw, 46px);
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+/* Script variant — used only on the Search Restaurants page heading. */
+.userSearchPage__title--script {
+  font-family: 'Dancing Script', cursive;
   font-size: clamp(38px, 4vw, 58px);
   font-weight: 400;
-  font-family: 'Dancing Script', cursive;
+  letter-spacing: -0.03em;
 }
 
 .searchBarCard {
@@ -4994,25 +5032,31 @@ margin: 0 auto;
 .restaurantCard__recommendedBadge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   width: fit-content;
-  padding: 2px 8px;
+  min-height: 24px;
+  padding: 5px 10px;
   border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: rgba(255, 234, 176, 0.96);
-  border: 1px solid rgba(201, 162, 39, 0.35);
-  background: rgba(201, 162, 39, 0.2);
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  color: #231405;
+  border: 1px solid rgba(255, 240, 184, 0.92);
+  background: linear-gradient(135deg, #ffe38f 0%, #f6bd45 46%, #d78916 100%);
+  box-shadow:
+    0 10px 22px rgba(0, 0, 0, 0.34),
+    0 0 0 1px rgba(35, 20, 5, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.58);
   pointer-events: none;
 }
 
 .restaurantCard__recommendedBadge--cover {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 10px;
+  right: 10px;
   z-index: 4;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
 }
 
 .restaurantCard__metaLine {
@@ -7459,6 +7503,55 @@ margin: 0 auto;
   align-items: start;
 }
 
+.ownerProfileDocumentsCard .documentCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "name link"
+    "name remove";
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 8px;
+}
+
+.ownerProfileDocumentsCard .documentCard__name {
+  grid-area: name;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.ownerProfileDocumentsCard .documentCard__link {
+  grid-area: link;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 6px 9px;
+  border: 1px solid rgba(215, 180, 93, 0.42);
+  border-radius: 999px;
+  background: rgba(201, 162, 39, 0.12);
+  box-shadow: 0 0 0 1px rgba(255, 224, 128, 0.08) inset;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ownerProfileDocumentsCard .documentCard__link:hover {
+  background: rgba(201, 162, 39, 0.18);
+  border-color: rgba(215, 180, 93, 0.58);
+}
+
+.ownerProfileDocumentsCard .documentCard__removeBtn {
+  grid-area: remove;
+  justify-self: end;
+  white-space: nowrap;
+}
+
 .ownerDangerCard {
   border: 1px solid rgba(239, 68, 68, 0.62);
   background:
@@ -9613,11 +9706,14 @@ margin: 0 auto;
 }
 
 .rewardsPoints {
-  text-align: right;
+  min-width: 86px;
   padding: 8px 12px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
+  display: grid;
+  justify-items: center;
+  text-align: center;
 }
 
 .rewardsPoints__value {
@@ -10238,25 +10334,42 @@ margin: 0 auto;
 }
 
 .eventTag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 999px;
-  padding: 5px 10px;
+  min-height: 25px;
+  padding: 5px 11px;
   font-size: 11px;
-  font-weight: 700;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.85);
-  background: rgba(255, 255, 255, 0.06);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #fffaf0;
+  background: linear-gradient(135deg, rgba(42, 34, 29, 0.96), rgba(18, 18, 22, 0.94));
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.eventTag--free {
+  border-color: rgba(163, 245, 188, 0.64);
+  color: #edfff2;
+  background: linear-gradient(135deg, #16834d 0%, #0f6c55 100%);
+  box-shadow: 0 8px 18px rgba(8, 82, 54, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 
 .eventTag--hot {
-  border-color: rgba(255, 90, 90, 0.6);
-  color: #ffb4b4;
-  background: rgba(255, 90, 90, 0.12);
+  border-color: rgba(255, 220, 180, 0.34);
+  color: #fffaf0;
+  background: linear-gradient(135deg, rgba(55, 40, 33, 0.98), rgba(20, 20, 24, 0.95));
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .eventTag--warn {
-  border-color: rgba(251, 191, 36, 0.6);
-  color: #ffe4a6;
-  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(255, 235, 170, 0.82);
+  color: #261605;
+  background: linear-gradient(135deg, #ffe29a 0%, #f7c04d 55%, #d9921d 100%);
+  box-shadow: 0 8px 18px rgba(105, 69, 8, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.54);
 }
 
 .discoverEventCard__social {
@@ -10381,6 +10494,14 @@ margin: 0 auto;
   gap: 14px;
   font-size: 13px;
   color: rgba(255, 255, 255, 0.8);
+}
+
+.eventModal__tags {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 12px;
+  row-gap: 10px;
+  align-items: center;
 }
 
 .eventModal__description {
@@ -10673,10 +10794,29 @@ margin: 0 auto;
 
 /* Restaurant location pin on owner map */
 .ownerMapPin {
-  font-size: 28px;
-  line-height: 1;
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  border-radius: 50% 50% 50% 0;
+  background: linear-gradient(135deg, #f6c842, #d49b18);
   cursor: default;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+  transform: rotate(-45deg);
+  box-shadow:
+    0 0 0 1px rgba(18, 28, 83, 0.18) inset,
+    0 8px 20px rgba(13, 20, 57, 0.32);
+}
+
+.ownerMapPin::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  top: 8px;
+  left: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(18, 28, 83, 0.12);
 }
 
 .ownerProfileMapCoords {
@@ -12432,6 +12572,18 @@ html[data-theme="light"] .quickFilterBtn {
   align-items: flex-start;
 }
 
+.reservationCard__main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.reservationCard__main > .statusBadge {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
 .reservationCard__statusWrap {
   flex-shrink: 0;
 }
@@ -12675,6 +12827,18 @@ html[data-theme="light"] .quickFilterBtn {
   align-items: flex-start;
 }
 
+.reservationCard__main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.reservationCard__main > .statusBadge {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
 .reservationCard__statusWrap {
   flex-shrink: 0;
 }
@@ -12684,6 +12848,17 @@ html[data-theme="light"] .quickFilterBtn {
   gap: 10px;
   margin-top: 14px;
   flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .reservationCard__main {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .reservationCard__main > .statusBadge {
+    margin-top: 0;
+  }
 }
 
 [data-theme="light"] .ownerReservationTabs__btn {
@@ -15743,55 +15918,72 @@ body.dark .slotDraftRemoveBtn:hover,
 
 .eventSearchCard__tags {
   position: absolute;
-  top: 8px;
-  left: 8px;
-  right: 8px;
+  top: 10px;
+  left: 10px;
+  right: 10px;
   z-index: 3;
   display: flex;
   align-items: flex-start;
-  gap: 6px;
+  gap: 7px;
   flex-wrap: wrap;
   pointer-events: none;
 }
 
 .eventSearchCard__tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   max-width: 100%;
-  padding: 4px 9px;
+  min-height: 24px;
+  padding: 5px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  background: rgba(6, 10, 34, 0.72);
-  color: rgba(255, 255, 255, 0.94);
-  font-size: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  background: linear-gradient(135deg, rgba(42, 34, 29, 0.92), rgba(18, 18, 22, 0.90));
+  color: #fffaf0;
+  font-size: 10.5px;
   font-weight: 800;
   line-height: 1.1;
-  text-transform: capitalize;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  text-transform: uppercase;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.22);
+  box-shadow:
+    0 10px 22px rgba(4, 10, 32, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 
 .eventSearchCard__tag--free {
-  border-color: rgba(123, 228, 149, 0.55);
-  background: rgba(35, 140, 75, 0.32);
-  color: #eaffef;
+  border-color: rgba(163, 245, 188, 0.72);
+  background: linear-gradient(135deg, rgba(28, 139, 78, 0.96), rgba(16, 105, 82, 0.92));
+  color: #f0fff4;
 }
 
 .eventSearchCard__tag--warn {
-  border-color: rgba(251, 191, 36, 0.65);
-  background: rgba(201, 162, 39, 0.30);
-  color: #fff4cc;
+  border-color: rgba(255, 200, 151, 0.72);
+  background: linear-gradient(135deg, rgba(219, 107, 48, 0.98), rgba(173, 60, 55, 0.92));
+  color: #fff8f0;
 }
 
 .eventSearchCard__tag--hot {
-  border-color: rgba(255, 126, 126, 0.55);
-  background: rgba(160, 35, 35, 0.28);
-  color: #ffe1e1;
+  border-color: rgba(255, 220, 180, 0.40);
+  background: linear-gradient(135deg, rgba(55, 40, 33, 0.98), rgba(20, 20, 24, 0.95));
+  color: #fffaf0;
 }
 
+.eventSearchCard__tag--accent,
 .eventSearchCard__tag--gold {
-  border-color: rgba(201, 162, 39, 0.60);
-  background: rgba(201, 162, 39, 0.24);
-  color: #fff4cc;
+  border-color: rgba(255, 255, 255, 0.28);
+  background: linear-gradient(135deg, rgba(42, 34, 29, 0.96), rgba(18, 18, 22, 0.94));
+  color: #fffaf0;
+}
+
+.eventSearchCard__tag--more {
+  min-width: 34px;
+  border-color: rgba(255, 255, 255, 0.30);
+  background: #050713;
+  color: #ffffff;
+  box-shadow:
+    0 10px 22px rgba(0, 0, 0, 0.48),
+    0 0 0 1px rgba(5, 7, 19, 0.46),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .eventSearchCard__body {
@@ -15877,34 +16069,42 @@ body.dark .slotDraftRemoveBtn:hover,
 }
 
 [data-theme="light"] .eventSearchCard__tag {
-  border-color: rgba(175, 115, 45, 0.25);
-  background: rgba(255, 251, 243, 0.82);
-  color: #1A0E06;
-  box-shadow: 0 8px 18px rgba(150, 90, 30, 0.12);
+  border-color: rgba(255, 255, 255, 0.30);
+  background: linear-gradient(135deg, rgba(42, 34, 29, 0.94), rgba(18, 18, 22, 0.92));
+  color: #fffaf0;
+  text-shadow: none;
+  box-shadow: 0 8px 18px rgba(35, 25, 18, 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 [data-theme="light"] .eventSearchCard__tag--free {
-  border-color: rgba(47, 143, 79, 0.30);
-  background: rgba(47, 143, 79, 0.12);
-  color: #2f8f4f;
+  border-color: rgba(32, 132, 75, 0.34);
+  background: linear-gradient(135deg, #dff8e6 0%, #c5efd2 100%);
+  color: #17623d;
 }
 
 [data-theme="light"] .eventSearchCard__tag--warn {
-  border-color: rgba(201, 162, 39, 0.45);
-  background: rgba(201, 162, 39, 0.18);
-  color: rgba(140, 90, 10, 0.95);
+  border-color: rgba(195, 81, 45, 0.34);
+  background: linear-gradient(135deg, #ffe6cf 0%, #ffd5c2 100%);
+  color: #8f321d;
 }
 
 [data-theme="light"] .eventSearchCard__tag--hot {
-  border-color: rgba(183, 59, 59, 0.26);
-  background: rgba(183, 59, 59, 0.10);
-  color: #a02f2f;
+  border-color: rgba(255, 220, 180, 0.34);
+  background: linear-gradient(135deg, rgba(55, 40, 33, 0.98), rgba(20, 20, 24, 0.95));
+  color: #fffaf0;
 }
 
+[data-theme="light"] .eventSearchCard__tag--accent,
 [data-theme="light"] .eventSearchCard__tag--gold {
-  border-color: rgba(201, 162, 39, 0.45);
-  background: rgba(201, 162, 39, 0.15);
-  color: rgba(140, 90, 10, 0.95);
+  border-color: rgba(255, 255, 255, 0.30);
+  background: linear-gradient(135deg, rgba(42, 34, 29, 0.94), rgba(18, 18, 22, 0.92));
+  color: #fffaf0;
+}
+
+[data-theme="light"] .eventSearchCard__tag--more {
+  border-color: rgba(255, 255, 255, 0.30);
+  background: #050713;
+  color: #ffffff;
 }
 
 /* Fix Discover Events header text in light mode */
@@ -15916,4 +16116,427 @@ body.dark .slotDraftRemoveBtn:hover,
 [data-theme="light"] .discoverEventsHeader p,
 [data-theme="light"] .discoverEventsHeader__top p {
   color: rgba(58, 34, 15, 0.72);
+}
+
+/* =========================================================================
+   GLOBAL MOBILE OVERRIDES
+   These rules ONLY apply to phones (≤768px). Desktop UI is not affected.
+   Keep this block at the very bottom so it wins the cascade.
+   ========================================================================= */
+@media (max-width: 768px) {
+
+  /* ---- Base hardening: stop horizontal scroll, force border-box ---- */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    max-width: 100vw;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-size: 15px;
+  }
+
+  img,
+  video,
+  iframe,
+  canvas,
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Tables become horizontally scrollable instead of breaking layout */
+  table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ---- Layout containers ---- */
+  .page {
+    min-height: auto;
+  }
+
+  .card,
+  .card--searchView {
+    max-width: 100%;
+    padding: 16px 14px 0;
+  }
+
+  /* ---- Navigation: minimal, brand + floating burger only ---- */
+  .nav {
+    padding: 8px 10px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
+  /* Kill the pill bar background entirely, push burger to the right */
+  .nav__pill,
+  .nav__pill--scrolled {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    flex: 1 1 auto !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    position: static !important;
+    transform: none !important;
+  }
+  .nav__pill::after { display: none !important; }
+
+  .brand {
+    flex: 0 0 auto;
+  }
+  .brand__name {
+    font-size: 16px;
+  }
+  .brand__mark,
+  .logo-img {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  /* Hide desktop links + extra actions on phone — burger handles it */
+  .nav__links,
+  .nav__actions {
+    display: none !important;
+  }
+
+  .nav__burger {
+    display: inline-flex !important;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-left: auto;
+    padding: 8px !important;
+  }
+
+  /* Mobile menu: clean drop-down panel under the burger */
+  .mobileMenu {
+    background: rgba(0, 0, 0, 0.35);
+  }
+  .mobileMenu__panel {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    left: 8px !important;
+    right: 8px !important;
+    top: 60px !important;
+    margin: 0 !important;
+    padding: 14px !important;
+    border-radius: 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px;
+  }
+  .mobileMenu__top {
+    margin-bottom: 6px !important;
+  }
+  .mobileMenu__link {
+    display: block !important;
+    width: 100% !important;
+    text-align: left !important;
+    padding: 14px 12px !important;
+    font-size: 16px !important;
+    border-radius: 10px !important;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .mobileMenu__actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    padding-top: 12px !important;
+  }
+  .mobileMenu__actions .btn {
+    width: 100%;
+  }
+
+  /* Same for the logged-in UserNav menu */
+  .userMobileMenu__panel {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    left: 8px !important;
+    right: 8px !important;
+    top: 60px !important;
+    padding: 14px !important;
+    border-radius: 16px !important;
+  }
+  .userMobileMenu__link {
+    width: 100% !important;
+    text-align: left !important;
+    padding: 14px 12px !important;
+    font-size: 16px !important;
+  }
+
+  /* ---- Hero ---- */
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 8px 4px 20px;
+    min-height: auto;
+    text-align: center;
+  }
+
+  .hero__left {
+    padding: 8px 0;
+  }
+
+  .hero__title {
+    font-size: clamp(30px, 8vw, 40px) !important;
+    line-height: 1.05;
+    margin: 12px 0 10px;
+  }
+
+  .hero__desc {
+    font-size: 15px !important;
+    max-width: 100%;
+    margin: 0 auto 14px;
+  }
+
+  .hero__cta {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Keep the steak/dish but small and tucked under the text — no huge gap */
+  .hero__right {
+    padding: 0 !important;
+    margin-top: 8px;
+  }
+  .scene {
+    height: 200px !important;
+    overflow: hidden !important;
+  }
+  .dish {
+    width: 80vw !important;
+    max-width: 320px !important;
+    right: 50% !important;
+    transform: translateX(50%) rotate(-1deg) !important;
+    top: 0 !important;
+    opacity: 1 !important;
+  }
+  .bowl,
+  .gold-wave {
+    display: none !important;
+  }
+
+  /* GSAP intro animation can leave the right column hidden on mobile,
+     which also stalls the timeline → desc/cta stuck at opacity 0.
+     Force the hero text visible so users always see it. */
+  .hero__title,
+  .hero__desc,
+  .hero__cta {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* ---- Buttons: full width by default on phone ---- */
+  .btn--xl {
+    width: 100%;
+    padding: 14px 18px;
+    font-size: 16px;
+  }
+
+  .btn {
+    min-height: 42px;
+  }
+
+  /* ---- Headings: cap so nothing overflows ---- */
+  h1 { font-size: clamp(26px, 7vw, 34px); line-height: 1.15; }
+  h2 { font-size: clamp(22px, 6vw, 28px); line-height: 1.2; }
+  h3 { font-size: clamp(18px, 5vw, 22px); line-height: 1.25; }
+
+  /* ---- Generic grid/flex flatteners ---- */
+  .landingHighlights__grid,
+  .landingHighlights__inner,
+  .filterDrawer__grid,
+  .updatesPrefs__grid,
+  .restaurantApprovalCard__grid,
+  .ownerProfile__grid,
+  .contactSection__content,
+  .contactSection__inner,
+  .eventsInviteSection__content,
+  .eventsInviteSection__inner,
+  .discover__inner,
+  .profileExtraCard__content,
+  .eventModal__content,
+  .reviewCard__row,
+  .chatWidget__reservationCard__row,
+  .savedSearchPanel__row,
+  .reservationCard__main {
+    grid-template-columns: 1fr !important;
+    flex-direction: column !important;
+    gap: 12px;
+  }
+
+  /* ---- Page-level layouts: stack sidebar + main ---- */
+  .userProfileLayout,
+  .ownerProfileLayout,
+  .adminUsersLayout,
+  .ownerCalendarLayout,
+  .exploreLayout,
+  .restaurantProfileHero--splitLayout {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px;
+  }
+
+  .ownerSidebar,
+  .ownerCalendarSidebar,
+  .ownerCalendarTopbar,
+  .adminArea__main,
+  .ownerArea__main,
+  .userArea__main {
+    width: 100% !important;
+    max-width: 100% !important;
+    position: static !important;
+    height: auto !important;
+  }
+
+  /* ---- Pages ---- */
+  .adminPage,
+  .cuisinePage,
+  .explorePage,
+  .ownerMenuPage,
+  .ownerReviewsPage,
+  .ownerTableConfigPage,
+  .resetPasswordPage,
+  .restaurantReviewsPage,
+  .userReservationsPage,
+  .userSearchPage {
+    padding: 12px !important;
+  }
+
+  /* ---- Modals: fit screen ---- */
+  .modal,
+  [class*="modal__panel"],
+  [class*="modal__content"],
+  [class*="Modal__panel"],
+  [class*="Modal__content"] {
+    max-width: calc(100vw - 16px) !important;
+    width: calc(100vw - 16px) !important;
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+    margin: 8px auto;
+    padding: 16px !important;
+    border-radius: 16px;
+  }
+
+  /* ---- Form fields: full width, big enough touch targets ---- */
+  input,
+  select,
+  textarea,
+  button {
+    max-width: 100%;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px; /* prevents iOS zoom on focus */
+    width: 100%;
+  }
+
+  /* ---- Cards/sections: shrink huge paddings ---- */
+  [class*="Card"],
+  [class*="card"],
+  [class*="Section"],
+  [class*="Panel"] {
+    max-width: 100%;
+  }
+
+  /* ---- Restaurant / generic card grids: 2 columns on phone ---- */
+  [class$="__grid"],
+  [class$="__cards"],
+  [class$="__list"],
+  [class*="grid--"],
+  [class*="cards--"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  /* Layout/sidebar grids that MUST stay single column — override the 2-col rule above */
+  .landingHighlights__grid,
+  .filterDrawer__grid,
+  .updatesPrefs__grid,
+  .ownerProfile__grid,
+  .restaurantApprovalCard__grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Shrink default RestaurantCard inline padding so two fit cleanly */
+  [class*="restaurant"] [style*="padding"],
+  [class*="Restaurant"] [style*="padding"] {
+    padding: 10px !important;
+  }
+
+  /* ---- Discover carousel: tighter ---- */
+  .discoverCarousel,
+  .discoverCarousel__track {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  /* ---- Footer/contact spacing ---- */
+  .contactSection,
+  .eventsInviteSection,
+  .landingHighlights {
+    padding: 24px 12px !important;
+  }
+
+  /* ---- Background glows: tame on small screens to reduce paint cost ---- */
+  .bg__glow {
+    width: 420px;
+    height: 420px;
+    opacity: 0.30;
+  }
+
+  /* ---- Auth modal: use most of the screen ---- */
+  .auth,
+  .auth__panel,
+  .authModal,
+  .authModal__panel {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    padding: 18px !important;
+  }
+}
+
+/* Extra-small phones (≤420px) — final tightening */
+@media (max-width: 420px) {
+  .card,
+  .card--searchView {
+    padding: 12px 10px 0;
+  }
+
+  .hero__title {
+    font-size: 28px !important;
+  }
+
+  .scene {
+    height: 200px;
+  }
+
+  .brand__name {
+    font-size: 16px;
+  }
 }

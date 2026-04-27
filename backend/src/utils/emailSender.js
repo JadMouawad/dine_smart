@@ -2,6 +2,21 @@ const nodemailer = require("nodemailer");
 
 const emailProvider = String(process.env.EMAIL_PROVIDER || "brevo").trim().toLowerCase();
 
+/**
+ * Escape user-controlled strings before interpolating into email HTML.
+ * Defends against fake-admin / phishing layouts crafted via restaurant names,
+ * review comments, etc.
+ */
+const escapeHtml = (value) => {
+  if (value == null) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+};
+
 // SMTP transporter (fallback — Railway blocks outbound SMTP, prefer brevo/resend)
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
@@ -111,6 +126,7 @@ const sendMail = async (mailOptions) => {
  * @param {string} [userName] - Optional user name for personalization
  */
 const sendVerificationEmail = async (to, verificationLink, userName = "User") => {
+  userName = escapeHtml(userName);
   const html = `
     <!DOCTYPE html>
     <html>
@@ -146,6 +162,7 @@ const sendVerificationEmail = async (to, verificationLink, userName = "User") =>
 };
 
 const sendPasswordResetEmail = async (to, resetLink, userName = "User") => {
+  userName = escapeHtml(userName);
   const html = `
     <!DOCTYPE html>
     <html>
@@ -192,16 +209,17 @@ const sendReservationConfirmationEmail = async ({
   seatingPreference,
   specialRequest,
 }) => {
-  const safeRestaurant = restaurantName || "N/A";
-  const safeDate = reservationDate || "N/A";
-  const safeTime = reservationTime || "N/A";
-  const timeLabel = reservationEndTime ? `${safeTime} – ${reservationEndTime}` : safeTime;
+  userName = escapeHtml(userName);
+  const safeRestaurant = escapeHtml(restaurantName) || "N/A";
+  const safeDate = escapeHtml(reservationDate) || "N/A";
+  const safeTime = escapeHtml(reservationTime) || "N/A";
+  const timeLabel = reservationEndTime ? `${safeTime} – ${escapeHtml(reservationEndTime)}` : safeTime;
   const durationLabel = durationMinutes ? ` (${durationMinutes >= 60 ? `${durationMinutes / 60}h` : `${durationMinutes}min`})` : "";
   const safePartySize = partySize != null ? partySize : "N/A";
-  const safeConfirmationId = confirmationId || "N/A";
-  const seatingLine = seatingPreference ? `<p><strong>Seating:</strong> ${seatingPreference}</p>` : "";
+  const safeConfirmationId = escapeHtml(confirmationId) || "N/A";
+  const seatingLine = seatingPreference ? `<p><strong>Seating:</strong> ${escapeHtml(seatingPreference)}</p>` : "";
   const specialRequestLine = specialRequest
-    ? `<p><strong>Special request:</strong> ${specialRequest}</p>`
+    ? `<p><strong>Special request:</strong> ${escapeHtml(specialRequest)}</p>`
     : "";
 
   const textBody =
@@ -272,15 +290,16 @@ const sendReservationUpdatedEmail = async ({
   seatingPreference,
   specialRequest,
 }) => {
-  const safeRestaurant = restaurantName || "N/A";
-  const safeDate = reservationDate || "N/A";
-  const safeTime = reservationTime || "N/A";
-  const timeLabel = reservationEndTime ? `${safeTime} – ${reservationEndTime}` : safeTime;
+  userName = escapeHtml(userName);
+  const safeRestaurant = escapeHtml(restaurantName) || "N/A";
+  const safeDate = escapeHtml(reservationDate) || "N/A";
+  const safeTime = escapeHtml(reservationTime) || "N/A";
+  const timeLabel = reservationEndTime ? `${safeTime} – ${escapeHtml(reservationEndTime)}` : safeTime;
   const durationLabel = durationMinutes ? ` (${durationMinutes >= 60 ? `${durationMinutes / 60}h` : `${durationMinutes}min`})` : "";
   const safePartySize = partySize != null ? partySize : "N/A";
-  const safeConfirmationId = confirmationId || "N/A";
-  const seatingLine = seatingPreference ? `<p><strong>Seating:</strong> ${seatingPreference}</p>` : "";
-  const specialRequestLine = specialRequest ? `<p><strong>Special request:</strong> ${specialRequest}</p>` : "";
+  const safeConfirmationId = escapeHtml(confirmationId) || "N/A";
+  const seatingLine = seatingPreference ? `<p><strong>Seating:</strong> ${escapeHtml(seatingPreference)}</p>` : "";
+  const specialRequestLine = specialRequest ? `<p><strong>Special request:</strong> ${escapeHtml(specialRequest)}</p>` : "";
 
   const textBody =
     `Hi ${userName},\n\n` +
@@ -347,8 +366,14 @@ const sendReservationCancellationEmail = async ({
   partySize,
   confirmationId,
 }) => {
+  userName = escapeHtml(userName);
+  const safeRestaurant = escapeHtml(restaurantName);
+  const safeDate = escapeHtml(reservationDate);
+  const safeTime = escapeHtml(reservationTime);
+  const safePartySize = escapeHtml(partySize);
+  const safeConfirmationId = escapeHtml(confirmationId);
   const confirmationLine = confirmationId
-    ? `<p><strong>Confirmation ID:</strong> ${confirmationId}</p>`
+    ? `<p><strong>Confirmation ID:</strong> ${safeConfirmationId}</p>`
     : "";
 
   const html = `
@@ -363,10 +388,10 @@ const sendReservationCancellationEmail = async ({
       <p>Hi ${userName},</p>
       <p>Your reservation has been cancelled successfully.</p>
       ${confirmationLine}
-      <p><strong>Restaurant:</strong> ${restaurantName}</p>
-      <p><strong>Date:</strong> ${reservationDate}</p>
-      <p><strong>Time:</strong> ${reservationTime}</p>
-      <p><strong>Seats:</strong> ${partySize}</p>
+      <p><strong>Restaurant:</strong> ${safeRestaurant}</p>
+      <p><strong>Date:</strong> ${safeDate}</p>
+      <p><strong>Time:</strong> ${safeTime}</p>
+      <p><strong>Seats:</strong> ${safePartySize}</p>
       <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
       <p style="font-size: 12px; color: #888;">DineSmart - Reservation update</p>
     </body>
@@ -394,14 +419,16 @@ const sendReservationRejectionEmail = async ({
   partySize,
   confirmationId,
 }) => {
-  const safeRestaurant = restaurantName || "the restaurant";
-  const safeDate = reservationDate || "N/A";
-  const safeTime = reservationTime || "N/A";
-  const timeLabel = reservationEndTime ? `${safeTime} - ${reservationEndTime}` : safeTime;
+  userName = escapeHtml(userName);
+  const safeRestaurant = escapeHtml(restaurantName) || "the restaurant";
+  const safeDate = escapeHtml(reservationDate) || "N/A";
+  const safeTime = escapeHtml(reservationTime) || "N/A";
+  const timeLabel = reservationEndTime ? `${safeTime} - ${escapeHtml(reservationEndTime)}` : safeTime;
   const durationLabel = durationMinutes ? ` (${durationMinutes >= 60 ? `${durationMinutes / 60}h` : `${durationMinutes}min`})` : "";
   const safePartySize = partySize != null ? partySize : "N/A";
+  const safeConfirmationId = escapeHtml(confirmationId);
   const confirmationLine = confirmationId
-    ? `<p><strong>Confirmation ID:</strong> ${confirmationId}</p>`
+    ? `<p><strong>Confirmation ID:</strong> ${safeConfirmationId}</p>`
     : "";
 
   const textBody =
@@ -456,10 +483,11 @@ const sendReservationCancelledForEventEmail = async ({
   reservationTime,
   eventTitle,
 }) => {
-  const safeRestaurant = restaurantName || "your restaurant";
-  const safeDate = reservationDate || "the scheduled date";
-  const safeTime = reservationTime || "the scheduled time";
-  const safeEventTitle = eventTitle || "an event";
+  userName = escapeHtml(userName);
+  const safeRestaurant = escapeHtml(restaurantName) || "your restaurant";
+  const safeDate = escapeHtml(reservationDate) || "the scheduled date";
+  const safeTime = escapeHtml(reservationTime) || "the scheduled time";
+  const safeEventTitle = escapeHtml(eventTitle) || "an event";
 
   const html = `
     <!DOCTYPE html>
@@ -492,6 +520,7 @@ const sendReservationCancelledForEventEmail = async ({
 };
 
 const sendNoShowWarningEmail = async ({ to, userName = "Guest" }) => {
+  userName = escapeHtml(userName);
   const html = `
     <!DOCTYPE html>
     <html>
@@ -522,6 +551,8 @@ const sendNoShowWarningEmail = async ({ to, userName = "Guest" }) => {
 };
 
 const sendNoShowBanEmail = async ({ to, userName = "Guest", bannedUntilLabel }) => {
+  userName = escapeHtml(userName);
+  bannedUntilLabel = escapeHtml(bannedUntilLabel);
   const html = `
     <!DOCTYPE html>
     <html>
@@ -557,6 +588,9 @@ const sendRestaurantRejectionEmail = async ({
   restaurantName,
   rejectionReason,
 }) => {
+  ownerName = escapeHtml(ownerName);
+  restaurantName = escapeHtml(restaurantName);
+  rejectionReason = escapeHtml(rejectionReason);
   const html = `
     <!DOCTYPE html>
     <html>
@@ -592,6 +626,8 @@ const sendRestaurantApprovalEmail = async ({
   ownerName = "Restaurant owner",
   restaurantName,
 }) => {
+  ownerName = escapeHtml(ownerName);
+  restaurantName = escapeHtml(restaurantName);
   const html = `
     <!DOCTYPE html>
     <html>
@@ -629,6 +665,11 @@ const sendWaitlistSlotAvailableEmail = async ({
   partySize,
   availableSeats,
 }) => {
+  userName = escapeHtml(userName);
+  restaurantName = escapeHtml(restaurantName);
+  reservationDate = escapeHtml(reservationDate);
+  reservationTime = escapeHtml(reservationTime);
+  partySize = escapeHtml(partySize);
   const availableLine = Number.isFinite(availableSeats)
     ? `<p><strong>Seats available right now:</strong> ${availableSeats}</p>`
     : "";
@@ -672,8 +713,13 @@ const sendSubscriptionUpdateEmail = async ({
   subject,
   message,
 }) => {
-  const safeSubject = subject || "DineSmart Updates";
-  const typeLabel = updateType ? String(updateType).toUpperCase() : "UPDATE";
+  userName = escapeHtml(userName);
+  // Note: keep raw `message` available for the plain-text version below; only
+  // the HTML version needs escaping.
+  const rawMessage = message;
+  const escapedMessage = escapeHtml(message);
+  const safeSubject = escapeHtml(subject) || "DineSmart Updates";
+  const typeLabel = updateType ? escapeHtml(String(updateType).toUpperCase()) : "UPDATE";
   const html = `
     <!DOCTYPE html>
     <html>
@@ -685,7 +731,7 @@ const sendSubscriptionUpdateEmail = async ({
       <p style="margin: 0 0 12px; font-size: 12px; letter-spacing: 1px; color: #777;">${typeLabel}</p>
       <h2 style="margin: 0 0 16px;">${safeSubject}</h2>
       <p>Hi ${userName},</p>
-      <p>${message}</p>
+      <p>${escapedMessage}</p>
       <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
       <p style="font-size: 12px; color: #888;">DineSmart - Updates</p>
     </body>
@@ -695,9 +741,9 @@ const sendSubscriptionUpdateEmail = async ({
   const mailOptions = {
     from: getSenderAddress(),
     to,
-    subject: safeSubject,
+    subject: subject || "DineSmart Updates",
     html,
-    text: `${safeSubject}\n\nHi ${userName},\n\n${message}\n`,
+    text: `${subject || "DineSmart Updates"}\n\nHi ${userName},\n\n${rawMessage}\n`,
   };
 
   await sendMail(mailOptions);
@@ -711,6 +757,10 @@ const sendReviewModerationEmail = async ({
   reviewComment,
   adminNotes,
 }) => {
+  userName = escapeHtml(userName);
+  const safeRestaurant = escapeHtml(restaurantName);
+  const safeReview = escapeHtml(reviewComment) || "No comment";
+  const safeAdminNotes = escapeHtml(adminNotes);
   let subject, message, actionText;
 
   switch (action) {
@@ -718,9 +768,9 @@ const sendReviewModerationEmail = async ({
       subject = "Your review needs changes - DineSmart";
       actionText = "requires changes";
       message = `
-        <p>Your review for <strong>${restaurantName}</strong> has been reviewed by our moderation team and requires some changes before it can be published.</p>
-        <p><strong>Your review:</strong> "${reviewComment || 'No comment'}"</p>
-        ${adminNotes ? `<p><strong>Moderator notes:</strong> ${adminNotes}</p>` : ''}
+        <p>Your review for <strong>${safeRestaurant}</strong> has been reviewed by our moderation team and requires some changes before it can be published.</p>
+        <p><strong>Your review:</strong> "${safeReview}"</p>
+        ${adminNotes ? `<p><strong>Moderator notes:</strong> ${safeAdminNotes}</p>` : ''}
         <p>Please log in to your DineSmart account to edit your review. You can find your reviews in your profile section.</p>
       `;
       break;
@@ -728,8 +778,8 @@ const sendReviewModerationEmail = async ({
       subject = "Your review has been approved - DineSmart";
       actionText = "has been approved and published";
       message = `
-        <p>Great news! Your review for <strong>${restaurantName}</strong> has been approved and is now published.</p>
-        <p><strong>Your review:</strong> "${reviewComment || 'No comment'}"</p>
+        <p>Great news! Your review for <strong>${safeRestaurant}</strong> has been approved and is now published.</p>
+        <p><strong>Your review:</strong> "${safeReview}"</p>
         <p>Thank you for sharing your dining experience with the DineSmart community!</p>
       `;
       break;
@@ -737,9 +787,9 @@ const sendReviewModerationEmail = async ({
       subject = "Your review has been removed - DineSmart";
       actionText = "has been removed";
       message = `
-        <p>Your review for <strong>${restaurantName}</strong> has been reviewed and removed from DineSmart.</p>
-        <p><strong>Your review:</strong> "${reviewComment || 'No comment'}"</p>
-        ${adminNotes ? `<p><strong>Reason:</strong> ${adminNotes}</p>` : ''}
+        <p>Your review for <strong>${safeRestaurant}</strong> has been reviewed and removed from DineSmart.</p>
+        <p><strong>Your review:</strong> "${safeReview}"</p>
+        ${adminNotes ? `<p><strong>Reason:</strong> ${safeAdminNotes}</p>` : ''}
         <p>If you believe this was a mistake, please contact our support team.</p>
       `;
       break;

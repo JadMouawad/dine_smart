@@ -833,7 +833,7 @@ export default function UserSearch({
 
   return (
     <div className="userSearchPage">
-      <h1 className="userSearchPage__title">Search Restaurants</h1>
+      <h1 className="userSearchPage__title userSearchPage__title--script">Search Restaurants</h1>
 
       <div
         style={{

@@ -85,6 +85,8 @@ function AppContent() {
             onLogin={() => openModal("login")}
             onSignup={() => openModal("signup")}
             onOpenMobile={openMobile}
+            onCloseMobile={closeMobile}
+            isMobileOpen={mobileOpen}
             onGoSearch={() => goToSection("search", "search")}
             onGoDiscover={() => goToSection("full", "discover")}
             onGoHero={() => goToSection("full", "hero")}

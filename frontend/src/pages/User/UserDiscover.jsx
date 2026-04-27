@@ -121,6 +121,8 @@ function isEventExpired(event, referenceTime = Date.now()) {
   return eventEnd.getTime() < referenceTime;
 }
 
+const EVENT_CARD_VISIBLE_LABEL_COUNT = 2;
+
 function getEventCardLabels(event, { isFree, isTrending, isEndingSoon }) {
   const labels = [];
   const addLabel = (value, className = "") => {
@@ -132,22 +134,29 @@ function getEventCardLabels(event, { isFree, isTrending, isEndingSoon }) {
 
   if (isEndingSoon) addLabel("Ending Soon", "eventSearchCard__tag--warn");
   if (isFree) addLabel("Free", "eventSearchCard__tag--free");
-  if (event.is_featured) addLabel("Featured", "eventSearchCard__tag--gold");
+  if (event.is_featured) addLabel("Featured", "eventSearchCard__tag--accent");
   if (isTrending) addLabel("Trending", "eventSearchCard__tag--hot");
 
   const rawLabels = [event.label, event.tag, event.category, event.event_label, event.eventLabel];
-  rawLabels.forEach((label) => addLabel(label, "eventSearchCard__tag--gold"));
+  rawLabels.forEach((label) => addLabel(label, "eventSearchCard__tag--accent"));
 
   const listLabels = [event.labels, event.tags, event.event_tags, event.eventTags];
   listLabels.forEach((list) => {
     if (!Array.isArray(list)) return;
     list.forEach((item) => {
-      if (typeof item === "string") addLabel(item, "eventSearchCard__tag--gold");
-      else addLabel(item?.label || item?.name || item?.title, "eventSearchCard__tag--gold");
+      if (typeof item === "string") addLabel(item, "eventSearchCard__tag--accent");
+      else addLabel(item?.label || item?.name || item?.title, "eventSearchCard__tag--accent");
     });
   });
 
   return labels;
+}
+
+function getEventModalTagClass(cardClassName = "") {
+  if (cardClassName.includes("eventSearchCard__tag--free")) return "eventTag--free";
+  if (cardClassName.includes("eventSearchCard__tag--warn")) return "eventTag--warn";
+  if (cardClassName.includes("eventSearchCard__tag--hot")) return "eventTag--hot";
+  return "";
 }
 
 function EventCard({ event, onViewDetails, onJoinEvent }) {
@@ -169,6 +178,8 @@ function EventCard({ event, onViewDetails, onJoinEvent }) {
   const dateLabel = formatDateRange(event.start_date || event.event_date || event.startDate, event.end_date || event.endDate);
   const imageUrl = event.image_url || event.imageUrl || event.cover_url || event.coverUrl || "";
   const labels = getEventCardLabels(event, { isFree, isTrending, isEndingSoon });
+  const visibleLabels = labels.slice(0, EVENT_CARD_VISIBLE_LABEL_COUNT);
+  const hiddenLabelsCount = Math.max(0, labels.length - visibleLabels.length);
 
   return (
     <article
@@ -190,7 +201,7 @@ function EventCard({ event, onViewDetails, onJoinEvent }) {
 
         {labels.length > 0 && (
           <div className="eventSearchCard__tags" aria-label="Event labels">
-            {labels.map((item) => (
+            {visibleLabels.map((item) => (
               <span
                 key={item.label}
                 className={`eventSearchCard__tag ${item.className}`}
@@ -198,6 +209,14 @@ function EventCard({ event, onViewDetails, onJoinEvent }) {
                 {item.label}
               </span>
             ))}
+            {hiddenLabelsCount > 0 && (
+              <span
+                className="eventSearchCard__tag eventSearchCard__tag--more"
+                aria-label={`${hiddenLabelsCount} more event labels`}
+              >
+                +{hiddenLabelsCount}
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -252,7 +271,7 @@ function EventCard({ event, onViewDetails, onJoinEvent }) {
   );
 }
 
-function EventDetailsModal({ event, onClose, onJoin, onSave, onShare }) {
+function EventDetailsModal({ event, referenceTime, onClose, onJoin, onSave, onShare }) {
   if (!event) return null;
   const startDate = buildEventDateTime(event.start_date || event.event_date || event.startDate, event.start_time);
   const endDate = buildEventEndDateTime(
@@ -266,6 +285,12 @@ function EventDetailsModal({ event, onClose, onJoin, onSave, onShare }) {
     ? `${Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60))) } mins`
     : "Duration varies";
   const isFree = event.is_free === true || event.price === 0 || event.price === "0";
+  const isTrending = event.is_trending === true || (event.popularity_score ?? 0) >= 80;
+  const isEndingSoon = endDate
+    ? endDate.getTime() > referenceTime &&
+      endDate.getTime() - referenceTime <= 48 * 60 * 60 * 1000
+    : false;
+  const labels = getEventCardLabels(event, { isFree, isTrending, isEndingSoon });
   const goingCount = event.going_count ?? event.attendee_count ?? event.people_going;
   const mapToken = import.meta.env.VITE_MAPBOX_TOKEN;
   const mapUrl = (event.latitude != null && event.longitude != null && mapToken)
@@ -296,15 +321,18 @@ function EventDetailsModal({ event, onClose, onJoin, onSave, onShare }) {
             <span>⌛ {durationLabel}</span>
           </div>
 
-          <div className="eventModal__tags">
-            {isFree && <span className="eventTag">Free</span>}
-            {(event.is_trending || (event.popularity_score ?? 0) >= 80) && <span className="eventTag eventTag--hot">Trending</span>}
-            {endDate &&
-              endDate.getTime() > Date.now() &&
-              endDate.getTime() - Date.now() <= 48 * 60 * 60 * 1000 && (
-                <span className="eventTag eventTag--warn">Ending Soon</span>
-              )}
-          </div>
+          {labels.length > 0 && (
+            <div className="eventModal__tags" aria-label="Event labels">
+              {labels.map((item) => (
+                <span
+                  key={item.label}
+                  className={`eventTag ${getEventModalTagClass(item.className)}`}
+                >
+                  {item.label}
+                </span>
+              ))}
+            </div>
+          )}
 
           {goingCount != null && <div className="eventModal__social">{goingCount} people attending</div>}
 
@@ -808,6 +836,7 @@ export default function UserDiscover({ onOpenRestaurant, onViewBooking }) {
       {detailsOpen && (
         <EventDetailsModal
           event={activeEvent}
+          referenceTime={eventsNow}
           onClose={() => setDetailsOpen(false)}
           onJoin={(evt) => { setDetailsOpen(false); setActiveEvent(evt); setJoinOpen(true); }}
           onSave={async (evt) => {

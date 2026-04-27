@@ -902,6 +902,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
               </div>
             </div>
             <button type="button" className="appearanceToggle" onClick={toggleTheme}>
+              <span className="appearanceToggle__icon">{theme === "dark" ? "☀️" : "🌙"}</span>
               {theme === "dark" ? "Light mode" : "Dark mode"}
             </button>
           </div>
@@ -957,7 +958,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
                 <NavigationControl position="top-right" />
                 {latitude != null && longitude != null && (
                   <Marker longitude={longitude} latitude={latitude} anchor="bottom">
-                    <div className="ownerMapPin" title={`${latitude}, ${longitude}`}>Pin</div>
+                    <div className="ownerMapPin" title={`${latitude}, ${longitude}`} aria-label="Restaurant location pin" />
                   </Marker>
                 )}
               </Map>
@@ -1135,7 +1136,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
               <div className="imageCard__preview imageCard__preview--equal">
                 {businessLicenseName ? (
                   <div className="documentCard">
-                    <div className="documentCard__name">{businessLicenseName}</div>
+                    <div className="documentCard__name" title={businessLicenseName}>{businessLicenseName}</div>
                     {businessLicenseUrl && (
                       <a className="documentCard__link" href={getPreviewHref(businessLicenseUrl, "business-license")} target="_blank" rel="noreferrer">
                         Preview file
@@ -1167,7 +1168,7 @@ export default function OwnerProfile({ onLogoPreviewChange, onSaved }) {
               <div className="imageCard__preview imageCard__preview--equal">
                 {healthCertificateName ? (
                   <div className="documentCard">
-                    <div className="documentCard__name">{healthCertificateName}</div>
+                    <div className="documentCard__name" title={healthCertificateName}>{healthCertificateName}</div>
                     {healthCertificateUrl && (
                       <a className="documentCard__link" href={getPreviewHref(healthCertificateUrl, "health-certificate")} target="_blank" rel="noreferrer">
                         Preview file

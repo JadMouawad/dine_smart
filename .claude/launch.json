@@ -13,7 +13,7 @@
       "name": "frontend",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "cwd": "/Users/ward/Desktop/aub/271/CMPS-271/frontend",
+      "cwd": "frontend",
       "port": 5173
     }
   ]
