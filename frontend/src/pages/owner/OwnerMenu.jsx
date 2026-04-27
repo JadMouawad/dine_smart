@@ -5,6 +5,19 @@ import ThemedSelect from "../../components/ThemedSelect.jsx";
 
 const CURRENCIES = ["USD", "LBP", "EUR"];
 
+function moveBefore(list, activeId, overId) {
+  if (!activeId || !overId || activeId === overId) return list;
+
+  const activeIndex = list.findIndex((entry) => entry.id === activeId);
+  const overIndex = list.findIndex((entry) => entry.id === overId);
+  if (activeIndex === -1 || overIndex === -1) return list;
+
+  const next = [...list];
+  const [active] = next.splice(activeIndex, 1);
+  next.splice(overIndex, 0, active);
+  return next;
+}
+
 function normalizeMenuFromApi(menuSections) {
   const list = Array.isArray(menuSections) ? menuSections : [];
   const sections = [];
@@ -72,9 +85,6 @@ export default function OwnerMenu() {
   const [itemDesc, setItemDesc] = useState("");
   const [itemImageDataUrl, setItemImageDataUrl] = useState("");
 
-  const [itemSectionDropdownOpen, setItemSectionDropdownOpen] = useState(false);
-  const [itemCurrencyDropdownOpen, setItemCurrencyDropdownOpen] = useState(false);
-
   const [openSectionMenuId, setOpenSectionMenuId] = useState(null);
 
   // ✅ Edit/Rename section states
@@ -86,6 +96,7 @@ export default function OwnerMenu() {
   const [editingItemImageUrl, setEditingItemImageUrl] = useState("");
   const [returnToItemAfterSection, setReturnToItemAfterSection] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [dragState, setDragState] = useState(null);
 
   useEffect(() => {
     setMenuLoading(true);
@@ -131,8 +142,75 @@ export default function OwnerMenu() {
   function closeAllMenus() {
     setOpenSectionMenuId(null);
     setOpenItemMenuId(null);
-    setItemSectionDropdownOpen(false);
-    setItemCurrencyDropdownOpen(false);
+  }
+
+  function startSectionDrag(e, sectionId) {
+    closeAllMenus();
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", sectionId);
+    setDragState({ type: "section", id: sectionId });
+  }
+
+  function startItemDrag(e, item) {
+    closeAllMenus();
+    e.stopPropagation();
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", item.id);
+    setDragState({ type: "item", id: item.id, sectionId: item.sectionId });
+  }
+
+  function finishDrag() {
+    setDragState(null);
+  }
+
+  function allowSectionDrop(e) {
+    if (dragState?.type === "section") {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+    }
+  }
+
+  function allowItemDrop(e) {
+    if (dragState?.type === "item") {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+    }
+  }
+
+  function dropSection(e, overSectionId) {
+    if (dragState?.type !== "section") return;
+    e.preventDefault();
+    setSections((prev) => moveBefore(prev, dragState.id, overSectionId));
+    finishDrag();
+  }
+
+  function dropItemOnItem(e, overItem) {
+    if (dragState?.type !== "item") return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    setItems((prev) => {
+      const moved = prev.map((item) =>
+        item.id === dragState.id ? { ...item, sectionId: overItem.sectionId } : item
+      );
+      return moveBefore(moved, dragState.id, overItem.id);
+    });
+    finishDrag();
+  }
+
+  function dropItemInSection(e, sectionId) {
+    if (dragState?.type !== "item") return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    setItems((prev) => {
+      const active = prev.find((item) => item.id === dragState.id);
+      if (!active) return prev;
+
+      const withoutActive = prev.filter((item) => item.id !== dragState.id);
+      return [...withoutActive, { ...active, sectionId }];
+    });
+    finishDrag();
   }
 
   function openAddSection() {
@@ -216,9 +294,6 @@ export default function OwnerMenu() {
     setItemDesc(item.description);
     setItemImageDataUrl("");
     setEditingItemImageUrl(item.imagePreviewUrl || "");
-    setItemSectionDropdownOpen(false);
-    setItemCurrencyDropdownOpen(false);
-
     setItemModalOpen(true);
     setItemStep(2);
   }
@@ -233,8 +308,6 @@ export default function OwnerMenu() {
     setItemDesc("");
     setItemImageDataUrl("");
     setEditingItemImageUrl("");
-    setItemSectionDropdownOpen(false);
-    setItemCurrencyDropdownOpen(false);
     setItemModalOpen(true);
   }
 
@@ -266,7 +339,6 @@ export default function OwnerMenu() {
   function goToItemDetails(e) {
     e.preventDefault();
     if (!selectedSectionId) return;
-    setItemSectionDropdownOpen(false);
     setItemStep(2);
   }
 
@@ -341,8 +413,6 @@ export default function OwnerMenu() {
     setEditingItemId(null);
     setEditingItemImageUrl("");
     setItemImageDataUrl("");
-    setItemSectionDropdownOpen(false);
-    setItemCurrencyDropdownOpen(false);
   }
 
   if (menuLoading) {
@@ -401,9 +471,26 @@ export default function OwnerMenu() {
           const sectionItems = items.filter((it) => it.sectionId === s.id);
 
           return (
-            <div className="menuSectionBlock" key={s.id}>
+            <div
+              className={`menuSectionBlock ${dragState?.type === "section" && dragState.id === s.id ? "is-dragging" : ""}`}
+              key={s.id}
+              onDragOver={allowSectionDrop}
+              onDrop={(e) => dropSection(e, s.id)}
+            >
               <div className="menuSectionHeader">
                 <div className="ownerMenuSectionInfo">
+                  <button
+                    className="menuReorderHandle menuReorderHandle--section"
+                    type="button"
+                    draggable
+                    title="Drag section"
+                    aria-label={`Drag ${s.name} section`}
+                    onDragStart={(e) => startSectionDrag(e, s.id)}
+                    onDragEnd={finishDrag}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    ::
+                  </button>
                   <button className="btn btn--gold ownerMenuSectionBtn">
                     {s.name}
                   </button>
@@ -465,9 +552,31 @@ export default function OwnerMenu() {
               </div>
 
               {sectionItems.length > 0 ? (
-                <div className="ownerMenuItemsGrid">
+                <div
+                  className="ownerMenuItemsGrid"
+                  onDragOver={allowItemDrop}
+                  onDrop={(e) => dropItemInSection(e, s.id)}
+                >
                   {sectionItems.map((it) => (
-                    <div className="menuItemCard" key={it.id}>
+                    <div
+                      className={`menuItemCard ${dragState?.type === "item" && dragState.id === it.id ? "is-dragging" : ""}`}
+                      key={it.id}
+                      onDragOver={allowItemDrop}
+                      onDrop={(e) => dropItemOnItem(e, it)}
+                    >
+                      <button
+                        className="menuReorderHandle menuReorderHandle--item"
+                        type="button"
+                        draggable
+                        title="Drag item"
+                        aria-label={`Drag ${it.name} menu item`}
+                        onDragStart={(e) => startItemDrag(e, it)}
+                        onDragEnd={finishDrag}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        ::
+                      </button>
+
                       <div className="kebabWrap kebabWrap--item">
                         <button
                           className="kebabBtn"
@@ -550,7 +659,13 @@ export default function OwnerMenu() {
                   ))}
                 </div>
               ) : (
-                <div className="menuSectionEmpty">No items in this section yet.</div>
+                <div
+                  className="menuSectionEmpty"
+                  onDragOver={allowItemDrop}
+                  onDrop={(e) => dropItemInSection(e, s.id)}
+                >
+                  No items in this section yet.
+                </div>
               )}
             </div>
           );
