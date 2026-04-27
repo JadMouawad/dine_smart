@@ -1,6 +1,6 @@
 import React from "react";
 import { HiArrowRight } from "react-icons/hi2";
-import SpeakerImage from "../assets/landing/Speaker.png";
+import SpeakerImage from "../assets/landing/Speaker.webp";
 
 export default function EventsInviteSection({ onJoinEvents }) {
   return (

@@ -1782,7 +1782,7 @@ body.ds-nav-not-sticky .nav {
   z-index: 5;
 }
 
-/* If you don’t have assets/dish.png yet, show a nice placeholder */
+/* If the dish asset is missing, show a nice placeholder */
 .dish:not([src]),
 .dish[src=""] {
   display: none;

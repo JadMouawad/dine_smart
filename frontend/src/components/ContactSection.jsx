@@ -1,6 +1,6 @@
 import React from "react";
 import { HiOutlineEnvelope, HiArrowUpRight } from "react-icons/hi2";
-import EmailImage from "../assets/landing/DSEmail.png";
+import EmailImage from "../assets/landing/DSEmail.webp";
 
 export default function ContactSection() {
   return (
