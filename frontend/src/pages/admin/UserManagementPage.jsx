@@ -4,11 +4,30 @@ import {
   getAdminUserDetails,
   getAdminUsers,
   suspendAdminUser,
+  unbanAdminUser,
 } from "../../services/adminService";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import ThemedSelect from "../../components/ThemedSelect.jsx";
 
 const PAGE_SIZE = 10;
+
+function hasBookingBan(user) {
+  if (!user?.banned_until) return false;
+  const bannedUntil = new Date(user.banned_until);
+  if (Number.isNaN(bannedUntil.getTime())) return true;
+  bannedUntil.setHours(23, 59, 59, 999);
+  return bannedUntil >= new Date();
+}
+
+function isRestricted(user) {
+  return Boolean(user?.is_suspended || hasBookingBan(user));
+}
+
+function getStatusLabel(user) {
+  if (user?.is_suspended) return "Suspended";
+  if (hasBookingBan(user)) return "Booking banned";
+  return "Active";
+}
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState([]);
@@ -109,6 +128,48 @@ export default function UserManagementPage() {
     }
   }
 
+  async function handleUnban(userId) {
+    setMessage("");
+    setError("");
+    setBusyId(userId);
+    try {
+      const updated = await unbanAdminUser(userId);
+      setUsers((prev) =>
+        prev.map((user) =>
+          user.id === userId
+            ? {
+                ...user,
+                is_suspended: false,
+                suspended_at: null,
+                no_show_count: 0,
+                banned_until: null,
+                ...updated,
+              }
+            : user
+        )
+      );
+      if (selectedUserDetails?.id === userId) {
+        setSelectedUserDetails((prev) =>
+          prev
+            ? {
+                ...prev,
+                is_suspended: false,
+                suspended_at: null,
+                no_show_count: 0,
+                banned_until: null,
+                ...updated,
+              }
+            : prev
+        );
+      }
+      setMessage("User unbanned.");
+    } catch (err) {
+      setError(err.message || "Failed to unban user.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function handleDelete(userId) {
     setMessage("");
     setError("");
@@ -204,23 +265,37 @@ export default function UserManagementPage() {
                     <td>{user.email}</td>
                     <td>{user.role}</td>
                     <td>
-                      <span className={`statusBadge ${user.is_suspended ? "statusBadge--cancelled" : "statusBadge--confirmed"}`}>
-                        {user.is_suspended ? "Suspended" : "Active"}
+                      <span className={`statusBadge ${isRestricted(user) ? "statusBadge--cancelled" : "statusBadge--confirmed"}`}>
+                        {getStatusLabel(user)}
                       </span>
                     </td>
                     <td>
                       <div className="adminTableActions">
-                        <button
-                          className="btn btn--ghost"
-                          type="button"
-                          disabled={busyId === user.id || user.is_suspended}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleSuspend(user.id);
-                          }}
-                        >
-                          Suspend
-                        </button>
+                        {isRestricted(user) ? (
+                          <button
+                            className="btn btn--ghost"
+                            type="button"
+                            disabled={busyId === user.id}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleUnban(user.id);
+                            }}
+                          >
+                            Unban
+                          </button>
+                        ) : (
+                          <button
+                            className="btn btn--ghost"
+                            type="button"
+                            disabled={busyId === user.id}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleSuspend(user.id);
+                            }}
+                          >
+                            Suspend
+                          </button>
+                        )}
                         <button
                           className="btn btn--ghost"
                           type="button"
@@ -277,7 +352,13 @@ export default function UserManagementPage() {
               <div className="adminDetailLine"><strong>Email:</strong> {selectedUserDetails.email}</div>
               <div className="adminDetailLine"><strong>Role:</strong> {selectedUserDetails.role}</div>
               <div className="adminDetailLine">
-                <strong>Status:</strong> {selectedUserDetails.is_suspended ? "Suspended" : "Active"}
+                <strong>Status:</strong> {getStatusLabel(selectedUserDetails)}
+              </div>
+              <div className="adminDetailLine">
+                <strong>No-shows:</strong> {selectedUserDetails.no_show_count ?? 0}
+              </div>
+              <div className="adminDetailLine">
+                <strong>Banned until:</strong> {selectedUserDetails.banned_until || "None"}
               </div>
 
               <div className="ownerTableConfigSectionTitle">Review History</div>

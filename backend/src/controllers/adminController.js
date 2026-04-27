@@ -118,6 +118,19 @@ const suspendUser = async (req, res) => {
   }
 };
 
+const unbanUser = async (req, res) => {
+  try {
+    const result = await adminService.unbanUser({
+      userId: req.params.id,
+      adminId: req.user.id,
+    });
+    if (!result.success) return res.status(result.status).json({ message: result.error });
+    return res.status(200).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 const deleteUser = async (req, res) => {
   try {
     const result = await adminService.deleteUser({
@@ -267,6 +280,7 @@ module.exports = {
   getUsers,
   getUserDetails,
   suspendUser,
+  unbanUser,
   deleteUser,
   getFlaggedReviews,
   moderateFlaggedReview,

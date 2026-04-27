@@ -19,6 +19,7 @@ router.put("/restaurants/:id/reject", adminController.rejectRestaurant);
 router.get("/users", adminController.getUsers);
 router.get("/users/:id", adminController.getUserDetails);
 router.put("/users/:id/suspend", adminController.suspendUser);
+router.put("/users/:id/unban", adminController.unbanUser);
 router.delete("/users/:id", adminController.deleteUser);
 
 router.get("/flagged-reviews", adminController.getFlaggedReviews);

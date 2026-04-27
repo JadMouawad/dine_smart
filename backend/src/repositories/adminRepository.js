@@ -209,6 +209,8 @@ const listUsers = async ({ page, limit, search, role, suspended }) => {
       u.is_verified,
       u.is_suspended,
       u.suspended_at,
+      u.no_show_count,
+      u.banned_until,
       u.created_at,
       u.updated_at
     FROM users u
@@ -248,6 +250,8 @@ const getUserDetails = async (userId) => {
         u.is_verified,
         u.is_suspended,
         u.suspended_at,
+        u.no_show_count,
+        u.banned_until,
         u.phone,
         u.profile_picture_url,
         u.created_at,
@@ -295,6 +299,23 @@ const suspendUser = async (userId) => {
           updated_at = NOW()
       WHERE id = $1
       RETURNING id, full_name, email, is_suspended, suspended_at
+    `,
+    [userId]
+  );
+  return result.rows[0] || null;
+};
+
+const unbanUser = async (userId) => {
+  const result = await pool.query(
+    `
+      UPDATE users
+      SET is_suspended = false,
+          suspended_at = NULL,
+          no_show_count = 0,
+          banned_until = NULL,
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING id, full_name, email, is_suspended, suspended_at, no_show_count, banned_until
     `,
     [userId]
   );
@@ -846,6 +867,7 @@ module.exports = {
   listUsers,
   getUserDetails,
   suspendUser,
+  unbanUser,
   deleteUserAndOwnedData,
   getFlaggedReviews,
   applyModerationActionByFlagId,

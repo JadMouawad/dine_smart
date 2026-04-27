@@ -217,6 +217,27 @@ const suspendUser = async ({ userId, adminId }) => {
   return { success: true, data: suspended };
 };
 
+const unbanUser = async ({ userId, adminId }) => {
+  const parsedUserId = parsePositiveInt(userId, null);
+  if (!parsedUserId) return { success: false, status: 400, error: "Invalid user ID" };
+  if (parsedUserId === parseInt(adminId, 10)) {
+    return { success: false, status: 400, error: "You cannot unban your own account" };
+  }
+
+  const unbanned = await adminRepository.unbanUser(parsedUserId);
+  if (!unbanned) return { success: false, status: 404, error: "User not found" };
+
+  await adminRepository.insertAuditLog({
+    adminId,
+    action: "user_unbanned",
+    entityType: "user",
+    entityId: unbanned.id,
+    details: { email: unbanned.email },
+  });
+
+  return { success: true, data: unbanned };
+};
+
 const deleteUser = async ({ userId, adminId }) => {
   const parsedUserId = parsePositiveInt(userId, null);
   if (!parsedUserId) return { success: false, status: 400, error: "Invalid user ID" };
@@ -531,6 +552,7 @@ module.exports = {
   getUsers,
   getUserDetails,
   suspendUser,
+  unbanUser,
   deleteUser,
   getFlaggedReviews,
   moderateFlaggedReview,

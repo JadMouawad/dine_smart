@@ -82,6 +82,10 @@ export async function suspendAdminUser(userId) {
   return apiRequest(`/admin/users/${userId}/suspend`, { method: "PUT" });
 }
 
+export async function unbanAdminUser(userId) {
+  return apiRequest(`/admin/users/${userId}/unban`, { method: "PUT" });
+}
+
 export async function deleteAdminUser(userId) {
   return apiRequest(`/admin/users/${userId}`, { method: "DELETE" });
 }
