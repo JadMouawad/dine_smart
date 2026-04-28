@@ -101,7 +101,7 @@ export default function UserNav({
           </span>
         </a>
 
-        <div className={`nav__pill ${pillScrolled ? "nav__pill--scrolled" : ""}`}>
+        <div className={`nav__pill ${pillScrolled ? "nav__pill--scrolled" : ""} ${navHidden ? "nav__pill--hidden" : ""}`}>
           <nav className="nav__links userNavLinks">
             <button
               type="button"

@@ -41,7 +41,7 @@ export default function AdminNav({
         </span>
       </a>
 
-      <div className={`nav__pill ${pillScrolled ? "nav__pill--scrolled" : ""}`}>
+      <div className={`nav__pill ${pillScrolled ? "nav__pill--scrolled" : ""} ${navHidden ? "nav__pill--hidden" : ""}`}>
         <nav className="nav__links adminNavLinks">
           <a
             href="#"

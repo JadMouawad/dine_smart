@@ -2537,6 +2537,10 @@ body.ds-nav-not-sticky .nav {
     0 0 22px rgba(201, 162, 39, 0.14);
 
   position: relative;
+  transition:
+    transform 0.28s ease,
+    opacity 0.2s ease;
+  will-change: transform;
 }
 
 .nav__pill::after {
@@ -2570,6 +2574,12 @@ body.ds-nav-not-sticky .nav {
   box-shadow:
     0 22px 60px rgba(0, 0, 0, 0.30),
     0 0 30px rgba(201, 162, 39, 0.16);
+}
+
+.nav__pill--hidden {
+  transform: translateX(-50%) translateY(calc(-100% - 32px));
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Force white text ONLY for Getting Started button */
@@ -16657,6 +16667,12 @@ body.dark .slotDraftRemoveBtn:hover,
     transform: none !important;
   }
   .nav__pill::after { display: none !important; }
+
+  .nav__pill--hidden {
+    transform: translateY(calc(-100% - 24px)) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
 
   .brand {
     flex: 0 0 auto;
