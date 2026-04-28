@@ -199,6 +199,19 @@ const dismissFlaggedReview = async (req, res) => {
   }
 };
 
+const hideFlaggedReviewForAdmin = async (req, res) => {
+  try {
+    const result = await adminService.hideFlaggedReviewForAdmin({
+      flagId: req.params.id,
+      adminId: req.user.id,
+    });
+    if (!result.success) return res.status(result.status).json({ message: result.error });
+    return res.status(200).json(result.data);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 const deleteFlaggedReview = async (req, res) => {
   try {
     const result = await adminService.deleteFlaggedReview({
@@ -286,6 +299,7 @@ module.exports = {
   moderateFlaggedReview,
   bulkModerateFlaggedReviews,
   dismissFlaggedReview,
+  hideFlaggedReviewForAdmin,
   deleteFlaggedReview,
   sendSubscriptionUpdate,
   exportStatsCsv,

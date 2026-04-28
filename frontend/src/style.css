@@ -1306,6 +1306,16 @@ html[data-theme="light"] .quickFilterBtn.is-active {
   background: rgba(255, 255, 255, 0.72);
   border-color: rgba(0, 0, 0, 0.09);
 }
+[data-theme="light"] .adminFlaggedReviewCard__trash {
+  background: rgba(255, 251, 243, 0.84);
+  border-color: rgba(175, 115, 45, 0.22);
+  color: rgba(80, 45, 15, 0.72);
+}
+[data-theme="light"] .adminFlaggedReviewCard__trash:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.10);
+  border-color: rgba(239, 68, 68, 0.30);
+  color: #b91c1c;
+}
 [data-theme="light"] .adminEntityCard__title {
   color: rgba(26, 14, 6, 0.92);
 }
@@ -4058,6 +4068,44 @@ input[type="date"] {
 
 .adminEntityCard {
   gap: 8px;
+}
+
+.adminFlaggedReviewCard {
+  position: relative;
+  padding-right: 58px;
+}
+
+.adminFlaggedReviewCard__trash {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.adminFlaggedReviewCard__trash:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fecaca;
+  transform: translateY(-1px);
+}
+
+.adminFlaggedReviewCard__trash:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .adminEntityCard__title {

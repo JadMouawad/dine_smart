@@ -301,6 +301,8 @@ CREATE TABLE IF NOT EXISTS flagged_reviews (
   resolution_label VARCHAR(30),
   status VARCHAR(20) DEFAULT 'pending',
   admin_notes TEXT,
+  admin_hidden_at TIMESTAMPTZ,
+  admin_hidden_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   resolved_at TIMESTAMPTZ,
@@ -326,12 +328,17 @@ CREATE TABLE IF NOT EXISTS flagged_reviews (
   )
 );
 
+ALTER TABLE flagged_reviews
+  ADD COLUMN IF NOT EXISTS admin_hidden_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS admin_hidden_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_flagged_reviews_review_user_report_unique
   ON flagged_reviews(review_id, user_id)
   WHERE source_type = 'USER_REPORT' AND user_id IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_flagged_reviews_pending_action
-  ON flagged_reviews(status, suggested_action, created_at DESC);
+  ON flagged_reviews(status, suggested_action, created_at DESC)
+  WHERE admin_hidden_at IS NULL;
 
 CREATE INDEX IF NOT EXISTS idx_flagged_reviews_source_type
   ON flagged_reviews(source_type);

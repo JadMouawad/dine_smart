@@ -436,6 +436,27 @@ const dismissFlaggedReview = async ({ flagId, adminId, adminNotes }) => {
   });
 };
 
+const hideFlaggedReviewForAdmin = async ({ flagId, adminId }) => {
+  const parsedFlagId = parsePositiveInt(flagId, null);
+  if (!parsedFlagId) return { success: false, status: 400, error: "Invalid flagged review ID" };
+
+  const hidden = await adminRepository.hideFlaggedReviewForAdmin({
+    flagId: parsedFlagId,
+    adminId,
+  });
+  if (!hidden) return { success: false, status: 404, error: "Flagged review not found" };
+
+  await adminRepository.insertAuditLog({
+    adminId,
+    action: "flagged_review_hide_from_admin",
+    entityType: "flagged_review",
+    entityId: hidden.id,
+    details: { review_id: hidden.review_id },
+  });
+
+  return { success: true, data: hidden };
+};
+
 const deleteFlaggedReview = async ({ flagId, adminId }) => {
   return moderateFlaggedReview({
     flagId,
@@ -558,6 +579,7 @@ module.exports = {
   moderateFlaggedReview,
   bulkModerateFlaggedReviews,
   dismissFlaggedReview,
+  hideFlaggedReviewForAdmin,
   deleteFlaggedReview,
   sendSubscriptionUpdate,
   exportStatsAsCsv,

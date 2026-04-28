@@ -35,7 +35,7 @@ const getDashboardStats = async () => {
       (SELECT COUNT(*)::int FROM users) AS total_users,
       (SELECT COUNT(*)::int FROM restaurants) AS total_restaurants,
       (SELECT COUNT(*)::int FROM restaurants WHERE approval_status = 'pending') AS pending_approvals,
-      (SELECT COUNT(*)::int FROM flagged_reviews WHERE status = 'pending') AS flagged_reviews,
+      (SELECT COUNT(*)::int FROM flagged_reviews WHERE status = 'pending' AND admin_hidden_at IS NULL) AS flagged_reviews,
       (SELECT COUNT(*)::int FROM reservations WHERE reservation_date = CURRENT_DATE AND status IN ('accepted', 'confirmed')) AS todays_reservations
   `);
   return result.rows[0];
@@ -76,6 +76,7 @@ const getRecentActivity = async (limit = 10) => {
         FROM flagged_reviews fr
         JOIN reviews rv ON rv.id = fr.review_id
         JOIN restaurants rest ON rest.id = rv.restaurant_id
+        WHERE fr.admin_hidden_at IS NULL
       ) activity
       ORDER BY created_at DESC
       LIMIT $1
@@ -371,12 +372,28 @@ const getFlaggedReviews = async () => {
     JOIN users reviewer ON reviewer.id = rv.user_id
     LEFT JOIN users flagger ON flagger.id = fr.user_id
     JOIN restaurants rest ON rest.id = rv.restaurant_id
+    WHERE fr.admin_hidden_at IS NULL
     ORDER BY
       CASE WHEN fr.status = 'pending' THEN 0 ELSE 1 END,
       COALESCE(fr.confidence, 0) DESC,
       fr.created_at DESC
   `);
   return result.rows;
+};
+
+const hideFlaggedReviewForAdmin = async ({ flagId, adminId }) => {
+  const result = await pool.query(
+    `
+      UPDATE flagged_reviews
+      SET admin_hidden_at = NOW(),
+          admin_hidden_by = $2,
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING id, review_id, status, admin_hidden_at
+    `,
+    [flagId, adminId || null]
+  );
+  return result.rows[0] || null;
 };
 
 const applyModerationActionByFlagId = async ({ flagId, action, adminNotes, resolutionLabel = null }) => {
@@ -727,8 +744,8 @@ const getExportData = async () => {
         (SELECT COUNT(*)::int FROM reservations WHERE status IN ('accepted','confirmed')) AS confirmed_reservations,
         (SELECT COUNT(*)::int FROM reservations WHERE status = 'cancelled') AS cancelled_reservations,
         (SELECT COUNT(*)::int FROM reviews) AS total_reviews,
-        (SELECT COUNT(*)::int FROM flagged_reviews) AS total_flagged_reviews,
-        (SELECT COUNT(*)::int FROM flagged_reviews WHERE status = 'pending') AS pending_flags,
+        (SELECT COUNT(*)::int FROM flagged_reviews WHERE admin_hidden_at IS NULL) AS total_flagged_reviews,
+        (SELECT COUNT(*)::int FROM flagged_reviews WHERE status = 'pending' AND admin_hidden_at IS NULL) AS pending_flags,
         (SELECT ROUND(AVG(rating)::numeric, 2) FROM restaurants WHERE approval_status = 'approved') AS avg_restaurant_rating
     `),
 
@@ -870,6 +887,7 @@ module.exports = {
   unbanUser,
   deleteUserAndOwnedData,
   getFlaggedReviews,
+  hideFlaggedReviewForAdmin,
   applyModerationActionByFlagId,
   bulkApplyModerationAction,
   dismissFlaggedReview,

@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { FiTrash2 } from "react-icons/fi";
 import {
   bulkModerateFlaggedReviews,
   deleteFlaggedReview,
   dismissFlaggedReview,
   getFlaggedReviews,
+  hideFlaggedReviewForAdmin,
   moderateFlaggedReview,
 } from "../../services/adminService";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
@@ -112,6 +114,22 @@ export default function FlaggedReviewsPage({ onPendingCountChange }) {
     }
   }
 
+  async function handleHideFromAdmin(flagId) {
+    setMessage("");
+    setError("");
+    setBusyId(flagId);
+    try {
+      await hideFlaggedReviewForAdmin(flagId);
+      setFlags((prev) => prev.filter((flag) => flag.id !== flagId));
+      setSelectedFlagIds((prev) => prev.filter((id) => id !== flagId));
+      setMessage("Flag removed from admin view. The review was not deleted.");
+    } catch (err) {
+      setError(err.message || "Failed to remove flag from admin view.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function handleBulk(action) {
     if (selectedFlagIds.length === 0) return;
     setMessage("");
@@ -187,7 +205,18 @@ export default function FlaggedReviewsPage({ onPendingCountChange }) {
           </div>
 
           {flags.map((flag) => (
-            <div className="formCard adminEntityCard" key={flag.id}>
+            <div className="formCard adminEntityCard adminFlaggedReviewCard" key={flag.id}>
+              <button
+                className="adminFlaggedReviewCard__trash"
+                type="button"
+                aria-label="Remove this flagged review from admin view only"
+                title="Remove from admin view only"
+                disabled={busyId === flag.id}
+                onClick={() => handleHideFromAdmin(flag.id)}
+              >
+                <FiTrash2 />
+              </button>
+
               <label className="adminEntityCard__meta" style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
                 <input
                   type="checkbox"

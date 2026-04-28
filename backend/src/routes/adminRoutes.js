@@ -26,6 +26,7 @@ router.get("/flagged-reviews", adminController.getFlaggedReviews);
 router.put("/flagged-reviews/bulk-action", adminController.bulkModerateFlaggedReviews);
 router.put("/flagged-reviews/:id/action", adminController.moderateFlaggedReview);
 router.put("/flagged-reviews/:id/dismiss", adminController.dismissFlaggedReview);
+router.put("/flagged-reviews/:id/hide", adminController.hideFlaggedReviewForAdmin);
 router.delete("/flagged-reviews/:id", adminController.deleteFlaggedReview);
 
 router.post("/updates/send", adminController.sendSubscriptionUpdate);

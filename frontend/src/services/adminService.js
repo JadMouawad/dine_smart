@@ -105,6 +105,10 @@ export async function deleteFlaggedReview(flagId) {
   return apiRequest(`/admin/flagged-reviews/${flagId}`, { method: "DELETE" });
 }
 
+export async function hideFlaggedReviewForAdmin(flagId) {
+  return apiRequest(`/admin/flagged-reviews/${flagId}/hide`, { method: "PUT" });
+}
+
 export async function moderateFlaggedReview(flagId, { action, adminNotes = "", resolutionLabel = null } = {}) {
   return apiRequest(`/admin/flagged-reviews/${flagId}/action`, {
     method: "PUT",
