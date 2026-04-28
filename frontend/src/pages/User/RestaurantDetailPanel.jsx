@@ -47,6 +47,31 @@ function RestaurantHeroMediaLoading({ restaurantName }) {
   );
 }
 
+function parseCoordinate(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function calculateDistanceKm(from, to) {
+  const fromLat = parseCoordinate(from?.latitude);
+  const fromLng = parseCoordinate(from?.longitude);
+  const toLat = parseCoordinate(to?.latitude);
+  const toLng = parseCoordinate(to?.longitude);
+  if (fromLat == null || fromLng == null || toLat == null || toLng == null) return null;
+
+  const toRadians = (degrees) => degrees * (Math.PI / 180);
+  const earthRadiusKm = 6371;
+  const deltaLat = toRadians(toLat - fromLat);
+  const deltaLng = toRadians(toLng - fromLng);
+  const lat1 = toRadians(fromLat);
+  const lat2 = toRadians(toLat);
+  const a =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) ** 2;
+
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 /**
  * RestaurantDetailPanel
  *
@@ -65,6 +90,7 @@ export default function RestaurantDetailPanel({
   detailsLoading = false,
   menuLoading = false,
   menuLoadError = "",
+  userLocation = null,
   isFavorited,
   onToggleFavorite,
   requireAuth,
@@ -236,6 +262,30 @@ export default function RestaurantDetailPanel({
   }, [currentRestaurant?.review_count, reviews]);
   const ratingDisplay = currentRestaurant?.rating ?? "N/A";
   const crowdMeta = useMemo(() => getCrowdMeterMeta(currentRestaurant || {}), [currentRestaurant]);
+  const distanceDisplay = useMemo(() => {
+    if (!user?.id) return null;
+    const location = {
+      latitude: userLocation?.latitude ?? user?.latitude,
+      longitude: userLocation?.longitude ?? user?.longitude,
+    };
+    const calculatedDistance = calculateDistanceKm(location, {
+      latitude: currentRestaurant?.latitude,
+      longitude: currentRestaurant?.longitude,
+    });
+    if (calculatedDistance != null) return calculatedDistance.toFixed(2);
+
+    const fallbackDistance = Number(currentRestaurant?.distance_km);
+    return Number.isFinite(fallbackDistance) ? fallbackDistance.toFixed(2) : null;
+  }, [
+    user?.id,
+    user?.latitude,
+    user?.longitude,
+    userLocation?.latitude,
+    userLocation?.longitude,
+    currentRestaurant?.latitude,
+    currentRestaurant?.longitude,
+    currentRestaurant?.distance_km,
+  ]);
 
   const restaurantHoursLabel = useMemo(() => {
     if (!currentRestaurant) return "Hours unavailable";
@@ -482,7 +532,7 @@ export default function RestaurantDetailPanel({
             <div className="restaurantHeroInfoText">
               <span className="restaurantHeroInfoLabel">Distance</span>
               <span className="restaurantHeroInfoValue">
-                {currentRestaurant.distance_km != null ? `${currentRestaurant.distance_km} km` : "Unavailable"}
+                {distanceDisplay != null ? `${distanceDisplay} km` : "Unavailable"}
               </span>
             </div>
           </div>

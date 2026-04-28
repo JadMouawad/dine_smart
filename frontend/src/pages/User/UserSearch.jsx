@@ -982,6 +982,7 @@ export default function UserSearch({
         detailsLoading={selectedRestaurantDetailsLoading}
         menuLoading={selectedRestaurantDetailsLoading}
         menuLoadError={selectedRestaurantDetailsError}
+        userLocation={effectiveGeo}
         isFavorited={isFavorited}
         onToggleFavorite={toggleFavorite}
         requireAuth={requireAuth}
