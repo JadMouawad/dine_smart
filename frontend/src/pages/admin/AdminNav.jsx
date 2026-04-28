@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import logo from "../../assets/logo.png";
+import useHideNavOnScroll from "../../hooks/useHideNavOnScroll";
 
 const DEFAULT_AVATAR =
   "data:image/svg+xml;utf8," +
@@ -25,24 +26,15 @@ export default function AdminNav({
   avatarSrc,
   user,
 }) {
-  const [pillScrolled, setPillScrolled] = useState(false);
   const resolvedAvatar = avatarSrc || user?.profilePictureUrl || DEFAULT_AVATAR;
-
-  useEffect(() => {
-    function onScroll() {
-      setPillScrolled(window.scrollY > 10);
-    }
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  const { pillScrolled, navHidden } = useHideNavOnScroll();
 
   function tabClass(tab) {
     return tab === active ? "is-active" : "";
   }
 
   return (
-    <header className="nav">
+    <header className={`nav ${navHidden ? "nav--hidden" : ""}`}>
       <a className="brand" href="#">
         <span className="brand__mark">
           <img src={logo} className="logo-img" alt="Logo" />

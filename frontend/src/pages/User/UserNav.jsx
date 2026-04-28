@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import logo from "../../assets/logo.png";
 import { DEFAULT_AVATAR } from "../../constants/avatar";
+import useHideNavOnScroll from "../../hooks/useHideNavOnScroll";
 
 const NAV_TABS = [
   { id: "search", label: "🔍 Search" },
@@ -19,18 +20,9 @@ export default function UserNav({
   onLogout,
   unseenEventCount = 0,
 }) {
-  const [pillScrolled, setPillScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const resolvedAvatar = avatarSrc || user?.profilePictureUrl || DEFAULT_AVATAR;
-
-  useEffect(() => {
-    function onScroll() {
-      setPillScrolled(window.scrollY > 10);
-    }
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  const { pillScrolled, navHidden } = useHideNavOnScroll({ disabled: mobileOpen });
 
   function tabClass(tab) {
     return tab === active ? "is-active" : "";
@@ -102,7 +94,7 @@ export default function UserNav({
         </div>
       )}
 
-      <header className="nav">
+      <header className={`nav ${navHidden ? "nav--hidden" : ""}`}>
         <a className="brand" href="#">
           <span className="brand__mark">
             <img src={logo} className="logo-img" alt="Logo" />

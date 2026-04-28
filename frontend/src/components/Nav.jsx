@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import logo from "../assets/logo.png";
 import { useTheme } from "../auth/ThemeContext.jsx";
+import useHideNavOnScroll from "../hooks/useHideNavOnScroll.js";
 
 export default function Nav({
   user,
@@ -16,20 +17,11 @@ export default function Nav({
   onGoDiscover,
   onGoContact,
 }) {
-  const [pillScrolled, setPillScrolled] = useState(false);
   const { theme, toggleTheme } = useTheme();
-
-  useEffect(() => {
-    function onScroll() {
-      setPillScrolled(window.scrollY > 10);
-    }
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  const { pillScrolled, navHidden } = useHideNavOnScroll({ disabled: isMobileOpen });
 
   return (
-    <header className="nav">
+    <header className={`nav ${navHidden ? "nav--hidden" : ""}`}>
       <a className="brand" href="#top" aria-label="Go to top">
         <span className="brand__mark">
           <img src={logo} className="logo-img" alt="DineSmart Logo" />

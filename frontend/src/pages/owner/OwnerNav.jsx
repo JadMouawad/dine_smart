@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import logo from "../../assets/logo.png";
+import useHideNavOnScroll from "../../hooks/useHideNavOnScroll";
 
 export default function OwnerNav({
   active,
@@ -10,16 +11,7 @@ export default function OwnerNav({
   unseenReservationCount = 0,
   unseenReviewCount = 0,
 }) {
-  const [pillScrolled, setPillScrolled] = useState(false);
-
-  useEffect(() => {
-    function onScroll() {
-      setPillScrolled(window.scrollY > 10);
-    }
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  const { pillScrolled, navHidden } = useHideNavOnScroll();
 
   function tabClass(tab) {
     return tab === active ? "is-active" : "";
@@ -31,7 +23,7 @@ export default function OwnerNav({
   }
 
   return (
-    <header className="nav">
+    <header className={`nav ${navHidden ? "nav--hidden" : ""}`}>
       <a className="brand" href="#">
         <span className="brand__mark">
           <img src={logo} className="logo-img" alt="Logo" />
